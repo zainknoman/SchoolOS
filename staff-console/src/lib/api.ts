@@ -86,6 +86,39 @@ export interface CircularSummary {
   readAt: string | null;
 }
 
+export interface ConversationSummary {
+  id: string;
+  recipientType: 'CLASS_TEACHER' | 'SCHOOL_ADMIN' | 'ACCOUNTS' | 'PRINCIPAL';
+  studentId: string | null;
+  otherPartyName: string;
+  lastMessageAt: string;
+  unread: boolean;
+}
+
+export interface MessageSummary {
+  id: string;
+  senderId: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface ConversationDetail {
+  id: string;
+  recipientType: string;
+  studentId: string | null;
+  messages: MessageSummary[];
+}
+
+export interface NotificationSummary {
+  id: string;
+  type: 'diary' | 'circular' | 'message';
+  title: string;
+  body: string;
+  entityRef: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
 function authHeaders(accessToken: string) {
   return { Authorization: `Bearer ${accessToken}` };
 }
@@ -219,5 +252,66 @@ export const api = {
       headers: authHeaders(accessToken),
     });
     return asJson(res);
+  },
+
+  async listConversations(accessToken: string, q?: string): Promise<ConversationSummary[]> {
+    const suffix = q ? `?q=${encodeURIComponent(q)}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/conversations${suffix}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async getConversation(accessToken: string, id: string): Promise<ConversationDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/conversations/${id}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async replyToConversation(accessToken: string, id: string, body: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/conversations/${id}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify({ body }),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async markConversationRead(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/conversations/${id}/read`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listNotifications(accessToken: string): Promise<NotificationSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/notifications`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async markNotificationRead(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/notifications/${id}/read`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async markAllNotificationsRead(accessToken: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/notifications/read-all`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
   },
 };
