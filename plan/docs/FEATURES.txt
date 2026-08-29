@@ -132,13 +132,90 @@ Description: School/section-scoped, attachments, read/unread tracking visible to
 counts.
 
 ### FEAT-010 — Messages
-Domain: data,ui,mobile  Complexity: M  Dependencies: FEAT-002,FEAT-004,FEAT-005
-Description: Scoped inbox; parent may message only Class Teacher/Admin/Accounts/Principal, enforced
-server-side; search/filter/reply.
+Domain:       data,ui,mobile
+Complexity:   M
+Dependencies: FEAT-002, FEAT-004, FEAT-005
+Description:  Two-party conversation threads. A parent may start a conversation only with their child's
+              Class Teacher, School Admin, Accounts, or the Principal — never any other staff member —
+              enforced server-side. `Section.classTeacherId` (new) designates the homeroom teacher used
+              to resolve Class Teacher recipients (distinct from the per-subject teachers already
+              assigned via Timetable). `User.isPrincipal` (new) flags which SCHOOL_ADMIN account is the
+              Principal recipient. The specific staff user resolved at conversation-creation time is the
+              only one who can reply to it (no shared team inbox this sprint — acceptable for this
+              single-school system, same tolerance as other single-admin assumptions from Sprint 6.5).
+              Staff can reply to any conversation they're a party to but cannot start a new one to a
+              parent unprompted this sprint. Replaces the FEAT-001 placeholder `messages`+`recipients`
+              broadcast shape with `Conversation`+`Message` tables.
+User stories:
+  - As a parent, I want to message my child's class teacher, the school admin, accounts, or the
+    principal, so I can raise a concern directly with the right person.
+  - As a parent with two children in different sections, I want to pick which child a "Class Teacher"
+    message is about, so it reaches the correct teacher.
+  - As a teacher/admin/accounts staff member, I want a scoped inbox of conversations addressed to me,
+    so I can search, filter, and reply without leaving the app.
+Acceptance criteria:
+  - `POST /api/v1/conversations` (PARENT only) creates a `Conversation` + first `Message`.
+    `recipientType: CLASS_TEACHER` requires `studentId` and resolves the staff recipient via that
+    student's active Enrollment → `Section.classTeacherId`; `SCHOOL_ADMIN`/`ACCOUNTS`/`PRINCIPAL`
+    resolve to a matching `User` (`PRINCIPAL` via `isPrincipal = true`).
+  - `GET /api/v1/conversations` returns only the caller's own conversations (parent or staff side),
+    with `?q=` search over participant name/body.
+  - `POST /api/v1/conversations/:id/messages` is rejected (403) for anyone not already a party to that
+    conversation — verified by e2e test, not just a hidden UI affordance.
+  - A TEACHER/SCHOOL_ADMIN/ACCOUNTS token cannot create a new conversation to a parent (403) — parent-
+    initiated only, server-enforced.
+  - Every new message writes a `Notification` row for the other party and an `AuditLog` row.
+Edge cases:
+  - A student's section has no `classTeacherId` set yet — creation returns a clear 4xx error, not a
+    500.
+  - No `SCHOOL_ADMIN`/`ACCOUNTS`/principal-flagged user exists yet — creation returns a clear error.
+  - A parent with children in two different sections messaging two different class teachers — each is
+    a separate `Conversation` scoped to its own `studentId`.
+Must NOT:
+  - Let a parent message any staff member outside Class Teacher/Admin/Accounts/Principal (e.g. a
+    different section's teacher) — server-enforced, not just absent from the UI's recipient picker.
+  - Let staff start a new conversation to a parent unprompted this sprint.
 
 ### FEAT-011 — Notifications
-Domain: infra,mobile  Complexity: M  Dependencies: FEAT-007,FEAT-008,FEAT-009,FEAT-010
-Description: FCM push for attendance/diary/circular/message/fee events; deep-links to the right screen.
+Domain:       infra,ui,mobile
+Complexity:   M
+Dependencies: FEAT-002, FEAT-004, FEAT-005, FEAT-008, FEAT-009, FEAT-010
+Description:  In-app notification center (the existing but previously-unused `Notification` table) for
+              diary/circular/message events, deep-linking to the right screen in both clients. Actual
+              push delivery goes behind a `PushAdapter` interface backed by a logging no-op
+              implementation this sprint (same swap-later pattern as `StorageAdapter`) — real FCM
+              wiring needs an actual Firebase project, which per PROJECT-STATUS is deferred to Sprint
+              11-12. Attendance and fee events are excluded from this sprint's notification triggers:
+              attendance is marked daily per student (a notification per mark would be noise, not asked
+              for), and Fees (FEAT-012) doesn't exist as a real feature yet.
+User stories:
+  - As a parent, I want a bell icon showing my recent diary/circular/message alerts, so I know
+    something needs attention without checking every tab.
+  - As a teacher/admin/accounts staff member, I want to be notified in-app when a parent messages me,
+    so I don't miss it.
+  - As a developer, I want push delivery behind a swappable adapter, so wiring a real Firebase project
+    later is a one-file change, not a rewrite.
+Acceptance criteria:
+  - `GET /api/v1/notifications` returns only the caller's own rows, newest first.
+  - `POST /api/v1/notifications/:id/read` and `POST /api/v1/notifications/read-all` are scoped to the
+    caller.
+  - A new diary entry, a new circular (via its existing `CircularRecipient` fan-out), and a new/replied
+    message each create a `Notification` row for the right recipient(s) and invoke
+    `PushAdapter.send()`.
+  - Staff console's existing placeholder bell in `AppShell.vue` becomes a real dropdown backed by
+    `GET /notifications`, with an unread-count badge and click-to-mark-read-and-navigate.
+  - Parent app gains a new bell icon in `HomeShell`'s `AppBar` (the bottom nav's "Notifications" slot
+    is already Circulars, per Sprint 5-6 — left unchanged) with the same deep-link behavior.
+Edge cases:
+  - A notification's `entityRef` points at a conversation/diary entry/circular the user's access to
+    has since changed (e.g. re-enrolled to a different section) — the deep link fails gracefully, not
+    a crash.
+  - `read-all` racing a new notification arriving concurrently.
+Must NOT:
+  - Let `PushAdapter.send()` throwing fail or roll back the triggering write — notification delivery
+    is best-effort, never the cause of a 500 on the primary action.
+  - Present the no-op adapter as if it were real push delivery — it must log/no-op honestly, not fake
+    success.
 
 ### FEAT-012 — Fees
 Domain: data,ui,mobile,payments  Complexity: L  Dependencies: FEAT-001,FEAT-004,FEAT-005
