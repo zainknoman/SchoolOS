@@ -17,7 +17,7 @@ export class ConversationsController {
   @Roles('PARENT')
   @Post()
   create(@Body() dto: CreateConversationDto, @Req() req: AuthenticatedRequest) {
-    return this.conversationsService.create(dto, req.user.id);
+    return this.conversationsService.create(dto, req.user);
   }
 
   @Get()

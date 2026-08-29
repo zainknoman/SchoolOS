@@ -4,6 +4,7 @@ import { ConversationsService } from './conversations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { StudentAccessService } from '../common/student-access.service';
 
 describe('ConversationsService', () => {
   let service: ConversationsService;
@@ -17,6 +18,7 @@ describe('ConversationsService', () => {
   };
   let enrollment: { getCurrentEnrollment: jest.Mock };
   let notifications: { notify: jest.Mock };
+  let studentAccess: { assertCanAccessStudent: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -34,12 +36,14 @@ describe('ConversationsService', () => {
     };
     enrollment = { getCurrentEnrollment: jest.fn() };
     notifications = { notify: jest.fn().mockResolvedValue(undefined) };
+    studentAccess = { assertCanAccessStudent: jest.fn().mockResolvedValue(undefined) };
     const moduleRef = await Test.createTestingModule({
       providers: [
         ConversationsService,
         { provide: PrismaService, useValue: prisma },
         { provide: EnrollmentService, useValue: enrollment },
         { provide: NotificationsService, useValue: notifications },
+        { provide: StudentAccessService, useValue: studentAccess },
       ],
     }).compile();
     service = moduleRef.get(ConversationsService);
@@ -53,7 +57,7 @@ describe('ConversationsService', () => {
 
     const result = await service.create(
       { recipientType: 'CLASS_TEACHER', studentId: 'student-1', body: 'Hello' },
-      'parent-1',
+      { id: 'parent-1', role: 'PARENT' },
     );
 
     expect(prisma.conversation.create).toHaveBeenCalledWith(
@@ -82,7 +86,10 @@ describe('ConversationsService', () => {
     prisma.section.findUnique.mockResolvedValue({ id: 'sec-1', classTeacherId: null });
 
     await expect(
-      service.create({ recipientType: 'CLASS_TEACHER', studentId: 'student-1', body: 'Hi' }, 'parent-1'),
+      service.create(
+        { recipientType: 'CLASS_TEACHER', studentId: 'student-1', body: 'Hi' },
+        { id: 'parent-1', role: 'PARENT' },
+      ),
     ).rejects.toThrow(BadRequestException);
     expect(prisma.conversation.create).not.toHaveBeenCalled();
   });
@@ -91,7 +98,7 @@ describe('ConversationsService', () => {
     prisma.user.findFirst.mockResolvedValue({ id: 'admin-1' });
     prisma.conversation.create.mockResolvedValue({ id: 'conv-2' });
 
-    await service.create({ recipientType: 'SCHOOL_ADMIN', body: 'Question' }, 'parent-1');
+    await service.create({ recipientType: 'SCHOOL_ADMIN', body: 'Question' }, { id: 'parent-1', role: 'PARENT' });
 
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
       where: { role: 'SCHOOL_ADMIN' },
@@ -103,7 +110,7 @@ describe('ConversationsService', () => {
     prisma.user.findFirst.mockResolvedValue({ id: 'admin-1' });
     prisma.conversation.create.mockResolvedValue({ id: 'conv-3' });
 
-    await service.create({ recipientType: 'PRINCIPAL', body: 'Question' }, 'parent-1');
+    await service.create({ recipientType: 'PRINCIPAL', body: 'Question' }, { id: 'parent-1', role: 'PARENT' });
 
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
       where: { isPrincipal: true },
@@ -115,8 +122,20 @@ describe('ConversationsService', () => {
     prisma.user.findFirst.mockResolvedValue(null);
 
     await expect(
-      service.create({ recipientType: 'ACCOUNTS', body: 'Hi' }, 'parent-1'),
+      service.create({ recipientType: 'ACCOUNTS', body: 'Hi' }, { id: 'parent-1', role: 'PARENT' }),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('throws ForbiddenException if the parent cannot access the given student', async () => {
+    studentAccess.assertCanAccessStudent.mockRejectedValue(new ForbiddenException());
+
+    await expect(
+      service.create(
+        { recipientType: 'CLASS_TEACHER', studentId: 'student-1', body: 'Hi' },
+        { id: 'parent-1', role: 'PARENT' },
+      ),
+    ).rejects.toThrow(ForbiddenException);
+    expect(prisma.conversation.create).not.toHaveBeenCalled();
   });
 
   it("a parent's list shows the staff member's name and marks unread when their own read timestamp is stale", async () => {

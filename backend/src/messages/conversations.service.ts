@@ -4,7 +4,7 @@ import { EnrollmentService } from '../enrollment/enrollment.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
-import { RequestUser } from '../common/student-access.service';
+import { RequestUser, StudentAccessService } from '../common/student-access.service';
 
 export interface ConversationSummary {
   id: string;
@@ -35,25 +35,30 @@ export class ConversationsService {
     private readonly prisma: PrismaService,
     private readonly enrollmentService: EnrollmentService,
     private readonly notifications: NotificationsService,
+    private readonly studentAccess: StudentAccessService,
   ) {}
 
-  async create(dto: CreateConversationDto, parentUserId: string): Promise<{ id: string }> {
+  async create(dto: CreateConversationDto, parentUser: RequestUser): Promise<{ id: string }> {
+    if (dto.studentId) {
+      await this.studentAccess.assertCanAccessStudent(parentUser, dto.studentId);
+    }
+
     const staffUserId = await this.resolveStaffUserId(dto);
 
     const conversation = await this.prisma.conversation.create({
       data: {
-        parentUserId,
+        parentUserId: parentUser.id,
         staffUserId,
         recipientType: dto.recipientType,
         studentId: dto.recipientType === 'CLASS_TEACHER' ? dto.studentId : null,
         parentReadAt: new Date(),
-        messages: { create: [{ senderId: parentUserId, body: dto.body }] },
+        messages: { create: [{ senderId: parentUser.id, body: dto.body }] },
       },
     });
 
     await this.prisma.auditLog.create({
       data: {
-        userId: parentUserId,
+        userId: parentUser.id,
         action: 'conversation.create',
         entity: 'Conversation',
         entityId: conversation.id,
