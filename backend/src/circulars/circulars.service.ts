@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCircularDto } from './dto/create-circular.dto';
 import { RequestUser } from '../common/student-access.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface CircularSummary {
   id: string;
@@ -28,7 +29,10 @@ interface CircularWithAttachments {
 
 @Injectable()
 export class CircularsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async publish(dto: CreateCircularDto, authorId: string) {
     const circular = await this.prisma.circular.create({
@@ -73,6 +77,18 @@ export class CircularsService {
         data: recipients.map((r) => ({ circularId: circular.id, userId: r.id })),
       });
     }
+
+    await Promise.all(
+      recipients.map((r) =>
+        this.notifications.notify({
+          userId: r.id,
+          type: 'circular',
+          title: dto.title,
+          body: dto.description,
+          entityRef: circular.id,
+        }),
+      ),
+    );
 
     await this.prisma.auditLog.create({
       data: {

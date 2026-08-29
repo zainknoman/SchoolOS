@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDiaryEntryDto } from './dto/create-diary-entry.dto';
 import { EnrollmentService } from '../enrollment/enrollment.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface DiaryEntrySummary {
   id: string;
@@ -17,6 +18,7 @@ export class DiaryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly enrollmentService: EnrollmentService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -72,6 +74,31 @@ export class DiaryService {
         }),
       },
     });
+
+    const parents = await this.prisma.user.findMany({
+      where: {
+        role: 'PARENT',
+        parentProfile: {
+          children: {
+            some: {
+              student: { enrollments: { some: { sectionId: dto.sectionId, status: 'ACTIVE' } } },
+            },
+          },
+        },
+      },
+      select: { id: true },
+    });
+    await Promise.all(
+      parents.map((p) =>
+        this.notifications.notify({
+          userId: p.id,
+          type: 'diary',
+          title: 'New diary entry',
+          body: dto.text,
+          entityRef: entry.id,
+        }),
+      ),
+    );
 
     return entry;
   }

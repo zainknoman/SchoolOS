@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { CircularsService } from './circulars.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 describe('CircularsService', () => {
   let service: CircularsService;
@@ -17,6 +18,7 @@ describe('CircularsService', () => {
     user: { findMany: jest.Mock };
     auditLog: { create: jest.Mock };
   };
+  let notifications: { notify: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -31,8 +33,13 @@ describe('CircularsService', () => {
       user: { findMany: jest.fn() },
       auditLog: { create: jest.fn() },
     };
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
     const moduleRef = await Test.createTestingModule({
-      providers: [CircularsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        CircularsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: NotificationsService, useValue: notifications },
+      ],
     }).compile();
     service = moduleRef.get(CircularsService);
   });
@@ -59,6 +66,23 @@ describe('CircularsService', () => {
       expect.objectContaining({
         data: expect.objectContaining({ action: 'circular.publish', entity: 'Circular' }),
       }),
+    );
+  });
+
+  it('notifies every recipient after publishing', async () => {
+    prisma.circular.create.mockResolvedValue({ id: 'circ-1' });
+    prisma.user.findMany.mockResolvedValue([{ id: 'parent-a' }, { id: 'parent-b' }]);
+
+    await service.publish(
+      { title: 'PTM', description: 'PTM in September.', scope: 'school' },
+      'admin-1',
+    );
+
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'parent-a', type: 'circular', entityRef: 'circ-1' }),
+    );
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'parent-b', type: 'circular', entityRef: 'circ-1' }),
     );
   });
 
