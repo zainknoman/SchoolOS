@@ -33,6 +33,10 @@ async function main() {
     },
   });
   const teacher = await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'Ms. Sample Teacher' } });
+  await prisma.section.update({
+    where: { id: section3A.id },
+    data: { classTeacherId: teacher.id },
+  });
 
   // Admin has no domain profile row (no Teacher/ParentProfile) — the role on User is enough for the
   // staff console's RBAC-gated nav.
@@ -41,6 +45,15 @@ async function main() {
       identifier: 'admin@seeds.edu.pk',
       passwordHash: await argon2.hash('ChangeMe123!'),
       role: 'SCHOOL_ADMIN',
+      isPrincipal: true,
+    },
+  });
+
+  const accountsUser = await prisma.user.create({
+    data: {
+      identifier: 'accounts@seeds.edu.pk',
+      passwordHash: await argon2.hash('ChangeMe123!'),
+      role: 'ACCOUNTS',
     },
   });
 
@@ -175,10 +188,63 @@ async function main() {
     data: [parentAUser.id, parentBUser.id].map((userId) => ({ circularId: circular.id, userId })),
   });
 
+  // --- Messages: parent A asks the class teacher a question; the teacher replies ---
+  const conversation = await prisma.conversation.create({
+    data: {
+      parentUserId: parentAUser.id,
+      staffUserId: teacherUser.id,
+      recipientType: 'CLASS_TEACHER',
+      studentId: student.id,
+      parentReadAt: new Date(),
+      messages: {
+        create: [{ senderId: parentAUser.id, body: 'Hi, can Eshaal get extra homework in Urdu?' }],
+      },
+    },
+  });
+  await prisma.message.create({
+    data: {
+      conversationId: conversation.id,
+      senderId: teacherUser.id,
+      body: 'Sure, I will send some extra worksheets this week.',
+    },
+  });
+  await prisma.conversation.update({
+    where: { id: conversation.id },
+    data: { lastMessageAt: new Date(), staffReadAt: new Date() },
+  });
+
+  // --- Notifications: one sample per seeded role, so a fresh dev.db never looks blank ---
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: parentAUser.id,
+        type: 'message',
+        title: 'New reply from Ms. Sample Teacher',
+        body: 'Sure, I will send some extra worksheets this week.',
+        entityRef: conversation.id,
+      },
+      {
+        userId: teacherUser.id,
+        type: 'message',
+        title: 'New message from Parent A',
+        body: 'Hi, can Eshaal get extra homework in Urdu?',
+        entityRef: conversation.id,
+      },
+      {
+        userId: adminUser.id,
+        type: 'circular',
+        title: 'Circular published',
+        body: 'Parent-Teacher Meeting — September',
+        entityRef: circular.id,
+      },
+    ],
+  });
+
   console.log(
-    'Seeded: 1 school, 2 campuses, 1 class/section, 1 teacher, 1 admin, 1 student, 2 linked parents, ' +
-      `${timetableRows.length} timetable periods, ${attendanceDates.length} attendance records, ` +
-      '1 diary entry, 1 circular.',
+    'Seeded: 1 school, 2 campuses, 1 class/section, 1 teacher, 1 admin (principal), 1 accounts, ' +
+      `1 student, 2 linked parents, ${timetableRows.length} timetable periods, ` +
+      `${attendanceDates.length} attendance records, 1 diary entry, 1 circular, 1 conversation ` +
+      '(with a reply), 3 notifications.',
   );
   console.log(
     'Login as parent-a@seeds.edu.pk / ChangeMe123! (or parent-b@... / teacher@... / admin@...) — dev only.',

@@ -33,6 +33,13 @@ enum EnrollmentStatus {
   COMPLETED
 }
 
+enum ConversationRecipientType {
+  CLASS_TEACHER
+  SCHOOL_ADMIN
+  ACCOUNTS
+  PRINCIPAL
+}
+
 // --- Identity -----------------------------------------------------------
 
 model User {
@@ -44,6 +51,7 @@ model User {
   passwordHash String
   role         Role
   isLocked     Boolean  @default(false)
+  isPrincipal  Boolean  @default(false)
   lockedUntil  DateTime?
   failedLoginCount Int  @default(0)
   createdAt    DateTime @default(now())
@@ -54,10 +62,12 @@ model User {
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
   deviceTokens  DeviceToken[]
-  sentMessages     Message[]         @relation("MessageSender")
   circularsCreated Circular[]        @relation("CircularAuthor")
   circularRecipients CircularRecipient[]
   diaryEntriesAuthored DiaryEntry[]
+  conversationsAsParent Conversation[] @relation("ConversationParent")
+  conversationsAsStaff  Conversation[] @relation("ConversationStaff")
+  messagesSent          Message[]      @relation("MessageSender")
 
   @@index([role])
 }
@@ -132,6 +142,8 @@ model Section {
   name      String   // e.g. "3A"
   enrollments  Enrollment[]
   timetables   Timetable[]
+  classTeacherId String?
+  classTeacher   Teacher?     @relation(fields: [classTeacherId], references: [id], onDelete: SetNull)
   diaryEntries DiaryEntry[]
   circulars    Circular[]
   createdAt DateTime @default(now())
@@ -155,6 +167,7 @@ model Teacher {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   timetables    Timetable[]
+  classTeacherOfSections Section[]
   attendanceMarks Attendance[] @relation("AttendanceMarkedBy")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -171,6 +184,7 @@ model Student {
   attendance      Attendance[]
   feeVouchers     FeeVoucher[]
   leaveRequests   LeaveRequest[]
+  conversations   Conversation[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -329,24 +343,35 @@ model CircularAttachment {
   createdAt  DateTime @default(now())
 }
 
-model Message {
-  id         String   @id @default(uuid())
-  subject    String
-  senderId   String
-  sender     User     @relation("MessageSender", fields: [senderId], references: [id])
-  recipients MessageRecipient[]
-  createdAt  DateTime @default(now())
+model Conversation {
+  id            String                    @id @default(uuid())
+  parentUserId  String
+  parentUser    User                      @relation("ConversationParent", fields: [parentUserId], references: [id], onDelete: Cascade)
+  staffUserId   String
+  staffUser     User                      @relation("ConversationStaff", fields: [staffUserId], references: [id], onDelete: Cascade)
+  recipientType ConversationRecipientType
+  studentId     String?
+  student       Student?                  @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  messages      Message[]
+  parentReadAt  DateTime?
+  staffReadAt   DateTime?
+  lastMessageAt DateTime                  @default(now())
+  createdAt     DateTime                  @default(now())
+
+  @@index([parentUserId])
+  @@index([staffUserId])
 }
 
-model MessageRecipient {
-  id        String   @id @default(uuid())
-  messageId String
-  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  userId    String
-  readAt    DateTime?
-  createdAt DateTime @default(now())
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("MessageSender", fields: [senderId], references: [id])
+  body           String
+  createdAt      DateTime     @default(now())
 
-  @@index([userId])
+  @@index([conversationId])
 }
 
 model Notification {
