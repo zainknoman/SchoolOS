@@ -1,0 +1,232 @@
+import { Test } from '@nestjs/testing';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConversationsService } from './conversations.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { EnrollmentService } from '../enrollment/enrollment.service';
+import { NotificationsService } from '../notifications/notifications.service';
+
+describe('ConversationsService', () => {
+  let service: ConversationsService;
+  let prisma: {
+    section: { findUnique: jest.Mock };
+    teacher: { findUnique: jest.Mock };
+    user: { findFirst: jest.Mock };
+    conversation: { create: jest.Mock; findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
+    message: { create: jest.Mock };
+    auditLog: { create: jest.Mock };
+  };
+  let enrollment: { getCurrentEnrollment: jest.Mock };
+  let notifications: { notify: jest.Mock };
+
+  beforeEach(async () => {
+    prisma = {
+      section: { findUnique: jest.fn() },
+      teacher: { findUnique: jest.fn() },
+      user: { findFirst: jest.fn() },
+      conversation: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      message: { create: jest.fn() },
+      auditLog: { create: jest.fn() },
+    };
+    enrollment = { getCurrentEnrollment: jest.fn() };
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ConversationsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: EnrollmentService, useValue: enrollment },
+        { provide: NotificationsService, useValue: notifications },
+      ],
+    }).compile();
+    service = moduleRef.get(ConversationsService);
+  });
+
+  it('starting a CLASS_TEACHER conversation resolves the staff user via the section class teacher', async () => {
+    enrollment.getCurrentEnrollment.mockResolvedValue({ sectionId: 'sec-1' });
+    prisma.section.findUnique.mockResolvedValue({ id: 'sec-1', classTeacherId: 'teacher-1' });
+    prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-1', userId: 'teacher-user-1' });
+    prisma.conversation.create.mockResolvedValue({ id: 'conv-1' });
+
+    const result = await service.create(
+      { recipientType: 'CLASS_TEACHER', studentId: 'student-1', body: 'Hello' },
+      'parent-1',
+    );
+
+    expect(prisma.conversation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          parentUserId: 'parent-1',
+          staffUserId: 'teacher-user-1',
+          recipientType: 'CLASS_TEACHER',
+          studentId: 'student-1',
+        }),
+      }),
+    );
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'teacher-user-1', type: 'message', entityRef: 'conv-1' }),
+    );
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'conversation.create', entity: 'Conversation' }),
+      }),
+    );
+    expect(result).toEqual({ id: 'conv-1' });
+  });
+
+  it('throws BadRequestException if the section has no class teacher assigned', async () => {
+    enrollment.getCurrentEnrollment.mockResolvedValue({ sectionId: 'sec-1' });
+    prisma.section.findUnique.mockResolvedValue({ id: 'sec-1', classTeacherId: null });
+
+    await expect(
+      service.create({ recipientType: 'CLASS_TEACHER', studentId: 'student-1', body: 'Hi' }, 'parent-1'),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.conversation.create).not.toHaveBeenCalled();
+  });
+
+  it('starting a SCHOOL_ADMIN conversation resolves the earliest-created SCHOOL_ADMIN user', async () => {
+    prisma.user.findFirst.mockResolvedValue({ id: 'admin-1' });
+    prisma.conversation.create.mockResolvedValue({ id: 'conv-2' });
+
+    await service.create({ recipientType: 'SCHOOL_ADMIN', body: 'Question' }, 'parent-1');
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: { role: 'SCHOOL_ADMIN' },
+      orderBy: { createdAt: 'asc' },
+    });
+  });
+
+  it('starting a PRINCIPAL conversation resolves the earliest isPrincipal=true user', async () => {
+    prisma.user.findFirst.mockResolvedValue({ id: 'admin-1' });
+    prisma.conversation.create.mockResolvedValue({ id: 'conv-3' });
+
+    await service.create({ recipientType: 'PRINCIPAL', body: 'Question' }, 'parent-1');
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: { isPrincipal: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  });
+
+  it('throws BadRequestException if no user exists for the requested recipient type', async () => {
+    prisma.user.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.create({ recipientType: 'ACCOUNTS', body: 'Hi' }, 'parent-1'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it("a parent's list shows the staff member's name and marks unread when their own read timestamp is stale", async () => {
+    prisma.conversation.findMany.mockResolvedValue([
+      {
+        id: 'conv-1',
+        recipientType: 'CLASS_TEACHER',
+        studentId: 'student-1',
+        parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
+        staffUser: { identifier: 'teacher@seeds.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+        parentReadAt: new Date('2026-08-01T00:00:00.000Z'),
+        staffReadAt: null,
+        lastMessageAt: new Date('2026-08-02T00:00:00.000Z'),
+      },
+    ]);
+
+    const result = await service.listForUser({ id: 'parent-1', role: 'PARENT' });
+
+    expect(prisma.conversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { parentUserId: 'parent-1' } }),
+    );
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: 'conv-1',
+        otherPartyName: 'Ms. Sample Teacher',
+        unread: true, // parentReadAt (Aug 1) is older than lastMessageAt (Aug 2)
+      }),
+    ]);
+  });
+
+  it("a staff member's list shows the parent's name, filtered by the q search term", async () => {
+    prisma.conversation.findMany.mockResolvedValue([
+      {
+        id: 'conv-1',
+        recipientType: 'CLASS_TEACHER',
+        studentId: 'student-1',
+        parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
+        staffUser: { identifier: 'teacher@seeds.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+        parentReadAt: new Date(),
+        staffReadAt: new Date(),
+        lastMessageAt: new Date('2026-08-02T00:00:00.000Z'),
+      },
+    ]);
+
+    const matched = await service.listForUser({ id: 'teacher-user-1', role: 'TEACHER' }, 'parent a');
+    expect(matched).toHaveLength(1);
+    expect(matched[0].otherPartyName).toBe('Parent A');
+
+    const unmatched = await service.listForUser({ id: 'teacher-user-1', role: 'TEACHER' }, 'nobody');
+    expect(unmatched).toHaveLength(0);
+  });
+
+  it('reply appends a message, bumps lastMessageAt, marks the sender\'s own read, and notifies the other party', async () => {
+    prisma.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      parentUserId: 'parent-1',
+      staffUserId: 'teacher-user-1',
+    });
+
+    await service.reply('conv-1', 'teacher-user-1', { body: 'Sure thing' });
+
+    expect(prisma.message.create).toHaveBeenCalledWith({
+      data: { conversationId: 'conv-1', senderId: 'teacher-user-1', body: 'Sure thing' },
+    });
+    expect(prisma.conversation.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'conv-1' },
+        data: expect.objectContaining({ staffReadAt: expect.any(Date) }),
+      }),
+    );
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'parent-1', type: 'message' }),
+    );
+  });
+
+  it('reply is rejected for anyone not a party to the conversation', async () => {
+    prisma.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      parentUserId: 'parent-1',
+      staffUserId: 'teacher-user-1',
+    });
+
+    await expect(
+      service.reply('conv-1', 'someone-else', { body: 'x' }),
+    ).rejects.toThrow(ForbiddenException);
+    expect(prisma.message.create).not.toHaveBeenCalled();
+  });
+
+  it('reply 404s for an unknown conversation', async () => {
+    prisma.conversation.findUnique.mockResolvedValue(null);
+    await expect(service.reply('missing', 'user-1', { body: 'x' })).rejects.toThrow(NotFoundException);
+  });
+
+  it('getById is rejected for anyone not a party, 404s for unknown', async () => {
+    prisma.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      parentUserId: 'parent-1',
+      staffUserId: 'teacher-user-1',
+      recipientType: 'CLASS_TEACHER',
+      studentId: 'student-1',
+      messages: [],
+    });
+
+    await expect(
+      service.getById('conv-1', { id: 'someone-else', role: 'TEACHER' }),
+    ).rejects.toThrow(ForbiddenException);
+
+    prisma.conversation.findUnique.mockResolvedValue(null);
+    await expect(
+      service.getById('missing', { id: 'parent-1', role: 'PARENT' }),
+    ).rejects.toThrow(NotFoundException);
+  });
+});
