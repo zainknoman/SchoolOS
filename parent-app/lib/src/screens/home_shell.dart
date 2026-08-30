@@ -31,6 +31,13 @@ class _HomeShellState extends State<HomeShell> {
   int _unreadCirculars = 0;
   int _unreadNotifications = 0;
 
+  /// Which CalendarTab sub-tab (0 = Timetable, 1 = Attendance, 2 = Diary) should be shown next
+  /// time the Calendar tab is built. Set to 2 (Diary) when the user taps a `type: 'diary'`
+  /// notification so they land on the actual content the notification was about, rather than
+  /// always landing on Timetable. Reset to 0 whenever the user manually navigates to Calendar
+  /// via the bottom nav, so a stale "open on Diary" doesn't stick around on later manual visits.
+  int _calendarInitialSubTab = 0;
+
   @override
   void initState() {
     super.initState();
@@ -89,7 +96,10 @@ class _HomeShellState extends State<HomeShell> {
           onOpenType: (type) {
             Navigator.of(context).pop();
             setState(() {
-              if (type == 'diary') _tabIndex = 1;
+              if (type == 'diary') {
+                _tabIndex = 1;
+                _calendarInitialSubTab = 2;
+              }
               if (type == 'circular') _tabIndex = 2;
               if (type == 'message') _tabIndex = 3;
             });
@@ -151,7 +161,12 @@ class _HomeShellState extends State<HomeShell> {
       body: _buildBody(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
-        onDestinationSelected: (i) => setState(() => _tabIndex = i),
+        onDestinationSelected: (i) => setState(() {
+          _tabIndex = i;
+          // Manual bottom-nav navigation to Calendar should behave as before (Timetable first)
+          // unless the previous action was specifically a diary-notification tap.
+          if (i == 1) _calendarInitialSubTab = 0;
+        }),
         destinations: [
           const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           const NavigationDestination(icon: Icon(Icons.calendar_month_outlined), label: 'Calendar'),
@@ -225,12 +240,17 @@ class _HomeShellState extends State<HomeShell> {
       final auth = context.read<AuthState>();
       final api = context.read<ApiClient>();
       return CalendarTab(
-        // Keyed on the child id so switching the active child recreates this tab and its two
-        // sub-tabs, instead of silently keeping the previous child's timetable/attendance on screen.
-        key: ValueKey(child.id),
+        // Keyed on the child id AND the requested initial sub-tab: DefaultTabController caches
+        // its controller state per-element, so without a key change tied to
+        // _calendarInitialSubTab, Flutter would reuse the existing CalendarTab element on a
+        // second open and silently ignore the new initialIndex (e.g. tapping a diary
+        // notification a second time wouldn't re-open on Diary). This also still recreates the
+        // tab (and its three sub-tabs) when the active child changes, as before.
+        key: ValueKey('${child.id}_$_calendarInitialSubTab'),
         studentId: child.id,
         accessToken: auth.accessToken!,
         api: api,
+        initialSubTab: _calendarInitialSubTab,
       );
     }
 

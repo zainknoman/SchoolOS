@@ -62,16 +62,28 @@ List<_TimetableColumn> _buildColumns(List<TimetableEntry> entries) {
 
 /// Calendar → Timetable / Attendance / Diary tabs, per the MVP plan.
 class CalendarTab extends StatelessWidget {
-  const CalendarTab({super.key, required this.studentId, required this.accessToken, required this.api});
+  const CalendarTab({
+    super.key,
+    required this.studentId,
+    required this.accessToken,
+    required this.api,
+    this.initialSubTab = 0,
+  });
 
   final String studentId;
   final String accessToken;
   final ApiClient api;
 
+  /// Which of the three sub-tabs (0 = Timetable, 1 = Attendance, 2 = Diary) should be shown
+  /// first. Defaults to Timetable. Callers deep-linking into a specific sub-tab (e.g. a
+  /// notification tap) pass a non-zero value here.
+  final int initialSubTab;
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
+      initialIndex: initialSubTab,
       child: Column(
         children: [
           const TabBar(

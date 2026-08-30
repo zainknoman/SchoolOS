@@ -234,4 +234,114 @@ void main() {
 
     expect(find.text('PTM'), findsOneWidget);
   });
+
+  testWidgets('tapping a diary notification lands on the Calendar tab\'s Diary sub-tab', (
+    tester,
+  ) async {
+    final client = MockClient((request) async {
+      if (request.url.path == '/api/v1/auth/login') {
+        return http.Response(
+          jsonEncode({'accessToken': 'a1', 'refreshToken': 'r1', 'role': 'PARENT'}),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/me/children') {
+        return http.Response(
+          jsonEncode([
+            {
+              'id': 's1',
+              'name': 'Eshaal',
+              'grNumber': 'GR-1001',
+              'campus': 'Gulistan-e-Jauhar',
+              'class': 'Grade 3',
+              'section': '3A',
+            },
+          ]),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/circulars') {
+        return http.Response(jsonEncode([]), 200);
+      }
+      if (request.url.path == '/api/v1/notifications' && request.method == 'GET') {
+        return http.Response(
+          jsonEncode([
+            {
+              'id': 'n1',
+              'type': 'diary',
+              'title': 'New diary entry',
+              'body': 'Homework assigned for Math.',
+              'entityRef': 'd1',
+              'readAt': null,
+              'createdAt': '2026-08-29T00:00:00.000Z',
+            },
+          ]),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/notifications/n1/read') {
+        return http.Response('', 204);
+      }
+      if (request.url.path == '/api/v1/students/s1/timetable') {
+        return http.Response(jsonEncode([]), 200);
+      }
+      if (request.url.path == '/api/v1/students/s1/attendance') {
+        return http.Response(
+          jsonEncode({
+            'days': [],
+            'summary': {
+              'present': 0,
+              'absent': 0,
+              'late': 0,
+              'holiday': 0,
+              'leave': 0,
+              'attendancePercentage': 0,
+            },
+          }),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/students/s1/diary') {
+        return http.Response(
+          jsonEncode([
+            {
+              'id': 'd1',
+              'date': '2026-08-29',
+              'dueDate': null,
+              'subject': 'Math',
+              'text': 'Complete exercise 4.',
+              'attachments': [],
+            },
+          ]),
+          200,
+        );
+      }
+      return http.Response('not found', 404);
+    });
+
+    await loginSingleChild(tester, client);
+
+    // First visit Calendar manually via the bottom nav, so its CalendarTab element already
+    // exists in the tree (opened on Timetable) BEFORE the notification tap below. This is what
+    // actually exercises the fix's `key` change: DefaultTabController caches its controller
+    // state per-element, so if the CalendarTab element created here were reused rather than
+    // recreated, the notification tap's new initialIndex would be silently ignored and this test
+    // would still see Timetable.
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+    expect(find.text('No timetable published yet.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('notificationsButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New diary entry'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('notification-n1')));
+    await tester.pumpAndSettle();
+
+    // The bell mapped `type: 'diary'` to the Calendar tab, opened on its Diary sub-tab (not
+    // Timetable) — the actual content the notification was about.
+    expect(find.text('Complete exercise 4.'), findsOneWidget);
+    expect(find.text('No timetable published yet.'), findsNothing);
+  });
 }
