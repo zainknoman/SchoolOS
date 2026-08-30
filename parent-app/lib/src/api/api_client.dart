@@ -96,6 +96,85 @@ class ApiClient {
     }
   }
 
+  Future<List<ConversationSummary>> conversations(String accessToken, {String? q}) async {
+    final path = (q == null || q.isEmpty)
+        ? '/api/v1/conversations'
+        : '/api/v1/conversations?q=${Uri.encodeQueryComponent(q)}';
+    final list = await _get(path, accessToken) as List<dynamic>;
+    return list.map((e) => ConversationSummary.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<ConversationDetail> conversation(String accessToken, String id) async {
+    final json = await _get('/api/v1/conversations/$id', accessToken) as Map<String, dynamic>;
+    return ConversationDetail.fromJson(json);
+  }
+
+  Future<void> startConversation(
+    String accessToken, {
+    required String recipientType,
+    String? studentId,
+    required String body,
+  }) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/conversations'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({
+        'recipientType': recipientType,
+        'studentId': ?studentId,
+        'body': body,
+      }),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
+
+  Future<void> sendMessage(String accessToken, String conversationId, String body) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/conversations/$conversationId/messages'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({'body': body}),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
+
+  Future<void> markConversationRead(String accessToken, String conversationId) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/conversations/$conversationId/read'),
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
+
+  Future<List<NotificationSummary>> notifications(String accessToken) async {
+    final list = await _get('/api/v1/notifications', accessToken) as List<dynamic>;
+    return list.map((e) => NotificationSummary.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> markNotificationRead(String accessToken, String id) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/notifications/$id/read'),
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
+
+  Future<void> markAllNotificationsRead(String accessToken) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/notifications/read-all'),
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
+
   /// A direct, headers-free download link — the backend's JwtStrategy accepts the token as
   /// ?access_token= specifically so links like this (opened via url_launcher) can authenticate.
   Uri fileDownloadUrl(String fileId, String accessToken) =>

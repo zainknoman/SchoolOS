@@ -199,3 +199,104 @@ class CircularSummary {
     readAt: json['readAt'] as String?,
   );
 }
+
+class ConversationSummary {
+  const ConversationSummary({
+    required this.id,
+    required this.recipientType,
+    required this.studentId,
+    required this.otherPartyName,
+    required this.lastMessageAt,
+    required this.unread,
+  });
+
+  final String id;
+  final String recipientType;
+  final String? studentId;
+  final String otherPartyName;
+  final String lastMessageAt;
+  final bool unread;
+
+  factory ConversationSummary.fromJson(Map<String, dynamic> json) => ConversationSummary(
+    id: json['id'] as String,
+    recipientType: json['recipientType'] as String,
+    studentId: json['studentId'] as String?,
+    otherPartyName: json['otherPartyName'] as String,
+    lastMessageAt: json['lastMessageAt'] as String,
+    unread: json['unread'] as bool,
+  );
+}
+
+class MessageSummary {
+  const MessageSummary({
+    required this.id,
+    required this.senderId,
+    required this.body,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String senderId;
+  final String body;
+  final String createdAt;
+
+  factory MessageSummary.fromJson(Map<String, dynamic> json) => MessageSummary(
+    id: json['id'] as String,
+    senderId: json['senderId'] as String,
+    body: json['body'] as String,
+    createdAt: json['createdAt'] as String,
+  );
+}
+
+class ConversationDetail {
+  const ConversationDetail({
+    required this.id,
+    required this.recipientType,
+    required this.studentId,
+    required this.messages,
+  });
+
+  final String id;
+  final String recipientType;
+  final String? studentId;
+  final List<MessageSummary> messages;
+
+  factory ConversationDetail.fromJson(Map<String, dynamic> json) => ConversationDetail(
+    id: json['id'] as String,
+    recipientType: json['recipientType'] as String,
+    studentId: json['studentId'] as String?,
+    messages: (json['messages'] as List<dynamic>)
+        .map((e) => MessageSummary.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
+}
+
+class NotificationSummary {
+  const NotificationSummary({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.body,
+    required this.entityRef,
+    required this.readAt,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String type;
+  final String title;
+  final String body;
+  final String? entityRef;
+  final String? readAt;
+  final String createdAt;
+
+  factory NotificationSummary.fromJson(Map<String, dynamic> json) => NotificationSummary(
+    id: json['id'] as String,
+    type: json['type'] as String,
+    title: json['title'] as String,
+    body: json['body'] as String,
+    entityRef: json['entityRef'] as String?,
+    readAt: json['readAt'] as String?,
+    createdAt: json['createdAt'] as String,
+  );
+}
