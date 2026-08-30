@@ -1,9 +1,18 @@
-import { describe, it, expect } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { describe, it, expect, vi } from 'vitest';
+import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import AppShell from './AppShell.vue';
 import { useAuthStore } from '../stores/auth';
+import { api } from '../lib/api';
+
+vi.mock('../lib/api', () => ({
+  api: {
+    listNotifications: vi.fn().mockResolvedValue([]),
+    markNotificationRead: vi.fn().mockResolvedValue(undefined),
+    markAllNotificationsRead: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 
 function makeRouter() {
   return createRouter({
@@ -15,6 +24,8 @@ function makeRouter() {
       { path: '/admin/fees', name: 'admin-fees', component: { template: '<div>fees</div>' } },
       { path: '/teacher/messages', name: 'teacher-messages', component: { template: '<div>messages</div>' } },
       { path: '/admin/messages', name: 'admin-messages', component: { template: '<div>messages</div>' } },
+      { path: '/teacher/diary', name: 'teacher-diary', component: { template: '<div>diary</div>' } },
+      { path: '/admin/circulars', name: 'admin-circulars', component: { template: '<div>circulars</div>' } },
     ],
   });
 }
@@ -23,10 +34,13 @@ async function mountAsRole(role: string) {
   setActivePinia(createPinia());
   const auth = useAuthStore();
   auth.role = role;
+  auth.accessToken = 'token-1';
   const router = makeRouter();
   await router.push('/login');
   await router.isReady();
-  return mount(AppShell, { global: { plugins: [router] } });
+  const wrapper = mount(AppShell, { global: { plugins: [router] } });
+  await flushPromises();
+  return wrapper;
 }
 
 describe('AppShell (role-gated nav)', () => {
@@ -77,6 +91,7 @@ describe('AppShell (role-gated nav)', () => {
     setActivePinia(createPinia());
     const auth = useAuthStore();
     auth.role = 'SCHOOL_ADMIN';
+    auth.accessToken = 'token-1';
     const router = makeRouter();
     await router.push('/admin');
     await router.isReady();
@@ -92,5 +107,54 @@ describe('AppShell (role-gated nav)', () => {
     await wrapper.find('[data-testid="logout"]').trigger('click');
 
     expect(auth.isAuthenticated).toBe(false);
+  });
+
+  it('opens a dropdown of notifications, marks one read, and navigates on click', async () => {
+    vi.mocked(api.listNotifications).mockResolvedValue([
+      {
+        id: 'n1',
+        type: 'message',
+        title: 'New message',
+        body: 'Hi there',
+        entityRef: 'conv-1',
+        readAt: null,
+        createdAt: '2026-08-29T00:00:00.000Z',
+      },
+    ]);
+    const wrapper = await mountAsRole('TEACHER');
+
+    expect(wrapper.find('[data-testid="notif-badge"]').text()).toBe('1');
+
+    await wrapper.find('[data-testid="notifications"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="notif-dropdown"]').text()).toContain('New message');
+
+    await wrapper.find('[data-testid="notif-item-n1"]').trigger('click');
+    await flushPromises();
+
+    expect(api.markNotificationRead).toHaveBeenCalledWith(expect.any(String), 'n1');
+  });
+
+  it('"mark all read" clears every unread notification', async () => {
+    vi.mocked(api.listNotifications).mockResolvedValue([
+      {
+        id: 'n1',
+        type: 'message',
+        title: 'New message',
+        body: 'Hi there',
+        entityRef: 'conv-1',
+        readAt: null,
+        createdAt: '2026-08-29T00:00:00.000Z',
+      },
+    ]);
+    const wrapper = await mountAsRole('TEACHER');
+
+    await wrapper.find('[data-testid="notifications"]').trigger('click');
+    await flushPromises();
+    await wrapper.find('[data-testid="notif-mark-all-read"]').trigger('click');
+    await flushPromises();
+
+    expect(api.markAllNotificationsRead).toHaveBeenCalledWith('token-1');
   });
 });

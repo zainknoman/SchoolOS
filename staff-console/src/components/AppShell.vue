@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { api, type NotificationSummary } from '../lib/api';
 import Icon from './AppIcon.vue';
 import { roleInitials } from '../lib/format';
 
@@ -11,6 +12,45 @@ const router = useRouter();
 const isTeacher = computed(() => auth.role === 'TEACHER');
 const isAdmin = computed(() => ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'].includes(auth.role ?? ''));
 const avatarInitials = computed(() => roleInitials(auth.role));
+
+const notifications = ref<NotificationSummary[]>([]);
+const isNotifOpen = ref(false);
+const unreadCount = computed(() => notifications.value.filter((n) => !n.readAt).length);
+
+async function loadNotifications() {
+  if (!auth.accessToken) return;
+  try {
+    notifications.value = await api.listNotifications(auth.accessToken);
+  } catch {
+    // Convenience only — a failed fetch just leaves the bell showing zero unread.
+  }
+}
+onMounted(loadNotifications);
+
+// Notifications for diary/circular events only ever target parents (see NotificationsService
+// callers); staff will realistically only ever see 'message' type here, but this stays generic
+// to match the "deep-links to the right screen" requirement for all three types.
+function routeForNotification(n: NotificationSummary): string {
+  if (n.type === 'message') return isTeacher.value ? '/teacher/messages' : '/admin/messages';
+  if (n.type === 'diary') return '/teacher/diary';
+  return '/admin/circulars';
+}
+
+async function onOpenNotification(n: NotificationSummary) {
+  isNotifOpen.value = false;
+  if (!auth.accessToken) return;
+  if (!n.readAt) {
+    await api.markNotificationRead(auth.accessToken, n.id);
+    await loadNotifications();
+  }
+  await router.push(routeForNotification(n));
+}
+
+async function onMarkAllRead() {
+  if (!auth.accessToken) return;
+  await api.markAllNotificationsRead(auth.accessToken);
+  await loadNotifications();
+}
 
 async function onLogout() {
   auth.logout();
@@ -23,9 +63,39 @@ async function onLogout() {
     <header class="topbar">
       <span class="brand">SEEDS Staff Console</span>
       <div class="topbar-actions">
-        <button data-testid="notifications" class="icon-button" aria-label="Notifications">
-          <Icon name="bell" :size="18" />
-        </button>
+        <div class="notif-wrapper">
+          <button
+            data-testid="notifications"
+            class="icon-button"
+            aria-label="Notifications"
+            @click="isNotifOpen = !isNotifOpen"
+          >
+            <Icon name="bell" :size="18" />
+            <span v-if="unreadCount > 0" class="badge" data-testid="notif-badge">{{ unreadCount }}</span>
+          </button>
+          <div v-if="isNotifOpen" class="notif-dropdown" data-testid="notif-dropdown">
+            <p v-if="!notifications.length" class="notif-empty">No notifications yet.</p>
+            <button
+              v-else
+              data-testid="notif-mark-all-read"
+              class="notif-mark-all"
+              @click="onMarkAllRead"
+            >
+              Mark all read
+            </button>
+            <button
+              v-for="n in notifications"
+              :key="n.id"
+              :data-testid="`notif-item-${n.id}`"
+              class="notif-item"
+              :class="{ unread: !n.readAt }"
+              @click="onOpenNotification(n)"
+            >
+              <strong>{{ n.title }}</strong>
+              <span>{{ n.body }}</span>
+            </button>
+          </div>
+        </div>
         <span data-testid="avatar" class="avatar" aria-hidden="true">{{ avatarInitials }}</span>
         <button data-testid="logout" class="logout" @click="onLogout">
           <Icon name="logout" :size="16" />
@@ -179,5 +249,68 @@ async function onLogout() {
   flex: 1;
   padding: var(--space-5) var(--space-6);
   overflow-y: auto;
+}
+
+.notif-wrapper {
+  position: relative;
+}
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--color-destructive);
+  color: white;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem;
+}
+.notif-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 280px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+.notif-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.notif-item.unread strong {
+  font-weight: 700;
+}
+.notif-empty {
+  padding: var(--space-3);
+  color: var(--color-muted);
+}
+.notif-mark-all {
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
 }
 </style>
