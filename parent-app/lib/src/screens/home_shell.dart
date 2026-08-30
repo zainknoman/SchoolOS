@@ -6,6 +6,7 @@ import '../auth/auth_state.dart';
 import 'calendar_tab.dart';
 import 'circulars_tab.dart';
 import 'home_tab.dart';
+import 'messages_tab.dart';
 
 /// Authenticated shell: multi-child switcher up top, bottom nav below (Home / Calendar /
 /// Notifications / Messages / Fees / More — per the MVP plan). Every tab is a placeholder;
@@ -188,6 +189,12 @@ class _HomeShellState extends State<HomeShell> {
         api: api,
         onUnreadChanged: (count) => setState(() => _unreadCirculars = count),
       );
+    }
+
+    if (_tabIndex == 3) {
+      final auth = context.read<AuthState>();
+      final api = context.read<ApiClient>();
+      return MessagesTab(accessToken: auth.accessToken!, api: api, children: _children);
     }
 
     final labels = ['Home', 'Calendar', 'Notifications', 'Messages', 'Fees', 'More'];
