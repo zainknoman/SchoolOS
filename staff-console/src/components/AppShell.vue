@@ -15,6 +15,7 @@ const avatarInitials = computed(() => roleInitials(auth.role));
 
 const notifications = ref<NotificationSummary[]>([]);
 const isNotifOpen = ref(false);
+const notifError = ref<string | null>(null);
 const unreadCount = computed(() => notifications.value.filter((n) => !n.readAt).length);
 
 async function loadNotifications() {
@@ -30,26 +31,42 @@ onMounted(loadNotifications);
 // Notifications for diary/circular events only ever target parents (see NotificationsService
 // callers); staff will realistically only ever see 'message' type here, but this stays generic
 // to match the "deep-links to the right screen" requirement for all three types.
+//
+// This is type-based, not role-based, so it can resolve to a route the current user's role can't
+// enter (teacher-diary requires TEACHER only; admin-circulars requires SCHOOL_ADMIN/SUPER_ADMIN
+// only, not ACCOUNTS). The router's global guard would silently bounce them elsewhere with no
+// explanation, so fall back to the caller's own home route in those known-mismatch cases.
 function routeForNotification(n: NotificationSummary): string {
   if (n.type === 'message') return isTeacher.value ? '/teacher/messages' : '/admin/messages';
-  if (n.type === 'diary') return '/teacher/diary';
-  return '/admin/circulars';
+  const homeRoute = isTeacher.value ? '/teacher' : '/admin';
+  if (n.type === 'diary') return isTeacher.value ? '/teacher/diary' : homeRoute;
+  const canViewCirculars = auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN';
+  return canViewCirculars ? '/admin/circulars' : homeRoute;
 }
 
 async function onOpenNotification(n: NotificationSummary) {
   isNotifOpen.value = false;
   if (!auth.accessToken) return;
   if (!n.readAt) {
-    await api.markNotificationRead(auth.accessToken, n.id);
-    await loadNotifications();
+    try {
+      await api.markNotificationRead(auth.accessToken, n.id);
+      await loadNotifications();
+    } catch {
+      // Marking read is best-effort — don't block navigation to the relevant screen on it.
+    }
   }
   await router.push(routeForNotification(n));
 }
 
 async function onMarkAllRead() {
   if (!auth.accessToken) return;
-  await api.markAllNotificationsRead(auth.accessToken);
-  await loadNotifications();
+  notifError.value = null;
+  try {
+    await api.markAllNotificationsRead(auth.accessToken);
+    await loadNotifications();
+  } catch {
+    notifError.value = 'Could not mark notifications read. Please try again.';
+  }
 }
 
 async function onLogout() {
@@ -74,6 +91,7 @@ async function onLogout() {
             <span v-if="unreadCount > 0" class="badge" data-testid="notif-badge">{{ unreadCount }}</span>
           </button>
           <div v-if="isNotifOpen" class="notif-dropdown" data-testid="notif-dropdown">
+            <p v-if="notifError" class="notif-error" data-testid="notif-error" role="alert">{{ notifError }}</p>
             <p v-if="!notifications.length" class="notif-empty">No notifications yet.</p>
             <button
               v-else
@@ -301,6 +319,11 @@ async function onLogout() {
 .notif-empty {
   padding: var(--space-3);
   color: var(--color-muted);
+}
+.notif-error {
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-destructive);
+  font-size: var(--font-size-sm);
 }
 .notif-mark-all {
   padding: var(--space-2) var(--space-3);

@@ -42,7 +42,11 @@ class _NotificationsSheetState extends State<NotificationsSheet> {
 
   Future<void> _onTap(NotificationSummary n) async {
     if (n.readAt == null) {
-      await widget.api.markNotificationRead(widget.accessToken, n.id);
+      try {
+        await widget.api.markNotificationRead(widget.accessToken, n.id);
+      } on ApiException catch (_) {
+        // Marking read is best-effort — don't block navigating to the relevant screen on it.
+      }
     }
     widget.onOpenType(n.type);
   }

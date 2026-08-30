@@ -55,6 +55,49 @@ void main() {
     expect(openedType, 'message');
   });
 
+  testWidgets('still reports the tapped type when marking it read fails', (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        if (request.method == 'GET' && request.url.path == '/api/v1/notifications') {
+          return http.Response(
+            jsonEncode([
+              {
+                'id': 'n1',
+                'type': 'message',
+                'title': 'New reply',
+                'body': 'Sure thing.',
+                'entityRef': 'conv-1',
+                'readAt': null,
+                'createdAt': '2026-08-29T00:00:00.000Z',
+              },
+            ]),
+            200,
+          );
+        }
+        if (request.method == 'POST' && request.url.path == '/api/v1/notifications/n1/read') {
+          return http.Response('expired token', 401);
+        }
+        return http.Response('not found', 404);
+      }),
+    );
+
+    String? openedType;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: NotificationsSheet(accessToken: 'tok', api: api, onOpenType: (t) => openedType = t),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('notification-n1')));
+    await tester.pumpAndSettle();
+
+    expect(openedType, 'message');
+  });
+
   testWidgets('"Mark all read" calls the bulk endpoint', (tester) async {
     var markedAllRead = false;
     final api = ApiClient(

@@ -157,4 +157,72 @@ describe('AppShell (role-gated nav)', () => {
 
     expect(api.markAllNotificationsRead).toHaveBeenCalledWith('token-1');
   });
+
+  it('still navigates when marking a notification read fails', async () => {
+    vi.mocked(api.listNotifications).mockResolvedValue([
+      {
+        id: 'n1',
+        type: 'message',
+        title: 'New message',
+        body: 'Hi there',
+        entityRef: 'conv-1',
+        readAt: null,
+        createdAt: '2026-08-29T00:00:00.000Z',
+      },
+    ]);
+    vi.mocked(api.markNotificationRead).mockRejectedValueOnce(new Error('expired token'));
+    const wrapper = await mountAsRole('TEACHER');
+
+    await wrapper.find('[data-testid="notifications"]').trigger('click');
+    await flushPromises();
+    await wrapper.find('[data-testid="notif-item-n1"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/teacher/messages');
+  });
+
+  it('surfaces an error but does not throw when "mark all read" fails', async () => {
+    vi.mocked(api.listNotifications).mockResolvedValue([
+      {
+        id: 'n1',
+        type: 'message',
+        title: 'New message',
+        body: 'Hi there',
+        entityRef: 'conv-1',
+        readAt: null,
+        createdAt: '2026-08-29T00:00:00.000Z',
+      },
+    ]);
+    vi.mocked(api.markAllNotificationsRead).mockRejectedValueOnce(new Error('network error'));
+    const wrapper = await mountAsRole('TEACHER');
+
+    await wrapper.find('[data-testid="notifications"]').trigger('click');
+    await flushPromises();
+    await wrapper.find('[data-testid="notif-mark-all-read"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="notif-error"]').exists()).toBe(true);
+  });
+
+  it('falls back to the home route when a notification type does not match the caller role', async () => {
+    vi.mocked(api.listNotifications).mockResolvedValue([
+      {
+        id: 'n1',
+        type: 'circular',
+        title: 'New circular',
+        body: 'Read this',
+        entityRef: 'circ-1',
+        readAt: null,
+        createdAt: '2026-08-29T00:00:00.000Z',
+      },
+    ]);
+    const wrapper = await mountAsRole('ACCOUNTS');
+
+    await wrapper.find('[data-testid="notifications"]').trigger('click');
+    await flushPromises();
+    await wrapper.find('[data-testid="notif-item-n1"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/admin');
+  });
 });

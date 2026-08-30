@@ -11,11 +11,12 @@ const selectedId = ref('');
 const replyText = ref('');
 const isSending = ref(false);
 const errorMessage = ref<string | null>(null);
+const search = ref('');
 
 async function loadConversations() {
   if (!auth.accessToken) return;
   try {
-    conversations.value = await api.listConversations(auth.accessToken);
+    conversations.value = await api.listConversations(auth.accessToken, search.value || undefined);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load messages.';
   }
@@ -36,12 +37,12 @@ async function openConversation(id: string) {
 }
 
 async function onSendReply() {
-  if (!auth.accessToken || !selectedId.value || !replyText.value) return;
+  if (!auth.accessToken || !selectedId.value || !replyText.value.trim()) return;
   isSending.value = true;
   errorMessage.value = null;
   const accessToken = auth.accessToken;
   const conversationId = selectedId.value;
-  const body = replyText.value;
+  const body = replyText.value.trim();
   try {
     await api.replyToConversation(accessToken, conversationId, body);
     replyText.value = '';
@@ -61,18 +62,28 @@ async function onSendReply() {
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <div class="layout">
-      <ul class="conversation-list">
-        <li v-if="!conversations.length" class="empty">No messages yet.</li>
-        <li
-          v-for="c in conversations"
-          :key="c.id"
-          :data-testid="`conversation-${c.id}`"
-          :class="{ active: c.id === selectedId, unread: c.unread }"
-          @click="openConversation(c.id)"
-        >
-          {{ c.otherPartyName }}
-        </li>
-      </ul>
+      <div class="conversation-pane">
+        <input
+          data-testid="conversation-search"
+          class="conversation-search"
+          type="search"
+          v-model="search"
+          placeholder="Search conversations…"
+          @input="loadConversations"
+        />
+        <ul class="conversation-list">
+          <li v-if="!conversations.length" class="empty">No messages yet.</li>
+          <li
+            v-for="c in conversations"
+            :key="c.id"
+            :data-testid="`conversation-${c.id}`"
+            :class="{ active: c.id === selectedId, unread: c.unread }"
+            @click="openConversation(c.id)"
+          >
+            {{ c.otherPartyName }}
+          </li>
+        </ul>
+      </div>
 
       <div class="thread" v-if="selected">
         <div v-for="m in selected.messages" :key="m.id" class="message">
@@ -85,7 +96,7 @@ async function onSendReply() {
           :disabled="isSending"
           placeholder="Type a reply…"
         ></textarea>
-        <button data-testid="send-reply" :disabled="isSending || !replyText" @click="onSendReply">
+        <button data-testid="send-reply" :disabled="isSending || !replyText.trim()" @click="onSendReply">
           {{ isSending ? 'Sending…' : 'Send' }}
         </button>
       </div>
@@ -103,11 +114,22 @@ async function onSendReply() {
   gap: var(--space-4);
   margin-top: var(--space-3);
 }
+.conversation-pane {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.conversation-search {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
 .conversation-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  width: 240px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
