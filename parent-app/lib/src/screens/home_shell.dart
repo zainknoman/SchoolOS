@@ -7,6 +7,7 @@ import 'calendar_tab.dart';
 import 'circulars_tab.dart';
 import 'home_tab.dart';
 import 'messages_tab.dart';
+import 'notifications_sheet.dart';
 
 /// Authenticated shell: multi-child switcher up top, bottom nav below (Home / Calendar /
 /// Notifications / Messages / Fees / More — per the MVP plan). Every tab is a placeholder;
@@ -28,12 +29,14 @@ class _HomeShellState extends State<HomeShell> {
   String? _loadError;
   List<CircularSummary> _circulars = [];
   int _unreadCirculars = 0;
+  int _unreadNotifications = 0;
 
   @override
   void initState() {
     super.initState();
     _loadChildren();
     _loadCirculars();
+    _loadNotificationCount();
   }
 
   Future<void> _loadCirculars() async {
@@ -53,6 +56,48 @@ class _HomeShellState extends State<HomeShell> {
       // The Home tab's announcements and the Notifications badge are conveniences, not the
       // critical path — the Notifications tab itself will surface the real error if opened.
     }
+  }
+
+  Future<void> _loadNotificationCount() async {
+    final auth = context.read<AuthState>();
+    final api = context.read<ApiClient>();
+    final token = auth.accessToken;
+    if (token == null) return;
+    try {
+      final notifications = await api.notifications(token);
+      if (mounted) {
+        setState(() => _unreadNotifications = notifications.where((n) => n.readAt == null).length);
+      }
+    } on ApiException {
+      // Convenience badge only — a failed fetch just shows zero, doesn't block the rest of the shell.
+    }
+  }
+
+  Future<void> _openNotifications() async {
+    final auth = context.read<AuthState>();
+    final api = context.read<ApiClient>();
+    final token = auth.accessToken;
+    if (token == null) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: NotificationsSheet(
+          accessToken: token,
+          api: api,
+          onOpenType: (type) {
+            Navigator.of(context).pop();
+            setState(() {
+              if (type == 'diary') _tabIndex = 1;
+              if (type == 'circular') _tabIndex = 2;
+              if (type == 'message') _tabIndex = 3;
+            });
+          },
+        ),
+      ),
+    );
+    await _loadNotificationCount();
   }
 
   Future<void> _loadChildren() async {
@@ -87,6 +132,14 @@ class _HomeShellState extends State<HomeShell> {
       appBar: AppBar(
         title: _buildChildSwitcher(),
         actions: [
+          IconButton(
+            key: const Key('notificationsButton'),
+            icon: _unreadNotifications > 0
+                ? Badge(label: Text('$_unreadNotifications'), child: const Icon(Icons.notifications_none))
+                : const Icon(Icons.notifications_none),
+            tooltip: 'Notifications',
+            onPressed: _openNotifications,
+          ),
           IconButton(
             key: const Key('logoutButton'),
             icon: const Icon(Icons.logout),
