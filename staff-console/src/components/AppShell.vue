@@ -40,7 +40,7 @@ async function onLogout() {
           <RouterLink data-testid="nav-attendance" to="/teacher"><Icon name="calendar" />Attendance</RouterLink>
           <RouterLink data-testid="nav-diary" to="/teacher/diary"><Icon name="notebook" />Diary</RouterLink>
           <a data-testid="nav-timetable" href="#"><Icon name="clock" />Timetable</a>
-          <a data-testid="nav-messages" href="#"><Icon name="chat" />Messages</a>
+          <RouterLink data-testid="nav-messages" to="/teacher/messages"><Icon name="chat" />Messages</RouterLink>
         </template>
         <template v-else-if="isAdmin">
           <RouterLink data-testid="nav-dashboard" to="/admin"><Icon name="home" />Dashboard</RouterLink>
@@ -51,6 +51,7 @@ async function onLogout() {
           <a data-testid="nav-timetable" href="#"><Icon name="clock" />Timetable</a>
           <RouterLink data-testid="nav-circulars" to="/admin/circulars"><Icon name="megaphone" />Circulars</RouterLink>
           <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />Fees</RouterLink>
+          <RouterLink data-testid="nav-messages" to="/admin/messages"><Icon name="chat" />Messages</RouterLink>
         </template>
       </nav>
 

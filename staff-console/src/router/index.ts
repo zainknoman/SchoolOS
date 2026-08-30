@@ -31,6 +31,12 @@ const router = createRouter({
       meta: { requiresRole: ['TEACHER'] },
     },
     {
+      path: '/teacher/messages',
+      name: 'teacher-messages',
+      component: () => import('../views/MessagesPageView.vue'),
+      meta: { requiresRole: ['TEACHER'] },
+    },
+    {
       path: '/admin',
       name: 'admin-home',
       component: () => import('../views/AdminHomeView.vue'),
@@ -47,6 +53,12 @@ const router = createRouter({
       name: 'admin-circulars',
       component: () => import('../views/CircularsPageView.vue'),
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] },
+    },
+    {
+      path: '/admin/messages',
+      name: 'admin-messages',
+      component: () => import('../views/MessagesPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'] },
     },
     { path: '/', redirect: '/login' },
   ],

@@ -13,6 +13,8 @@ function makeRouter() {
       { path: '/teacher', name: 'teacher-home', component: { template: '<div>teacher</div>' } },
       { path: '/admin', name: 'admin-home', component: { template: '<div>admin</div>' } },
       { path: '/admin/fees', name: 'admin-fees', component: { template: '<div>fees</div>' } },
+      { path: '/teacher/messages', name: 'teacher-messages', component: { template: '<div>messages</div>' } },
+      { path: '/admin/messages', name: 'admin-messages', component: { template: '<div>messages</div>' } },
     ],
   });
 }
@@ -55,6 +57,7 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.text()).toContain('Timetable');
     expect(wrapper.text()).toContain('Circulars');
     expect(wrapper.text()).toContain('Fees');
+    expect(wrapper.text()).toContain('Messages');
 
     expect(wrapper.find('[data-testid="nav-attendance"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-diary"]').exists()).toBe(false);
