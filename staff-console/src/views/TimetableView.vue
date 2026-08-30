@@ -399,41 +399,44 @@ async function onSaveBulk() {
         <table class="bulk-grid" data-testid="bulk-grid">
           <thead>
             <tr>
-              <th>Period</th>
-              <th>Time</th>
-              <th v-for="d in visibleDayOptions" :key="d.value">{{ d.label }}</th>
+              <th>Day</th>
+              <th v-for="period in periodsRange" :key="period" class="period-header">
+                <div class="period-label">Period {{ period }}</div>
+                <div class="time-cell">
+                  <input
+                    type="time"
+                    v-model="periodTime(period).startTime"
+                    :data-testid="`bulk-start-${period}`"
+                  />
+                  <input
+                    type="time"
+                    v-model="periodTime(period).endTime"
+                    :data-testid="`bulk-end-${period}`"
+                  />
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="period in periodsRange" :key="period">
-              <td>{{ period }}</td>
-              <td class="time-cell">
-                <input
-                  type="time"
-                  v-model="periodTime(period).startTime"
-                  :data-testid="`bulk-start-${period}`"
-                />
-                <input
-                  type="time"
-                  v-model="periodTime(period).endTime"
-                  :data-testid="`bulk-end-${period}`"
-                />
-              </td>
-              <td v-for="d in visibleDayOptions" :key="d.value" class="grid-cell">
-                <select
-                  v-model="cell(period, d.value).subjectId"
-                  :data-testid="`bulk-subject-${period}-${d.value}`"
-                >
-                  <option value="">—</option>
-                  <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
-                </select>
-                <select
-                  v-model="cell(period, d.value).teacherId"
-                  :data-testid="`bulk-teacher-${period}-${d.value}`"
-                >
-                  <option value="">(no teacher)</option>
-                  <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
-                </select>
+            <tr v-for="d in visibleDayOptions" :key="d.value">
+              <td class="day-label">{{ d.label }}</td>
+              <td v-for="period in periodsRange" :key="period" class="grid-cell-td">
+                <div class="grid-cell">
+                  <select
+                    v-model="cell(period, d.value).subjectId"
+                    :data-testid="`bulk-subject-${period}-${d.value}`"
+                  >
+                    <option value="">—</option>
+                    <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+                  </select>
+                  <select
+                    v-model="cell(period, d.value).teacherId"
+                    :data-testid="`bulk-teacher-${period}-${d.value}`"
+                  >
+                    <option value="">(no teacher)</option>
+                    <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+                  </select>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -696,7 +699,6 @@ button:disabled {
 }
 .bulk-grid {
   border-collapse: collapse;
-  width: 100%;
 }
 .bulk-grid th,
 .bulk-grid td {
@@ -704,17 +706,37 @@ button:disabled {
   border: 1px solid var(--color-border);
   text-align: left;
   font-size: var(--font-size-sm);
+  vertical-align: top;
+}
+.day-label {
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.period-header {
+  font-weight: 600;
+}
+.period-label {
+  margin-bottom: 0.3rem;
   white-space: nowrap;
 }
 .time-cell {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  font-weight: 400;
+}
+.grid-cell-td {
+  min-width: 9.5rem;
 }
 .grid-cell {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+}
+.grid-cell select,
+.time-cell input {
+  width: 100%;
 }
 .bulk-actions {
   display: flex;
