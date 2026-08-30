@@ -189,11 +189,55 @@ Repo: https://github.com/zainknoman/SchoolPortal
   accounts user clicking it silently bounces to `/admin`; pre-existing, found during final review,
   not fixed here.
 
-## Sprint 7-8 — Messages + Notifications 🔜 NEXT
+## Sprint 7-8 — Messages + Notifications ✅ DONE
 
-- [ ] **FEAT-010** — Messages: scoped inbox (Parent → Class Teacher / Admin / Accounts / Principal
-      only, server-enforced), search/filter/reply
-- [ ] **FEAT-011** — Notifications: Firebase Cloud Messaging wiring, deep links to the right screen
+- [x] **FEAT-010** — Messages: scoped inbox (Parent → Class Teacher / Admin / Accounts / Principal
+      only, server-enforced via `@Roles('PARENT')` on create + per-row party checks on reply/read),
+      staff-console `MessagesView.vue` (list/search/thread/reply, routed for Teacher and
+      Admin/Accounts) and parent-app `MessagesTab` (list/compose/thread, Class Teacher requires a
+      child picker, Admin/Accounts/Principal don't).
+- [x] **FEAT-011** — Notifications: in-app notification center backing both clients
+      (`GET/POST /api/v1/notifications`), staff-console bell dropdown + parent-app modal sheet,
+      deep-links to the right screen (diary/circular/message) with unread badges. Real push
+      delivery is stubbed behind a swappable `PushAdapter` (logging/no-op) — no Firebase project
+      exists yet, tracked below under Environment / one-time setup, same as before this sprint.
+- New backend Messages + Notifications modules (`Conversation`/`Message`/`Notification` models,
+  `NotificationsService.notify()` write-then-swallow-push contract), one Prisma migration.
+- Built via subagent-driven-development: 11 tasks (backend Tasks 1-5, staff-console Tasks 6-8,
+  parent-app Tasks 9-11), each with its own implementer + task review; 3 fix rounds during
+  per-task review (a parent-student ownership check the plan omitted from conversation creation;
+  a double-toolbar bug from two Flutter views nesting their own `Scaffold`/`AppBar` inside
+  `HomeShell`'s single one; a diary notification landing on Calendar's Timetable sub-tab instead
+  of Diary). A final whole-branch review then caught 4 more cross-task issues no per-task review
+  could see (fixed): the spec's mandated search box on `MessagesView.vue` never got built despite
+  the API already supporting it; both notification bells silently ate the user's tap on a failed
+  mark-read instead of still navigating; a whitespace-only staff reply could reach the DB; and
+  staff-console's notification routing could silently bounce a user to an unrelated page when a
+  notification's type didn't match their role.
+- Verified: 19 backend unit suites/77 tests + 7 e2e suites/30 tests, 15 staff-console files/71
+  tests, parent-app 32/32 tests — all passing on the merged `main`, migration applied and Prisma
+  Client regenerated in this checkout, both clients' build/analyze clean.
+- Follow-ups (tracked, not blocking, surfaced by the final review — none are regressions, all
+  pre-existing or deliberately narrowed scope):
+  - `auth.module.ts`'s `JwtModule.register(...)` reads `process.env.JWT_ACCESS_SECRET` before
+    `ConfigModule.forRoot()` populates it (import-hoisting order) — a real sign/verify
+    secret-mismatch race on a cold process boot. Pre-dates this sprint (`auth.module.ts` last
+    touched Sprint 1), reproduced independently during e2e test-writing. Recommend
+    `JwtModule.registerAsync({ imports: [ConfigModule], inject: [ConfigService], useFactory })`.
+  - Notification fan-out (`CircularsService.publish`, `DiaryService.create`) does one concurrent
+    Prisma write per recipient instead of a batched `createMany` — fine at this sprint's scale,
+    will need a `NotificationsService.notifyMany()` helper before a large circular fan-out
+    (hundreds of parents) is realistic.
+  - Two spec-vs-plan narrowings accepted as-is this sprint: `notification.read` writes no
+    `AuditLog` row (spec named it, low value/high volume for a read-marker); conversation search
+    (`?q=`) matches participant name only, not message bodies (spec named both, low urgency at
+    current per-parent conversation counts).
+  - `ConversationsService.markRead`'s non-party-rejection path has no dedicated unit test (only
+    `reply`/`getById` are tested for that guard) — same low-risk category, add opportunistically.
+  - Minor UX gaps, not blocking: no keyboard access on staff-console's conversation list items; a
+    parent-app child-switcher edge case can leak a "open on Diary" sub-tab choice onto a
+    newly-selected child; two consecutive taps on the same notification type don't reliably
+    re-navigate.
 
 ## Sprint 9-10 — Fees + Leave ⏳ PENDING
 
@@ -237,5 +281,8 @@ Repo: https://github.com/zainknoman/SchoolPortal
 
 ---
 
-**Next step:** Sprint 7-8 — FEAT-010 (Messages, scoped inbox) + FEAT-011 (Notifications, FCM wiring
-+ deep links), backend API through both clients, same TDD rigor as Sprints 1-6.5.
+**Next step:** Sprint 9-10 — FEAT-012 (Fees: server-computed voucher, PDF generation, in-app
+JazzCash/EasyPaisa payment) + FEAT-013 (Leave applications, reflects on the attendance calendar),
+backend API through both clients, same TDD rigor as Sprints 1-8. `FeesView.vue`'s Fee
+Reconciliation Queue (built during the UI refresh pass against local mock data) is a starting
+point for the staff-console side of FEAT-012 — wiring the real endpoint is a data-layer swap.
