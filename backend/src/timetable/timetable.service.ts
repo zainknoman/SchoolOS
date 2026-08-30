@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTimetableEntryDto } from './dto/create-timetable-entry.dto';
 import { UpdateTimetableEntryDto } from './dto/update-timetable-entry.dto';
+import { BulkTimetableEntryDto } from './dto/bulk-timetable-entry.dto';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 
 export interface TimetableEntrySummary {
@@ -93,5 +94,37 @@ export class TimetableService {
         entityId: id,
       },
     });
+  }
+
+  /**
+   * The grid composer's "Save Timetable" — defines the section's ENTIRE weekly timetable in one
+   * call. Every existing row for the section is replaced (deleted, then the new set inserted),
+   * not merged with what was there — this matches what the composer's UI shows the admin (the
+   * complete grid, not an incremental add). Wrapped in one transaction so a mid-save failure never
+   * leaves the section with a half-deleted timetable.
+   */
+  async replaceForSection(
+    sectionId: string,
+    entries: BulkTimetableEntryDto[],
+    actingUserId: string,
+  ): Promise<TimetableEntrySummary[]> {
+    await this.prisma.$transaction([
+      this.prisma.timetable.deleteMany({ where: { sectionId } }),
+      ...(entries.length
+        ? [this.prisma.timetable.createMany({ data: entries.map((e) => ({ ...e, sectionId })) })]
+        : []),
+    ]);
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'timetable.replace',
+        entity: 'Timetable',
+        entityId: sectionId,
+        metadata: JSON.stringify({ sectionId, count: entries.length }),
+      },
+    });
+
+    return this.getForSection(sectionId);
   }
 }

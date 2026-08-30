@@ -14,6 +14,7 @@ vi.mock('../lib/api', () => ({
     createTimetableEntry: vi.fn(),
     updateTimetableEntry: vi.fn(),
     deleteTimetableEntry: vi.fn(),
+    replaceSectionTimetable: vi.fn(),
   },
 }));
 
@@ -36,6 +37,7 @@ describe('TimetableView', () => {
     vi.mocked(api.createTimetableEntry).mockReset();
     vi.mocked(api.updateTimetableEntry).mockReset();
     vi.mocked(api.deleteTimetableEntry).mockReset();
+    vi.mocked(api.replaceSectionTimetable).mockReset();
   });
 
   it('lists a section\'s periods ordered by day then period once a section is picked', async () => {
@@ -236,5 +238,183 @@ describe('TimetableView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('Something went wrong.');
+  });
+
+  describe('bulk grid composer', () => {
+    it('opens with a default Mon-Sat, 6-period empty grid for a section with no existing timetable', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="bulk-grid"]').exists()).toBe(true);
+      // 6 period rows.
+      for (let period = 1; period <= 6; period++) {
+        expect(wrapper.find(`[data-testid="bulk-start-${period}"]`).exists()).toBe(true);
+      }
+      // Mon(1)..Sat(6) columns present, Sunday(0) not, by default.
+      for (let day = 1; day <= 6; day++) {
+        expect(wrapper.find(`[data-testid="bulk-subject-1-${day}"]`).exists()).toBe(true);
+      }
+      expect(wrapper.find('[data-testid="bulk-subject-1-0"]').exists()).toBe(false);
+    });
+
+    it('fills one cell and saves, posting only that entry to replaceSectionTimetable', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+      vi.mocked(api.replaceSectionTimetable).mockResolvedValue(undefined);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      await wrapper.find('[data-testid="bulk-start-1"]').setValue('08:00');
+      await wrapper.find('[data-testid="bulk-end-1"]').setValue('08:40');
+      await wrapper.find('[data-testid="bulk-subject-1-1"]').setValue('sub-1');
+      await wrapper.find('[data-testid="bulk-teacher-1-1"]').setValue('teacher-1');
+      await wrapper.find('[data-testid="bulk-default-room"]').setValue('4B');
+
+      await wrapper.find('[data-testid="save-bulk"]').trigger('click');
+      await flushPromises();
+
+      expect(api.replaceSectionTimetable).toHaveBeenCalledWith('token-1', 'sec-1', [
+        {
+          subjectId: 'sub-1',
+          teacherId: 'teacher-1',
+          dayOfWeek: 1,
+          period: 1,
+          startTime: '08:00',
+          endTime: '08:40',
+          room: '4B',
+        },
+      ]);
+      expect(wrapper.text()).toContain('Timetable saved (1 period).');
+      // Composer closes back to the (now-reloaded) list view.
+      expect(wrapper.find('[data-testid="bulk-grid"]').exists()).toBe(false);
+    });
+
+    it('unchecking a day removes its column and excludes it from the saved entries', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+      vi.mocked(api.replaceSectionTimetable).mockResolvedValue(undefined);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      await wrapper.find('[data-testid="bulk-start-1"]').setValue('08:00');
+      await wrapper.find('[data-testid="bulk-end-1"]').setValue('08:40');
+      await wrapper.find('[data-testid="bulk-subject-1-6"]').setValue('sub-1'); // Saturday
+
+      await wrapper.find('[data-testid="bulk-day-6"]').trigger('change'); // uncheck Saturday
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="bulk-subject-1-6"]').exists()).toBe(false);
+
+      await wrapper.find('[data-testid="save-bulk"]').trigger('click');
+      await flushPromises();
+
+      expect(api.replaceSectionTimetable).toHaveBeenCalledWith('token-1', 'sec-1', []);
+    });
+
+    it('changing periods-per-day resizes the grid', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      await wrapper.find('[data-testid="bulk-period-count"]').setValue(2);
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="bulk-start-1"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="bulk-start-2"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="bulk-start-3"]').exists()).toBe(false);
+    });
+
+    it('the save button stays disabled until every period with a filled cell has its time set', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      // Valid with nothing filled in at all (an intentional empty save clears the timetable).
+      expect(wrapper.find('[data-testid="save-bulk"]').attributes('disabled')).toBeUndefined();
+
+      // Fill a subject without its period's times — now invalid.
+      await wrapper.find('[data-testid="bulk-subject-1-1"]').setValue('sub-1');
+      expect(wrapper.find('[data-testid="save-bulk"]').attributes('disabled')).toBeDefined();
+
+      // Fill in the times — valid again.
+      await wrapper.find('[data-testid="bulk-start-1"]').setValue('08:00');
+      await wrapper.find('[data-testid="bulk-end-1"]').setValue('08:40');
+      expect(wrapper.find('[data-testid="save-bulk"]').attributes('disabled')).toBeUndefined();
+    });
+
+    it('cancel closes the composer without saving', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      await wrapper.find('[data-testid="cancel-bulk"]').trigger('click');
+      await flushPromises();
+
+      expect(api.replaceSectionTimetable).not.toHaveBeenCalled();
+      expect(wrapper.find('[data-testid="bulk-grid"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="open-bulk"]').exists()).toBe(true);
+    });
+
+    it('pre-fills the grid from the section\'s existing timetable when reopened', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([
+        {
+          id: 't1',
+          dayOfWeek: 1,
+          period: 1,
+          startTime: '08:00',
+          endTime: '08:40',
+          subject: 'Mathematics',
+          teacher: 'Mr. Second Teacher',
+          room: '4B',
+        },
+      ]);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="bulk-subject-1-1"]').element as HTMLSelectElement).toMatchObject({
+        value: 'sub-1',
+      });
+      expect(wrapper.find('[data-testid="bulk-start-1"]').element as HTMLInputElement).toMatchObject({
+        value: '08:00',
+      });
+      expect(wrapper.find('[data-testid="bulk-default-room"]').element as HTMLInputElement).toMatchObject({
+        value: '4B',
+      });
+      expect(wrapper.text()).toContain("Pre-filled from this section's existing timetable");
+    });
   });
 });

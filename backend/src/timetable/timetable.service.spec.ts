@@ -7,8 +7,17 @@ import { EnrollmentService } from '../enrollment/enrollment.service';
 describe('TimetableService', () => {
   let service: TimetableService;
   let prisma: {
-    timetable: { findMany: jest.Mock; create: jest.Mock; findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock };
+    timetable: {
+      findMany: jest.Mock;
+      create: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+      deleteMany: jest.Mock;
+      createMany: jest.Mock;
+    };
     auditLog: { create: jest.Mock };
+    $transaction: jest.Mock;
   };
   let enrollmentService: { getCurrentEnrollment: jest.Mock };
 
@@ -20,8 +29,11 @@ describe('TimetableService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        deleteMany: jest.fn(),
+        createMany: jest.fn(),
       },
       auditLog: { create: jest.fn() },
+      $transaction: jest.fn().mockResolvedValue(undefined),
     };
     enrollmentService = { getCurrentEnrollment: jest.fn() };
     const moduleRef = await Test.createTestingModule({
@@ -167,5 +179,50 @@ describe('TimetableService', () => {
 
     await expect(service.deleteEntry('missing', 'admin-1')).rejects.toThrow(NotFoundException);
     expect(prisma.timetable.delete).not.toHaveBeenCalled();
+  });
+
+  it('replaceForSection deletes the section\'s existing rows and creates the new set in one transaction', async () => {
+    const entries = [
+      { subjectId: 'sub-1', dayOfWeek: 1, period: 1, startTime: '08:00', endTime: '08:40' },
+      { subjectId: 'sub-2', dayOfWeek: 1, period: 2, startTime: '08:40', endTime: '09:20' },
+    ];
+    prisma.timetable.findMany.mockResolvedValue([]);
+
+    await service.replaceForSection('sec-1', entries, 'admin-1');
+
+    expect(prisma.timetable.deleteMany).toHaveBeenCalledWith({ where: { sectionId: 'sec-1' } });
+    expect(prisma.timetable.createMany).toHaveBeenCalledWith({
+      data: entries.map((e) => ({ ...e, sectionId: 'sec-1' })),
+    });
+    // Both operations (the delete and the recreate) are passed into a single $transaction call —
+    // atomic, so a mid-save failure never leaves the section half-cleared.
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.$transaction.mock.calls[0]?.[0]).toHaveLength(2);
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'admin-1',
+          action: 'timetable.replace',
+          entity: 'Timetable',
+          entityId: 'sec-1',
+        }),
+      }),
+    );
+    // Returns the section's timetable read back after the replace.
+    expect(prisma.timetable.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { sectionId: 'sec-1' } }),
+    );
+  });
+
+  it('replaceForSection with an empty list only deletes — no createMany call, section timetable cleared', async () => {
+    prisma.timetable.findMany.mockResolvedValue([]);
+
+    await service.replaceForSection('sec-1', [], 'admin-1');
+
+    expect(prisma.timetable.deleteMany).toHaveBeenCalledWith({ where: { sectionId: 'sec-1' } });
+    expect(prisma.timetable.createMany).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ action: 'timetable.replace' }) }),
+    );
   });
 });

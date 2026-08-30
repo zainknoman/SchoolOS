@@ -268,6 +268,23 @@ export const api = {
     }
   },
 
+  // The grid composer's "Save Timetable" — replaces the section's ENTIRE timetable with this set
+  // in one call, not an incremental add.
+  async replaceSectionTimetable(
+    accessToken: string,
+    sectionId: string,
+    entries: TimetableEntryInput[],
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/sections/${sectionId}/timetable`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify({ entries }),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
   async uploadFile(accessToken: string, file: File): Promise<{ id: string }> {
     const formData = new FormData();
     formData.append('file', file);

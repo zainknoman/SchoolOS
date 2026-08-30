@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { TimetableService } from './timetable.service';
 import { CreateTimetableEntryDto } from './dto/create-timetable-entry.dto';
 import { UpdateTimetableEntryDto } from './dto/update-timetable-entry.dto';
+import { ReplaceSectionTimetableDto } from './dto/replace-section-timetable.dto';
 import {
   StudentAccessService,
   RequestUser,
@@ -36,6 +37,17 @@ export class TimetableController {
   @Get('sections/:id/timetable')
   getForSection(@Param('id') sectionId: string) {
     return this.timetableService.getForSection(sectionId);
+  }
+
+  // The grid composer's bulk save — replaces the section's entire timetable in one call.
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @Put('sections/:id/timetable')
+  replaceForSection(
+    @Param('id') sectionId: string,
+    @Body() dto: ReplaceSectionTimetableDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.timetableService.replaceForSection(sectionId, dto.entries, req.user.id);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
