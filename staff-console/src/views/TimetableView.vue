@@ -183,11 +183,19 @@ interface PeriodTime {
   endTime: string;
 }
 
+type GridColumn = { type: 'period'; period: number } | { type: 'break'; afterPeriod: number };
+
 const isBulkMode = ref(false);
 const bulkDays = ref<number[]>([1, 2, 3, 4, 5, 6]);
 const bulkPeriodCount = ref(6);
 const defaultRoom = ref('');
+// Week-default times, per period — used by every day EXCEPT ones in customDays.
 const periodTimes = ref<PeriodTime[]>([]);
+// Per-day overrides, keyed "${period}-${day}" — only read for days in customDays. Lets a day
+// like Friday run a shorter schedule (earlier finish, different break lengths) without changing
+// every other day.
+const dayPeriodTimes = ref<Record<string, PeriodTime>>({});
+const customDays = ref<Set<number>>(new Set());
 const grid = ref<Record<string, GridCell>>({});
 
 const orderedDayOptions = DAY_OPTIONS.filter((d) => d.value !== 0).concat(
@@ -196,6 +204,22 @@ const orderedDayOptions = DAY_OPTIONS.filter((d) => d.value !== 0).concat(
 
 const visibleDayOptions = computed(() => orderedDayOptions.filter((d) => bulkDays.value.includes(d.value)));
 const periodsRange = computed(() => Array.from({ length: bulkPeriodCount.value }, (_, i) => i + 1));
+
+// Interleaves a "break" column after every period except the last, so the gap between two
+// periods is a real, visible cell instead of something an admin has to infer from two time
+// inputs — matches how the parent app's own Calendar tab already auto-detects break columns.
+const gridColumns = computed<GridColumn[]>(() => {
+  const cols: GridColumn[] = [];
+  for (let period = 1; period <= bulkPeriodCount.value; period++) {
+    cols.push({ type: 'period', period });
+    if (period < bulkPeriodCount.value) cols.push({ type: 'break', afterPeriod: period });
+  }
+  return cols;
+});
+
+function columnKey(col: GridColumn): string {
+  return col.type === 'period' ? `p${col.period}` : `b${col.afterPeriod}`;
+}
 
 function cellKey(period: number, day: number): string {
   return `${period}-${day}`;
@@ -208,6 +232,55 @@ function cell(period: number, day: number): GridCell {
 
 function periodTime(period: number): PeriodTime {
   return periodTimes.value[period - 1] ?? { startTime: '', endTime: '' };
+}
+
+function dayPeriodTime(period: number, day: number): PeriodTime {
+  return dayPeriodTimes.value[cellKey(period, day)] ?? { startTime: '', endTime: '' };
+}
+
+function isCustomDay(day: number): boolean {
+  return customDays.value.has(day);
+}
+
+// The time that actually applies to this (period, day): the day's own override if it's opted
+// into custom times, otherwise the week's shared default.
+function effectiveTime(period: number, day: number): PeriodTime {
+  return isCustomDay(day) ? dayPeriodTime(period, day) : periodTime(period);
+}
+
+function minutesBetween(startTime: string, endTime: string): number | null {
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  if ([sh, sm, eh, em].some((n) => n === undefined || Number.isNaN(n))) return null;
+  return eh! * 60 + em! - (sh! * 60 + sm!);
+}
+
+// Read-only — shown so a break's length is visible at a glance; adjust it by editing the
+// adjacent periods' end/start times (the shared ones, or that day's own custom ones).
+function breakLabel(afterPeriod: number, day: number): string {
+  const end = effectiveTime(afterPeriod, day).endTime;
+  const start = effectiveTime(afterPeriod + 1, day).startTime;
+  if (!end || !start) return '—';
+  const mins = minutesBetween(end, start);
+  if (mins === null) return '—';
+  if (mins <= 0) return 'No gap';
+  return `${mins} min`;
+}
+
+function toggleCustomDay(day: number) {
+  const next = new Set(customDays.value);
+  if (next.has(day)) {
+    next.delete(day);
+  } else {
+    next.add(day);
+    // Seed this day's overrides from the CURRENT shared defaults, so the admin only has to
+    // change what's actually different (Friday's early finish) instead of re-entering every
+    // period's time from scratch.
+    for (let period = 1; period <= bulkPeriodCount.value; period++) {
+      dayPeriodTimes.value[cellKey(period, day)] = { ...periodTime(period) };
+    }
+  }
+  customDays.value = next;
 }
 
 function regenerateGrid() {
@@ -225,6 +298,17 @@ function regenerateGrid() {
     newTimes.push(periodTimes.value[period - 1] ?? { startTime: '', endTime: '' });
   }
   periodTimes.value = newTimes;
+
+  // Prune per-day overrides for periods/days no longer in range, so a later period-count
+  // increase doesn't resurrect stale times from an earlier, unrelated edit.
+  const prunedDayTimes: Record<string, PeriodTime> = {};
+  for (const day of bulkDays.value) {
+    for (let period = 1; period <= bulkPeriodCount.value; period++) {
+      const key = cellKey(period, day);
+      if (dayPeriodTimes.value[key]) prunedDayTimes[key] = dayPeriodTimes.value[key];
+    }
+  }
+  dayPeriodTimes.value = prunedDayTimes;
 }
 
 // A native number input only fires 'change' on blur, not on every keystroke or spinner click —
@@ -242,6 +326,8 @@ function toggleBulkDay(day: number) {
 function openBulkComposer() {
   message.value = null;
   errorMessage.value = null;
+  customDays.value = new Set();
+  dayPeriodTimes.value = {};
 
   if (entries.value.length) {
     // Pre-fill from what's already scheduled — "Save" then reviews-and-replaces rather than
@@ -252,14 +338,35 @@ function openBulkComposer() {
     bulkDays.value = orderedDayOptions.filter((d) => usedDays.includes(d.value)).map((d) => d.value);
     defaultRoom.value = entries.value[0]?.room ?? '';
     regenerateGrid();
+
+    // The first day seen for each period sets the shared default; any later day whose time for
+    // that same period disagrees gets flagged custom, so a day that already had different times
+    // (e.g. an existing shorter Friday) isn't silently collapsed into the majority's schedule.
+    const seenDefault = new Set<number>();
+    const newCustomDays = new Set<number>();
     for (const e of entries.value) {
       grid.value[cellKey(e.period, e.dayOfWeek)] = {
         subjectId: subjects.value.find((s) => s.name === e.subject)?.id ?? '',
         teacherId: teachers.value.find((t) => t.name === e.teacher)?.id ?? '',
       };
       const idx = e.period - 1;
-      if (periodTimes.value[idx] && !periodTimes.value[idx]!.startTime) {
+      if (!seenDefault.has(e.period)) {
         periodTimes.value[idx] = { startTime: e.startTime, endTime: e.endTime };
+        seenDefault.add(e.period);
+      } else {
+        const shared = periodTimes.value[idx];
+        if (shared && (shared.startTime !== e.startTime || shared.endTime !== e.endTime)) {
+          newCustomDays.add(e.dayOfWeek);
+        }
+      }
+    }
+    customDays.value = newCustomDays;
+    for (const day of newCustomDays) {
+      for (let period = 1; period <= bulkPeriodCount.value; period++) {
+        const match = entries.value.find((e) => e.dayOfWeek === day && e.period === period);
+        dayPeriodTimes.value[cellKey(period, day)] = match
+          ? { startTime: match.startTime, endTime: match.endTime }
+          : { ...periodTime(period) };
       }
     }
   } else {
@@ -285,14 +392,16 @@ const filledCellCount = computed(() => {
   return count;
 });
 
-// Every period that has at least one filled cell needs its shared start/end time set — a period
-// with zero filled cells doesn't need one, since nothing will be emitted for it.
+// Every period that has at least one filled cell needs its effective start/end time set (shared
+// default, or that day's own custom time) — a period with zero filled cells needs neither.
 function isBulkValid(): boolean {
   if (bulkDays.value.length === 0 || bulkPeriodCount.value < 1) return false;
-  for (let period = 1; period <= bulkPeriodCount.value; period++) {
-    const hasFilledCell = bulkDays.value.some((day) => grid.value[cellKey(period, day)]?.subjectId);
-    const times = periodTimes.value[period - 1];
-    if (hasFilledCell && (!times?.startTime || !times?.endTime)) return false;
+  for (const day of bulkDays.value) {
+    for (let period = 1; period <= bulkPeriodCount.value; period++) {
+      if (!grid.value[cellKey(period, day)]?.subjectId) continue;
+      const times = effectiveTime(period, day);
+      if (!times.startTime || !times.endTime) return false;
+    }
   }
   return true;
 }
@@ -304,12 +413,12 @@ async function onSaveBulk() {
   isSaving.value = true;
   try {
     const bulkEntries: TimetableEntryInput[] = [];
-    for (let period = 1; period <= bulkPeriodCount.value; period++) {
-      const times = periodTimes.value[period - 1];
-      if (!times?.startTime || !times?.endTime) continue;
-      for (const day of bulkDays.value) {
+    for (const day of bulkDays.value) {
+      for (let period = 1; period <= bulkPeriodCount.value; period++) {
         const c = grid.value[cellKey(period, day)];
         if (!c?.subjectId) continue;
+        const times = effectiveTime(period, day);
+        if (!times.startTime || !times.endTime) continue;
         bulkEntries.push({
           subjectId: c.subjectId,
           teacherId: c.teacherId || undefined,
@@ -400,44 +509,75 @@ async function onSaveBulk() {
           <thead>
             <tr>
               <th>Day</th>
-              <th v-for="period in periodsRange" :key="period" class="period-header">
-                <div class="period-label">Period {{ period }}</div>
-                <div class="time-cell">
-                  <input
-                    type="time"
-                    v-model="periodTime(period).startTime"
-                    :data-testid="`bulk-start-${period}`"
-                  />
-                  <input
-                    type="time"
-                    v-model="periodTime(period).endTime"
-                    :data-testid="`bulk-end-${period}`"
-                  />
-                </div>
-              </th>
+              <template v-for="col in gridColumns" :key="columnKey(col)">
+                <th v-if="col.type === 'period'" class="period-header">
+                  <div class="period-label">Period {{ col.period }}</div>
+                  <div class="time-cell">
+                    <input
+                      type="time"
+                      v-model="periodTime(col.period).startTime"
+                      :data-testid="`bulk-start-${col.period}`"
+                    />
+                    <input
+                      type="time"
+                      v-model="periodTime(col.period).endTime"
+                      :data-testid="`bulk-end-${col.period}`"
+                    />
+                  </div>
+                </th>
+                <th v-else class="break-header">Break</th>
+              </template>
             </tr>
           </thead>
           <tbody>
             <tr v-for="d in visibleDayOptions" :key="d.value">
-              <td class="day-label">{{ d.label }}</td>
-              <td v-for="period in periodsRange" :key="period" class="grid-cell-td">
-                <div class="grid-cell">
-                  <select
-                    v-model="cell(period, d.value).subjectId"
-                    :data-testid="`bulk-subject-${period}-${d.value}`"
-                  >
-                    <option value="">—</option>
-                    <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
-                  </select>
-                  <select
-                    v-model="cell(period, d.value).teacherId"
-                    :data-testid="`bulk-teacher-${period}-${d.value}`"
-                  >
-                    <option value="">(no teacher)</option>
-                    <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
-                  </select>
-                </div>
+              <td class="day-label">
+                {{ d.label }}
+                <label class="custom-toggle">
+                  <input
+                    type="checkbox"
+                    :checked="isCustomDay(d.value)"
+                    :data-testid="`bulk-custom-${d.value}`"
+                    @change="toggleCustomDay(d.value)"
+                  />
+                  Custom times
+                </label>
               </td>
+              <template v-for="col in gridColumns" :key="columnKey(col)">
+                <td v-if="col.type === 'period'" class="grid-cell-td">
+                  <div class="grid-cell">
+                    <div v-if="isCustomDay(d.value)" class="time-cell time-cell-compact">
+                      <input
+                        type="time"
+                        v-model="dayPeriodTime(col.period, d.value).startTime"
+                        :data-testid="`bulk-day-start-${col.period}-${d.value}`"
+                      />
+                      <input
+                        type="time"
+                        v-model="dayPeriodTime(col.period, d.value).endTime"
+                        :data-testid="`bulk-day-end-${col.period}-${d.value}`"
+                      />
+                    </div>
+                    <select
+                      v-model="cell(col.period, d.value).subjectId"
+                      :data-testid="`bulk-subject-${col.period}-${d.value}`"
+                    >
+                      <option value="">—</option>
+                      <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+                    </select>
+                    <select
+                      v-model="cell(col.period, d.value).teacherId"
+                      :data-testid="`bulk-teacher-${col.period}-${d.value}`"
+                    >
+                      <option value="">(no teacher)</option>
+                      <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+                    </select>
+                  </div>
+                </td>
+                <td v-else class="break-cell" :data-testid="`bulk-break-${col.afterPeriod}-${d.value}`">
+                  {{ breakLabel(col.afterPeriod, d.value) }}
+                </td>
+              </template>
             </tr>
           </tbody>
         </table>
@@ -713,6 +853,16 @@ button:disabled {
   white-space: nowrap;
   vertical-align: middle;
 }
+.custom-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  font-weight: 400;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  cursor: pointer;
+}
 .period-header {
   font-weight: 600;
 }
@@ -726,6 +876,11 @@ button:disabled {
   gap: 0.2rem;
   font-weight: 400;
 }
+.time-cell-compact {
+  margin-bottom: 0.3rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px dashed var(--color-border);
+}
 .grid-cell-td {
   min-width: 9.5rem;
 }
@@ -737,6 +892,20 @@ button:disabled {
 .grid-cell select,
 .time-cell input {
   width: 100%;
+}
+.break-header {
+  font-weight: 600;
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  text-align: center;
+  white-space: nowrap;
+}
+.break-cell {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  text-align: center;
+  white-space: nowrap;
+  background: var(--color-muted-bg, #f5f5f5);
 }
 .bulk-actions {
   display: flex;

@@ -416,5 +416,116 @@ describe('TimetableView', () => {
       });
       expect(wrapper.text()).toContain("Pre-filled from this section's existing timetable");
     });
+
+    it('shows the break duration between two periods, computed from their times', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      await wrapper.find('[data-testid="bulk-start-1"]').setValue('08:00');
+      await wrapper.find('[data-testid="bulk-end-1"]').setValue('08:40');
+      await wrapper.find('[data-testid="bulk-start-2"]').setValue('09:00');
+      await wrapper.find('[data-testid="bulk-end-2"]').setValue('09:40');
+
+      expect(wrapper.find('[data-testid="bulk-break-1-1"]').text()).toBe('20 min');
+    });
+
+    it('marking a day "Custom times" reveals per-day time inputs, pre-filled from the shared defaults', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      await wrapper.find('[data-testid="bulk-start-1"]').setValue('08:00');
+      await wrapper.find('[data-testid="bulk-end-1"]').setValue('08:40');
+
+      expect(wrapper.find('[data-testid="bulk-day-start-1-5"]').exists()).toBe(false); // Friday, not yet custom
+
+      await wrapper.find('[data-testid="bulk-custom-5"]').trigger('change'); // Friday
+      await flushPromises();
+
+      expect((wrapper.find('[data-testid="bulk-day-start-1-5"]').element as HTMLInputElement).value).toBe(
+        '08:00',
+      );
+    });
+
+    it('a custom day saves its own times, independent of the shared week schedule (early Friday finish)', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+      vi.mocked(api.replaceSectionTimetable).mockResolvedValue(undefined);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      // Shared week default for period 1.
+      await wrapper.find('[data-testid="bulk-start-1"]').setValue('08:00');
+      await wrapper.find('[data-testid="bulk-end-1"]').setValue('08:40');
+      await wrapper.find('[data-testid="bulk-subject-1-1"]').setValue('sub-1'); // Monday uses the default
+
+      // Friday opts into its own (earlier-finishing) time for the same period.
+      await wrapper.find('[data-testid="bulk-custom-5"]').trigger('change');
+      await wrapper.find('[data-testid="bulk-day-start-1-5"]').setValue('08:00');
+      await wrapper.find('[data-testid="bulk-day-end-1-5"]').setValue('08:30');
+      await wrapper.find('[data-testid="bulk-subject-1-5"]').setValue('sub-1');
+
+      await wrapper.find('[data-testid="save-bulk"]').trigger('click');
+      await flushPromises();
+
+      expect(api.replaceSectionTimetable).toHaveBeenCalledWith('token-1', 'sec-1', [
+        expect.objectContaining({ dayOfWeek: 1, period: 1, startTime: '08:00', endTime: '08:40' }),
+        expect.objectContaining({ dayOfWeek: 5, period: 1, startTime: '08:00', endTime: '08:30' }),
+      ]);
+    });
+
+    it('opening the composer auto-detects a day whose existing times already differ and marks it custom', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([
+        {
+          id: 't1',
+          dayOfWeek: 1,
+          period: 1,
+          startTime: '08:00',
+          endTime: '08:40',
+          subject: 'Mathematics',
+          teacher: null,
+          room: '4B',
+        },
+        {
+          id: 't2',
+          dayOfWeek: 5,
+          period: 1,
+          startTime: '08:00',
+          endTime: '08:30', // Friday already runs a shorter period 1 than Monday
+          subject: 'Mathematics',
+          teacher: null,
+          room: '4B',
+        },
+      ]);
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      expect(
+        (wrapper.find('[data-testid="bulk-custom-5"]').element as HTMLInputElement).checked,
+      ).toBe(true);
+      expect((wrapper.find('[data-testid="bulk-day-end-1-5"]').element as HTMLInputElement).value).toBe(
+        '08:30',
+      );
+    });
   });
 });
