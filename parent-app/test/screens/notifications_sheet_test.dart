@@ -37,10 +37,18 @@ void main() {
     );
 
     String? openedType;
+    String? openedEntityRef;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: NotificationsSheet(accessToken: 'tok', api: api, onOpenType: (t) => openedType = t),
+          body: NotificationsSheet(
+            accessToken: 'tok',
+            api: api,
+            onOpenType: (t, ref) {
+              openedType = t;
+              openedEntityRef = ref;
+            },
+          ),
         ),
       ),
     );
@@ -53,6 +61,7 @@ void main() {
 
     expect(markedRead, true);
     expect(openedType, 'message');
+    expect(openedEntityRef, 'conv-1');
   });
 
   testWidgets('still reports the tapped type when marking it read fails', (tester) async {
@@ -86,7 +95,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: NotificationsSheet(accessToken: 'tok', api: api, onOpenType: (t) => openedType = t),
+          body: NotificationsSheet(accessToken: 'tok', api: api, onOpenType: (t, _) => openedType = t),
         ),
       ),
     );
@@ -130,7 +139,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: NotificationsSheet(accessToken: 'tok', api: api, onOpenType: (_) {}),
+          body: NotificationsSheet(accessToken: 'tok', api: api, onOpenType: (_, _) {}),
         ),
       ),
     );

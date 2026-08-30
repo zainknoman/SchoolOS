@@ -26,3 +26,12 @@ export function roleInitials(role: string | null): string {
   if (!role) return '?';
   return ROLE_INITIALS[role] ?? '?';
 }
+
+export function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(iso));
+}

@@ -98,6 +98,7 @@ export interface ConversationSummary {
 export interface MessageSummary {
   id: string;
   senderId: string;
+  senderName: string;
   body: string;
   createdAt: string;
 }

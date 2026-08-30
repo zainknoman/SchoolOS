@@ -231,18 +231,21 @@ class MessageSummary {
   const MessageSummary({
     required this.id,
     required this.senderId,
+    required this.senderName,
     required this.body,
     required this.createdAt,
   });
 
   final String id;
   final String senderId;
+  final String senderName;
   final String body;
   final String createdAt;
 
   factory MessageSummary.fromJson(Map<String, dynamic> json) => MessageSummary(
     id: json['id'] as String,
     senderId: json['senderId'] as String,
+    senderName: json['senderName'] as String,
     body: json['body'] as String,
     createdAt: json['createdAt'] as String,
   );

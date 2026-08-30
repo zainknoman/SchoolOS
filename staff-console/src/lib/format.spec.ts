@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatPkrShort, formatPkrFull, initialsFromName, roleInitials } from './format';
+import { formatPkrShort, formatPkrFull, initialsFromName, roleInitials, formatDateTime } from './format';
 
 describe('formatPkrShort', () => {
   it('formats millions with one decimal place', () => {
@@ -46,5 +46,15 @@ describe('roleInitials', () => {
   it('falls back to "?" for an unknown or null role', () => {
     expect(roleInitials(null)).toBe('?');
     expect(roleInitials('SOMETHING_ELSE')).toBe('?');
+  });
+});
+
+describe('formatDateTime', () => {
+  it('includes the day, month, and time', () => {
+    // Timezone-independent assertions only — the exact hour shifts with the runner's locale.
+    const result = formatDateTime('2026-08-29T12:00:00.000Z');
+    expect(result).toContain('Aug');
+    expect(result).toContain('29');
+    expect(result).toMatch(/\d{1,2}:\d{2}/);
   });
 });

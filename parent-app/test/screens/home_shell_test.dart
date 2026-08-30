@@ -344,4 +344,106 @@ void main() {
     expect(find.text('Complete exercise 4.'), findsOneWidget);
     expect(find.text('No timetable published yet.'), findsNothing);
   });
+
+  testWidgets('tapping a message notification opens that conversation directly, not just the Messages list', (
+    tester,
+  ) async {
+    final client = MockClient((request) async {
+      if (request.url.path == '/api/v1/auth/login') {
+        return http.Response(
+          jsonEncode({'accessToken': 'a1', 'refreshToken': 'r1', 'role': 'PARENT'}),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/me/children') {
+        return http.Response(
+          jsonEncode([
+            {
+              'id': 's1',
+              'name': 'Eshaal',
+              'grNumber': 'GR-1001',
+              'campus': 'Gulistan-e-Jauhar',
+              'class': 'Grade 3',
+              'section': '3A',
+            },
+          ]),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/circulars') {
+        return http.Response(jsonEncode([]), 200);
+      }
+      if (request.url.path == '/api/v1/notifications' && request.method == 'GET') {
+        return http.Response(
+          jsonEncode([
+            {
+              'id': 'n1',
+              'type': 'message',
+              'title': 'New message',
+              'body': 'Sure, will send some.',
+              'entityRef': 'conv-1',
+              'readAt': null,
+              'createdAt': '2026-08-29T00:00:00.000Z',
+            },
+          ]),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/notifications/n1/read') {
+        return http.Response('', 204);
+      }
+      if (request.url.path == '/api/v1/conversations' && request.method == 'GET') {
+        return http.Response(
+          jsonEncode([
+            {
+              'id': 'conv-1',
+              'recipientType': 'CLASS_TEACHER',
+              'studentId': 's1',
+              'otherPartyName': 'Ms. Sample Teacher',
+              'lastMessageAt': '2026-08-29T00:00:00.000Z',
+              'unread': true,
+            },
+          ]),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/conversations/conv-1' && request.method == 'GET') {
+        return http.Response(
+          jsonEncode({
+            'id': 'conv-1',
+            'recipientType': 'CLASS_TEACHER',
+            'studentId': 's1',
+            'messages': [
+              {
+                'id': 'm1',
+                'senderId': 'teacher-1',
+                'senderName': 'Ms. Sample Teacher',
+                'body': 'Sure, will send some.',
+                'createdAt': '2026-08-29T00:00:00.000Z',
+              },
+            ],
+          }),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/conversations/conv-1/read') {
+        return http.Response('', 201);
+      }
+      return http.Response('not found', 404);
+    });
+
+    await loginSingleChild(tester, client);
+
+    await tester.tap(find.byKey(const Key('notificationsButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New message'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('notification-n1')));
+    await tester.pumpAndSettle();
+
+    // Lands directly in the thread (the message body is visible), not on the conversation list.
+    expect(find.text('Sure, will send some.'), findsOneWidget);
+    expect(find.byKey(const Key('newConversation')), findsNothing);
+  });
 }

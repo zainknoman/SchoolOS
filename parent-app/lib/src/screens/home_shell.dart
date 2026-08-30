@@ -38,6 +38,11 @@ class _HomeShellState extends State<HomeShell> {
   /// via the bottom nav, so a stale "open on Diary" doesn't stick around on later manual visits.
   int _calendarInitialSubTab = 0;
 
+  /// Which conversation MessagesTab should open straight to, set when the user taps a
+  /// `type: 'message'` notification's entityRef. Reset to null on manual bottom-nav navigation
+  /// to Messages, same reasoning as _calendarInitialSubTab above.
+  String? _messagesInitialConversationId;
+
   @override
   void initState() {
     super.initState();
@@ -93,7 +98,7 @@ class _HomeShellState extends State<HomeShell> {
         child: NotificationsSheet(
           accessToken: token,
           api: api,
-          onOpenType: (type) {
+          onOpenType: (type, entityRef) {
             Navigator.of(context).pop();
             setState(() {
               if (type == 'diary') {
@@ -101,7 +106,10 @@ class _HomeShellState extends State<HomeShell> {
                 _calendarInitialSubTab = 2;
               }
               if (type == 'circular') _tabIndex = 2;
-              if (type == 'message') _tabIndex = 3;
+              if (type == 'message') {
+                _tabIndex = 3;
+                _messagesInitialConversationId = entityRef;
+              }
             });
           },
         ),
@@ -163,9 +171,10 @@ class _HomeShellState extends State<HomeShell> {
         selectedIndex: _tabIndex,
         onDestinationSelected: (i) => setState(() {
           _tabIndex = i;
-          // Manual bottom-nav navigation to Calendar should behave as before (Timetable first)
-          // unless the previous action was specifically a diary-notification tap.
+          // Manual bottom-nav navigation to Calendar/Messages should behave as before (Timetable
+          // first / the list first) unless the previous action was specifically a notification tap.
           if (i == 1) _calendarInitialSubTab = 0;
+          if (i == 3) _messagesInitialConversationId = null;
         }),
         destinations: [
           const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
@@ -267,7 +276,17 @@ class _HomeShellState extends State<HomeShell> {
     if (_tabIndex == 3) {
       final auth = context.read<AuthState>();
       final api = context.read<ApiClient>();
-      return MessagesTab(accessToken: auth.accessToken!, api: api, children: _children);
+      return MessagesTab(
+        // Keyed on the requested conversation id so a fresh notification tap (or a change from
+        // one conversation to another) forces a new element — same reasoning as CalendarTab's
+        // key above: without this, Flutter would reuse the existing MessagesTab element and
+        // silently ignore the new initialConversationId.
+        key: ValueKey('messages_${_messagesInitialConversationId ?? 'list'}'),
+        accessToken: auth.accessToken!,
+        api: api,
+        children: _children,
+        initialConversationId: _messagesInitialConversationId,
+      );
     }
 
     final labels = ['Home', 'Calendar', 'Notifications', 'Messages', 'Fees', 'More'];

@@ -18,6 +18,7 @@ export interface ConversationSummary {
 export interface MessageSummary {
   id: string;
   senderId: string;
+  senderName: string;
   body: string;
   createdAt: string;
 }
@@ -134,7 +135,11 @@ export class ConversationsService {
   async getById(conversationId: string, user: RequestUser): Promise<ConversationDetail> {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
-      include: { messages: { orderBy: { createdAt: 'asc' } } },
+      include: {
+        messages: { orderBy: { createdAt: 'asc' } },
+        parentUser: { include: { parentProfile: true } },
+        staffUser: { include: { teacher: true } },
+      },
     });
     if (!conversation) {
       throw new NotFoundException('Conversation not found');
@@ -143,6 +148,11 @@ export class ConversationsService {
       throw new ForbiddenException('You are not a party to this conversation');
     }
 
+    // Every message's sender is one of this conversation's exactly two parties — resolve the
+    // display name once per party rather than per message.
+    const parentName = conversation.parentUser.parentProfile?.name ?? conversation.parentUser.identifier;
+    const staffName = conversation.staffUser.teacher?.name ?? conversation.staffUser.identifier;
+
     return {
       id: conversation.id,
       recipientType: conversation.recipientType,
@@ -150,6 +160,7 @@ export class ConversationsService {
       messages: conversation.messages.map((m) => ({
         id: m.id,
         senderId: m.senderId,
+        senderName: m.senderId === conversation.parentUserId ? parentName : staffName,
         body: m.body,
         createdAt: m.createdAt.toISOString(),
       })),

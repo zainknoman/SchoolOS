@@ -15,7 +15,11 @@ class NotificationsSheet extends StatefulWidget {
 
   final String accessToken;
   final ApiClient api;
-  final ValueChanged<String> onOpenType;
+
+  /// Called with the tapped notification's type and its entityRef (the diary entry / circular /
+  /// conversation id it was about), so the caller can deep-link to that specific item, not just
+  /// the containing screen.
+  final void Function(String type, String? entityRef) onOpenType;
 
   @override
   State<NotificationsSheet> createState() => _NotificationsSheetState();
@@ -48,7 +52,7 @@ class _NotificationsSheetState extends State<NotificationsSheet> {
         // Marking read is best-effort — don't block navigating to the relevant screen on it.
       }
     }
-    widget.onOpenType(n.type);
+    widget.onOpenType(n.type, n.entityRef);
   }
 
   Future<void> _onMarkAllRead() async {

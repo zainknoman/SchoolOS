@@ -36,12 +36,17 @@ onMounted(loadNotifications);
 // enter (teacher-diary requires TEACHER only; admin-circulars requires SCHOOL_ADMIN/SUPER_ADMIN
 // only, not ACCOUNTS). The router's global guard would silently bounce them elsewhere with no
 // explanation, so fall back to the caller's own home route in those known-mismatch cases.
-function routeForNotification(n: NotificationSummary): string {
-  if (n.type === 'message') return isTeacher.value ? '/teacher/messages' : '/admin/messages';
+function routeForNotification(n: NotificationSummary): { path: string; query?: Record<string, string> } {
+  if (n.type === 'message') {
+    const path = isTeacher.value ? '/teacher/messages' : '/admin/messages';
+    // entityRef is the conversation this notification was about — carry it through so the
+    // Messages view opens that specific thread instead of just landing on the list.
+    return n.entityRef ? { path, query: { conversationId: n.entityRef } } : { path };
+  }
   const homeRoute = isTeacher.value ? '/teacher' : '/admin';
-  if (n.type === 'diary') return isTeacher.value ? '/teacher/diary' : homeRoute;
+  if (n.type === 'diary') return { path: isTeacher.value ? '/teacher/diary' : homeRoute };
   const canViewCirculars = auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN';
-  return canViewCirculars ? '/admin/circulars' : homeRoute;
+  return { path: canViewCirculars ? '/admin/circulars' : homeRoute };
 }
 
 async function onOpenNotification(n: NotificationSummary) {

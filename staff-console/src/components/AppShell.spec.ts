@@ -204,6 +204,29 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.find('[data-testid="notif-error"]').exists()).toBe(true);
   });
 
+  it("carries the notification's conversation id through as a query param, for the Messages view to open it directly", async () => {
+    vi.mocked(api.listNotifications).mockResolvedValue([
+      {
+        id: 'n1',
+        type: 'message',
+        title: 'New message',
+        body: 'Hi there',
+        entityRef: 'conv-1',
+        readAt: null,
+        createdAt: '2026-08-29T00:00:00.000Z',
+      },
+    ]);
+    const wrapper = await mountAsRole('TEACHER');
+
+    await wrapper.find('[data-testid="notifications"]').trigger('click');
+    await flushPromises();
+    await wrapper.find('[data-testid="notif-item-n1"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/teacher/messages');
+    expect(wrapper.vm.$router.currentRoute.value.query.conversationId).toBe('conv-1');
+  });
+
   it('falls back to the home route when a notification type does not match the caller role', async () => {
     vi.mocked(api.listNotifications).mockResolvedValue([
       {

@@ -5,6 +5,19 @@ import '../theme/text_direction.dart';
 
 enum _MessagesView { list, compose, thread }
 
+const _monthNames = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// Formats an ISO timestamp as "29 Aug, 14:05" in the device's local time — no `intl` dependency
+/// needed for a format this simple.
+String formatMessageTime(String iso) {
+  final dt = DateTime.parse(iso).toLocal();
+  final hour = dt.hour.toString().padLeft(2, '0');
+  final minute = dt.minute.toString().padLeft(2, '0');
+  return '${dt.day} ${_monthNames[dt.month - 1]}, $hour:$minute';
+}
+
 String recipientLabel(String recipientType) {
   switch (recipientType) {
     case 'CLASS_TEACHER':
@@ -24,11 +37,21 @@ String recipientLabel(String recipientType) {
 /// shown only when messaging the Class Teacher, since Admin/Accounts/Principal are school-wide),
 /// and a thread view with reply.
 class MessagesTab extends StatefulWidget {
-  const MessagesTab({super.key, required this.accessToken, required this.api, required this.children});
+  const MessagesTab({
+    super.key,
+    required this.accessToken,
+    required this.api,
+    required this.children,
+    this.initialConversationId,
+  });
 
   final String accessToken;
   final ApiClient api;
   final List<ChildSummary> children;
+
+  /// Set when this tab is opened from a `type: 'message'` notification — opens straight to that
+  /// conversation's thread instead of the list, so the reader doesn't have to hunt for it.
+  final String? initialConversationId;
 
   @override
   State<MessagesTab> createState() => _MessagesTabState();
@@ -45,6 +68,9 @@ class _MessagesTabState extends State<MessagesTab> {
   void initState() {
     super.initState();
     _loadList();
+    if (widget.initialConversationId != null) {
+      _openThread(widget.initialConversationId!);
+    }
   }
 
   Future<void> _loadList() async {
@@ -354,7 +380,26 @@ class _ThreadViewState extends State<_ThreadView> {
                     final m = detail.messages[i];
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: DirectionalText(m.body),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                m.senderName,
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                              ),
+                              Text(
+                                formatMessageTime(m.createdAt),
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          DirectionalText(m.body),
+                        ],
+                      ),
                     );
                   },
                 ),

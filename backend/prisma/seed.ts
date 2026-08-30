@@ -38,14 +38,45 @@ async function main() {
     data: { classTeacherId: teacher.id },
   });
 
+  // --- Two more class/section/class-teacher trios, one per campus, so Parent B's three children
+  // (below) each have a different class teacher to message — exercises resolveStaffUserId's
+  // per-section classTeacherId lookup across more than one section/teacher.
+  const grade4 = await prisma.class.create({
+    data: { campusId: gulistan.id, academicSessionId: session.id, name: 'Grade 4' },
+  });
+  const section4B = await prisma.section.create({ data: { classId: grade4.id, name: '4B' } });
+  const teacher2User = await prisma.user.create({
+    data: {
+      identifier: 'teacher2@seeds.edu.pk',
+      passwordHash: await argon2.hash('ChangeMe123!'),
+      role: 'TEACHER',
+    },
+  });
+  const teacher2 = await prisma.teacher.create({ data: { userId: teacher2User.id, name: 'Mr. Second Teacher' } });
+  await prisma.section.update({ where: { id: section4B.id }, data: { classTeacherId: teacher2.id } });
+
+  const grade5 = await prisma.class.create({
+    data: { campusId: gulshan.id, academicSessionId: session.id, name: 'Grade 5' },
+  });
+  const section5C = await prisma.section.create({ data: { classId: grade5.id, name: '5C' } });
+  const teacher3User = await prisma.user.create({
+    data: {
+      identifier: 'teacher3@seeds.edu.pk',
+      passwordHash: await argon2.hash('ChangeMe123!'),
+      role: 'TEACHER',
+    },
+  });
+  const teacher3 = await prisma.teacher.create({ data: { userId: teacher3User.id, name: 'Ms. Third Teacher' } });
+  await prisma.section.update({ where: { id: section5C.id }, data: { classTeacherId: teacher3.id } });
+
   // Admin has no domain profile row (no Teacher/ParentProfile) — the role on User is enough for the
-  // staff console's RBAC-gated nav.
+  // staff console's RBAC-gated nav. isPrincipal lives on a separate dedicated account (below), not
+  // on admin, so Admin and Principal are independently testable identities.
   const adminUser = await prisma.user.create({
     data: {
       identifier: 'admin@seeds.edu.pk',
       passwordHash: await argon2.hash('ChangeMe123!'),
       role: 'SCHOOL_ADMIN',
-      isPrincipal: true,
     },
   });
 
@@ -54,6 +85,18 @@ async function main() {
       identifier: 'accounts@seeds.edu.pk',
       passwordHash: await argon2.hash('ChangeMe123!'),
       role: 'ACCOUNTS',
+    },
+  });
+
+  // Principal isn't its own Role (see the PRINCIPAL branch of resolveStaffUserId, which resolves
+  // via `isPrincipal: true` rather than a role) — it needs a real console role to log into the
+  // staff console at all, so this is a SCHOOL_ADMIN account distinct from the admin@ one above.
+  const principalUser = await prisma.user.create({
+    data: {
+      identifier: 'principal@seeds.edu.pk',
+      passwordHash: await argon2.hash('ChangeMe123!'),
+      role: 'SCHOOL_ADMIN',
+      isPrincipal: true,
     },
   });
 
@@ -71,10 +114,6 @@ async function main() {
     },
   });
 
-  // A second, unused campus row (Gulshan) demonstrates the schema handles multi-campus without a
-  // second student attached — proves campus is data, not an assumption baked into one row.
-  void gulshan;
-
   const parentPassword = await argon2.hash('ChangeMe123!');
   const [parentAUser, parentBUser] = await Promise.all([
     prisma.user.create({ data: { identifier: 'parent-a@seeds.edu.pk', passwordHash: parentPassword, role: 'PARENT' } }),
@@ -89,6 +128,41 @@ async function main() {
   await Promise.all([
     prisma.studentParent.create({ data: { studentId: student.id, parentProfileId: parentAProfile.id, relationship: 'mother' } }),
     prisma.studentParent.create({ data: { studentId: student.id, parentProfileId: parentBProfile.id, relationship: 'father' } }),
+  ]);
+
+  // --- Two more children for Parent B only (not shared with Parent A), each in a different
+  // class/section (and campus) with their own class teacher — multi-child switcher and per-child
+  // Messages/conversation testing needs more than one child, and more than one class teacher, on
+  // at least one parent.
+  const [studentIbrahim, studentHania] = await Promise.all([
+    prisma.student.create({ data: { grNumber: 'GR-1002', name: 'Ibrahim Sample' } }),
+    prisma.student.create({ data: { grNumber: 'GR-1003', name: 'Hania Sample' } }),
+  ]);
+  await Promise.all([
+    prisma.enrollment.create({
+      data: {
+        studentId: studentIbrahim.id,
+        campusId: gulistan.id,
+        sectionId: section4B.id,
+        academicSessionId: session.id,
+        startDate: session.startDate,
+        status: 'ACTIVE',
+      },
+    }),
+    prisma.enrollment.create({
+      data: {
+        studentId: studentHania.id,
+        campusId: gulshan.id,
+        sectionId: section5C.id,
+        academicSessionId: session.id,
+        startDate: session.startDate,
+        status: 'ACTIVE',
+      },
+    }),
+  ]);
+  await Promise.all([
+    prisma.studentParent.create({ data: { studentId: studentIbrahim.id, parentProfileId: parentBProfile.id, relationship: 'father' } }),
+    prisma.studentParent.create({ data: { studentId: studentHania.id, parentProfileId: parentBProfile.id, relationship: 'father' } }),
   ]);
 
   // --- Timetable: a Mon-Fri, 6-period week for section 3A, all taught by the one seeded teacher ---
@@ -241,13 +315,17 @@ async function main() {
   });
 
   console.log(
-    'Seeded: 1 school, 2 campuses, 1 class/section, 1 teacher, 1 admin (principal), 1 accounts, ' +
-      `1 student, 2 linked parents, ${timetableRows.length} timetable periods, ` +
-      `${attendanceDates.length} attendance records, 1 diary entry, 1 circular, 1 conversation ` +
-      '(with a reply), 3 notifications.',
+    'Seeded: 1 school, 2 campuses, 3 classes/sections (3A/4B/5C, each with its own class ' +
+      'teacher), 1 admin, 1 accounts, ' +
+      `1 principal (${principalUser.identifier}), ` +
+      '3 students (1 shared by both parents in 3A, 2 more linked only to Parent B — one per new ' +
+      'section/campus/class teacher), 2 linked parents, ' +
+      `${timetableRows.length} timetable periods, ${attendanceDates.length} attendance records, ` +
+      '1 diary entry, 1 circular, 1 conversation (with a reply), 3 notifications.',
   );
   console.log(
-    'Login as parent-a@seeds.edu.pk / ChangeMe123! (or parent-b@... / teacher@... / admin@...) — dev only.',
+    'Login as parent-a@seeds.edu.pk / ChangeMe123! (or parent-b@... / teacher@... / teacher2@... / ' +
+      'teacher3@... / admin@... / accounts@... / principal@...) — dev only.',
   );
 
   await prisma.$disconnect();

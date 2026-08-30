@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type ConversationSummary, type ConversationDetail } from '../lib/api';
+import { formatDateTime } from '../lib/format';
 import DirectionalText from '../components/DirectionalText.vue';
 
 const auth = useAuthStore();
+const route = useRoute();
 const conversations = ref<ConversationSummary[]>([]);
 const selected = ref<ConversationDetail | null>(null);
 const selectedId = ref('');
@@ -34,6 +37,13 @@ async function openConversation(id: string) {
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not open this conversation.';
   }
+}
+
+// A notification tap navigates here with ?conversationId=<id> so the bell opens the specific
+// conversation it was about, instead of leaving the reader to hunt for it in the list.
+const initialConversationId = route.query.conversationId;
+if (typeof initialConversationId === 'string' && initialConversationId) {
+  openConversation(initialConversationId);
 }
 
 async function onSendReply() {
@@ -87,6 +97,10 @@ async function onSendReply() {
 
       <div class="thread" v-if="selected">
         <div v-for="m in selected.messages" :key="m.id" class="message">
+          <div class="message-meta">
+            <span class="message-sender">{{ m.senderName }}</span>
+            <span class="message-time">{{ formatDateTime(m.createdAt) }}</span>
+          </div>
           <DirectionalText :text="m.body" />
         </div>
         <textarea
@@ -156,6 +170,17 @@ async function onSendReply() {
 .message {
   padding: var(--space-2);
   border-bottom: 1px solid var(--color-border);
+}
+.message-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  margin-bottom: 0.2rem;
+}
+.message-sender {
+  font-weight: 700;
 }
 textarea {
   padding: 0.5rem 0.6rem;

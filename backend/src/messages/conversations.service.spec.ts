@@ -237,6 +237,8 @@ describe('ConversationsService', () => {
       recipientType: 'CLASS_TEACHER',
       studentId: 'student-1',
       messages: [],
+      parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
+      staffUser: { identifier: 'teacher@seeds.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
     });
 
     await expect(
@@ -247,5 +249,49 @@ describe('ConversationsService', () => {
     await expect(
       service.getById('missing', { id: 'parent-1', role: 'PARENT' }),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('getById labels each message with its sender\'s display name', async () => {
+    prisma.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      parentUserId: 'parent-1',
+      staffUserId: 'teacher-user-1',
+      recipientType: 'CLASS_TEACHER',
+      studentId: 'student-1',
+      messages: [
+        { id: 'm1', senderId: 'parent-1', body: 'Hi', createdAt: new Date('2026-08-29T00:00:00.000Z') },
+        { id: 'm2', senderId: 'teacher-user-1', body: 'Sure', createdAt: new Date('2026-08-29T01:00:00.000Z') },
+      ],
+      parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
+      staffUser: { identifier: 'teacher@seeds.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+    });
+
+    const result = await service.getById('conv-1', { id: 'parent-1', role: 'PARENT' });
+
+    expect(result.messages).toEqual([
+      expect.objectContaining({ id: 'm1', senderId: 'parent-1', senderName: 'Parent A' }),
+      expect.objectContaining({ id: 'm2', senderId: 'teacher-user-1', senderName: 'Ms. Sample Teacher' }),
+    ]);
+  });
+
+  it('getById falls back to the identifier when a party has no name profile', async () => {
+    prisma.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      parentUserId: 'parent-1',
+      staffUserId: 'admin-user-1',
+      recipientType: 'SCHOOL_ADMIN',
+      studentId: null,
+      messages: [
+        { id: 'm1', senderId: 'admin-user-1', body: 'Hi', createdAt: new Date('2026-08-29T00:00:00.000Z') },
+      ],
+      parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
+      staffUser: { identifier: 'admin@seeds.edu.pk', teacher: null },
+    });
+
+    const result = await service.getById('conv-1', { id: 'parent-1', role: 'PARENT' });
+
+    expect(result.messages[0]).toEqual(
+      expect.objectContaining({ senderName: 'admin@seeds.edu.pk' }),
+    );
   });
 });
