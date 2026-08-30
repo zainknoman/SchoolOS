@@ -55,6 +55,14 @@ const router = createRouter({
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] },
     },
     {
+      path: '/admin/timetable',
+      name: 'admin-timetable',
+      component: () => import('../views/TimetablePageView.vue'),
+      // Matches POST/PATCH/DELETE /api/v1/timetable's own @Roles — ACCOUNTS can't write a
+      // timetable, so it doesn't get this screen either (same precedent as admin-circulars).
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] },
+    },
+    {
       path: '/admin/messages',
       name: 'admin-messages',
       component: () => import('../views/MessagesPageView.vue'),

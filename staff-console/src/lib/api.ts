@@ -59,6 +59,32 @@ export interface SubjectSummary {
   name: string;
 }
 
+export interface TeacherSummary {
+  id: string;
+  name: string;
+}
+
+export interface TimetableEntrySummary {
+  id: string;
+  dayOfWeek: number;
+  period: number;
+  startTime: string;
+  endTime: string;
+  subject: string;
+  teacher: string | null;
+  room: string | null;
+}
+
+export interface TimetableEntryInput {
+  subjectId: string;
+  teacherId?: string;
+  dayOfWeek: number;
+  period: number;
+  startTime: string;
+  endTime: string;
+  room?: string;
+}
+
 export interface DiaryAttachmentSummary {
   id: string;
   originalName: string;
@@ -158,6 +184,20 @@ export const api = {
     return asJson(res);
   },
 
+  // Pre-fills the roster with whatever was already marked today, so re-opening this screen (or
+  // logging back in) doesn't silently discard a teacher's earlier marks from view.
+  async sectionAttendance(
+    accessToken: string,
+    sectionId: string,
+    date: string,
+  ): Promise<Record<string, AttendanceStatus>> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/sections/${sectionId}/attendance?date=${encodeURIComponent(date)}`,
+      { headers: authHeaders(accessToken) },
+    );
+    return asJson(res);
+  },
+
   async markAttendance(
     accessToken: string,
     payload: { studentId: string; date: string; status: AttendanceStatus },
@@ -175,6 +215,57 @@ export const api = {
   async listSubjects(accessToken: string): Promise<SubjectSummary[]> {
     const res = await fetch(`${API_BASE_URL}/api/v1/subjects`, { headers: authHeaders(accessToken) });
     return asJson(res);
+  },
+
+  async listTeachers(accessToken: string): Promise<TeacherSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/teachers`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async sectionTimetable(accessToken: string, sectionId: string): Promise<TimetableEntrySummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/sections/${sectionId}/timetable`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async createTimetableEntry(
+    accessToken: string,
+    payload: TimetableEntryInput & { sectionId: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/timetable`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async updateTimetableEntry(
+    accessToken: string,
+    id: string,
+    payload: Partial<TimetableEntryInput>,
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/timetable/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async deleteTimetableEntry(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/timetable/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
   },
 
   async uploadFile(accessToken: string, file: File): Promise<{ id: string }> {

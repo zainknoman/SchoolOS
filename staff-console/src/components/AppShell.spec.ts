@@ -26,6 +26,7 @@ function makeRouter() {
       { path: '/admin/messages', name: 'admin-messages', component: { template: '<div>messages</div>' } },
       { path: '/teacher/diary', name: 'teacher-diary', component: { template: '<div>diary</div>' } },
       { path: '/admin/circulars', name: 'admin-circulars', component: { template: '<div>circulars</div>' } },
+      { path: '/admin/timetable', name: 'admin-timetable', component: { template: '<div>timetable</div>' } },
     ],
   });
 }
@@ -78,6 +79,7 @@ describe('AppShell (role-gated nav)', () => {
 
     expect(wrapper.find('[data-testid="nav-dashboard"]').attributes('href')).toBe('/admin');
     expect(wrapper.find('[data-testid="nav-fees"]').attributes('href')).toBe('/admin/fees');
+    expect(wrapper.find('[data-testid="nav-timetable"]').attributes('href')).toBe('/admin/timetable');
   });
 
   it('shows a role-initials avatar and a notifications bell in the topbar', async () => {

@@ -10,6 +10,7 @@ import { AttendanceModule } from './attendance/attendance.module';
 import { SectionsModule } from './sections/sections.module';
 import { FilesModule } from './files/files.module';
 import { SubjectsModule } from './subjects/subjects.module';
+import { TeachersModule } from './teachers/teachers.module';
 import { DiaryModule } from './diary/diary.module';
 import { CircularsModule } from './circulars/circulars.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -26,6 +27,7 @@ import { MessagesModule } from './messages/messages.module';
     SectionsModule,
     FilesModule,
     SubjectsModule,
+    TeachersModule,
     DiaryModule,
     CircularsModule,
     NotificationsModule,

@@ -36,6 +36,15 @@ async function onSectionChange() {
     students.value = await api.sectionStudents(auth.accessToken, selectedSectionId.value);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load students.';
+    return;
+  }
+  try {
+    // Best-effort: if this fails, the roster still loaded — the teacher just starts from blank
+    // instead of pre-filled, same as before this pre-fill existed.
+    const alreadyMarked = await api.sectionAttendance(auth.accessToken, selectedSectionId.value, today);
+    statuses.value = { ...alreadyMarked };
+  } catch {
+    // Convenience only — see comment above.
   }
 }
 

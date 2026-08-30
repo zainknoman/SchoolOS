@@ -9,6 +9,7 @@ vi.mock('../lib/api', () => ({
   api: {
     listSections: vi.fn(),
     sectionStudents: vi.fn(),
+    sectionAttendance: vi.fn(),
     markAttendance: vi.fn(),
   },
 }));
@@ -20,6 +21,7 @@ describe('AttendanceView', () => {
     auth.accessToken = 'token-1';
     vi.mocked(api.listSections).mockReset();
     vi.mocked(api.sectionStudents).mockReset();
+    vi.mocked(api.sectionAttendance).mockReset().mockResolvedValue({});
     vi.mocked(api.markAttendance).mockReset();
   });
 
@@ -52,6 +54,44 @@ describe('AttendanceView', () => {
       expect.objectContaining({ studentId: 's1', status: 'PRESENT' }),
     );
     expect(wrapper.text()).toContain('Saved');
+  });
+
+  it('pre-fills the roster with attendance already marked earlier today', async () => {
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+    vi.mocked(api.sectionStudents).mockResolvedValue([
+      { id: 's1', name: 'Ali Khan', grNumber: 'GR-1001' },
+      { id: 's2', name: 'Ayesha Noor', grNumber: 'GR-1002' },
+    ]);
+    vi.mocked(api.sectionAttendance).mockResolvedValue({ s1: 'PRESENT', s2: 'ABSENT' });
+
+    const wrapper = mount(AttendanceView);
+    await flushPromises();
+    await wrapper.find('select[data-testid="section-select"]').setValue('sec-1');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="status-s1-present"]').classes()).toContain('active');
+    expect(wrapper.find('[data-testid="status-s2-absent"]').classes()).toContain('active');
+    expect(wrapper.text()).toContain('Submit Attendance (2/2)');
+  });
+
+  it('still shows the roster (starting blank) if fetching already-marked attendance fails', async () => {
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+    vi.mocked(api.sectionStudents).mockResolvedValue([
+      { id: 's1', name: 'Ali Khan', grNumber: 'GR-1001' },
+    ]);
+    vi.mocked(api.sectionAttendance).mockRejectedValue(new Error('network error'));
+
+    const wrapper = mount(AttendanceView);
+    await flushPromises();
+    await wrapper.find('select[data-testid="section-select"]').setValue('sec-1');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Ali Khan');
+    expect(wrapper.find('[data-testid="status-s1-present"]').classes()).not.toContain('active');
   });
 
   it('shows an error message if marking attendance fails', async () => {

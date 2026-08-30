@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { TimetableService } from './timetable.service';
 import { CreateTimetableEntryDto } from './dto/create-timetable-entry.dto';
+import { UpdateTimetableEntryDto } from './dto/update-timetable-entry.dto';
 import {
   StudentAccessService,
   RequestUser,
@@ -28,9 +29,34 @@ export class TimetableController {
     return this.timetableService.getForStudent(studentId);
   }
 
+  // Staff-only (no StudentAccessService involved) — this is the Timetable editor's read side,
+  // listing what's already scheduled for a section so it can be shown/edited, not a parent-facing
+  // read.
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @Get('sections/:id/timetable')
+  getForSection(@Param('id') sectionId: string) {
+    return this.timetableService.getForSection(sectionId);
+  }
+
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('timetable')
-  createEntry(@Body() dto: CreateTimetableEntryDto) {
-    return this.timetableService.createEntry(dto);
+  createEntry(@Body() dto: CreateTimetableEntryDto, @Req() req: AuthenticatedRequest) {
+    return this.timetableService.createEntry(dto, req.user.id);
+  }
+
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @Patch('timetable/:id')
+  updateEntry(
+    @Param('id') id: string,
+    @Body() dto: UpdateTimetableEntryDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.timetableService.updateEntry(id, dto, req.user.id);
+  }
+
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @Delete('timetable/:id')
+  deleteEntry(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.timetableService.deleteEntry(id, req.user.id);
   }
 }

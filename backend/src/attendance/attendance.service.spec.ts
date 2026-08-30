@@ -95,4 +95,30 @@ describe('AttendanceService', () => {
     });
     expect(result.days).toHaveLength(5);
   });
+
+  it('getForSection returns a studentId->status map of what was already marked that day', async () => {
+    prisma.attendance.findMany.mockResolvedValue([
+      { studentId: 's1', status: 'PRESENT' },
+      { studentId: 's2', status: 'ABSENT' },
+    ]);
+
+    const result = await service.getForSection('sec-1', '2026-08-27');
+
+    expect(prisma.attendance.findMany).toHaveBeenCalledWith({
+      where: {
+        date: new Date('2026-08-27T00:00:00.000Z'),
+        student: { enrollments: { some: { sectionId: 'sec-1', status: 'ACTIVE' } } },
+      },
+      select: { studentId: true, status: true },
+    });
+    expect(result).toEqual({ s1: 'PRESENT', s2: 'ABSENT' });
+  });
+
+  it('getForSection returns an empty map when nothing has been marked yet', async () => {
+    prisma.attendance.findMany.mockResolvedValue([]);
+
+    const result = await service.getForSection('sec-1', '2026-08-27');
+
+    expect(result).toEqual({});
+  });
 });

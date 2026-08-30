@@ -30,6 +30,16 @@ export class AttendanceController {
     return this.attendanceService.getForStudent(studentId, targetMonth);
   }
 
+  // Staff-only (no StudentAccessService involved) — the roster-marking screen's pre-fill, not a
+  // parent-facing read. Defaults to today so the common case ("what did I already mark today?")
+  // needs no query param.
+  @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @Get('sections/:id/attendance')
+  getForSection(@Param('id') sectionId: string, @Query('date') date?: string) {
+    const targetDate = date ?? new Date().toISOString().slice(0, 10);
+    return this.attendanceService.getForSection(sectionId, targetDate);
+  }
+
   // Deliberately NOT guarded by StudentAccessService's parent-allow path — @Roles restricts this
   // to staff outright, so a PARENT token is rejected before ever reaching the service.
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')

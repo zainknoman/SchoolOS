@@ -62,6 +62,21 @@ export class AttendanceService {
     return record;
   }
 
+  /**
+   * Pre-populates the teacher's roster with whatever was already marked for this section on the
+   * given date — without this, a teacher who re-opens the Attendance screen (or logs back in)
+   * sees a blank roster and has to re-mark everyone, even though their earlier marks are already
+   * saved (markAttendance upserts, so nothing was lost — it just was never shown back).
+   */
+  async getForSection(sectionId: string, dateStr: string): Promise<Record<string, string>> {
+    const date = new Date(`${dateStr}T00:00:00.000Z`);
+    const records = await this.prisma.attendance.findMany({
+      where: { date, student: { enrollments: { some: { sectionId, status: 'ACTIVE' } } } },
+      select: { studentId: true, status: true },
+    });
+    return Object.fromEntries(records.map((r) => [r.studentId, r.status]));
+  }
+
   async getForStudent(
     studentId: string,
     month: string,
