@@ -3,6 +3,9 @@ plan/*
 !plan/docs/
 .agentic-builder/
 
+# --- personal Claude Code settings overrides ---
+.claude/settings.local.json
+
 # --- local git worktrees (scratch, not part of the repo tree) ---
 .worktrees/
 
