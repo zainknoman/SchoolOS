@@ -239,6 +239,53 @@ Repo: https://github.com/zainknoman/SchoolPortal
     newly-selected child; two consecutive taps on the same notification type don't reliably
     re-navigate.
 
+## Sprint 7-8 Follow-ups + Timetable Management (2026-08-30/31) ✅ DONE
+
+- [x] **Messages/Notifications polish** (post-merge, surfaced by live testing): each message now
+      shows its sender's display name and a formatted timestamp (`ConversationsService.getById`
+      resolves `senderName` per party); tapping a message notification opens the specific
+      conversation directly in both clients (`?conversationId=` query param in staff-console,
+      `MessagesTab.initialConversationId` in parent-app) instead of just landing on the list/tab;
+      principal is now a dedicated `principal@seeds.edu.pk` account (`SCHOOL_ADMIN` + `isPrincipal`),
+      separate from `admin@seeds.edu.pk`, so both are independently testable.
+- [x] **Seed data**: 3 classes/sections now exist (3A/4B/5C, split across both campuses), each with
+      its own class teacher (`teacher@`/`teacher2@`/`teacher3@`) and a full 30-period timetable +
+      10 days of attendance + a diary entry. Parent B's 3 children (Eshaal/Ibrahim/Hania) are split
+      one per section, for multi-class-teacher Messages testing.
+- [x] **Attendance fix**: the Teacher's Attendance screen showed a blank roster every time it was
+      reopened, even when that day was already marked — `markAttendance` was correctly upserting,
+      the screen just never read it back. New `GET /api/v1/sections/:id/attendance?date=`
+      pre-fills the roster from what's already marked.
+- [x] **Timetable management screen** (`/admin/timetable`, Admin/Super Admin only) — closes the
+      "no admin UI, seed-only" gap left open since Sprint 3-4/FEAT-006. Backend gained the missing
+      `PATCH`/`DELETE /api/v1/timetable/:id` (only `create` existed before) and a new `GET`/`PUT
+      /api/v1/sections/:id/timetable` pair (list, and an atomic bulk replace); new `GET /api/v1/
+      teachers` (Admin/Super Admin) for the teacher-picker dropdowns. All writes audit-logged,
+      matching the rest of the app's convention.
+- [x] **Grid composer** — the screen's bulk-editing mode: set periods/day + working days once, get
+      an empty Mon-Sat × N grid (periods across as columns, days down as rows — matches the parent
+      app's own Calendar tab convention), fill each cell via subject/teacher dropdowns, save the
+      whole week in one click via the bulk-replace endpoint. Reopening it on a section that
+      already has entries pre-fills the grid (review-and-replace, not a blind overwrite) and
+      auto-detects any day already running different times, marking it custom automatically. Each
+      day can independently opt into its own per-period times (`Custom times` toggle, seeded from
+      the shared defaults) — e.g. a Friday that finishes at 12:30 while the rest of the week runs
+      the normal schedule — and a read-only "Break" column between every pair of periods shows the
+      computed gap in minutes, derived from each day's own effective times.
+- Verified: backend 20/20 suites + 89/89 unit tests (e2e passes 30/30 in isolation — see follow-up
+  below), staff-console 16/16 files + 96/96 tests, both client builds clean. The Timetable screen's
+  full CRUD + grid composer flow (add/edit/delete/bulk-save, resize, per-day override, break
+  display) was smoke-tested live in the browser end to end, including a real render bug caught and
+  fixed mid-session (`<td>` with `display: flex` breaks out of table-cell column layout — correct
+  in the DOM/accessibility tree, visibly broken on screen; fixed by moving the flex styling to an
+  inner `<div>`).
+- Follow-up (tracked, not blocking, found this session): `backend/test/jest-e2e.json` points e2e
+  tests at the same `dev.db` the local dev server uses (`DATABASE_URL=file:./dev.db`, no separate
+  test database) — running e2e while the dev server is up causes SQLite lock-contention timeouts,
+  and e2e fixture data (visible as `DC Teacher`/`MN Teacher`/`TTA Teacher` and stray timetable rows
+  after a run that didn't reach its own cleanup) leaks into the dev environment. Give e2e its own
+  SQLite file (e.g. `file:./test.db`) as a follow-up.
+
 ## Sprint 9-10 — Fees + Leave ⏳ PENDING
 
 - [ ] **FEAT-012** — Fees: server-computed voucher, PDF generation, in-app JazzCash/EasyPaisa
