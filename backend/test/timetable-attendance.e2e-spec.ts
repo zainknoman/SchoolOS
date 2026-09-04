@@ -48,6 +48,16 @@ describe('Timetable + Attendance (e2e)', () => {
       where: { name: 'TTA E2E School' },
     });
     for (const s of stale) {
+      // Timetable.section is Restrict (Sprint: Org Structure CRUD), so a stale Timetable row
+      // from a prior run silently blocks this school delete too — same self-healing need as
+      // Attendance above.
+      const staleSections = await prisma.section.findMany({
+        where: { class: { campus: { schoolId: s.id } } },
+        select: { id: true },
+      });
+      await prisma.timetable
+        .deleteMany({ where: { sectionId: { in: staleSections.map((sec) => sec.id) } } })
+        .catch(() => undefined);
       await prisma.school
         .delete({ where: { id: s.id } })
         .catch(() => undefined);
@@ -173,14 +183,18 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   afterAll(async () => {
-    // Attendance.student is Restrict, so the "mark attendance" test above leaves a row that must
-    // be cleared before the student can be deleted — otherwise this whole cleanup silently no-ops
-    // (every call below is wrapped in .catch), and the next run's beforeAll self-heal has to do it.
+    // Attendance.student and Timetable.section are both Restrict, so the "mark attendance" test
+    // and the timetable entry created in beforeAll each leave a row that must be cleared before
+    // the student / school can be deleted — otherwise this whole cleanup silently no-ops (every
+    // call below is wrapped in .catch), and the next run's beforeAll self-heal has to do it.
     await prisma.attendance
       .deleteMany({ where: { studentId: { in: [ids.childA, ids.childB] } } })
       .catch(() => undefined);
     await prisma.student
       .deleteMany({ where: { grNumber: { in: ['TTA-A1', 'TTA-B1'] } } })
+      .catch(() => undefined);
+    await prisma.timetable
+      .deleteMany({ where: { sectionId: ids.section } })
       .catch(() => undefined);
     await prisma.school
       .delete({ where: { id: ids.school } })

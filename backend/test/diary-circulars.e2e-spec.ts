@@ -46,6 +46,15 @@ describe('Diary + Circulars (e2e)', () => {
       .catch(() => undefined);
     const stale = await prisma.school.findMany({ where: { name: 'DC E2E School' } });
     for (const s of stale) {
+      // DiaryEntry.section is Restrict (Sprint: Org Structure CRUD), so a stale DiaryEntry row
+      // from a prior run silently blocks this school delete too.
+      const staleSections = await prisma.section.findMany({
+        where: { class: { campus: { schoolId: s.id } } },
+        select: { id: true },
+      });
+      await prisma.diaryEntry
+        .deleteMany({ where: { sectionId: { in: staleSections.map((sec) => sec.id) } } })
+        .catch(() => undefined);
       await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
     }
 
@@ -133,6 +142,12 @@ describe('Diary + Circulars (e2e)', () => {
   afterAll(async () => {
     await prisma.student
       .deleteMany({ where: { grNumber: { in: ['DC-A1', 'DC-B1'] } } })
+      .catch(() => undefined);
+    // DiaryEntry.section is Restrict, so the entries created above must be cleared before the
+    // school can be deleted — otherwise this delete silently no-ops (wrapped in .catch) and the
+    // next run's beforeAll self-heal has to do it.
+    await prisma.diaryEntry
+      .deleteMany({ where: { sectionId: { in: [ids.sectionA, ids.sectionB] } } })
       .catch(() => undefined);
     await prisma.school.delete({ where: { id: ids.school } }).catch(() => undefined);
     await prisma.circular.deleteMany({ where: { authorId: ids.adminUserId } }).catch(() => undefined);
