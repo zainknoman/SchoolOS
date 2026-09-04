@@ -44,16 +44,24 @@ class VoucherDetailScreen extends StatelessWidget {
           if (voucher.amountDue > 0)
             ElevatedButton(
               key: const Key('payNowButton'),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => StubCheckoutScreen(
-                    voucherId: voucher.id,
-                    amountDue: voucher.amountDue,
-                    accessToken: accessToken,
-                    api: api,
+              onPressed: () async {
+                // The pushed StubCheckoutScreen returns `true` once the payment is confirmed. This
+                // screen holds the pre-payment `voucher` and never re-fetches it, so rather than
+                // showing stale "Total due"/an enabled Pay Now on an already-paid voucher, pop back
+                // out to FeesTab too — it already reloads its voucher list on return from
+                // _openVoucher, so the parent lands on fresh data instead of a stale detail screen.
+                final paid = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => StubCheckoutScreen(
+                      voucherId: voucher.id,
+                      amountDue: voucher.amountDue,
+                      accessToken: accessToken,
+                      api: api,
+                    ),
                   ),
-                ),
-              ),
+                );
+                if (paid == true && context.mounted) Navigator.of(context).pop();
+              },
               child: const Text('Pay Now'),
             ),
         ],

@@ -60,7 +60,11 @@ class _StubCheckoutScreenState extends State<StubCheckoutScreen> {
               const SizedBox(height: 12),
               const Text('Payment completed.'),
               const SizedBox(height: 12),
-              ElevatedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Done')),
+              ElevatedButton(
+                key: const Key('checkoutDoneButton'),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Done'),
+              ),
             ] else ...[
               if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
               ElevatedButton(
