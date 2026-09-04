@@ -28,6 +28,15 @@ function makeRouter() {
       { path: '/teacher/diary', name: 'teacher-diary', component: { template: '<div>diary</div>' } },
       { path: '/admin/circulars', name: 'admin-circulars', component: { template: '<div>circulars</div>' } },
       { path: '/admin/timetable', name: 'admin-timetable', component: { template: '<div>timetable</div>' } },
+      { path: '/admin/schools', name: 'admin-schools', component: { template: '<div>schools</div>' } },
+      { path: '/admin/campuses', name: 'admin-campuses', component: { template: '<div>campuses</div>' } },
+      {
+        path: '/admin/academic-sessions',
+        name: 'admin-academic-sessions',
+        component: { template: '<div>academic-sessions</div>' },
+      },
+      { path: '/admin/classes', name: 'admin-classes', component: { template: '<div>classes</div>' } },
+      { path: '/admin/sections', name: 'admin-sections', component: { template: '<div>sections</div>' } },
     ],
   });
 }
@@ -79,6 +88,14 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.find('[data-testid="nav-attendance"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-diary"]').exists()).toBe(false);
 
+    // Org Structure links (Schools/Campuses/Academic Sessions/Classes/Sections) are
+    // SUPER_ADMIN-only — not visible to SCHOOL_ADMIN, even though it's otherwise a full admin role.
+    expect(wrapper.find('[data-testid="nav-schools"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-campuses"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-academic-sessions"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-classes"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-sections"]').exists()).toBe(false);
+
     expect(wrapper.find('[data-testid="nav-dashboard"]').attributes('href')).toBe('/admin');
     expect(wrapper.find('[data-testid="nav-fees"]').attributes('href')).toBe('/admin/fees');
     expect(wrapper.find('[data-testid="nav-timetable"]').attributes('href')).toBe('/admin/timetable');
@@ -90,6 +107,33 @@ describe('AppShell (role-gated nav)', () => {
 
     expect(wrapper.find('[data-testid="nav-leave"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-leave"]').attributes('href')).toBe('/admin/leave');
+  });
+
+  it('shows the Org Structure nav links (Schools/Campuses/Academic Sessions/Classes/Sections) for a SUPER_ADMIN role', async () => {
+    const wrapper = await mountAsRole('SUPER_ADMIN');
+
+    expect(wrapper.find('[data-testid="nav-schools"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-schools"]').attributes('href')).toBe('/admin/schools');
+    expect(wrapper.find('[data-testid="nav-campuses"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-campuses"]').attributes('href')).toBe('/admin/campuses');
+    expect(wrapper.find('[data-testid="nav-academic-sessions"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-academic-sessions"]').attributes('href')).toBe(
+      '/admin/academic-sessions',
+    );
+    expect(wrapper.find('[data-testid="nav-classes"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-classes"]').attributes('href')).toBe('/admin/classes');
+    expect(wrapper.find('[data-testid="nav-sections"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-sections"]').attributes('href')).toBe('/admin/sections');
+  });
+
+  it('hides the Org Structure nav links for an ACCOUNTS role', async () => {
+    const wrapper = await mountAsRole('ACCOUNTS');
+
+    expect(wrapper.find('[data-testid="nav-schools"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-campuses"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-academic-sessions"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-classes"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-sections"]').exists()).toBe(false);
   });
 
   it('hides nav-leave for an ACCOUNTS role', async () => {
