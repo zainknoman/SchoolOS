@@ -99,8 +99,10 @@ export class ParentService {
       throw new NotFoundException('Parent not found');
     }
     try {
-      await this.prisma.parentProfile.delete({ where: { id } });
-      await this.prisma.user.delete({ where: { id: existing.userId } });
+      await this.prisma.$transaction(async (tx) => {
+        await tx.parentProfile.delete({ where: { id } });
+        await tx.user.delete({ where: { id: existing.userId } });
+      });
     } catch (error) {
       assertDeletable(error, 'Parent');
     }

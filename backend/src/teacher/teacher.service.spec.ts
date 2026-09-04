@@ -8,7 +8,7 @@ jest.mock('argon2', () => ({ hash: jest.fn().mockResolvedValue('hashed-password'
 
 describe('TeacherService', () => {
   let service: TeacherService;
-  let tx: { user: { create: jest.Mock }; teacher: { create: jest.Mock } };
+  let tx: { user: { create: jest.Mock; delete: jest.Mock }; teacher: { create: jest.Mock; delete: jest.Mock } };
   let prisma: {
     teacher: { findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock };
     user: { update: jest.Mock; delete: jest.Mock };
@@ -17,7 +17,7 @@ describe('TeacherService', () => {
   };
 
   beforeEach(async () => {
-    tx = { user: { create: jest.fn() }, teacher: { create: jest.fn() } };
+    tx = { user: { create: jest.fn(), delete: jest.fn() }, teacher: { create: jest.fn(), delete: jest.fn() } };
     prisma = {
       teacher: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
       user: { update: jest.fn(), delete: jest.fn() },
@@ -92,15 +92,16 @@ describe('TeacherService', () => {
     await expect(service.update('missing', { name: 'x' }, 'admin-1')).rejects.toThrow(NotFoundException);
   });
 
-  it('deletes a teacher (Teacher then User) and audit-logs it', async () => {
+  it('deletes a teacher (Teacher then User) inside one transaction and audit-logs it', async () => {
     prisma.teacher.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
-    prisma.teacher.delete.mockResolvedValue({ id: 't1' });
-    prisma.user.delete.mockResolvedValue({ id: 'u1' });
+    tx.teacher.delete.mockResolvedValue({ id: 't1' });
+    tx.user.delete.mockResolvedValue({ id: 'u1' });
 
     await service.delete('t1', 'admin-1');
 
-    expect(prisma.teacher.delete).toHaveBeenCalledWith({ where: { id: 't1' } });
-    expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: 'u1' } });
+    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(tx.teacher.delete).toHaveBeenCalledWith({ where: { id: 't1' } });
+    expect(tx.user.delete).toHaveBeenCalledWith({ where: { id: 'u1' } });
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ action: 'teacher.delete', entityId: 't1' }) }),
     );
@@ -108,10 +109,21 @@ describe('TeacherService', () => {
 
   it('translates a foreign-key violation on delete into a BadRequestException (e.g. Attendance.markedById still references this teacher)', async () => {
     prisma.teacher.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
-    prisma.teacher.delete.mockRejectedValue(
+    tx.teacher.delete.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', { code: 'P2003', clientVersion: 'test' }),
     );
 
     await expect(service.delete('t1', 'admin-1')).rejects.toThrow(BadRequestException);
+  });
+
+  it('rolls back and translates a foreign-key violation when the second delete (User) fails, without audit-logging a mutation that did not happen (e.g. DiaryEntry.author still references this teacher)', async () => {
+    prisma.teacher.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
+    tx.teacher.delete.mockResolvedValue({ id: 't1' });
+    tx.user.delete.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', { code: 'P2003', clientVersion: 'test' }),
+    );
+
+    await expect(service.delete('t1', 'admin-1')).rejects.toThrow(BadRequestException);
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 });

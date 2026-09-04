@@ -85,8 +85,10 @@ export class TeacherService {
       throw new NotFoundException('Teacher not found');
     }
     try {
-      await this.prisma.teacher.delete({ where: { id } });
-      await this.prisma.user.delete({ where: { id: existing.userId } });
+      await this.prisma.$transaction(async (tx) => {
+        await tx.teacher.delete({ where: { id } });
+        await tx.user.delete({ where: { id: existing.userId } });
+      });
     } catch (error) {
       assertDeletable(error, 'Teacher');
     }

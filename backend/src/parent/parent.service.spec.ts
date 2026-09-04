@@ -8,7 +8,7 @@ jest.mock('argon2', () => ({ hash: jest.fn().mockResolvedValue('hashed-password'
 
 describe('ParentService', () => {
   let service: ParentService;
-  let tx: { user: { create: jest.Mock }; parentProfile: { create: jest.Mock } };
+  let tx: { user: { create: jest.Mock; delete: jest.Mock }; parentProfile: { create: jest.Mock; delete: jest.Mock } };
   let prisma: {
     parentProfile: { findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock };
     user: { update: jest.Mock; delete: jest.Mock };
@@ -18,8 +18,8 @@ describe('ParentService', () => {
 
   beforeEach(async () => {
     tx = {
-      user: { create: jest.fn() },
-      parentProfile: { create: jest.fn() },
+      user: { create: jest.fn(), delete: jest.fn() },
+      parentProfile: { create: jest.fn(), delete: jest.fn() },
     };
     prisma = {
       parentProfile: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
@@ -98,15 +98,16 @@ describe('ParentService', () => {
     await expect(service.update('missing', { name: 'x' }, 'admin-1')).rejects.toThrow(NotFoundException);
   });
 
-  it('deletes a parent (ParentProfile then User) and audit-logs it', async () => {
+  it('deletes a parent (ParentProfile then User) inside one transaction and audit-logs it', async () => {
     prisma.parentProfile.findUnique.mockResolvedValue({ id: 'p1', userId: 'u1' });
-    prisma.parentProfile.delete.mockResolvedValue({ id: 'p1' });
-    prisma.user.delete.mockResolvedValue({ id: 'u1' });
+    tx.parentProfile.delete.mockResolvedValue({ id: 'p1' });
+    tx.user.delete.mockResolvedValue({ id: 'u1' });
 
     await service.delete('p1', 'admin-1');
 
-    expect(prisma.parentProfile.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
-    expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: 'u1' } });
+    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(tx.parentProfile.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
+    expect(tx.user.delete).toHaveBeenCalledWith({ where: { id: 'u1' } });
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ action: 'parent.delete', entityId: 'p1' }) }),
     );
@@ -114,10 +115,21 @@ describe('ParentService', () => {
 
   it('translates a foreign-key violation on delete into a BadRequestException', async () => {
     prisma.parentProfile.findUnique.mockResolvedValue({ id: 'p1', userId: 'u1' });
-    prisma.parentProfile.delete.mockRejectedValue(
+    tx.parentProfile.delete.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', { code: 'P2003', clientVersion: 'test' }),
     );
 
     await expect(service.delete('p1', 'admin-1')).rejects.toThrow(BadRequestException);
+  });
+
+  it('rolls back and translates a foreign-key violation when the second delete (User) fails, without audit-logging a mutation that did not happen', async () => {
+    prisma.parentProfile.findUnique.mockResolvedValue({ id: 'p1', userId: 'u1' });
+    tx.parentProfile.delete.mockResolvedValue({ id: 'p1' });
+    tx.user.delete.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', { code: 'P2003', clientVersion: 'test' }),
+    );
+
+    await expect(service.delete('p1', 'admin-1')).rejects.toThrow(BadRequestException);
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 });
