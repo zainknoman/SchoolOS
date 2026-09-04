@@ -239,11 +239,56 @@ Repo: https://github.com/zainknoman/SchoolPortal
     newly-selected child; two consecutive taps on the same notification type don't reliably
     re-navigate.
 
-## Sprint 9-10 — Fees + Leave ⏳ PENDING
+## Sprint 9-10 — Fees + Leave ✅ DONE
 
-- [ ] **FEAT-012** — Fees: server-computed voucher, PDF generation, in-app JazzCash/EasyPaisa
-      payment, payment history/receipts
-- [ ] **FEAT-013** — Leave applications: submit/approve/reject, reflects on the attendance calendar
+- [x] **FEAT-012** — Fees: backend `FeeStructuresService`/`FeeVouchersService`/`FeePaymentsService`/
+      `FeesPdfService` (`backend/src/fees/`) — server-computed voucher amounts (never a stored or
+      client-supplied total), voucher/receipt PDFs via pdfkit, in-app payment behind a swappable
+      `PaymentGatewayAdapter` (stubbed JazzCash/EasyPaisa, one-file swap later); staff-console
+      `FeeManagementView.vue` (issuance + student ledger, routed at `/admin/fees`); parent-app
+      `fees_tab.dart` (voucher list/detail, stub checkout, payment history/receipts).
+- [x] **FEAT-013** — Leave applications: backend `LeaveService`/`LeaveController`
+      (`backend/src/leave/`) — submit/list/approve/reject, approving writes `LEAVE` attendance rows
+      (skipping days already `HOLIDAY`) so it surfaces on the existing attendance calendar with no
+      new rendering path; staff-console Leave approval queue (`LeaveManagementView.vue`, routed at
+      `/admin/leave`, `SCHOOL_ADMIN`/`SUPER_ADMIN` only); parent-app `leave_screen.dart` (submit +
+      status, under the More tab).
+- Notable fixes caught during this sprint's own task/final review (not regressions on prior
+  sprints):
+  - A plan-mandated arity fix — `StubPaymentGatewayAdapter.confirm()` didn't accept the
+    `gatewayReference` parameter its interface declared — was caught only by `tsc` (`npm run
+    build`'s type-check step), not `jest` (ts-jest runs with `isolatedModules: true`, so
+    interface-conformance errors don't fail a unit-test run).
+  - `FeePaymentsService.confirm()`'s failed-payment branch used to delete the
+    `FeePaymentAllocation` row outright, which orphaned the payment (ownership resolution reads
+    `payment.allocations[0]?.feeVoucher.studentId`) — a retried `confirm()` or a receipt PDF
+    request 404'd with a misleading "Payment not found" instead of the real "Cannot confirm a
+    payment in status failed". Fixed by zeroing the allocation's amount instead of deleting it,
+    keeping the FK (and ownership resolution) intact.
+  - `LeaveService.approve()` used to write `status: 'approved'` before validating the
+    class-teacher precondition; a precondition failure after that write permanently stranded the
+    request at `approved` with no attendance rows and no way to re-approve/reject/retry it (`decide()`
+    only allows `pending → X` once). Fixed by resolving every precondition before any write, then
+    wrapping the status update + attendance upserts + audit log in one `$transaction`, mirroring
+    `FeePaymentsService.confirm()`'s established pattern.
+  - Most significant: a Critical regression where both new admin screens (`/admin/fees`,
+    `/admin/leave`) routed their views directly, with no `AppShell` in the render tree — reproducing
+    the exact Sprint 5-6 Diary/Circulars incident (sidebar nav and logout button disappear entirely).
+    Fixed with the same `FeeManagementPageView.vue`/`LeaveManagementPageView.vue` thin-wrapper
+    pattern already established for Circulars/Timetable/Messages.
+  - The final whole-branch review also caught and removed dead code: the pre-FEAT-012
+    bank-reconciliation mock screen (`FeesView.vue` + `mockFees.ts`, left in place unrouted when
+    `/admin/fees` was repointed at the real feature) had become fully orphaned — deleted along with
+    their spec files.
+- Verified: backend 115 unit + 41 e2e tests (26 + 9 suites), staff-console 100 tests (16 files),
+  parent-app 38 tests — all passing, all three lint/type-check/build clean.
+- Follow-up (tracked, not blocking): `FeePaymentsService.pay()` eagerly allocates a payment before
+  `confirm()` runs; if `confirm()` is never called (client crash, network partition), the voucher
+  becomes permanently un-payable with no recovery path. Currently unreachable — the stub gateway is
+  synchronous and always succeeds — but will need a reconciliation/expiry mechanism before a real
+  JazzCash/EasyPaisa integration lands. Also still open from prior sprints (unchanged here): the
+  file-storage hardening items from Sprint 5-6, and the Sprint 7-8 `JwtModule` secret-load-order
+  race.
 
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
@@ -281,8 +326,8 @@ Repo: https://github.com/zainknoman/SchoolPortal
 
 ---
 
-**Next step:** Sprint 9-10 — FEAT-012 (Fees: server-computed voucher, PDF generation, in-app
-JazzCash/EasyPaisa payment) + FEAT-013 (Leave applications, reflects on the attendance calendar),
-backend API through both clients, same TDD rigor as Sprints 1-8. `FeesView.vue`'s Fee
-Reconciliation Queue (built during the UI refresh pass against local mock data) is a starting
-point for the staff-console side of FEAT-012 — wiring the real endpoint is a data-layer swap.
+**Next step:** Sprint 11-12 — Hardening + Pilot: FEAT-014 (offline caching "Last updated"
+timestamps, security review pass, Play Store submission), switch the Prisma datasource from
+SQLite to PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire
+real S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one
+campus/class, 20-50 parents) before full cutover.
