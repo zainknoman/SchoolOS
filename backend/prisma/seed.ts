@@ -88,6 +88,16 @@ async function main() {
     },
   });
 
+  // SUPER_ADMIN — the Org Structure CRUD screens (School/Campus/AcademicSession/Class/Section)
+  // are gated to this role alone, so a seeded account is needed to test them at all.
+  const superAdminUser = await prisma.user.create({
+    data: {
+      identifier: 'superadmin@seeds.edu.pk',
+      passwordHash: await argon2.hash('ChangeMe123!'),
+      role: 'SUPER_ADMIN',
+    },
+  });
+
   // Principal isn't its own Role (see the PRINCIPAL branch of resolveStaffUserId, which resolves
   // via `isPrincipal: true` rather than a role) — it needs a real console role to log into the
   // staff console at all, so this is a SCHOOL_ADMIN account distinct from the admin@ one above.
@@ -393,7 +403,7 @@ async function main() {
 
   console.log(
     'Seeded: 1 school, 2 campuses, 3 classes/sections (3A/4B/5C, each with its own class ' +
-      'teacher), 1 admin, 1 accounts, ' +
+      'teacher), 1 admin, 1 accounts, 1 super admin, ' +
       `1 principal (${principalUser.identifier}), ` +
       '3 students (1 shared by both parents in 3A, 2 more linked only to Parent B — one per new ' +
       'section/campus/class teacher), 2 linked parents, ' +
@@ -403,7 +413,7 @@ async function main() {
   );
   console.log(
     'Login as parent-a@seeds.edu.pk / ChangeMe123! (or parent-b@... / teacher@... / teacher2@... / ' +
-      'teacher3@... / admin@... / accounts@... / principal@...) — dev only.',
+      'teacher3@... / admin@... / accounts@... / principal@... / superadmin@...) — dev only.',
   );
 
   console.log('Seeded: 1 fee structure, 1 paid voucher + receipt for Eshaal Sample.');
