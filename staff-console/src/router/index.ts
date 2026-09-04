@@ -49,6 +49,12 @@ const router = createRouter({
       meta: { requiresRole: ['SUPER_ADMIN'] },
     },
     {
+      path: '/admin/campuses',
+      name: 'admin-campuses',
+      component: () => import('../views/CampusManagementPageView.vue'),
+      meta: { requiresRole: ['SUPER_ADMIN'] },
+    },
+    {
       path: '/admin/fees',
       name: 'admin-fees',
       component: () => import('../views/FeeManagementPageView.vue'),

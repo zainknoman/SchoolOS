@@ -140,6 +140,7 @@ async function onLogout() {
         <template v-else-if="isAdmin">
           <RouterLink data-testid="nav-dashboard" to="/admin"><Icon name="home" />Dashboard</RouterLink>
           <RouterLink v-if="canManageOrgStructure" data-testid="nav-schools" to="/admin/schools"><Icon name="chalkboard" />Schools</RouterLink>
+          <RouterLink v-if="canManageOrgStructure" data-testid="nav-campuses" to="/admin/campuses"><Icon name="grid" />Campuses</RouterLink>
           <a data-testid="nav-students" href="#"><Icon name="users" />Students</a>
           <a data-testid="nav-parents" href="#"><Icon name="user-circle" />Parents</a>
           <a data-testid="nav-teachers" href="#"><Icon name="chalkboard" />Teachers</a>
