@@ -146,6 +146,17 @@ export interface NotificationSummary {
   createdAt: string;
 }
 
+export interface LeaveRequestSummary {
+  id: string;
+  studentId: string;
+  studentName: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
 export interface FeeStructureSummary {
   id: string;
   name: string;
@@ -444,6 +455,34 @@ export const api = {
 
   async markAllNotificationsRead(accessToken: string): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/notifications/read-all`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listLeaveRequests(accessToken: string, status?: string): Promise<LeaveRequestSummary[]> {
+    const suffix = status ? `?status=${encodeURIComponent(status)}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/leave-requests${suffix}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async approveLeaveRequest(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/leave-requests/${id}/approve`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async rejectLeaveRequest(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/leave-requests/${id}/reject`, {
       method: 'POST',
       headers: authHeaders(accessToken),
     });
