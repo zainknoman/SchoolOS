@@ -23,7 +23,7 @@ export class StubPaymentGatewayAdapter implements PaymentGatewayAdapter {
     };
   }
 
-  async confirm(): Promise<PaymentConfirmation> {
+  async confirm(gatewayReference: string): Promise<PaymentConfirmation> {
     return { status: 'completed' };
   }
 }
