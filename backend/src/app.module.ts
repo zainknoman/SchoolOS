@@ -19,6 +19,7 @@ import { FeesModule } from './fees/fees.module';
 import { LeaveModule } from './leave/leave.module';
 import { SchoolModule } from './school/school.module';
 import { CampusModule } from './campus/campus.module';
+import { AcademicSessionModule } from './academic-session/academic-session.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { CampusModule } from './campus/campus.module';
     LeaveModule,
     SchoolModule,
     CampusModule,
+    AcademicSessionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
