@@ -24,6 +24,7 @@ import { ClassModule } from './class/class.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ParentModule } from './parent/parent.module';
 import { TeacherModule } from './teacher/teacher.module';
+import { StudentModule } from './student/student.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { TeacherModule } from './teacher/teacher.module';
     DashboardModule,
     ParentModule,
     TeacherModule,
+    StudentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
