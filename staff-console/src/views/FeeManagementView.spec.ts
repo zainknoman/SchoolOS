@@ -14,6 +14,7 @@ vi.mock('../lib/api', () => ({
     issueFeeVouchers: vi.fn(),
     studentFees: vi.fn(),
     studentFeePayments: vi.fn(),
+    receiptPdfUrl: vi.fn(),
   },
 }));
 
@@ -113,5 +114,41 @@ describe('FeeManagementView', () => {
 
     expect(wrapper.text()).toContain('2026-09');
     expect(wrapper.text()).toContain('unpaid');
+    // totalAmount/amountPaid/amountDue are paisa (500000, 0, 500000) — must render as PKR
+    // (500000 / 100 = 5000 -> formatPkrFull -> "5,000"), not the raw paisa figure.
+    expect(wrapper.text()).toContain('5,000');
+    expect(wrapper.text()).not.toContain('500,000');
+  });
+
+  it("shows a student's payment history with the receipt amount converted to PKR and a receipt link", async () => {
+    vi.mocked(api.studentFees).mockResolvedValue([]);
+    vi.mocked(api.studentFeePayments).mockResolvedValue([
+      {
+        id: 'p1',
+        amount: 500000,
+        method: 'CARD',
+        status: 'completed',
+        voucherIds: ['v1'],
+        receiptId: 'r1',
+        createdAt: '2026-09-05T00:00:00.000Z',
+      },
+    ]);
+    vi.mocked(api.receiptPdfUrl).mockReturnValue('https://api.example.com/fee-payments/p1/receipt.pdf?access_token=token-1');
+
+    const wrapper = mount(FeeManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="ledger-student-id"]').setValue('s1');
+    await wrapper.find('[data-testid="load-ledger"]').trigger('click');
+    await flushPromises();
+
+    // amount is paisa (500000) — must render as PKR ("5,000"), not the raw paisa figure.
+    expect(wrapper.text()).toContain('5,000');
+    expect(wrapper.text()).not.toContain('500,000');
+    expect(wrapper.text()).toContain('completed');
+
+    expect(api.receiptPdfUrl).toHaveBeenCalledWith('token-1', 'p1');
+    const receiptLink = wrapper.find('a[href="https://api.example.com/fee-payments/p1/receipt.pdf?access_token=token-1"]');
+    expect(receiptLink.exists()).toBe(true);
   });
 });
