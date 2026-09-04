@@ -45,7 +45,7 @@ const router = createRouter({
     {
       path: '/admin/fees',
       name: 'admin-fees',
-      component: () => import('../views/FeeManagementView.vue'),
+      component: () => import('../views/FeeManagementPageView.vue'),
       meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'] },
     },
     {
@@ -71,7 +71,7 @@ const router = createRouter({
     {
       path: '/admin/leave',
       name: 'admin-leave',
-      component: () => import('../views/LeaveManagementView.vue'),
+      component: () => import('../views/LeaveManagementPageView.vue'),
       // Matches POST /api/v1/leave-requests/:id/approve's own @Roles — ACCOUNTS can't decide
       // leave, so it doesn't get this screen either (same precedent as admin-circulars/admin-timetable).
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] },
