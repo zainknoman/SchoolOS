@@ -22,6 +22,7 @@ function makeRouter() {
       { path: '/teacher', name: 'teacher-home', component: { template: '<div>teacher</div>' } },
       { path: '/admin', name: 'admin-home', component: { template: '<div>admin</div>' } },
       { path: '/admin/fees', name: 'admin-fees', component: { template: '<div>fees</div>' } },
+      { path: '/admin/leave', name: 'admin-leave', component: { template: '<div>leave</div>' } },
       { path: '/teacher/messages', name: 'teacher-messages', component: { template: '<div>messages</div>' } },
       { path: '/admin/messages', name: 'admin-messages', component: { template: '<div>messages</div>' } },
       { path: '/teacher/diary', name: 'teacher-diary', component: { template: '<div>diary</div>' } },
@@ -59,6 +60,7 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.find('[data-testid="nav-students"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-fees"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-dashboard"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-leave"]').exists()).toBe(false);
   });
 
   it('shows Admin/Accounts nav items for a SCHOOL_ADMIN role, with no teacher-only items', async () => {
@@ -72,6 +74,7 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.text()).toContain('Timetable');
     expect(wrapper.text()).toContain('Circulars');
     expect(wrapper.text()).toContain('Fees');
+    expect(wrapper.text()).toContain('Leave');
     expect(wrapper.text()).toContain('Messages');
 
     expect(wrapper.find('[data-testid="nav-attendance"]').exists()).toBe(false);
@@ -80,6 +83,21 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.find('[data-testid="nav-dashboard"]').attributes('href')).toBe('/admin');
     expect(wrapper.find('[data-testid="nav-fees"]').attributes('href')).toBe('/admin/fees');
     expect(wrapper.find('[data-testid="nav-timetable"]').attributes('href')).toBe('/admin/timetable');
+    expect(wrapper.find('[data-testid="nav-leave"]').attributes('href')).toBe('/admin/leave');
+  });
+
+  it('shows nav-leave for a SUPER_ADMIN role', async () => {
+    const wrapper = await mountAsRole('SUPER_ADMIN');
+
+    expect(wrapper.find('[data-testid="nav-leave"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-leave"]').attributes('href')).toBe('/admin/leave');
+  });
+
+  it('hides nav-leave for an ACCOUNTS role', async () => {
+    const wrapper = await mountAsRole('ACCOUNTS');
+
+    expect(wrapper.find('[data-testid="nav-fees"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-leave"]').exists()).toBe(false);
   });
 
   it('shows a role-initials avatar and a notifications bell in the topbar', async () => {
