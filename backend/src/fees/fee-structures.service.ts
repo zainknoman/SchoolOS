@@ -6,8 +6,22 @@ import { CreateFeeStructureDto } from './dto/create-fee-structure.dto';
 export class FeeStructuresService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(dto: CreateFeeStructureDto) {
-    return this.prisma.feeStructure.create({ data: { name: dto.name, amount: dto.amount } });
+  async create(dto: CreateFeeStructureDto, actingUserId: string) {
+    const structure = await this.prisma.feeStructure.create({
+      data: { name: dto.name, amount: dto.amount },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'fee-structure.create',
+        entity: 'FeeStructure',
+        entityId: structure.id,
+        metadata: JSON.stringify({ name: dto.name, amount: dto.amount }),
+      },
+    });
+
+    return structure;
   }
 
   list() {

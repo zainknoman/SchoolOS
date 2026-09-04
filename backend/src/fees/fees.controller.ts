@@ -25,8 +25,8 @@ export class FeesController {
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
   @Post('fee-structures')
-  createStructure(@Body() dto: CreateFeeStructureDto) {
-    return this.feeStructures.create(dto);
+  createStructure(@Body() dto: CreateFeeStructureDto, @Req() req: AuthenticatedRequest) {
+    return this.feeStructures.create(dto, req.user.id);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')

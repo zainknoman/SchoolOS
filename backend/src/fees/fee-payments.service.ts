@@ -85,7 +85,17 @@ export class FeePaymentsService {
 
     if (status === 'failed') {
       const updated = await this.prisma.$transaction(async (tx) => {
-        await tx.feePaymentAllocation.deleteMany({ where: { feePaymentId: paymentId } });
+        // Zero the allocation's amount rather than deleting the row: FeeVouchersService's
+        // amountDue = sum(items) - sum(allocations) is unaffected by a zero-amount allocation, so
+        // the voucher still correctly shows as unpaid/available for a fresh attempt — but the
+        // feeVoucherId FK stays intact, so FeesController can still derive studentId from
+        // payment.allocations[0]?.feeVoucher.studentId for ownership checks on a retried
+        // confirm() or a receipt.pdf request. Deleting the row instead orphans the payment: it
+        // becomes unreachable (404 "Payment not found") even to its rightful owner.
+        await tx.feePaymentAllocation.updateMany({
+          where: { feePaymentId: paymentId },
+          data: { amount: 0 },
+        });
         return tx.feePayment.update({
           where: { id: paymentId },
           data: { status: 'failed' },
