@@ -23,6 +23,7 @@ import { AcademicSessionModule } from './academic-session/academic-session.modul
 import { ClassModule } from './class/class.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ParentModule } from './parent/parent.module';
+import { TeacherModule } from './teacher/teacher.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { ParentModule } from './parent/parent.module';
     ClassModule,
     DashboardModule,
     ParentModule,
+    TeacherModule,
   ],
   controllers: [AppController],
   providers: [AppService],
