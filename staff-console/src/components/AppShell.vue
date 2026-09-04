@@ -146,6 +146,7 @@ async function onLogout() {
           <a data-testid="nav-parents" href="#"><Icon name="user-circle" />Parents</a>
           <a data-testid="nav-teachers" href="#"><Icon name="chalkboard" />Teachers</a>
           <RouterLink v-if="canManageOrgStructure" data-testid="nav-classes" to="/admin/classes"><Icon name="grid" />Classes</RouterLink>
+          <RouterLink v-if="canManageOrgStructure" data-testid="nav-sections" to="/admin/sections"><Icon name="grid" />Sections</RouterLink>
           <RouterLink data-testid="nav-timetable" to="/admin/timetable"><Icon name="clock" />Timetable</RouterLink>
           <RouterLink data-testid="nav-circulars" to="/admin/circulars"><Icon name="megaphone" />Circulars</RouterLink>
           <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />Fees</RouterLink>

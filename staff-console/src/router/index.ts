@@ -67,6 +67,12 @@ const router = createRouter({
       meta: { requiresRole: ['SUPER_ADMIN'] },
     },
     {
+      path: '/admin/sections',
+      name: 'admin-sections',
+      component: () => import('../views/SectionManagementPageView.vue'),
+      meta: { requiresRole: ['SUPER_ADMIN'] },
+    },
+    {
       path: '/admin/fees',
       name: 'admin-fees',
       component: () => import('../views/FeeManagementPageView.vue'),

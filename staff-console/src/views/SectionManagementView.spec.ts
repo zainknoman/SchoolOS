@@ -1,0 +1,107 @@
+// staff-console/src/views/SectionManagementView.spec.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mount, flushPromises } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
+import SectionManagementView from './SectionManagementView.vue';
+import { useAuthStore } from '../stores/auth';
+import { api } from '../lib/api';
+
+vi.mock('../lib/api', () => ({
+  api: {
+    listClasses: vi.fn(),
+    listTeachers: vi.fn(),
+    listSections: vi.fn(),
+    createSection: vi.fn(),
+    updateSection: vi.fn(),
+    deleteSection: vi.fn(),
+  },
+}));
+
+describe('SectionManagementView', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    const auth = useAuthStore();
+    auth.accessToken = 'token-1';
+    Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
+    vi.mocked(api.listClasses).mockResolvedValue([
+      { id: 'cl1', name: 'Grade 3', campusId: 'c1', campusName: 'Gulistan-e-Jauhar', academicSessionId: 'as1', academicSessionLabel: '2026-2027' },
+    ]);
+    vi.mocked(api.listTeachers).mockResolvedValue([{ id: 't1', name: 'Ms. Ayesha' }]);
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar', classTeacherId: 't1', classTeacherName: 'Ms. Ayesha' },
+    ]);
+  });
+
+  it('lists sections (with class teacher) and creates a new one', async () => {
+    vi.mocked(api.createSection).mockResolvedValue(undefined);
+
+    const wrapper = mount(SectionManagementView);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('3A');
+    expect(wrapper.text()).toContain('Ms. Ayesha');
+
+    await wrapper.find('[data-testid="add-class"]').setValue('cl1');
+    await wrapper.find('[data-testid="add-name"]').setValue('3B');
+    await wrapper.find('[data-testid="add-teacher"]').setValue('t1');
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+
+    expect(api.createSection).toHaveBeenCalledWith('token-1', { classId: 'cl1', name: '3B', classTeacherId: 't1' });
+  });
+
+  it('creates a section with no class teacher when none is chosen', async () => {
+    vi.mocked(api.createSection).mockResolvedValue(undefined);
+
+    const wrapper = mount(SectionManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="add-class"]').setValue('cl1');
+    await wrapper.find('[data-testid="add-name"]').setValue('3B');
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+
+    expect(api.createSection).toHaveBeenCalledWith('token-1', { classId: 'cl1', name: '3B', classTeacherId: undefined });
+  });
+
+  it('edits the name and reassigns the class teacher (class is not editable)', async () => {
+    vi.mocked(api.updateSection).mockResolvedValue(undefined);
+
+    const wrapper = mount(SectionManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="edit-sec1"]').trigger('click');
+    expect(wrapper.find('[data-testid="edit-class-sec1"]').exists()).toBe(false);
+    await wrapper.find('[data-testid="edit-name-sec1"]').setValue('3A (Renamed)');
+    await wrapper.find('[data-testid="save-sec1"]').trigger('click');
+    await flushPromises();
+
+    expect(api.updateSection).toHaveBeenCalledWith('token-1', 'sec1', { name: '3A (Renamed)', classTeacherId: 't1' });
+  });
+
+  it('deletes a section after confirmation', async () => {
+    vi.mocked(api.deleteSection).mockResolvedValue(undefined);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    const wrapper = mount(SectionManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="delete-sec1"]').trigger('click');
+    await flushPromises();
+
+    expect(api.deleteSection).toHaveBeenCalledWith('token-1', 'sec1');
+  });
+
+  it('shows the backend error when delete is blocked by real Timetable/Diary/Circular history', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.mocked(api.deleteSection).mockRejectedValue(new Error('Cannot delete this Section: other records still reference it.'));
+
+    const wrapper = mount(SectionManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="delete-sec1"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('[role="alert"]').text()).toContain('Cannot delete this Section');
+  });
+});
