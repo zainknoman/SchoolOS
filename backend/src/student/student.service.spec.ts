@@ -13,7 +13,7 @@ describe('StudentService', () => {
     enrollment: { create: jest.Mock };
     studentParent: { create: jest.Mock };
     user: { create: jest.Mock };
-    parentProfile: { create: jest.Mock };
+    parentProfile: { create: jest.Mock; findUnique: jest.Mock };
   };
   let prisma: {
     academicSession: { findFirst: jest.Mock };
@@ -38,7 +38,7 @@ describe('StudentService', () => {
       enrollment: { create: jest.fn() },
       studentParent: { create: jest.fn() },
       user: { create: jest.fn() },
-      parentProfile: { create: jest.fn() },
+      parentProfile: { create: jest.fn(), findUnique: jest.fn() },
     };
     prisma = {
       academicSession: { findFirst: jest.fn().mockResolvedValue(activeSession) },
@@ -97,6 +97,7 @@ describe('StudentService', () => {
 
   it('creates a Student + Enrollment (campusId derived from the section) linked to an existing parent, in one transaction', async () => {
     tx.student.create.mockResolvedValue({ id: 's1', grNumber: 'GR-2001', name: 'New Student' });
+    tx.parentProfile.findUnique.mockResolvedValue({ id: 'p1', name: 'Existing Parent' });
     prisma.student.findUniqueOrThrow.mockResolvedValue({
       id: 's1', grNumber: 'GR-2001', name: 'New Student', enrollments: [], parents: [],
     });
@@ -150,6 +151,19 @@ describe('StudentService', () => {
     await expect(
       service.create({ grNumber: 'GR-1001', name: 'Dupe', sectionId: 'sec1', parentProfileId: 'p1' }, 'admin-1'),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects with a BadRequestException (not an unhandled error) when parentProfileId does not refer to an existing ParentProfile', async () => {
+    tx.student.create.mockResolvedValue({ id: 's3', grNumber: 'GR-2003', name: 'Orphan Link' });
+    tx.parentProfile.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.create(
+        { grNumber: 'GR-2003', name: 'Orphan Link', sectionId: 'sec1', parentProfileId: 'does-not-exist' },
+        'admin-1',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(tx.studentParent.create).not.toHaveBeenCalled();
   });
 
   it('lists students with their current section chain and linked parent names', async () => {

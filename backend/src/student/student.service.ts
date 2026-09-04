@@ -83,7 +83,16 @@ export class StudentService {
             status: 'ACTIVE',
           },
         });
-        const parentProfileId = dto.parentProfileId ?? (await createParentWithUser(tx, dto.newParent!)).id;
+        let parentProfileId: string;
+        if (dto.parentProfileId !== undefined) {
+          const parent = await tx.parentProfile.findUnique({ where: { id: dto.parentProfileId } });
+          if (!parent) {
+            throw new BadRequestException('Parent not found');
+          }
+          parentProfileId = parent.id;
+        } else {
+          parentProfileId = (await createParentWithUser(tx, dto.newParent!)).id;
+        }
         await tx.studentParent.create({ data: { studentId: student.id, parentProfileId } });
         return student.id;
       });
