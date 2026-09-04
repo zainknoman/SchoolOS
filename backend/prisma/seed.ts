@@ -353,6 +353,17 @@ async function main() {
     data: { feePaymentId: septemberPayment.id, receiptNumber: 'RCPT-SEED-000001' },
   });
 
+  // --- Leave: one pending request for Eshaal, so a fresh dev.db has something in the approval
+  // queue and on the parent-app's leave status list ---
+  await prisma.leaveRequest.create({
+    data: {
+      studentId: student.id,
+      startDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000),
+      endDate: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000),
+      reason: 'Family wedding out of town.',
+    },
+  });
+
   // --- Notifications: one sample per seeded role, so a fresh dev.db never looks blank ---
   await prisma.notification.createMany({
     data: [
@@ -396,6 +407,8 @@ async function main() {
   );
 
   console.log('Seeded: 1 fee structure, 1 paid voucher + receipt for Eshaal Sample.');
+
+  console.log('Seeded: 1 pending leave request for Eshaal Sample.');
 
   await prisma.$disconnect();
 }
