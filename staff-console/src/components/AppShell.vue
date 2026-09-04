@@ -12,6 +12,7 @@ const router = useRouter();
 const isTeacher = computed(() => auth.role === 'TEACHER');
 const isAdmin = computed(() => ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'].includes(auth.role ?? ''));
 const canManageLeave = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
+const canManageOrgStructure = computed(() => auth.role === 'SUPER_ADMIN');
 const avatarInitials = computed(() => roleInitials(auth.role));
 
 const notifications = ref<NotificationSummary[]>([]);
@@ -138,6 +139,7 @@ async function onLogout() {
         </template>
         <template v-else-if="isAdmin">
           <RouterLink data-testid="nav-dashboard" to="/admin"><Icon name="home" />Dashboard</RouterLink>
+          <RouterLink v-if="canManageOrgStructure" data-testid="nav-schools" to="/admin/schools"><Icon name="chalkboard" />Schools</RouterLink>
           <a data-testid="nav-students" href="#"><Icon name="users" />Students</a>
           <a data-testid="nav-parents" href="#"><Icon name="user-circle" />Parents</a>
           <a data-testid="nav-teachers" href="#"><Icon name="chalkboard" />Teachers</a>
