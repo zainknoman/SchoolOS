@@ -8,6 +8,7 @@ import 'circulars_tab.dart';
 import 'fees_tab.dart';
 import 'home_tab.dart';
 import 'messages_tab.dart';
+import 'more_tab.dart';
 import 'notifications_sheet.dart';
 
 /// Authenticated shell: multi-child switcher up top, bottom nav below (Home / Calendar /
@@ -299,6 +300,14 @@ class _HomeShellState extends State<HomeShell> {
         studentId: child.id,
         accessToken: auth.accessToken!,
         api: api,
+      );
+    }
+
+    if (_tabIndex == 5) {
+      return MoreTab(
+        accessToken: context.read<AuthState>().accessToken!,
+        api: context.read<ApiClient>(),
+        children: _children,
       );
     }
 
