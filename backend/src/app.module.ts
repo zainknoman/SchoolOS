@@ -22,6 +22,7 @@ import { CampusModule } from './campus/campus.module';
 import { AcademicSessionModule } from './academic-session/academic-session.module';
 import { ClassModule } from './class/class.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ParentModule } from './parent/parent.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     AcademicSessionModule,
     ClassModule,
     DashboardModule,
+    ParentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
