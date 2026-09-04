@@ -242,7 +242,7 @@ model StudentParent {
 model Timetable {
   id        String   @id @default(uuid())
   sectionId String
-  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   subjectId String
   subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   teacherId String?
@@ -276,7 +276,7 @@ model Attendance {
 model DiaryEntry {
   id          String            @id @default(uuid())
   sectionId   String
-  section     Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section     Section           @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   subjectId   String
   subject     Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   authorId    String
@@ -307,7 +307,7 @@ model Circular {
   description String
   scope       String               // "school" | "section"
   sectionId   String?
-  section     Section?             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section     Section?             @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   priority    String               @default("normal")
   authorId    String
   author      User                 @relation("CircularAuthor", fields: [authorId], references: [id])
