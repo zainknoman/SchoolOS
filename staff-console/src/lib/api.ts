@@ -238,6 +238,37 @@ export interface FeePaymentSummary {
   createdAt: string;
 }
 
+export interface TeacherAdminSummary {
+  id: string;
+  identifier: string;
+  name: string;
+}
+
+export interface ParentSummary {
+  id: string;
+  identifier: string;
+  name: string;
+  phone: string | null;
+  childrenCount: number;
+}
+
+export interface NewParentInput {
+  identifier: string;
+  password: string;
+  name: string;
+  phone?: string;
+}
+
+export interface StudentAdminSummary {
+  id: string;
+  grNumber: string;
+  name: string;
+  sectionName: string | null;
+  className: string | null;
+  campusName: string | null;
+  parentNames: string[];
+}
+
 function authHeaders(accessToken: string) {
   return { Authorization: `Bearer ${accessToken}` };
 }
@@ -806,5 +837,132 @@ export const api = {
 
   receiptPdfUrl(accessToken: string, paymentId: string): string {
     return `${API_BASE_URL}/api/v1/fee-payments/${paymentId}/receipt.pdf?access_token=${encodeURIComponent(accessToken)}`;
+  },
+
+  async listAdminTeachers(accessToken: string): Promise<TeacherAdminSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/teachers`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createTeacher(
+    accessToken: string,
+    payload: { identifier: string; password: string; name: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/teachers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async updateTeacher(
+    accessToken: string,
+    id: string,
+    payload: { name?: string; password?: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/teachers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async deleteTeacher(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/teachers/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listAdminParents(accessToken: string): Promise<ParentSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createParent(accessToken: string, payload: NewParentInput): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async updateParent(
+    accessToken: string,
+    id: string,
+    payload: { name?: string; phone?: string; password?: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async deleteParent(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listAdminStudents(accessToken: string): Promise<StudentAdminSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createStudent(
+    accessToken: string,
+    payload: { grNumber: string; name: string; sectionId: string; parentProfileId?: string; newParent?: NewParentInput },
+  ): Promise<StudentAdminSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async updateStudent(
+    accessToken: string,
+    id: string,
+    payload: { grNumber?: string; name?: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async deleteStudent(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
   },
 };
