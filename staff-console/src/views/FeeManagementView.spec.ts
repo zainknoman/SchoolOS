@@ -108,8 +108,9 @@ describe('FeeManagementView', () => {
     const wrapper = mount(FeeManagementView);
     await flushPromises();
 
-    await wrapper.find('[data-testid="ledger-student-id"]').setValue('s1');
-    await wrapper.find('[data-testid="load-ledger"]').trigger('click');
+    await wrapper.find('[data-testid="ledger-section"]').setValue('sec-1');
+    await flushPromises();
+    await wrapper.find('[data-testid="ledger-student"]').setValue('s1');
     await flushPromises();
 
     expect(wrapper.text()).toContain('2026-09');
@@ -138,8 +139,9 @@ describe('FeeManagementView', () => {
     const wrapper = mount(FeeManagementView);
     await flushPromises();
 
-    await wrapper.find('[data-testid="ledger-student-id"]').setValue('s1');
-    await wrapper.find('[data-testid="load-ledger"]').trigger('click');
+    await wrapper.find('[data-testid="ledger-section"]').setValue('sec-1');
+    await flushPromises();
+    await wrapper.find('[data-testid="ledger-student"]').setValue('s1');
     await flushPromises();
 
     // amount is paisa (500000) — must render as PKR ("5,000"), not the raw paisa figure.
@@ -150,5 +152,68 @@ describe('FeeManagementView', () => {
     expect(api.receiptPdfUrl).toHaveBeenCalledWith('token-1', 'p1');
     const receiptLink = wrapper.find('a[href="https://api.example.com/fee-payments/p1/receipt.pdf?access_token=token-1"]');
     expect(receiptLink.exists()).toBe(true);
+  });
+
+  it('picks a student by name from a section instead of a raw id, and loads that student\'s ledger', async () => {
+    vi.mocked(api.studentFees).mockResolvedValue([]);
+    vi.mocked(api.studentFeePayments).mockResolvedValue([]);
+
+    const wrapper = mount(FeeManagementView);
+    await flushPromises();
+
+    // No "Student ID" text field — the only way in is section, then a named student.
+    expect(wrapper.find('[data-testid="ledger-student-id"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="ledger-student"]').exists()).toBe(false);
+
+    await wrapper.find('[data-testid="ledger-section"]').setValue('sec-1');
+    await flushPromises();
+
+    expect(api.sectionStudents).toHaveBeenCalledWith('token-1', 'sec-1');
+    const studentOptions = wrapper.find('[data-testid="ledger-student"]').findAll('option');
+    expect(studentOptions.map((o) => o.text())).toEqual(
+      expect.arrayContaining(['Eshaal Sample (GR-1001)', 'Ibrahim Sample (GR-1002)']),
+    );
+
+    await wrapper.find('[data-testid="ledger-student"]').setValue('s2');
+    await flushPromises();
+
+    expect(api.studentFees).toHaveBeenCalledWith('token-1', 's2');
+    expect(api.studentFeePayments).toHaveBeenCalledWith('token-1', 's2');
+  });
+
+  it('switching the ledger section clears the previously loaded student and ledger', async () => {
+    vi.mocked(api.studentFees).mockResolvedValue([
+      {
+        id: 'v1',
+        studentId: 's1',
+        month: '2026-09',
+        dueDate: '2026-09-10',
+        items: [{ label: 'Tuition Fee', amount: 500000 }],
+        totalAmount: 500000,
+        amountPaid: 0,
+        amountDue: 500000,
+        status: 'unpaid',
+      },
+    ]);
+    vi.mocked(api.studentFeePayments).mockResolvedValue([]);
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+      { id: 'sec-2', name: '4B', className: 'Grade 4', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+
+    const wrapper = mount(FeeManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="ledger-section"]').setValue('sec-1');
+    await flushPromises();
+    await wrapper.find('[data-testid="ledger-student"]').setValue('s1');
+    await flushPromises();
+    expect(wrapper.text()).toContain('2026-09');
+
+    await wrapper.find('[data-testid="ledger-section"]').setValue('sec-2');
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain('unpaid');
+    expect((wrapper.find('[data-testid="ledger-student"]').element as HTMLSelectElement).value).toBe('');
   });
 });

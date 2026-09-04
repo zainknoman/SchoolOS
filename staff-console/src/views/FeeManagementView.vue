@@ -109,10 +109,27 @@ async function onIssue() {
 }
 
 // --- Student ledger ---
+// Admins have no way to know a student's raw id, so this picks the same way "Issue Vouchers"
+// does: section first, then a named student from that section — not a free-text id field.
+const ledgerSectionId = ref('');
+const ledgerSectionStudents = ref<StudentSummary[]>([]);
 const ledgerStudentId = ref('');
 const ledgerVouchers = ref<FeeVoucherSummary[]>([]);
 const ledgerPayments = ref<FeePaymentSummary[]>([]);
 const ledgerError = ref<string | null>(null);
+
+async function onLedgerSectionChange() {
+  ledgerStudentId.value = '';
+  ledgerVouchers.value = [];
+  ledgerPayments.value = [];
+  ledgerSectionStudents.value = [];
+  if (!auth.accessToken || !ledgerSectionId.value) return;
+  try {
+    ledgerSectionStudents.value = await api.sectionStudents(auth.accessToken, ledgerSectionId.value);
+  } catch (err) {
+    ledgerError.value = err instanceof Error ? err.message : 'Could not load students.';
+  }
+}
 
 async function onLoadLedger() {
   if (!auth.accessToken || !ledgerStudentId.value) return;
@@ -198,10 +215,22 @@ async function onLoadLedger() {
 
     <section class="card">
       <h2>Student Ledger</h2>
-      <div class="inline-form">
-        <input data-testid="ledger-student-id" v-model="ledgerStudentId" type="text" placeholder="Student ID" />
-        <button data-testid="load-ledger" @click="onLoadLedger">Load</button>
-      </div>
+      <label class="field">
+        <span>Section</span>
+        <select data-testid="ledger-section" v-model="ledgerSectionId" @change="onLedgerSectionChange">
+          <option value="" disabled>Choose a section</option>
+          <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.className }} {{ s.name }}</option>
+        </select>
+      </label>
+      <label v-if="ledgerSectionStudents.length" class="field">
+        <span>Student</span>
+        <select data-testid="ledger-student" v-model="ledgerStudentId" @change="onLoadLedger">
+          <option value="" disabled>Choose a student</option>
+          <option v-for="st in ledgerSectionStudents" :key="st.id" :value="st.id">
+            {{ st.name }} ({{ st.grNumber }})
+          </option>
+        </select>
+      </label>
       <p v-if="ledgerError" class="error" role="alert">{{ ledgerError }}</p>
 
       <table v-if="ledgerVouchers.length" class="ledger-table">
