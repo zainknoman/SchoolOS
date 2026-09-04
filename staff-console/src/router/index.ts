@@ -68,6 +68,14 @@ const router = createRouter({
       component: () => import('../views/MessagesPageView.vue'),
       meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'] },
     },
+    {
+      path: '/admin/leave',
+      name: 'admin-leave',
+      component: () => import('../views/LeaveManagementView.vue'),
+      // Matches POST /api/v1/leave-requests/:id/approve's own @Roles — ACCOUNTS can't decide
+      // leave, so it doesn't get this screen either (same precedent as admin-circulars/admin-timetable).
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] },
+    },
     { path: '/', redirect: '/login' },
   ],
 });

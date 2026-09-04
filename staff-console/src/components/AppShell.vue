@@ -11,6 +11,7 @@ const router = useRouter();
 
 const isTeacher = computed(() => auth.role === 'TEACHER');
 const isAdmin = computed(() => ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'].includes(auth.role ?? ''));
+const canManageLeave = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const avatarInitials = computed(() => roleInitials(auth.role));
 
 const notifications = ref<NotificationSummary[]>([]);
@@ -144,6 +145,7 @@ async function onLogout() {
           <RouterLink data-testid="nav-timetable" to="/admin/timetable"><Icon name="clock" />Timetable</RouterLink>
           <RouterLink data-testid="nav-circulars" to="/admin/circulars"><Icon name="megaphone" />Circulars</RouterLink>
           <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />Fees</RouterLink>
+          <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"><Icon name="calendar" />Leave</RouterLink>
           <RouterLink data-testid="nav-messages" to="/admin/messages"><Icon name="chat" />Messages</RouterLink>
         </template>
       </nav>
