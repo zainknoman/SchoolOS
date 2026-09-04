@@ -70,7 +70,7 @@ async function onSaveEdit(id: string) {
   try {
     await api.updateSection(auth.accessToken, id, {
       name: editName.value.trim(),
-      classTeacherId: editTeacherId.value || undefined,
+      classTeacherId: editTeacherId.value || null,
     });
     editingId.value = null;
     await load();

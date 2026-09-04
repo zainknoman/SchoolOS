@@ -286,7 +286,7 @@ export const api = {
   async updateSection(
     accessToken: string,
     id: string,
-    payload: { name?: string; classTeacherId?: string },
+    payload: { name?: string; classTeacherId?: string | null },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/sections/${id}`, {
       method: 'PATCH',

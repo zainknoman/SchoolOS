@@ -79,6 +79,20 @@ describe('SectionManagementView', () => {
     expect(api.updateSection).toHaveBeenCalledWith('token-1', 'sec1', { name: '3A (Renamed)', classTeacherId: 't1' });
   });
 
+  it('clears an already-assigned class teacher by sending an explicit null', async () => {
+    vi.mocked(api.updateSection).mockResolvedValue(undefined);
+
+    const wrapper = mount(SectionManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="edit-sec1"]').trigger('click');
+    await wrapper.find('[data-testid="edit-teacher-sec1"]').setValue('');
+    await wrapper.find('[data-testid="save-sec1"]').trigger('click');
+    await flushPromises();
+
+    expect(api.updateSection).toHaveBeenCalledWith('token-1', 'sec1', { name: '3A', classTeacherId: null });
+  });
+
   it('deletes a section after confirmation', async () => {
     vi.mocked(api.deleteSection).mockResolvedValue(undefined);
     vi.spyOn(window, 'confirm').mockReturnValue(true);
