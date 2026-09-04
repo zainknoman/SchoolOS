@@ -17,6 +17,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { MessagesModule } from './messages/messages.module';
 import { FeesModule } from './fees/fees.module';
 import { LeaveModule } from './leave/leave.module';
+import { SchoolModule } from './school/school.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { LeaveModule } from './leave/leave.module';
     MessagesModule,
     FeesModule,
     LeaveModule,
+    SchoolModule,
   ],
   controllers: [AppController],
   providers: [AppService],
