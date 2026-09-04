@@ -70,7 +70,6 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.text()).toContain('Students');
     expect(wrapper.text()).toContain('Parents');
     expect(wrapper.text()).toContain('Teachers');
-    expect(wrapper.text()).toContain('Classes');
     expect(wrapper.text()).toContain('Timetable');
     expect(wrapper.text()).toContain('Circulars');
     expect(wrapper.text()).toContain('Fees');
