@@ -44,6 +44,59 @@ export interface SectionSummary {
   name: string;
   className: string;
   campusName: string;
+  classTeacherId?: string | null;
+  classTeacherName?: string | null;
+}
+
+export interface SchoolSummary {
+  id: string;
+  name: string;
+}
+
+export interface CampusSummary {
+  id: string;
+  name: string;
+  schoolId: string;
+  schoolName: string;
+}
+
+export interface AcademicSessionSummary {
+  id: string;
+  label: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+}
+
+export interface ClassSummary {
+  id: string;
+  name: string;
+  campusId: string;
+  campusName: string;
+  academicSessionId: string;
+  academicSessionLabel: string;
+}
+
+export interface DashboardWeeklyPoint {
+  day: string;
+  attendancePercent: number;
+  feesCollectedPkr: number;
+}
+
+export interface DashboardAlert {
+  id: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface DashboardSummary {
+  studentsTotal: number;
+  presentTodayPercent: number;
+  absentToday: number;
+  feesCollectedPkr: number;
+  feesOutstandingPkr: number;
+  weeklyTrend: DashboardWeeklyPoint[];
+  recentAlerts: DashboardAlert[];
 }
 
 export interface StudentSummary {
@@ -213,6 +266,210 @@ export const api = {
 
   async listSections(accessToken: string): Promise<SectionSummary[]> {
     const res = await fetch(`${API_BASE_URL}/api/v1/sections`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createSection(
+    accessToken: string,
+    payload: { classId: string; name: string; classTeacherId?: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/sections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async updateSection(
+    accessToken: string,
+    id: string,
+    payload: { name?: string; classTeacherId?: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/sections/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async deleteSection(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/sections/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listSchools(accessToken: string): Promise<SchoolSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/schools`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createSchool(accessToken: string, payload: { name: string }): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/schools`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async updateSchool(accessToken: string, id: string, payload: { name?: string }): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/schools/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async deleteSchool(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/schools/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listCampuses(accessToken: string): Promise<CampusSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/campuses`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createCampus(accessToken: string, payload: { schoolId: string; name: string }): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/campuses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async updateCampus(accessToken: string, id: string, payload: { name?: string }): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/campuses/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async deleteCampus(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/campuses/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listAcademicSessions(accessToken: string): Promise<AcademicSessionSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/academic-sessions`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createAcademicSession(
+    accessToken: string,
+    payload: { label: string; startDate: string; endDate: string; isActive: boolean },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/academic-sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async updateAcademicSession(
+    accessToken: string,
+    id: string,
+    payload: { label?: string; startDate?: string; endDate?: string; isActive?: boolean },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/academic-sessions/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async deleteAcademicSession(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/academic-sessions/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listClasses(accessToken: string): Promise<ClassSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/classes`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createClass(
+    accessToken: string,
+    payload: { campusId: string; academicSessionId: string; name: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/classes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async updateClass(accessToken: string, id: string, payload: { name?: string }): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/classes/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async deleteClass(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/classes/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async dashboardSummary(accessToken: string): Promise<DashboardSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/dashboard-summary`, {
+      headers: authHeaders(accessToken),
+    });
     return asJson(res);
   },
 
