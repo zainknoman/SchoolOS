@@ -179,4 +179,73 @@ class ApiClient {
   /// ?access_token= specifically so links like this (opened via url_launcher) can authenticate.
   Uri fileDownloadUrl(String fileId, String accessToken) =>
       Uri.parse('$baseUrl/api/v1/files/$fileId').replace(queryParameters: {'access_token': accessToken});
+
+  Future<List<FeeVoucherSummary>> studentFees(String accessToken, String studentId) async {
+    final list = await _get('/api/v1/students/$studentId/fees', accessToken) as List<dynamic>;
+    return list.map((e) => FeeVoucherSummary.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<FeePaymentSummary>> studentFeePayments(String accessToken, String studentId) async {
+    final list =
+        await _get('/api/v1/students/$studentId/fees/payments', accessToken) as List<dynamic>;
+    return list.map((e) => FeePaymentSummary.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<PaymentInitiation> payVoucher(String accessToken, String voucherId) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/fee-vouchers/$voucherId/pay'),
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+    return PaymentInitiation.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  Future<FeePaymentSummary> confirmPayment(String accessToken, String paymentId) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/fee-payments/$paymentId/confirm'),
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+    return FeePaymentSummary.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  Uri voucherPdfUrl(String voucherId, String accessToken) => Uri.parse(
+    '$baseUrl/api/v1/fee-vouchers/$voucherId/pdf',
+  ).replace(queryParameters: {'access_token': accessToken});
+
+  Uri receiptPdfUrl(String paymentId, String accessToken) => Uri.parse(
+    '$baseUrl/api/v1/fee-payments/$paymentId/receipt.pdf',
+  ).replace(queryParameters: {'access_token': accessToken});
+
+  Future<List<LeaveRequestSummary>> leaveRequests(String accessToken, String studentId) async {
+    final list =
+        await _get('/api/v1/students/$studentId/leave-requests', accessToken) as List<dynamic>;
+    return list.map((e) => LeaveRequestSummary.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> submitLeaveRequest(
+    String accessToken, {
+    required String studentId,
+    required String startDate,
+    required String endDate,
+    required String reason,
+  }) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/leave-requests'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({
+        'studentId': studentId,
+        'startDate': startDate,
+        'endDate': endDate,
+        'reason': reason,
+      }),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
 }

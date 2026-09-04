@@ -146,6 +146,45 @@ export interface NotificationSummary {
   createdAt: string;
 }
 
+export interface LeaveRequestSummary {
+  id: string;
+  studentId: string;
+  studentName: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
+export interface FeeStructureSummary {
+  id: string;
+  name: string;
+  amount: number; // paisa
+}
+
+export interface FeeVoucherSummary {
+  id: string;
+  studentId: string;
+  month: string;
+  dueDate: string;
+  items: Array<{ label: string; amount: number }>;
+  totalAmount: number;
+  amountPaid: number;
+  amountDue: number;
+  status: 'unpaid' | 'partial' | 'paid' | 'overdue';
+}
+
+export interface FeePaymentSummary {
+  id: string;
+  amount: number;
+  method: string;
+  status: string;
+  voucherIds: string[];
+  receiptId: string | null;
+  createdAt: string;
+}
+
 function authHeaders(accessToken: string) {
   return { Authorization: `Bearer ${accessToken}` };
 }
@@ -422,5 +461,93 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+  },
+
+  async listLeaveRequests(accessToken: string, status?: string): Promise<LeaveRequestSummary[]> {
+    const suffix = status ? `?status=${encodeURIComponent(status)}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/leave-requests${suffix}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async approveLeaveRequest(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/leave-requests/${id}/approve`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async rejectLeaveRequest(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/leave-requests/${id}/reject`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listFeeStructures(accessToken: string): Promise<FeeStructureSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-structures`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createFeeStructure(accessToken: string, payload: { name: string; amount: number }): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-structures`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async issueFeeVouchers(
+    accessToken: string,
+    payload: {
+      studentIds?: string[];
+      sectionId?: string;
+      month: string;
+      dueDate: string;
+      feeStructureIds: string[];
+    },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-vouchers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async studentFees(accessToken: string, studentId: string): Promise<FeeVoucherSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/students/${studentId}/fees`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async studentFeePayments(accessToken: string, studentId: string): Promise<FeePaymentSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/students/${studentId}/fees/payments`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  // Direct authenticated download links (the backend's JwtStrategy accepts ?access_token= as a
+  // fallback specifically so links like this work) — not fetch calls, used directly as <a href>.
+  voucherPdfUrl(accessToken: string, voucherId: string): string {
+    return `${API_BASE_URL}/api/v1/fee-vouchers/${voucherId}/pdf?access_token=${encodeURIComponent(accessToken)}`;
+  },
+
+  receiptPdfUrl(accessToken: string, paymentId: string): string {
+    return `${API_BASE_URL}/api/v1/fee-payments/${paymentId}/receipt.pdf?access_token=${encodeURIComponent(accessToken)}`;
   },
 };

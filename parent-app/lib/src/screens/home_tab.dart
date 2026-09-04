@@ -19,6 +19,7 @@ class HomeTab extends StatefulWidget {
     required this.circulars,
     required this.onOpenTimetable,
     required this.onSeeAllAnnouncements,
+    required this.onOpenFees,
   });
 
   final String studentId;
@@ -29,6 +30,7 @@ class HomeTab extends StatefulWidget {
   final List<CircularSummary> circulars;
   final VoidCallback onOpenTimetable;
   final VoidCallback onSeeAllAnnouncements;
+  final VoidCallback onOpenFees;
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -117,11 +119,12 @@ class _HomeTabState extends State<HomeTab> {
                 value: attendanceValue,
                 hint: attendanceHint,
               ),
-              const _StatCard(
-                key: Key('homeFeesCard'),
+              _StatCard(
+                key: const Key('homeFeesCard'),
                 label: 'Fees',
                 value: '—',
                 hint: 'Outstanding',
+                onTap: widget.onOpenFees,
               ),
               const _StatCard(
                 key: Key('homeResultsCard'),

@@ -5,8 +5,10 @@ import '../api/models.dart';
 import '../auth/auth_state.dart';
 import 'calendar_tab.dart';
 import 'circulars_tab.dart';
+import 'fees_tab.dart';
 import 'home_tab.dart';
 import 'messages_tab.dart';
+import 'more_tab.dart';
 import 'notifications_sheet.dart';
 
 /// Authenticated shell: multi-child switcher up top, bottom nav below (Home / Calendar /
@@ -242,6 +244,7 @@ class _HomeShellState extends State<HomeShell> {
         circulars: _circulars,
         onOpenTimetable: () => setState(() => _tabIndex = 1),
         onSeeAllAnnouncements: () => setState(() => _tabIndex = 2),
+        onOpenFees: () => setState(() => _tabIndex = 4),
       );
     }
 
@@ -286,6 +289,25 @@ class _HomeShellState extends State<HomeShell> {
         api: api,
         children: _children,
         initialConversationId: _messagesInitialConversationId,
+      );
+    }
+
+    if (_tabIndex == 4) {
+      final auth = context.read<AuthState>();
+      final api = context.read<ApiClient>();
+      return FeesTab(
+        key: ValueKey(child.id),
+        studentId: child.id,
+        accessToken: auth.accessToken!,
+        api: api,
+      );
+    }
+
+    if (_tabIndex == 5) {
+      return MoreTab(
+        accessToken: context.read<AuthState>().accessToken!,
+        api: context.read<ApiClient>(),
+        children: _children,
       );
     }
 

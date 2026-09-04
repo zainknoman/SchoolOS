@@ -15,6 +15,8 @@ import { DiaryModule } from './diary/diary.module';
 import { CircularsModule } from './circulars/circulars.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MessagesModule } from './messages/messages.module';
+import { FeesModule } from './fees/fees.module';
+import { LeaveModule } from './leave/leave.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { MessagesModule } from './messages/messages.module';
     CircularsModule,
     NotificationsModule,
     MessagesModule,
+    FeesModule,
+    LeaveModule,
   ],
   controllers: [AppController],
   providers: [AppService],
