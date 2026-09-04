@@ -395,6 +395,22 @@ also means creating a `User` login account: password handling, role assignment).
   pending-payment risk, the Sprint 5-6 file-storage hardening items, and the Sprint 7-8 `JwtModule`
   secret-load-order race.
 
+## People CRUD — Students, Parents, Teachers ⏳ PENDING
+
+Second sub-project of the "remove hard coded mock data, add CRUD for core entities" request —
+deliberately deferred from the Org Structure CRUD work above so it gets its own brainstorming
+pass rather than being bolted onto that one. Every one of these three entities today exists only
+via `prisma/seed.ts`, same as Org Structure was before that work: no create/edit/delete path for
+any of them, in either client.
+
+- [ ] Student CRUD — create/edit/delete a `Student` + its `Enrollment` (campus/section/session)
+- [ ] Parent CRUD — create/edit/delete a `ParentProfile`, link/unlink to a `Student`
+- [ ] Teacher CRUD — create/edit/delete a `Teacher`
+- [ ] The harder design question this needs its own spec for: creating a Student/Teacher/Parent
+      also means creating a `User` login account (password handling — set one? admin-set temp
+      password? invite flow? — plus role assignment), unlike Org Structure's plain reference-data
+      rows. Not designed yet.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [ ] **FEAT-014** — Offline caching ("Last updated" timestamps for timetable/attendance/diary/
@@ -431,10 +447,11 @@ also means creating a `User` login account: password handling, role assignment).
 
 ---
 
-**Next step:** Sprint 11-12 — Hardening + Pilot: FEAT-014 (offline caching "Last updated"
-timestamps, security review pass, Play Store submission), switch the Prisma datasource from
-SQLite to PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire
-real S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one
-campus/class, 20-50 parents) before full cutover. (Also still open, not yet scheduled: "People
-CRUD" — Student/Teacher/Parent + enrollment linking — the deferred second half of the Org
-Structure work above, needs its own brainstorming pass for the login-account creation design.)
+**Next step:** two independent, unscheduled pieces of work — pick either:
+1. **People CRUD** (Student/Teacher/Parent, see above) — the deferred second half of the Org
+   Structure work, needs its own brainstorming pass first (the login-account creation design).
+2. **Sprint 11-12 — Hardening + Pilot**: FEAT-014 (offline caching "Last updated" timestamps,
+   security review pass, Play Store submission), switch the Prisma datasource from SQLite to
+   PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire real
+   S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one
+   campus/class, 20-50 parents) before full cutover.
