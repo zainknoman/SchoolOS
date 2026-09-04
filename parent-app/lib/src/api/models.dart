@@ -303,3 +303,88 @@ class NotificationSummary {
     createdAt: json['createdAt'] as String,
   );
 }
+
+class FeeVoucherItem {
+  const FeeVoucherItem({required this.label, required this.amount});
+  final String label;
+  final int amount;
+
+  factory FeeVoucherItem.fromJson(Map<String, dynamic> json) =>
+      FeeVoucherItem(label: json['label'] as String, amount: json['amount'] as int);
+}
+
+class FeeVoucherSummary {
+  const FeeVoucherSummary({
+    required this.id,
+    required this.studentId,
+    required this.month,
+    required this.dueDate,
+    required this.items,
+    required this.totalAmount,
+    required this.amountPaid,
+    required this.amountDue,
+    required this.status,
+  });
+
+  final String id;
+  final String studentId;
+  final String month;
+  final String dueDate;
+  final List<FeeVoucherItem> items;
+  final int totalAmount;
+  final int amountPaid;
+  final int amountDue;
+  final String status;
+
+  factory FeeVoucherSummary.fromJson(Map<String, dynamic> json) => FeeVoucherSummary(
+    id: json['id'] as String,
+    studentId: json['studentId'] as String,
+    month: json['month'] as String,
+    dueDate: json['dueDate'] as String,
+    items: (json['items'] as List<dynamic>)
+        .map((e) => FeeVoucherItem.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    totalAmount: json['totalAmount'] as int,
+    amountPaid: json['amountPaid'] as int,
+    amountDue: json['amountDue'] as int,
+    status: json['status'] as String,
+  );
+}
+
+class FeePaymentSummary {
+  const FeePaymentSummary({
+    required this.id,
+    required this.amount,
+    required this.method,
+    required this.status,
+    required this.voucherIds,
+    required this.receiptId,
+  });
+
+  final String id;
+  final int amount;
+  final String method;
+  final String status;
+  final List<String> voucherIds;
+  final String? receiptId;
+
+  factory FeePaymentSummary.fromJson(Map<String, dynamic> json) => FeePaymentSummary(
+    id: json['id'] as String,
+    amount: json['amount'] as int,
+    method: json['method'] as String,
+    status: json['status'] as String,
+    voucherIds: (json['voucherIds'] as List<dynamic>).cast<String>(),
+    receiptId: json['receiptId'] as String?,
+  );
+}
+
+class PaymentInitiation {
+  const PaymentInitiation({required this.paymentId, required this.redirectUrl});
+  final String paymentId;
+  final String redirectUrl;
+
+  factory PaymentInitiation.fromJson(Map<String, dynamic> json) => PaymentInitiation(
+    paymentId: json['paymentId'] as String,
+    redirectUrl: json['redirectUrl'] as String,
+  );
+}
