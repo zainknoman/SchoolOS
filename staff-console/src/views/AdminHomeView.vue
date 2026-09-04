@@ -3,15 +3,28 @@ import { ref, computed, onMounted } from 'vue';
 import AppShell from '../components/AppShell.vue';
 import Icon from '../components/AppIcon.vue';
 import TrendsSparkline from '../components/TrendsSparkline.vue';
-import { getMockDashboardSummary, type DashboardSummary } from '../lib/mockDashboard';
+import { useAuthStore } from '../stores/auth';
+import { api, type DashboardSummary } from '../lib/api';
 import { formatPkrShort, formatPkrFull } from '../lib/format';
 
+const auth = useAuthStore();
 const summary = ref<DashboardSummary | null>(null);
 const errorMessage = ref<string | null>(null);
 
+function formatTimeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 onMounted(async () => {
+  if (!auth.accessToken) return;
   try {
-    summary.value = await getMockDashboardSummary();
+    summary.value = await api.dashboardSummary(auth.accessToken);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load dashboard data.';
   }
@@ -73,19 +86,9 @@ const trendSeries = computed(() => [
 
       <div class="secondary-row">
         <div class="secondary-card">
-          <span class="secondary-icon warning"><Icon name="warning" :size="18" /></span>
-          <span class="secondary-label">At-risk students</span>
-          <span class="secondary-value">{{ summary.atRiskStudents }}</span>
-        </div>
-        <div class="secondary-card">
           <span class="secondary-icon"><Icon name="user-circle" :size="18" /></span>
           <span class="secondary-label">Absent today</span>
           <span class="secondary-value">{{ summary.absentToday }}</span>
-        </div>
-        <div class="secondary-card">
-          <span class="secondary-icon"><Icon name="users" :size="18" /></span>
-          <span class="secondary-label">Teachers absent</span>
-          <span class="secondary-value">{{ summary.teachersAbsent }}</span>
         </div>
       </div>
 
@@ -98,9 +101,9 @@ const trendSeries = computed(() => [
         <div class="alerts-panel">
           <h2>Recent Alerts</h2>
           <ul class="alert-list">
-            <li v-for="(alert, i) in summary.recentAlerts" :key="i">
+            <li v-for="alert in summary.recentAlerts" :key="alert.id">
               <span>{{ alert.message }}</span>
-              <span class="alert-time">{{ alert.timeAgo }}</span>
+              <span class="alert-time">{{ formatTimeAgo(alert.createdAt) }}</span>
             </li>
           </ul>
         </div>
