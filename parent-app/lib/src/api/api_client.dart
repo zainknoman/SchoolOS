@@ -220,4 +220,32 @@ class ApiClient {
   Uri receiptPdfUrl(String paymentId, String accessToken) => Uri.parse(
     '$baseUrl/api/v1/fee-payments/$paymentId/receipt.pdf',
   ).replace(queryParameters: {'access_token': accessToken});
+
+  Future<List<LeaveRequestSummary>> leaveRequests(String accessToken, String studentId) async {
+    final list =
+        await _get('/api/v1/students/$studentId/leave-requests', accessToken) as List<dynamic>;
+    return list.map((e) => LeaveRequestSummary.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> submitLeaveRequest(
+    String accessToken, {
+    required String studentId,
+    required String startDate,
+    required String endDate,
+    required String reason,
+  }) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/leave-requests'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({
+        'studentId': studentId,
+        'startDate': startDate,
+        'endDate': endDate,
+        'reason': reason,
+      }),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
 }

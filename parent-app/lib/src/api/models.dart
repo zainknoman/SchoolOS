@@ -388,3 +388,30 @@ class PaymentInitiation {
     redirectUrl: json['redirectUrl'] as String,
   );
 }
+
+class LeaveRequestSummary {
+  const LeaveRequestSummary({
+    required this.id,
+    required this.studentId,
+    required this.startDate,
+    required this.endDate,
+    required this.reason,
+    required this.status,
+  });
+
+  final String id;
+  final String studentId;
+  final String startDate;
+  final String endDate;
+  final String reason;
+  final String status;
+
+  factory LeaveRequestSummary.fromJson(Map<String, dynamic> json) => LeaveRequestSummary(
+    id: json['id'] as String,
+    studentId: json['studentId'] as String,
+    startDate: json['startDate'] as String,
+    endDate: json['endDate'] as String,
+    reason: json['reason'] as String,
+    status: json['status'] as String,
+  );
+}
