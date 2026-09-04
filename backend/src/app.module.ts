@@ -20,6 +20,7 @@ import { LeaveModule } from './leave/leave.module';
 import { SchoolModule } from './school/school.module';
 import { CampusModule } from './campus/campus.module';
 import { AcademicSessionModule } from './academic-session/academic-session.module';
+import { ClassModule } from './class/class.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { AcademicSessionModule } from './academic-session/academic-session.modul
     SchoolModule,
     CampusModule,
     AcademicSessionModule,
+    ClassModule,
   ],
   controllers: [AppController],
   providers: [AppService],
