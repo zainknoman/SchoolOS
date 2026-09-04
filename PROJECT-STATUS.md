@@ -337,6 +337,64 @@ Repo: https://github.com/zainknoman/SchoolPortal
   file-storage hardening items from Sprint 5-6, and the Sprint 7-8 `JwtModule` secret-load-order
   race.
 
+## Org Structure CRUD (2026-09-04/05) ✅ DONE
+
+Not an original MVP feature — requested directly during live testing of Sprint 9-10 ("remove
+hard coded mock data from all app, and create CRUD for Students, Parents, Teachers, Classes
+etc"), decomposed during brainstorming into two sub-projects by dependency order. This is the
+first: School/Campus/AcademicSession/Class/Section. People CRUD (Student/Teacher/Parent) is
+deliberately deferred to its own later spec — it needs a harder design pass (creating a person
+also means creating a `User` login account: password handling, role assignment).
+
+- [x] **School/Campus/AcademicSession/Class CRUD** — four new backend modules
+      (`backend/src/school/`, `campus/`, `academic-session/`, `class/`), each `SUPER_ADMIN`-only,
+      audit-logged, following the existing single-entity-module shape. `AcademicSession` enforces a
+      single-active-session invariant (creating/activating one deactivates whichever was previously
+      active, in one transaction) — `FeeVouchersService` already assumed this elsewhere.
+- [x] **Section write operations** — the existing (previously read-only) `sections/` module gained
+      `POST`/`PATCH`/`DELETE`, plus class-teacher assignment on create/update.
+- [x] **Cascade-delete safety fix** — `Timetable.section`/`DiaryEntry.section`/`Circular.section`
+      flipped from `Cascade` to `Restrict` (matching the `Student→Attendance/FeeVoucher/LeaveRequest`
+      precedent from Sprint 6.5): deleting a Section with real Timetable/Diary/Circular history now
+      fails with a clear error instead of silently wiping it. A shared `assertDeletable` helper
+      translates the underlying Prisma FK violation into a 400 for every entity's delete route.
+- [x] **staff-console admin screens** — one bespoke management screen per entity (School/Campus/
+      AcademicSession/Class/Section), all `/admin/...`, following `TimetableView.vue`'s table +
+      inline-edit-row pattern. Replaced the long-inert "Classes" nav placeholder with a real,
+      role-gated route.
+- [x] **Dashboard live data** — `staff-console/src/lib/mockDashboard.ts` (hardcoded fake numbers)
+      deleted; `AdminHomeView.vue` now calls a real `GET /api/v1/admin/dashboard-summary` aggregate
+      endpoint (student count, today's attendance %, this month's fees collected/outstanding, a
+      7-day trend, and the 5 most recent real `Notification` rows as "alerts"). Two cards with no
+      real data behind them ("At-risk students", "Teachers absent") were dropped rather than backed
+      by invented business rules.
+- Notable fixes caught during this feature's own review process (not regressions on prior
+  sprints):
+  - A Section's class teacher could be assigned but never un-assigned through the UI — clearing
+    the dropdown sent no key at all (`'' || undefined` is dropped by `JSON.stringify`) instead of
+    an explicit `null`, so the backend's "only update what's present" check silently no-op'd.
+    Caught by the final whole-branch review; fixed to send `null`.
+  - Two pre-existing, unrelated e2e specs (`diary-circulars`, `timetable-attendance`) had their own
+    cleanup silently broken by the cascade-delete safety fix above — both relied on the old cascade
+    behavior to clean up a fixture Section via a School delete in `afterAll`; that delete now
+    silently no-ops against the new `Restrict`, so every run after the first leaked fixture data
+    and failed on a unique-constraint collision. Only surfaced by running the full test suite twice
+    in a row during the finishing-a-development-branch verification step — neither spec was in this
+    feature's diff, so no task-level review saw it. Fixed by explicitly clearing the
+    now-`Restrict`ed rows before the school delete, in both `afterAll` and each spec's self-healing
+    pre-flight.
+- Verified: backend 159 unit + 45 e2e tests (32 + 10 suites, e2e stable across repeated runs),
+  staff-console 126 tests (20 files) — all passing, both clients' lint/type-check/build clean.
+- Follow-up (tracked, not blocking): no floor on active `AcademicSession`s — nothing stops an admin
+  from deactivating or deleting the sole active session down to zero, which both `FeeVouchersService`
+  and the new Dashboard's `studentsTotal` silently assume never happens. `CampusService.create()`
+  (and by the same logic Class's/Section's create paths) returns a raw 500 on an invalid parent ID
+  instead of a clean 400 — the FK guard is only wired into delete paths per this feature's scope,
+  and every create form's picker is itself populated from a real list call, so this is only reachable
+  via direct API misuse. Still open from prior sprints (unchanged here): the Sprint 9-10 stuck-
+  pending-payment risk, the Sprint 5-6 file-storage hardening items, and the Sprint 7-8 `JwtModule`
+  secret-load-order race.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [ ] **FEAT-014** — Offline caching ("Last updated" timestamps for timetable/attendance/diary/
@@ -377,4 +435,6 @@ Repo: https://github.com/zainknoman/SchoolPortal
 timestamps, security review pass, Play Store submission), switch the Prisma datasource from
 SQLite to PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire
 real S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one
-campus/class, 20-50 parents) before full cutover.
+campus/class, 20-50 parents) before full cutover. (Also still open, not yet scheduled: "People
+CRUD" — Student/Teacher/Parent + enrollment linking — the deferred second half of the Org
+Structure work above, needs its own brainstorming pass for the login-account creation design.)
