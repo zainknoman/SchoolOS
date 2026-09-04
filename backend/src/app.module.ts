@@ -18,6 +18,7 @@ import { MessagesModule } from './messages/messages.module';
 import { FeesModule } from './fees/fees.module';
 import { LeaveModule } from './leave/leave.module';
 import { SchoolModule } from './school/school.module';
+import { CampusModule } from './campus/campus.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { SchoolModule } from './school/school.module';
     FeesModule,
     LeaveModule,
     SchoolModule,
+    CampusModule,
   ],
   controllers: [AppController],
   providers: [AppService],
