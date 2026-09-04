@@ -62,6 +62,11 @@ describe('Leave applications (e2e)', () => {
     const section = await prisma.section.create({
       data: { classId: klass.id, name: 'LV-A', classTeacherId: teacher.id },
     });
+    // No classTeacherId — used to prove a failed approve() precondition never leaves the
+    // LeaveRequest stuck at 'approved' (it must stay 'pending' and remain retryable).
+    const sectionNoTeacher = await prisma.section.create({
+      data: { classId: klass.id, name: 'LV-NoTeacher' },
+    });
 
     const adminUser = await prisma.user.create({
       data: { identifier: 'lv-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
@@ -110,18 +115,47 @@ describe('Leave applications (e2e)', () => {
       data: { studentId: childA.id, date: new Date('2026-09-02T00:00:00.000Z'), status: 'HOLIDAY', markedById: teacher.id },
     });
 
-    Object.assign(ids, { school: school.id, childA: childA.id, childB: childB.id });
+    // Child enrolled in a section with no class teacher, plus a pending leave request for them —
+    // used to prove a failed approve() precondition rolls back cleanly (see the persisted-state
+    // regression test below).
+    const childC = await prisma.student.create({ data: { grNumber: 'LV-C1', name: 'LV Child C' } });
+    await prisma.enrollment.create({
+      data: {
+        studentId: childC.id,
+        campusId: campus.id,
+        sectionId: sectionNoTeacher.id,
+        academicSessionId: session.id,
+        startDate: session.startDate,
+        status: 'ACTIVE',
+      },
+    });
+    const noTeacherLeaveRequest = await prisma.leaveRequest.create({
+      data: {
+        studentId: childC.id,
+        startDate: new Date('2026-09-10T00:00:00.000Z'),
+        endDate: new Date('2026-09-11T00:00:00.000Z'),
+        reason: 'Testing missing class teacher',
+      },
+    });
+
+    Object.assign(ids, {
+      school: school.id,
+      childA: childA.id,
+      childB: childB.id,
+      childC: childC.id,
+      noTeacherLeaveRequest: noTeacherLeaveRequest.id,
+    });
   });
 
   afterAll(async () => {
     await prisma.attendance
-      .deleteMany({ where: { studentId: { in: [ids.childA, ids.childB] } } })
+      .deleteMany({ where: { studentId: { in: [ids.childA, ids.childB, ids.childC] } } })
       .catch(() => undefined);
     await prisma.leaveRequest
-      .deleteMany({ where: { studentId: { in: [ids.childA, ids.childB] } } })
+      .deleteMany({ where: { studentId: { in: [ids.childA, ids.childB, ids.childC] } } })
       .catch(() => undefined);
     await prisma.student
-      .deleteMany({ where: { grNumber: { in: ['LV-A1', 'LV-B1'] } } })
+      .deleteMany({ where: { grNumber: { in: ['LV-A1', 'LV-B1', 'LV-C1'] } } })
       .catch(() => undefined);
     await prisma.school.delete({ where: { id: ids.school } }).catch(() => undefined);
     await prisma.user
@@ -210,5 +244,24 @@ describe('Leave applications (e2e)', () => {
       .post(`/api/v1/leave-requests/${ids.leaveRequest}/reject`)
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(400);
+  });
+
+  it('a failed approve (no class teacher on the section) leaves the LeaveRequest persisted as pending, not stuck approved', async () => {
+    const adminToken = await loginAs('lv-admin@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/leave-requests/${ids.noTeacherLeaveRequest}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(400);
+
+    // The real, persisted row — not a mock's call log — must still say 'pending'.
+    const persisted = await prisma.leaveRequest.findUnique({ where: { id: ids.noTeacherLeaveRequest } });
+    expect(persisted?.status).toBe('pending');
+
+    // And, being still pending, it must remain retryable (e.g. rejectable) rather than stuck.
+    await request(app.getHttpServer())
+      .post(`/api/v1/leave-requests/${ids.noTeacherLeaveRequest}/reject`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(201);
   });
 });

@@ -11,6 +11,7 @@ describe('LeaveService', () => {
     section: { findUnique: jest.Mock };
     attendance: { findMany: jest.Mock; upsert: jest.Mock };
     auditLog: { create: jest.Mock };
+    $transaction: jest.Mock;
   };
   let enrollmentService: { getCurrentEnrollment: jest.Mock };
 
@@ -22,6 +23,7 @@ describe('LeaveService', () => {
       section: { findUnique: jest.fn() },
       attendance: { findMany: jest.fn(), upsert: jest.fn() },
       auditLog: { create: jest.fn() },
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     enrollmentService = { getCurrentEnrollment: jest.fn() };
     const moduleRef = await Test.createTestingModule({
@@ -36,17 +38,20 @@ describe('LeaveService', () => {
 
   it('rejects a request whose startDate is after its endDate, without touching the database', async () => {
     await expect(
-      service.create({
-        studentId: 's1',
-        startDate: '2026-09-10',
-        endDate: '2026-09-05',
-        reason: 'Family trip',
-      }),
+      service.create(
+        {
+          studentId: 's1',
+          startDate: '2026-09-10',
+          endDate: '2026-09-05',
+          reason: 'Family trip',
+        },
+        'parent-1',
+      ),
     ).rejects.toThrow(BadRequestException);
     expect(prisma.leaveRequest.create).not.toHaveBeenCalled();
   });
 
-  it('creates a pending leave request', async () => {
+  it('creates a pending leave request and audits the write', async () => {
     prisma.leaveRequest.create.mockResolvedValue({
       id: 'lr-1',
       studentId: 's1',
@@ -58,12 +63,15 @@ describe('LeaveService', () => {
       ...studentRow,
     });
 
-    const result = await service.create({
-      studentId: 's1',
-      startDate: '2026-09-05',
-      endDate: '2026-09-06',
-      reason: 'Family trip',
-    });
+    const result = await service.create(
+      {
+        studentId: 's1',
+        startDate: '2026-09-05',
+        endDate: '2026-09-06',
+        reason: 'Family trip',
+      },
+      'parent-1',
+    );
 
     expect(result).toEqual({
       id: 'lr-1',
@@ -75,10 +83,20 @@ describe('LeaveService', () => {
       status: 'pending',
       createdAt: '2026-09-01T00:00:00.000Z',
     });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'parent-1',
+          action: 'leave-request.create',
+          entity: 'LeaveRequest',
+          entityId: 'lr-1',
+        }),
+      }),
+    );
   });
 
   it('approving writes a LEAVE attendance row per day, skipping any day already marked HOLIDAY, attributed to the class teacher', async () => {
-    prisma.leaveRequest.findUnique.mockResolvedValue({ id: 'lr-1', status: 'pending' });
+    prisma.leaveRequest.findUnique.mockResolvedValue({ id: 'lr-1', status: 'pending', studentId: 's1' });
     prisma.leaveRequest.update.mockResolvedValue({
       id: 'lr-1',
       studentId: 's1',
@@ -114,23 +132,35 @@ describe('LeaveService', () => {
     );
   });
 
-  it('refuses to approve when the student\'s section has no class teacher assigned', async () => {
-    prisma.leaveRequest.findUnique.mockResolvedValue({ id: 'lr-1', status: 'pending' });
-    prisma.leaveRequest.update.mockResolvedValue({
-      id: 'lr-1',
-      studentId: 's1',
-      startDate: new Date('2026-09-05'),
-      endDate: new Date('2026-09-05'),
-      reason: 'x',
-      status: 'approved',
-      createdAt: new Date(),
-      ...studentRow,
-    });
+  it('refuses to approve when the student\'s section has no class teacher assigned, and never touches the LeaveRequest row', async () => {
+    prisma.leaveRequest.findUnique.mockResolvedValue({ id: 'lr-1', status: 'pending', studentId: 's1' });
     enrollmentService.getCurrentEnrollment.mockResolvedValue({ sectionId: 'sec-1' });
     prisma.section.findUnique.mockResolvedValue({ id: 'sec-1', classTeacherId: null });
 
     await expect(service.approve('lr-1', 'admin-1')).rejects.toThrow(BadRequestException);
+
+    // The class-teacher precondition is resolved BEFORE the write — a $transaction (and therefore
+    // the status update inside it) must never even be opened, so the LeaveRequest stays 'pending'
+    // and is still retryable, rather than getting stuck at 'approved' with no attendance/audit
+    // trail (see leave.e2e-spec.ts for the persisted-state assertion against a real database).
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.leaveRequest.update).not.toHaveBeenCalled();
     expect(prisma.attendance.upsert).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses to approve when the student has no active enrollment, and never touches the LeaveRequest row', async () => {
+    prisma.leaveRequest.findUnique.mockResolvedValue({ id: 'lr-1', status: 'pending', studentId: 's1' });
+    enrollmentService.getCurrentEnrollment.mockRejectedValue(
+      new NotFoundException('Student has no active enrollment'),
+    );
+
+    await expect(service.approve('lr-1', 'admin-1')).rejects.toThrow(NotFoundException);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.leaveRequest.update).not.toHaveBeenCalled();
+    expect(prisma.attendance.upsert).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 
   it('refuses to decide a request that is not pending', async () => {

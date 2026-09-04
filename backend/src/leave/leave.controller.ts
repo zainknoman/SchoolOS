@@ -20,7 +20,7 @@ export class LeaveController {
   @Post('leave-requests')
   async create(@Body() dto: CreateLeaveRequestDto, @Req() req: AuthenticatedRequest) {
     await this.studentAccess.assertCanAccessStudent(req.user, dto.studentId);
-    return this.leaveService.create(dto);
+    return this.leaveService.create(dto, req.user.id);
   }
 
   @Get('students/:id/leave-requests')
