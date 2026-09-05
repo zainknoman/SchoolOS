@@ -5,8 +5,13 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:parent_app/src/api/api_client.dart';
 import 'package:parent_app/src/screens/calendar_tab.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   ApiClient makeClient() {
     return ApiClient(
       baseUrl: 'http://test',
@@ -181,4 +186,81 @@ void main() {
     expect(find.text('کتاب لائیں'), findsOneWidget);
     expect(find.byKey(const Key('diaryEntryd1')), findsOneWidget);
   });
+
+  testWidgets(
+    'Timetable tab falls back to cached data with a Last updated timestamp when the '
+    'live fetch fails, instead of going blank',
+    (tester) async {
+      final cachedAt = DateTime.now().subtract(const Duration(hours: 2));
+      SharedPreferences.setMockInitialValues({
+        'cache:timetable:s1': jsonEncode({
+          'fetchedAt': cachedAt.toIso8601String(),
+          'data': [
+            {
+              'dayOfWeek': 1,
+              'period': 1,
+              'startTime': '08:00',
+              'endTime': '08:40',
+              'subject': 'Cached Subject',
+              'teacher': null,
+              'room': null,
+            },
+          ],
+        }),
+      });
+      final api = ApiClient(
+        baseUrl: 'http://test',
+        client: MockClient((request) async => http.Response('server down', 500)),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: api))),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cached Subject'), findsOneWidget);
+      expect(find.textContaining('Last updated'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Attendance tab falls back to cached data with a Last updated timestamp when the '
+    'live fetch fails',
+    (tester) async {
+      final cachedAt = DateTime.now().subtract(const Duration(hours: 1));
+      SharedPreferences.setMockInitialValues({
+        'cache:attendance:s1:${DateTime.now().toIso8601String().substring(0, 7)}': jsonEncode({
+          'fetchedAt': cachedAt.toIso8601String(),
+          'data': {
+            'days': [
+              {'date': '2026-08-27', 'status': 'PRESENT'},
+            ],
+            'summary': {
+              'present': 5,
+              'absent': 0,
+              'late': 0,
+              'holiday': 0,
+              'leave': 0,
+              'attendancePercentage': 100,
+            },
+          },
+        }),
+      });
+      final api = ApiClient(
+        baseUrl: 'http://test',
+        client: MockClient((request) async => http.Response('server down', 500)),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: api))),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Attendance'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('100%'), findsOneWidget);
+      expect(find.textContaining('Last updated'), findsOneWidget);
+    },
+  );
 }

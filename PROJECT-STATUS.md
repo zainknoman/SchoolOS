@@ -462,8 +462,22 @@ Structure's plain reference-data rows). All three entities previously existed on
 
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
-- [ ] **FEAT-014** — Offline caching ("Last updated" timestamps for timetable/attendance/diary/
-      circulars), security review pass, Play Store submission (own developer account, not sideloaded)
+- [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
+      screens now cache their last-successful response (`shared_preferences`, new `DataCache`/
+      `loadWithCache` helpers in `lib/src/cache/`) and show a "Last updated: …" line
+      (`LastUpdatedBanner`) instead of going blank when a refresh fails — cache is read and shown
+      immediately, then a live fetch silently replaces it, or on failure the cached data + old
+      timestamp stays on screen. Cache keys are scoped per student (+ month for Attendance/Diary);
+      Circulars uses one global key (single-parent-per-device assumption, acceptable at MVP scale).
+      Added `toJson()` to `TimetableEntry`/`AttendanceReport`/`DiaryEntry`/`CircularSummary` (+
+      nested types) to make caching possible. staff-console intentionally untouched (desktop,
+      always-connected, not in scope). Verified: 16 new tests (data cache, cached-load flow,
+      timestamp formatting, model JSON round-trips, 3 widget-level offline-fallback tests) — 54/54
+      parent-app tests passing, `flutter analyze` clean (same 2 pre-existing info lints as before);
+      manually smoke-tested in a real running app (`flutter run -d web-server` + backend), logged in
+      as `parent-a@seeds.edu.pk`, confirmed the banner renders on all four screens.
+- [ ] **FEAT-014 (remaining)** — security review pass, Play Store submission (own developer
+      account, not sideloaded)
 - [ ] Switch Prisma datasource from SQLite (local dev) to PostgreSQL before any staging/production
       deploy
 - [ ] Real secrets: rotate the dev-only JWT secrets in `backend/.env` before deploy
@@ -496,9 +510,11 @@ Structure's plain reference-data rows). All three entities previously existed on
 
 ---
 
-**Next step:** **Sprint 11-12 — Hardening + Pilot** — FEAT-014 (offline caching "Last updated"
-timestamps, security review pass, Play Store submission), switch the Prisma datasource from
-SQLite to PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire
-real S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one
-campus/class, 20-50 parents) before full cutover. Both Org Structure and People CRUD (the
-"remove hard coded mock data" work) are now done — no other unscheduled work outstanding.
+**Next step:** **Sprint 11-12 — Hardening + Pilot** — FEAT-014's offline-caching slice is done (see
+above); remaining: a security review pass (candidates: the Sprint 7-8 `JwtModule` secret-load-order
+race, Sprint 5-6 file-storage hardening, the Org Structure `AcademicSession` floor / Campus-Class
+create 500-vs-400 gaps), Play Store submission, switch the Prisma datasource from SQLite to
+PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire real
+S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one campus/class,
+20-50 parents) before full cutover. Both Org Structure and People CRUD (the "remove hard coded mock
+data" work) are done — no other unscheduled work outstanding.
