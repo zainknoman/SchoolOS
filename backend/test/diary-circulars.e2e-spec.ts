@@ -7,6 +7,7 @@ import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { STORAGE_ADAPTER } from '../src/storage/storage-adapter';
 import type { StorageAdapter } from '../src/storage/storage-adapter';
+import { MAX_UPLOAD_BYTES } from '../src/files/files.controller';
 
 describe('Diary + Circulars (e2e)', () => {
   let app: INestApplication<App>;
@@ -421,6 +422,27 @@ describe('Diary + Circulars (e2e)', () => {
       .get(`/api/v1/files/${fileId}`)
       .set('Authorization', `Bearer ${parentBToken}`)
       .expect(403);
+  });
+
+  it('rejects a file upload larger than the configured size limit', async () => {
+    const teacherToken = await loginAs('dc-teacher@seeds.edu.pk');
+    const oversized = Buffer.alloc(MAX_UPLOAD_BYTES + 1);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/files')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .attach('file', oversized, 'huge.pdf')
+      .expect(413);
+  });
+
+  it('rejects an upload with a blocked executable extension', async () => {
+    const teacherToken = await loginAs('dc-teacher@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .post('/api/v1/files')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .attach('file', Buffer.from('not really an installer'), 'setup.exe')
+      .expect(400);
   });
 
   it('the ?access_token= query fallback authenticates the files route but not other routes', async () => {
