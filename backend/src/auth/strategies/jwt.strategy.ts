@@ -9,12 +9,23 @@ export interface JwtPayload {
   role: string;
 }
 
-// The ?access_token= fallback exists only so a direct file-download link (which can't set an
-// Authorization header) still authenticates. Scoped to the files route so a bearer token isn't
-// also accepted via query string — and therefore leakable through server access logs, browser
-// history, or Referer headers — on every other endpoint too.
-export function extractAccessTokenForFilesRoute(req: Request): string | null {
-  if (!req.path.startsWith('/api/v1/files/')) {
+// The ?access_token= fallback exists only so a plain download link — which can't set an
+// Authorization header — still authenticates. That applies to the generic file download route
+// as well as the fee voucher and fee receipt PDF routes, all of which are opened directly via
+// <a href> or a system browser/PDF viewer rather than through an API client that can set headers.
+// Scoped to just these download routes so a bearer token isn't also accepted via query string —
+// and therefore leakable through server access logs, browser history, or Referer headers — on
+// every other endpoint too.
+const DOWNLOAD_ROUTE_PREFIXES = [
+  '/api/v1/files/',
+  '/api/v1/fee-vouchers/',
+  '/api/v1/fee-payments/',
+];
+
+export function extractAccessTokenForDownloadRoutes(
+  req: Request,
+): string | null {
+  if (!DOWNLOAD_ROUTE_PREFIXES.some((prefix) => req.path.startsWith(prefix))) {
     return null;
   }
   return ExtractJwt.fromUrlQueryParameter('access_token')(req);
@@ -26,7 +37,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         ExtractJwt.fromAuthHeaderAsBearerToken(),
-        extractAccessTokenForFilesRoute,
+        extractAccessTokenForDownloadRoutes,
       ]),
       ignoreExpiration: false,
       secretOrKey:

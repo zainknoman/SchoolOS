@@ -1,5 +1,5 @@
 import type { Request } from 'express';
-import { extractAccessTokenForFilesRoute } from './jwt.strategy';
+import { extractAccessTokenForDownloadRoutes } from './jwt.strategy';
 
 function makeRequest(path: string, accessToken?: string): Request {
   const query = accessToken ? { access_token: accessToken } : {};
@@ -14,18 +14,34 @@ function makeRequest(path: string, accessToken?: string): Request {
   } as unknown as Request;
 }
 
-describe('extractAccessTokenForFilesRoute', () => {
+describe('extractAccessTokenForDownloadRoutes', () => {
   it('extracts ?access_token= on a files download route', () => {
     expect(
-      extractAccessTokenForFilesRoute(
+      extractAccessTokenForDownloadRoutes(
         makeRequest('/api/v1/files/abc123', 'tok-1'),
       ),
     ).toBe('tok-1');
   });
 
-  it('returns null on a non-files route even when ?access_token= is present', () => {
+  it('extracts ?access_token= on a fee voucher PDF download route', () => {
     expect(
-      extractAccessTokenForFilesRoute(
+      extractAccessTokenForDownloadRoutes(
+        makeRequest('/api/v1/fee-vouchers/abc123/pdf', 'tok-1'),
+      ),
+    ).toBe('tok-1');
+  });
+
+  it('extracts ?access_token= on a fee receipt PDF download route', () => {
+    expect(
+      extractAccessTokenForDownloadRoutes(
+        makeRequest('/api/v1/fee-payments/abc123/receipt.pdf', 'tok-1'),
+      ),
+    ).toBe('tok-1');
+  });
+
+  it('returns null on a non-download route even when ?access_token= is present', () => {
+    expect(
+      extractAccessTokenForDownloadRoutes(
         makeRequest('/api/v1/me/children', 'tok-1'),
       ),
     ).toBeNull();
@@ -33,7 +49,7 @@ describe('extractAccessTokenForFilesRoute', () => {
 
   it('returns null on a files route with no ?access_token= present', () => {
     expect(
-      extractAccessTokenForFilesRoute(makeRequest('/api/v1/files/abc123')),
+      extractAccessTokenForDownloadRoutes(makeRequest('/api/v1/files/abc123')),
     ).toBeNull();
   });
 });
