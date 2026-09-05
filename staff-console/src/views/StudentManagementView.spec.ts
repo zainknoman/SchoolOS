@@ -1,0 +1,139 @@
+// staff-console/src/views/StudentManagementView.spec.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mount, flushPromises } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
+import StudentManagementView from './StudentManagementView.vue';
+import { useAuthStore } from '../stores/auth';
+import { api } from '../lib/api';
+
+vi.mock('../lib/api', () => ({
+  api: {
+    listSections: vi.fn(),
+    listAdminParents: vi.fn(),
+    listAdminStudents: vi.fn(),
+    createStudent: vi.fn(),
+    updateStudent: vi.fn(),
+    deleteStudent: vi.fn(),
+  },
+}));
+
+describe('StudentManagementView', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    const auth = useAuthStore();
+    auth.accessToken = 'token-1';
+    Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+    vi.mocked(api.listAdminParents).mockResolvedValue([
+      { id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'Existing Parent', phone: null, childrenCount: 1 },
+    ]);
+    vi.mocked(api.listAdminStudents).mockResolvedValue([
+      {
+        id: 's1', grNumber: 'GR-1001', name: 'Eshaal Sample',
+        sectionName: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar',
+        parentNames: ['Existing Parent'],
+      },
+    ]);
+  });
+
+  it('lists students with their section and parent names', async () => {
+    const wrapper = mount(StudentManagementView);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Eshaal Sample');
+    expect(wrapper.text()).toContain('3A');
+    expect(wrapper.text()).toContain('Existing Parent');
+  });
+
+  it('creates a student linked to an existing parent (the default mode)', async () => {
+    vi.mocked(api.createStudent).mockResolvedValue({
+      id: 's2', grNumber: 'GR-2001', name: 'New Student',
+      sectionName: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar',
+      parentNames: ['Existing Parent'],
+    });
+
+    const wrapper = mount(StudentManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="add-gr-number"]').setValue('GR-2001');
+    await wrapper.find('[data-testid="add-name"]').setValue('New Student');
+    await wrapper.find('[data-testid="add-section"]').setValue('sec1');
+    await wrapper.find('[data-testid="add-parent-select"]').setValue('p1');
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+
+    expect(api.createStudent).toHaveBeenCalledWith('token-1', {
+      grNumber: 'GR-2001', name: 'New Student', sectionId: 'sec1', parentProfileId: 'p1',
+    });
+  });
+
+  it('creates a student with a brand-new parent when the "+ New Parent" toggle is on', async () => {
+    vi.mocked(api.createStudent).mockResolvedValue({
+      id: 's3', grNumber: 'GR-2002', name: 'Another Student',
+      sectionName: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar',
+      parentNames: ['Inline Parent'],
+    });
+
+    const wrapper = mount(StudentManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="add-gr-number"]').setValue('GR-2002');
+    await wrapper.find('[data-testid="add-name"]').setValue('Another Student');
+    await wrapper.find('[data-testid="add-section"]').setValue('sec1');
+    await wrapper.find('[data-testid="toggle-new-parent"]').setValue(true);
+    await flushPromises();
+    expect(wrapper.find('[data-testid="add-parent-select"]').exists()).toBe(false);
+    await wrapper.find('[data-testid="new-parent-identifier"]').setValue('inline-parent@seeds.edu.pk');
+    await wrapper.find('[data-testid="new-parent-password"]').setValue('InlinePass1!');
+    await wrapper.find('[data-testid="new-parent-name"]').setValue('Inline Parent');
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+
+    expect(api.createStudent).toHaveBeenCalledWith('token-1', {
+      grNumber: 'GR-2002', name: 'Another Student', sectionId: 'sec1',
+      newParent: { identifier: 'inline-parent@seeds.edu.pk', password: 'InlinePass1!', name: 'Inline Parent', phone: undefined },
+    });
+  });
+
+  it('edits only name/grNumber', async () => {
+    vi.mocked(api.updateStudent).mockResolvedValue(undefined);
+
+    const wrapper = mount(StudentManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="edit-s1"]').trigger('click');
+    await wrapper.find('[data-testid="edit-name-s1"]').setValue('Renamed Student');
+    await wrapper.find('[data-testid="save-s1"]').trigger('click');
+    await flushPromises();
+
+    expect(api.updateStudent).toHaveBeenCalledWith('token-1', 's1', { grNumber: 'GR-1001', name: 'Renamed Student' });
+  });
+
+  it('deletes a student after confirmation', async () => {
+    vi.mocked(api.deleteStudent).mockResolvedValue(undefined);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    const wrapper = mount(StudentManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="delete-s1"]').trigger('click');
+    await flushPromises();
+
+    expect(api.deleteStudent).toHaveBeenCalledWith('token-1', 's1');
+  });
+
+  it('shows the backend error when delete is blocked by real attendance/fee/leave history', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.mocked(api.deleteStudent).mockRejectedValue(new Error('Cannot delete this Student: other records still reference it.'));
+
+    const wrapper = mount(StudentManagementView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="delete-s1"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('[role="alert"]').text()).toContain('Cannot delete this Student');
+  });
+});
