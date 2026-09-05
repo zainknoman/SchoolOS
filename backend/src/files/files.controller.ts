@@ -32,7 +32,19 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // Deliberately a blocklist, not an allowlist: staff also attach plain-text worksheets, images,
 // PDFs, and office docs, none of which should need enumerating up front.
 const BLOCKED_EXTENSIONS = new Set([
-  '.exe', '.bat', '.cmd', '.com', '.msi', '.dll', '.scr', '.ps1', '.vbs', '.js', '.jar', '.sh', '.app',
+  '.exe',
+  '.bat',
+  '.cmd',
+  '.com',
+  '.msi',
+  '.dll',
+  '.scr',
+  '.ps1',
+  '.vbs',
+  '.js',
+  '.jar',
+  '.sh',
+  '.app',
 ]);
 
 @Controller('api/v1/files')
@@ -50,14 +62,20 @@ export class FilesController {
       limits: { fileSize: MAX_UPLOAD_BYTES },
       fileFilter: (_req, file, callback) => {
         if (BLOCKED_EXTENSIONS.has(extname(file.originalname).toLowerCase())) {
-          callback(new BadRequestException('This file type is not allowed.'), false);
+          callback(
+            new BadRequestException('This file type is not allowed.'),
+            false,
+          );
           return;
         }
         callback(null, true);
       },
     }),
   )
-  upload(@UploadedFile() file: Express.Multer.File, @Req() req: AuthenticatedRequest) {
+  upload(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.filesService.upload(file, req.user.id);
   }
 
