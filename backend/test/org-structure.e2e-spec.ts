@@ -187,4 +187,27 @@ describe('Org Structure (e2e)', () => {
 
     await prisma.academicSession.delete({ where: { id: second.body.id } });
   });
+
+  it('refuses to leave zero active academic sessions, by deactivation or by deletion', async () => {
+    const token = await loginAs('os-super-admin@seeds.edu.pk');
+
+    const session = await request(app.getHttpServer())
+      .post('/api/v1/academic-sessions')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ label: 'OS Floor Session', startDate: '2028-08-01', endDate: '2029-06-30', isActive: true })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/academic-sessions/${session.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isActive: false })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/academic-sessions/${session.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+
+    await prisma.academicSession.delete({ where: { id: session.body.id } });
+  });
 });
