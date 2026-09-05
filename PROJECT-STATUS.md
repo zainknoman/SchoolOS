@@ -395,21 +395,70 @@ also means creating a `User` login account: password handling, role assignment).
   pending-payment risk, the Sprint 5-6 file-storage hardening items, and the Sprint 7-8 `JwtModule`
   secret-load-order race.
 
-## People CRUD — Students, Parents, Teachers ⏳ PENDING
+## People CRUD — Students, Parents, Teachers (2026-09-05) ✅ DONE
 
-Second sub-project of the "remove hard coded mock data, add CRUD for core entities" request —
-deliberately deferred from the Org Structure CRUD work above so it gets its own brainstorming
-pass rather than being bolted onto that one. Every one of these three entities today exists only
-via `prisma/seed.ts`, same as Org Structure was before that work: no create/edit/delete path for
-any of them, in either client.
+Second sub-project of the "remove hard coded mock data, add CRUD for core entities" request,
+deferred from Org Structure CRUD above for its own design pass (creating a Teacher/Parent also
+means creating a `User` login account — password handling, role assignment — unlike Org
+Structure's plain reference-data rows). All three entities previously existed only via
+`prisma/seed.ts`; now have real create/edit/delete in both the backend and staff-console.
 
-- [ ] Student CRUD — create/edit/delete a `Student` + its `Enrollment` (campus/section/session)
-- [ ] Parent CRUD — create/edit/delete a `ParentProfile`, link/unlink to a `Student`
-- [ ] Teacher CRUD — create/edit/delete a `Teacher`
-- [ ] The harder design question this needs its own spec for: creating a Student/Teacher/Parent
-      also means creating a `User` login account (password handling — set one? admin-set temp
-      password? invite flow? — plus role assignment), unlike Org Structure's plain reference-data
-      rows. Not designed yet.
+- [x] **Shared `assertCreatable` helper** (`backend/src/common/prisma-create-guard.ts`) — the
+      create-side companion to `assertDeletable`, translates a Prisma unique-constraint violation
+      (P2002 — e.g. a duplicate `User.identifier`) into a clean 400 instead of a raw 500.
+- [x] **Teacher CRUD** (`backend/src/teacher/`, singular — distinct from the pre-existing
+      read-only plural `backend/src/teachers/` picker module, untouched) — creates `User`
+      (role `TEACHER`) + `Teacher` in one `$transaction`; `identifier`/role not updatable after
+      creation.
+- [x] **Parent CRUD** (`backend/src/parent/`) — creates `User` (role `PARENT`) + `ParentProfile`
+      in one `$transaction`. Its creation logic (`createParentWithUser`) is a standalone function,
+      not a class method, specifically so Student creation's inline-new-parent branch can reuse
+      the exact same code path rather than duplicating it.
+- [x] **Student CRUD** (`backend/src/student/`) — the most involved module: one combined
+      `$transaction` creates the `Student`, its `Enrollment` (client supplies only `sectionId` —
+      `campusId` is always derived server-side from `section.class.campusId`, `academicSessionId`
+      from the currently-active session, matching `FeeVouchersService.issue`'s precedent), and a
+      `StudentParent` link — either to an existing `parentProfileId` or, via a "+ New Parent"
+      toggle, a freshly created Parent through the same `createParentWithUser` reused from the
+      Parent module. `update()` covers name/GR-number only — no re-enrollment/transfer workflow
+      exists yet (tracked as a deliberate, pre-existing gap since Sprint 6.5).
+- [x] **staff-console screens** — `TeacherManagementView.vue`/`ParentManagementView.vue`/
+      `StudentManagementView.vue` (all `/admin/...`, wrapped in `AppShell`), following the
+      established table + inline-add-form + inline-edit-row + `window.confirm`-delete pattern.
+      Student's form has the parent-linking toggle: an existing-parent `<select>` (sourced from
+      the new `GET /admin/parents`) or, behind "+ New Parent", the same fields Parent's own create
+      form uses. Replaced the long-inert `nav-teachers`/`nav-parents`/`nav-students` placeholders
+      with real role-gated routes, gated by a new `canManagePeople` computed (`SCHOOL_ADMIN`/
+      `SUPER_ADMIN` — broader than Org Structure's `SUPER_ADMIN`-only `canManageOrgStructure`).
+- Notable fixes caught during this feature's own review process (not regressions on prior work):
+  - `ParentService.delete()`/`TeacherService.delete()` originally did two sequential
+    non-transactional Prisma deletes (profile then `User`) — a mid-failure could orphan the
+    `User` row with no rollback and skip the audit log. Fixed by wrapping both in `$transaction`,
+    matching the create paths' own pattern.
+  - `StudentService.create()`'s existing-`parentProfileId` branch never validated the id actually
+    existed before linking — a bad id threw an unhandled Prisma P2003 (500) instead of a clean
+    400. Fixed with an explicit existence check, following this codebase's own precedent
+    (`FeeVouchersService.issue` validates referenced ids before use).
+  - Caught only by the final whole-branch review (no single task's diff contained both sides):
+    the inline-new-parent branch of Student creation provisioned a real login account but wrote
+    no audit-log row for it (only `student.create` was logged, unlike the same account created
+    via `POST /admin/parents`) — fixed to also write a `parent.create` row, inside the same
+    transaction. Also found while fixing that: an explicit `null` on one of
+    `parentProfileId`/`newParent` (with the other omitted) slipped past the "exactly one" XOR
+    check (`!== undefined` doesn't catch `null`) and crashed instead of returning a 400 — fixed
+    to treat `null` and omitted identically.
+- Verified: backend 37 unit + 11 e2e suites (198 + 50 tests), staff-console 23 files/146 tests —
+  all passing on the merged `main`, both clients' type-check/build clean.
+- Follow-up (tracked, not blocking, deferred from the final review): `argon2.hash` runs inside the
+  open write `$transaction` on all three create paths — plan-prescribed, blocks other SQLite
+  writers for the hash's duration, trivially hoistable later if it becomes a real bottleneck.
+  `staff-console/src/lib/api.ts`'s `createTeacher`/`createParent` are typed `Promise<void>` while
+  `createStudent` is typed `Promise<StudentAdminSummary>` — all three backends actually return a
+  summary; cosmetic typing drift, no runtime defect. All three management screens' add-forms
+  return silently (no error message) when a required field is left blank (e.g. no section chosen)
+  — a UX polish item, not a correctness bug. `parent.module.ts` exports `ParentService`, which
+  nothing outside the module imports (a leftover from before `createParentWithUser` existed as a
+  standalone function).
 
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
@@ -447,11 +496,9 @@ any of them, in either client.
 
 ---
 
-**Next step:** two independent, unscheduled pieces of work — pick either:
-1. **People CRUD** (Student/Teacher/Parent, see above) — the deferred second half of the Org
-   Structure work, needs its own brainstorming pass first (the login-account creation design).
-2. **Sprint 11-12 — Hardening + Pilot**: FEAT-014 (offline caching "Last updated" timestamps,
-   security review pass, Play Store submission), switch the Prisma datasource from SQLite to
-   PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire real
-   S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one
-   campus/class, 20-50 parents) before full cutover.
+**Next step:** **Sprint 11-12 — Hardening + Pilot** — FEAT-014 (offline caching "Last updated"
+timestamps, security review pass, Play Store submission), switch the Prisma datasource from
+SQLite to PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire
+real S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one
+campus/class, 20-50 parents) before full cutover. Both Org Structure and People CRUD (the
+"remove hard coded mock data" work) are now done — no other unscheduled work outstanding.
