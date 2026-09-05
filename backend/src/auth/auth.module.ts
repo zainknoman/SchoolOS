@@ -16,7 +16,8 @@ import { ACCESS_TOKEN_TTL } from './auth.constants';
 // registerAsync call below for why that distinction matters here specifically.
 export function jwtModuleFactory(config: ConfigService) {
   return {
-    secret: config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-only-change-me-access',
+    secret:
+      config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-only-change-me-access',
     signOptions: { expiresIn: ACCESS_TOKEN_TTL },
   };
 }

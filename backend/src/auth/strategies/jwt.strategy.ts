@@ -29,7 +29,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         extractAccessTokenForFilesRoute,
       ]),
       ignoreExpiration: false,
-      secretOrKey: config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-only-change-me-access',
+      secretOrKey:
+        config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-only-change-me-access',
     });
   }
 
