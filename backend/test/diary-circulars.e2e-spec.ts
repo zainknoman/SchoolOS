@@ -422,4 +422,12 @@ describe('Diary + Circulars (e2e)', () => {
       .set('Authorization', `Bearer ${parentBToken}`)
       .expect(403);
   });
+
+  it('the ?access_token= query fallback authenticates the files route but not other routes', async () => {
+    const parentAToken = await loginAs('dc-parent-a@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/me/children?access_token=${parentAToken}`)
+      .expect(401);
+  });
 });
