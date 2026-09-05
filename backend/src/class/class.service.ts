@@ -41,13 +41,25 @@ export class ClassService {
     };
   }
 
-  async create(dto: CreateClassDto, actingUserId: string): Promise<ClassSummary> {
+  async create(
+    dto: CreateClassDto,
+    actingUserId: string,
+  ): Promise<ClassSummary> {
     const record = await this.prisma.class
       .create({
-        data: { campusId: dto.campusId, academicSessionId: dto.academicSessionId, name: dto.name },
+        data: {
+          campusId: dto.campusId,
+          academicSessionId: dto.academicSessionId,
+          name: dto.name,
+        },
         include: WITH_PARENTS,
       })
-      .catch((error: unknown) => assertValidReferences(error, 'Invalid campus or academic session reference.'));
+      .catch((error: unknown) =>
+        assertValidReferences(
+          error,
+          'Invalid campus or academic session reference.',
+        ),
+      );
     await this.prisma.auditLog.create({
       data: {
         userId: actingUserId,
@@ -61,11 +73,18 @@ export class ClassService {
   }
 
   async list(): Promise<ClassSummary[]> {
-    const records = await this.prisma.class.findMany({ include: WITH_PARENTS, orderBy: { name: 'asc' } });
+    const records = await this.prisma.class.findMany({
+      include: WITH_PARENTS,
+      orderBy: { name: 'asc' },
+    });
     return records.map((r) => this.toSummary(r));
   }
 
-  async update(id: string, dto: UpdateClassDto, actingUserId: string): Promise<ClassSummary> {
+  async update(
+    id: string,
+    dto: UpdateClassDto,
+    actingUserId: string,
+  ): Promise<ClassSummary> {
     const existing = await this.prisma.class.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Class not found');
@@ -98,7 +117,12 @@ export class ClassService {
       assertDeletable(error, 'Class');
     }
     await this.prisma.auditLog.create({
-      data: { userId: actingUserId, action: 'class.delete', entity: 'Class', entityId: id },
+      data: {
+        userId: actingUserId,
+        action: 'class.delete',
+        entity: 'Class',
+        entityId: id,
+      },
     });
   }
 }

@@ -7,7 +7,10 @@ import { Prisma } from '@prisma/client';
  * instead of letting a raw 500 reach the client. Any other error is rethrown unchanged.
  */
 export function assertCreatable(error: unknown, message: string): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  ) {
     throw new BadRequestException(message);
   }
   throw error;
@@ -20,7 +23,10 @@ export function assertCreatable(error: unknown, message: string): never {
  * clear 400 instead of letting a raw 500 reach the client. Any other error is rethrown unchanged.
  */
 export function assertValidReferences(error: unknown, message: string): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2003'
+  ) {
     throw new BadRequestException(message);
   }
   throw error;
