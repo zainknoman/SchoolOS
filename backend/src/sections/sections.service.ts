@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
+import { assertValidReferences } from '../common/prisma-create-guard';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 
@@ -56,11 +57,25 @@ export class SectionsService {
     return rows.map((r) => r.student);
   }
 
-  async create(dto: CreateSectionDto, actingUserId: string): Promise<SectionSummary> {
-    const record = await this.prisma.section.create({
-      data: { classId: dto.classId, name: dto.name, classTeacherId: dto.classTeacherId },
-      include: WITH_PARENTS,
-    });
+  async create(
+    dto: CreateSectionDto,
+    actingUserId: string,
+  ): Promise<SectionSummary> {
+    const record = await this.prisma.section
+      .create({
+        data: {
+          classId: dto.classId,
+          name: dto.name,
+          classTeacherId: dto.classTeacherId,
+        },
+        include: WITH_PARENTS,
+      })
+      .catch((error: unknown) =>
+        assertValidReferences(
+          error,
+          'Invalid class or class-teacher reference.',
+        ),
+      );
     await this.prisma.auditLog.create({
       data: {
         userId: actingUserId,
@@ -73,19 +88,29 @@ export class SectionsService {
     return this.toSummary(record);
   }
 
-  async update(id: string, dto: UpdateSectionDto, actingUserId: string): Promise<SectionSummary> {
+  async update(
+    id: string,
+    dto: UpdateSectionDto,
+    actingUserId: string,
+  ): Promise<SectionSummary> {
     const existing = await this.prisma.section.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Section not found');
     }
-    const record = await this.prisma.section.update({
-      where: { id },
-      data: {
-        ...(dto.name !== undefined ? { name: dto.name } : {}),
-        ...(dto.classTeacherId !== undefined ? { classTeacherId: dto.classTeacherId } : {}),
-      },
-      include: WITH_PARENTS,
-    });
+    const record = await this.prisma.section
+      .update({
+        where: { id },
+        data: {
+          ...(dto.name !== undefined ? { name: dto.name } : {}),
+          ...(dto.classTeacherId !== undefined
+            ? { classTeacherId: dto.classTeacherId }
+            : {}),
+        },
+        include: WITH_PARENTS,
+      })
+      .catch((error: unknown) =>
+        assertValidReferences(error, 'Invalid class-teacher reference.'),
+      );
     await this.prisma.auditLog.create({
       data: {
         userId: actingUserId,
@@ -109,7 +134,12 @@ export class SectionsService {
       assertDeletable(error, 'Section');
     }
     await this.prisma.auditLog.create({
-      data: { userId: actingUserId, action: 'section.delete', entity: 'Section', entityId: id },
+      data: {
+        userId: actingUserId,
+        action: 'section.delete',
+        entity: 'Section',
+        entityId: id,
+      },
     });
   }
 }

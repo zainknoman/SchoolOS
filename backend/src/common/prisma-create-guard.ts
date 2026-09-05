@@ -7,7 +7,26 @@ import { Prisma } from '@prisma/client';
  * instead of letting a raw 500 reach the client. Any other error is rethrown unchanged.
  */
 export function assertCreatable(error: unknown, message: string): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  ) {
+    throw new BadRequestException(message);
+  }
+  throw error;
+}
+
+/**
+ * Every org-structure create()/update() that writes a caller-supplied parent id (schoolId,
+ * campusId, classTeacherId, ...) calls this from its catch/`.catch()` handler. Translates a
+ * Prisma foreign-key-constraint failure (P2003 — the referenced parent row doesn't exist) into a
+ * clear 400 instead of letting a raw 500 reach the client. Any other error is rethrown unchanged.
+ */
+export function assertValidReferences(error: unknown, message: string): never {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2003'
+  ) {
     throw new BadRequestException(message);
   }
   throw error;

@@ -7,25 +7,44 @@ import { PrismaService } from '../prisma/prisma.service';
 describe('AcademicSessionService', () => {
   let service: AcademicSessionService;
   let tx: {
-    academicSession: { updateMany: jest.Mock; create: jest.Mock; update: jest.Mock };
+    academicSession: {
+      updateMany: jest.Mock;
+      create: jest.Mock;
+      update: jest.Mock;
+    };
   };
   let prisma: {
-    academicSession: { findMany: jest.Mock; findUnique: jest.Mock; delete: jest.Mock };
+    academicSession: {
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      delete: jest.Mock;
+    };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
 
   beforeEach(async () => {
     tx = {
-      academicSession: { updateMany: jest.fn(), create: jest.fn(), update: jest.fn() },
+      academicSession: {
+        updateMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
     };
     prisma = {
-      academicSession: { findMany: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
+      academicSession: {
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        delete: jest.fn(),
+      },
       auditLog: { create: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(tx)),
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [AcademicSessionService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AcademicSessionService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = moduleRef.get(AcademicSessionService);
   });
@@ -40,17 +59,33 @@ describe('AcademicSessionService', () => {
     });
 
     const result = await service.create(
-      { label: '2027-2028', startDate: '2027-08-01', endDate: '2028-06-30', isActive: true },
+      {
+        label: '2027-2028',
+        startDate: '2027-08-01',
+        endDate: '2028-06-30',
+        isActive: true,
+      },
       'admin-1',
     );
 
-    expect(result).toEqual({ id: 'as2', label: '2027-2028', startDate: '2027-08-01', endDate: '2028-06-30', isActive: true });
+    expect(result).toEqual({
+      id: 'as2',
+      label: '2027-2028',
+      startDate: '2027-08-01',
+      endDate: '2028-06-30',
+      isActive: true,
+    });
     expect(tx.academicSession.updateMany).toHaveBeenCalledWith({
       where: { isActive: true },
       data: { isActive: false },
     });
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ action: 'academic-session.create', entityId: 'as2' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'academic-session.create',
+          entityId: 'as2',
+        }),
+      }),
     );
   });
 
@@ -63,13 +98,25 @@ describe('AcademicSessionService', () => {
       isActive: false,
     });
 
-    await service.create({ label: 'Draft', startDate: '2028-08-01', endDate: '2029-06-30', isActive: false }, 'admin-1');
+    await service.create(
+      {
+        label: 'Draft',
+        startDate: '2028-08-01',
+        endDate: '2029-06-30',
+        isActive: false,
+      },
+      'admin-1',
+    );
 
     expect(tx.academicSession.updateMany).not.toHaveBeenCalled();
   });
 
   it('activating an existing session excludes itself from the deactivation sweep', async () => {
-    prisma.academicSession.findUnique.mockResolvedValue({ id: 'as1', label: '2026-2027', isActive: false });
+    prisma.academicSession.findUnique.mockResolvedValue({
+      id: 'as1',
+      label: '2026-2027',
+      isActive: false,
+    });
     tx.academicSession.update.mockResolvedValue({
       id: 'as1',
       label: '2026-2027',
@@ -86,39 +133,114 @@ describe('AcademicSessionService', () => {
     });
   });
 
+  it('refuses to deactivate the only active session', async () => {
+    prisma.academicSession.findUnique.mockResolvedValue({
+      id: 'as1',
+      label: '2026-2027',
+      isActive: true,
+    });
+
+    await expect(
+      service.update('as1', { isActive: false }, 'admin-1'),
+    ).rejects.toThrow(BadRequestException);
+    expect(tx.academicSession.update).not.toHaveBeenCalled();
+  });
+
+  it('allows an update that leaves an already-inactive session inactive', async () => {
+    prisma.academicSession.findUnique.mockResolvedValue({
+      id: 'as1',
+      label: '2026-2027',
+      isActive: false,
+    });
+    tx.academicSession.update.mockResolvedValue({
+      id: 'as1',
+      label: '2026-2027 Renamed',
+      startDate: new Date('2026-08-01'),
+      endDate: new Date('2027-06-30'),
+      isActive: false,
+    });
+
+    await expect(
+      service.update('as1', { label: '2026-2027 Renamed' }, 'admin-1'),
+    ).resolves.toBeDefined();
+  });
+
   it('lists sessions with dates as YYYY-MM-DD', async () => {
     prisma.academicSession.findMany.mockResolvedValue([
-      { id: 'as1', label: '2026-2027', startDate: new Date('2026-08-01'), endDate: new Date('2027-06-30'), isActive: true },
+      {
+        id: 'as1',
+        label: '2026-2027',
+        startDate: new Date('2026-08-01'),
+        endDate: new Date('2027-06-30'),
+        isActive: true,
+      },
     ]);
 
     expect(await service.list()).toEqual([
-      { id: 'as1', label: '2026-2027', startDate: '2026-08-01', endDate: '2027-06-30', isActive: true },
+      {
+        id: 'as1',
+        label: '2026-2027',
+        startDate: '2026-08-01',
+        endDate: '2027-06-30',
+        isActive: true,
+      },
     ]);
   });
 
   it('throws NotFoundException updating a session that does not exist', async () => {
     prisma.academicSession.findUnique.mockResolvedValue(null);
 
-    await expect(service.update('missing', { label: 'x' }, 'admin-1')).rejects.toThrow(NotFoundException);
+    await expect(
+      service.update('missing', { label: 'x' }, 'admin-1'),
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('deletes a session and audit-logs it', async () => {
-    prisma.academicSession.findUnique.mockResolvedValue({ id: 'as1', label: '2026-2027' });
+    prisma.academicSession.findUnique.mockResolvedValue({
+      id: 'as1',
+      label: '2026-2027',
+    });
     prisma.academicSession.delete.mockResolvedValue({ id: 'as1' });
 
     await service.delete('as1', 'admin-1');
 
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ action: 'academic-session.delete', entityId: 'as1' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'academic-session.delete',
+          entityId: 'as1',
+        }),
+      }),
     );
   });
 
   it('translates a foreign-key violation on delete into a BadRequestException', async () => {
-    prisma.academicSession.findUnique.mockResolvedValue({ id: 'as1', label: '2026-2027' });
+    prisma.academicSession.findUnique.mockResolvedValue({
+      id: 'as1',
+      label: '2026-2027',
+    });
     prisma.academicSession.delete.mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', { code: 'P2003', clientVersion: 'test' }),
+      new Prisma.PrismaClientKnownRequestError(
+        'Foreign key constraint failed',
+        { code: 'P2003', clientVersion: 'test' },
+      ),
     );
 
-    await expect(service.delete('as1', 'admin-1')).rejects.toThrow(BadRequestException);
+    await expect(service.delete('as1', 'admin-1')).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('refuses to delete the active session', async () => {
+    prisma.academicSession.findUnique.mockResolvedValue({
+      id: 'as1',
+      label: '2026-2027',
+      isActive: true,
+    });
+
+    await expect(service.delete('as1', 'admin-1')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(prisma.academicSession.delete).not.toHaveBeenCalled();
   });
 });

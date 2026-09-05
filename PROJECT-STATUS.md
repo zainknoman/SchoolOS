@@ -84,12 +84,12 @@ Repo: https://github.com/zainknoman/SchoolPortal
 - Verified: 15 backend unit suites/53 tests + 5 e2e suites/21 tests, 7 staff-console files/24
   tests, parent-app 20/20 tests — all passing on both the feature branch and after merge to main;
   lint/type-check clean on both clients
-- Follow-up (tracked, not blocking, deferred from the final review): no upload size limit/type
-  filter on `POST /files`; no orphaned-file cleanup when an entry is re-posted or a create fails
-  post-upload; the `?access_token=` JWT-in-query fallback is global rather than scoped to the
-  files route; `Circular` school-wide fan-out and staff file access have no school/campus
-  boundary (fine today — single-school system — but will need one before a second school is
-  onboarded). Bundle into a short "file-storage hardening" pass before any non-local deployment.
+- Follow-up (tracked, not blocking, deferred from the final review): no orphaned-file cleanup when
+  an entry is re-posted or a create fails post-upload; `Circular` school-wide fan-out and staff file
+  access have no school/campus boundary (fine today — single-school system — but will need one
+  before a second school is onboarded). (The upload size/type-filter gap and the global
+  `?access_token=` scope gap named here originally were closed by the Security Hardening Pass,
+  2026-09-05 — see above.)
 - [x] Fixed (2026-08-28): `/teacher/diary` and `/admin/circulars` routed straight to `DiaryView.vue`/
       `CircularsView.vue`, skipping the `AppShell` wrapper every other route uses (see
       `TeacherHomeView.vue` wrapping `AttendanceView.vue`) — so navigating into either screen made
@@ -219,11 +219,11 @@ Repo: https://github.com/zainknoman/SchoolPortal
   Client regenerated in this checkout, both clients' build/analyze clean.
 - Follow-ups (tracked, not blocking, surfaced by the final review — none are regressions, all
   pre-existing or deliberately narrowed scope):
-  - `auth.module.ts`'s `JwtModule.register(...)` reads `process.env.JWT_ACCESS_SECRET` before
-    `ConfigModule.forRoot()` populates it (import-hoisting order) — a real sign/verify
-    secret-mismatch race on a cold process boot. Pre-dates this sprint (`auth.module.ts` last
-    touched Sprint 1), reproduced independently during e2e test-writing. Recommend
-    `JwtModule.registerAsync({ imports: [ConfigModule], inject: [ConfigService], useFactory })`.
+  - **Fixed 2026-09-05 (see Security Hardening Pass section above).** `auth.module.ts`'s
+    `JwtModule.register(...)` used to read `process.env.JWT_ACCESS_SECRET` before
+    `ConfigModule.forRoot()` populated it (import-hoisting order) — a real sign/verify
+    secret-mismatch race on a cold process boot. Pre-dated this sprint (`auth.module.ts` last
+    touched Sprint 1), reproduced independently during e2e test-writing.
   - Notification fan-out (`CircularsService.publish`, `DiaryService.create`) does one concurrent
     Prisma write per recipient instead of a batched `createMany` — fine at this sprint's scale,
     will need a `NotificationsService.notifyMany()` helper before a large circular fan-out
@@ -334,8 +334,10 @@ Repo: https://github.com/zainknoman/SchoolPortal
   becomes permanently un-payable with no recovery path. Currently unreachable — the stub gateway is
   synchronous and always succeeds — but will need a reconciliation/expiry mechanism before a real
   JazzCash/EasyPaisa integration lands. Also still open from prior sprints (unchanged here): the
-  file-storage hardening items from Sprint 5-6, and the Sprint 7-8 `JwtModule` secret-load-order
-  race.
+  remaining Sprint 5-6 file-storage hardening items (orphaned-file cleanup, `Circular`/staff-file
+  school-boundary) — the upload size/type-filter gap, the global `?access_token=` scope gap, and
+  the Sprint 7-8 `JwtModule` secret-load-order race, also named here originally, were closed by the
+  Security Hardening Pass (2026-09-05, see above).
 
 ## Org Structure CRUD (2026-09-04/05) ✅ DONE
 
@@ -385,15 +387,12 @@ also means creating a `User` login account: password handling, role assignment).
     pre-flight.
 - Verified: backend 159 unit + 45 e2e tests (32 + 10 suites, e2e stable across repeated runs),
   staff-console 126 tests (20 files) — all passing, both clients' lint/type-check/build clean.
-- Follow-up (tracked, not blocking): no floor on active `AcademicSession`s — nothing stops an admin
-  from deactivating or deleting the sole active session down to zero, which both `FeeVouchersService`
-  and the new Dashboard's `studentsTotal` silently assume never happens. `CampusService.create()`
-  (and by the same logic Class's/Section's create paths) returns a raw 500 on an invalid parent ID
-  instead of a clean 400 — the FK guard is only wired into delete paths per this feature's scope,
-  and every create form's picker is itself populated from a real list call, so this is only reachable
-  via direct API misuse. Still open from prior sprints (unchanged here): the Sprint 9-10 stuck-
-  pending-payment risk, the Sprint 5-6 file-storage hardening items, and the Sprint 7-8 `JwtModule`
-  secret-load-order race.
+- Follow-up (tracked, not blocking): the previously-open "no floor on active `AcademicSession`s" gap
+  and the "`CampusService.create()` (and by the same logic Class's/Section's create paths) returns a
+  raw 500 on an invalid parent ID instead of a clean 400" gap were both closed by the Security
+  Hardening Pass (2026-09-05, see above). Still open from prior sprints (unchanged here): the
+  Sprint 9-10 stuck-pending-payment risk and the remaining Sprint 5-6 file-storage hardening items
+  (orphaned-file cleanup, `Circular`/staff-file school-boundary).
 
 ## People CRUD — Students, Parents, Teachers (2026-09-05) ✅ DONE
 
@@ -460,6 +459,69 @@ Structure's plain reference-data rows). All three entities previously existed on
   nothing outside the module imports (a leftover from before `createParentWithUser` existed as a
   standalone function).
 
+## Security Hardening Pass (2026-09-05) ✅ DONE
+
+Not tied to a single MVP feature — closes five specific, previously-tracked "not blocking" follow-up
+items from Sprint 7-8, Sprint 5-6, and Org Structure CRUD (see `docs/superpowers/plans/
+2026-09-05-security-hardening-pass.md`). Scoped to pure code fixes needing no external
+infrastructure — the SQLite→PostgreSQL, JWT-secret-rotation, S3, Firebase, and Play Store items
+under Sprint 11-12 below are unrelated and still open.
+
+- [x] **JWT access-token secret-load-order race** (Sprint 7-8 follow-up) — `AuthModule` read
+      `process.env.JWT_ACCESS_SECRET` at import time, before `ConfigModule.forRoot()` loaded `.env`,
+      while `JwtStrategy` read the same var later at provider-instantiation time — a real
+      sign/verify secret mismatch if the two `.env` values ever diverged from the shared fallback
+      default. Fixed via `JwtModule.registerAsync({ imports: [ConfigModule], inject: [ConfigService],
+      useFactory })`, matching the recommendation already on file.
+- [x] **`?access_token=` JWT-in-query fallback scoped to specific download routes** (Sprint 5-6
+      follow-up) — previously accepted as a bearer-token substitute on every route (leakable via
+      server logs, browser history, `Referer` headers); now only authenticates the three routes that
+      actually need it as plain download links: `GET /api/v1/files/:id`, `GET
+      /api/v1/fee-vouchers/:id/pdf`, and `GET /api/v1/fee-payments/:id/receipt.pdf`.
+- [x] **Upload hardening** (Sprint 5-6 follow-up) — `POST /api/v1/files` gained a 10MB size limit and
+      a blocklist of executable/script extensions (`.exe`/`.bat`/`.ps1`/etc.); the download path's
+      existing forced-attachment + `nosniff` headers were left untouched.
+- [x] **FK-validation guard on Campus/Class/Section create+update** (Org Structure CRUD follow-up) —
+      new shared `assertValidReferences` helper (mirrors `assertCreatable`/`assertDeletable`,
+      translates a Prisma P2003 into a 400) wired into all three entities' `create()` and Section's
+      `update()`; an invalid `schoolId`/`campusId`/`academicSessionId`/`classTeacherId` now returns a
+      clean 400 instead of a raw 500.
+- [x] **AcademicSession floor** (Org Structure CRUD follow-up) — `update()`/`delete()` now refuse to
+      deactivate or delete the sole active session, closing the gap `FeeVouchersService` and the
+      Dashboard's `studentsTotal` both silently assumed could never happen.
+- Built via subagent-driven-development: 5 tasks, each with its own implementer + task review; 3 of
+  the 5 needed one fix round apiece, all for the same root cause — the plan's own illustrative code
+  blocks weren't Prettier-formatted, so copying them verbatim failed this repo's lint gate (no
+  behavior was ever wrong, only formatting). The final whole-branch review caught two more: Tasks 1
+  and 2 had the identical un-caught lint gap (fixed), and this file update itself was the plan's own
+  missed final-verification step (also fixed, here). A third gap — the `?access_token=` fix
+  initially only covered `/api/v1/files/`, missing two fee-PDF download routes
+  (`fee-vouchers/:id/pdf`, `fee-payments/:id/receipt.pdf`) that both frontends actually use the same
+  way — surfaced only when running the full e2e suite during the finishing-a-development-branch
+  verification step, past every per-task and whole-branch review. Fixed in two passes: the first
+  attempt widened by resource prefix (`/api/v1/fee-vouchers/`), which a review caught also silently
+  admitting the fallback on two unrelated payment-mutation endpoints
+  (`fee-vouchers/:id/pay`, `fee-payments/:id/confirm`); the second attempt matched each download
+  route by exact regex instead.
+- Verified: backend unit suite green (all suites, all touched services individually re-verified),
+  `org-structure.e2e-spec.ts` and `diary-circulars.e2e-spec.ts` green including new coverage for
+  every fix above, run twice consecutively per this project's own "run e2e twice" convention,
+  `npm run build` (type-check) clean, `npm run lint` clean on every line this pass touched
+  (pre-existing CRLF/Prettier debt elsewhere in the repo is untouched and out of scope).
+- Follow-up (tracked, not blocking, deferred from the final review): `AcademicSessionService`'s new
+  floor-guard message says "the only active session" but the check is really just `existing.isActive`
+  — correct given the API-path single-active-session invariant, but several e2e fixtures create
+  multi-active states via direct Prisma writes in their own `beforeAll`, so the message can overclaim
+  in a DB state the API itself would never produce; low real risk, wording only. `POST /api/v1/files`
+  bounds `fileSize` but not multer's `files`/`fields` counts (staff-only route, low urgency). The
+  extension blocklist doesn't cover every renderable type (`.html`/`.svg`/`.hta`/etc.) — deliberate
+  blocklist-not-allowlist design, and the download path's forced-attachment + `nosniff` headers
+  already close the render vector. `org-structure.e2e-spec.ts`'s new floor test has no `afterAll`
+  cleanup fallback (its siblings do) — purely defensive, both consecutive test runs passed clean.
+  Still open from prior sprints (unchanged here): the Sprint 5-6 orphaned-file-cleanup gap and the
+  `Circular`/staff-file school-boundary gap (fine today, single-school system), and the Sprint 9-10
+  stuck-pending-payment risk.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
@@ -511,10 +573,10 @@ Structure's plain reference-data rows). All three entities previously existed on
 ---
 
 **Next step:** **Sprint 11-12 — Hardening + Pilot** — FEAT-014's offline-caching slice is done (see
-above); remaining: a security review pass (candidates: the Sprint 7-8 `JwtModule` secret-load-order
-race, Sprint 5-6 file-storage hardening, the Org Structure `AcademicSession` floor / Campus-Class
-create 500-vs-400 gaps), Play Store submission, switch the Prisma datasource from SQLite to
+above); remaining: FEAT-014's Play Store submission, switch the Prisma datasource from SQLite to
 PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire real
 S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one campus/class,
-20-50 parents) before full cutover. Both Org Structure and People CRUD (the "remove hard coded mock
-data" work) are done — no other unscheduled work outstanding.
+20-50 parents) before full cutover. A broader security review pass beyond the five items the
+Security Hardening Pass already closed (see above) is worth doing before that pilot, but nothing
+specific is queued. Org Structure CRUD, People CRUD, and the Security Hardening Pass are all now
+done — no other unscheduled work outstanding.

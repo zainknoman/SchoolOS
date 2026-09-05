@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
+import { assertValidReferences } from '../common/prisma-create-guard';
 import { CreateCampusDto } from './dto/create-campus.dto';
 import { UpdateCampusDto } from './dto/update-campus.dto';
 
@@ -17,15 +18,32 @@ const WITH_SCHOOL = { school: { select: { name: true } } } as const;
 export class CampusService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private toSummary(record: { id: string; name: string; schoolId: string; school: { name: string } }): CampusSummary {
-    return { id: record.id, name: record.name, schoolId: record.schoolId, schoolName: record.school.name };
+  private toSummary(record: {
+    id: string;
+    name: string;
+    schoolId: string;
+    school: { name: string };
+  }): CampusSummary {
+    return {
+      id: record.id,
+      name: record.name,
+      schoolId: record.schoolId,
+      schoolName: record.school.name,
+    };
   }
 
-  async create(dto: CreateCampusDto, actingUserId: string): Promise<CampusSummary> {
-    const record = await this.prisma.campus.create({
-      data: { schoolId: dto.schoolId, name: dto.name },
-      include: WITH_SCHOOL,
-    });
+  async create(
+    dto: CreateCampusDto,
+    actingUserId: string,
+  ): Promise<CampusSummary> {
+    const record = await this.prisma.campus
+      .create({
+        data: { schoolId: dto.schoolId, name: dto.name },
+        include: WITH_SCHOOL,
+      })
+      .catch((error: unknown) =>
+        assertValidReferences(error, 'Invalid school reference.'),
+      );
     await this.prisma.auditLog.create({
       data: {
         userId: actingUserId,
@@ -39,11 +57,18 @@ export class CampusService {
   }
 
   async list(): Promise<CampusSummary[]> {
-    const records = await this.prisma.campus.findMany({ include: WITH_SCHOOL, orderBy: { name: 'asc' } });
+    const records = await this.prisma.campus.findMany({
+      include: WITH_SCHOOL,
+      orderBy: { name: 'asc' },
+    });
     return records.map((r) => this.toSummary(r));
   }
 
-  async update(id: string, dto: UpdateCampusDto, actingUserId: string): Promise<CampusSummary> {
+  async update(
+    id: string,
+    dto: UpdateCampusDto,
+    actingUserId: string,
+  ): Promise<CampusSummary> {
     const existing = await this.prisma.campus.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Campus not found');
@@ -76,7 +101,12 @@ export class CampusService {
       assertDeletable(error, 'Campus');
     }
     await this.prisma.auditLog.create({
-      data: { userId: actingUserId, action: 'campus.delete', entity: 'Campus', entityId: id },
+      data: {
+        userId: actingUserId,
+        action: 'campus.delete',
+        entity: 'Campus',
+        entityId: id,
+      },
     });
   }
 }
