@@ -47,6 +47,22 @@ describe('extractAccessTokenForDownloadRoutes', () => {
     ).toBeNull();
   });
 
+  it('returns null on the fee voucher payment mutation route even when ?access_token= is present', () => {
+    expect(
+      extractAccessTokenForDownloadRoutes(
+        makeRequest('/api/v1/fee-vouchers/voucher-1/pay', 'tok-1'),
+      ),
+    ).toBeNull();
+  });
+
+  it('returns null on the fee payment confirmation route even when ?access_token= is present', () => {
+    expect(
+      extractAccessTokenForDownloadRoutes(
+        makeRequest('/api/v1/fee-payments/payment-1/confirm', 'tok-1'),
+      ),
+    ).toBeNull();
+  });
+
   it('returns null on a files route with no ?access_token= present', () => {
     expect(
       extractAccessTokenForDownloadRoutes(makeRequest('/api/v1/files/abc123')),

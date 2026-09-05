@@ -11,21 +11,27 @@ export interface JwtPayload {
 
 // The ?access_token= fallback exists only so a plain download link — which can't set an
 // Authorization header — still authenticates. That applies to the generic file download route
-// as well as the fee voucher and fee receipt PDF routes, all of which are opened directly via
-// <a href> or a system browser/PDF viewer rather than through an API client that can set headers.
-// Scoped to just these download routes so a bearer token isn't also accepted via query string —
-// and therefore leakable through server access logs, browser history, or Referer headers — on
-// every other endpoint too.
-const DOWNLOAD_ROUTE_PREFIXES = [
-  '/api/v1/files/',
-  '/api/v1/fee-vouchers/',
-  '/api/v1/fee-payments/',
+// (GET /api/v1/files/:id) as well as the fee voucher and fee receipt PDF routes
+// (GET /api/v1/fee-vouchers/:id/pdf and GET /api/v1/fee-payments/:id/receipt.pdf), all of which
+// are opened directly via <a href> or a system browser/PDF viewer rather than through an API
+// client that can set headers.
+//
+// Matched by exact route shape, not by resource-path prefix: /api/v1/fee-vouchers/ and
+// /api/v1/fee-payments/ also carry POST mutation endpoints (:id/pay, :id/confirm) that are
+// driven by normal API clients capable of setting an Authorization header, so a bearer token
+// must not be accepted via query string there — or on any other endpoint — since a query-string
+// token is leakable through server access logs, browser history, and Referer headers in a way a
+// header is not.
+const DOWNLOAD_ROUTE_PATTERNS = [
+  /^\/api\/v1\/files\/[^/]+$/,
+  /^\/api\/v1\/fee-vouchers\/[^/]+\/pdf$/,
+  /^\/api\/v1\/fee-payments\/[^/]+\/receipt\.pdf$/,
 ];
 
 export function extractAccessTokenForDownloadRoutes(
   req: Request,
 ): string | null {
-  if (!DOWNLOAD_ROUTE_PREFIXES.some((prefix) => req.path.startsWith(prefix))) {
+  if (!DOWNLOAD_ROUTE_PATTERNS.some((pattern) => pattern.test(req.path))) {
     return null;
   }
   return ExtractJwt.fromUrlQueryParameter('access_token')(req);
