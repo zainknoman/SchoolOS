@@ -13,6 +13,7 @@ const isTeacher = computed(() => auth.role === 'TEACHER');
 const isAdmin = computed(() => ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'].includes(auth.role ?? ''));
 const canManageLeave = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManageOrgStructure = computed(() => auth.role === 'SUPER_ADMIN');
+const canManagePeople = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const avatarInitials = computed(() => roleInitials(auth.role));
 
 const notifications = ref<NotificationSummary[]>([]);
@@ -144,7 +145,7 @@ async function onLogout() {
           <RouterLink v-if="canManageOrgStructure" data-testid="nav-academic-sessions" to="/admin/academic-sessions"><Icon name="calendar" />Academic Sessions</RouterLink>
           <a data-testid="nav-students" href="#"><Icon name="users" />Students</a>
           <a data-testid="nav-parents" href="#"><Icon name="user-circle" />Parents</a>
-          <a data-testid="nav-teachers" href="#"><Icon name="chalkboard" />Teachers</a>
+          <RouterLink v-if="canManagePeople" data-testid="nav-teachers" to="/admin/teachers"><Icon name="chalkboard" />Teachers</RouterLink>
           <RouterLink v-if="canManageOrgStructure" data-testid="nav-classes" to="/admin/classes"><Icon name="grid" />Classes</RouterLink>
           <RouterLink v-if="canManageOrgStructure" data-testid="nav-sections" to="/admin/sections"><Icon name="grid" />Sections</RouterLink>
           <RouterLink data-testid="nav-timetable" to="/admin/timetable"><Icon name="clock" />Timetable</RouterLink>
