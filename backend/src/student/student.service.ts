@@ -50,8 +50,11 @@ export class StudentService {
   }
 
   async create(dto: CreateStudentDto, actingUserId: string): Promise<StudentAdminSummary> {
-    const hasExisting = dto.parentProfileId !== undefined;
-    const hasNew = dto.newParent !== undefined;
+    // `!= null` (not `!== undefined`) so an explicit `null` is treated the same as an omitted
+    // field — otherwise `{ parentProfileId: null, newParent: null }` (or a null/omitted mix)
+    // slips past this guard and blows up downstream instead of getting a clean 400 here.
+    const hasExisting = dto.parentProfileId != null;
+    const hasNew = dto.newParent != null;
     if (hasExisting === hasNew) {
       // Both true (both given) or both false (neither given) are the two invalid states.
       throw new BadRequestException('Provide exactly one of parentProfileId or newParent');
@@ -84,31 +87,44 @@ export class StudentService {
           },
         });
         let parentProfileId: string;
-        if (dto.parentProfileId !== undefined) {
-          const parent = await tx.parentProfile.findUnique({ where: { id: dto.parentProfileId } });
+        if (hasExisting) {
+          const parent = await tx.parentProfile.findUnique({ where: { id: dto.parentProfileId! } });
           if (!parent) {
             throw new BadRequestException('Parent not found');
           }
           parentProfileId = parent.id;
         } else {
-          parentProfileId = (await createParentWithUser(tx, dto.newParent!)).id;
+          const newParent = await createParentWithUser(tx, dto.newParent!);
+          parentProfileId = newParent.id;
+          // Mirrors ParentService.create()'s audit-log convention: the inline "+ New Parent"
+          // branch provisions a real Parent/User account, so it gets its own parent.create row
+          // (never the raw password), on top of the student.create row below — same transaction.
+          await tx.auditLog.create({
+            data: {
+              userId: actingUserId,
+              action: 'parent.create',
+              entity: 'ParentProfile',
+              entityId: newParent.id,
+              metadata: JSON.stringify({ identifier: dto.newParent!.identifier, name: dto.newParent!.name }),
+            },
+          });
         }
         await tx.studentParent.create({ data: { studentId: student.id, parentProfileId } });
+        await tx.auditLog.create({
+          data: {
+            userId: actingUserId,
+            action: 'student.create',
+            entity: 'Student',
+            entityId: student.id,
+            metadata: JSON.stringify({ grNumber: dto.grNumber, name: dto.name, sectionId: dto.sectionId }),
+          },
+        });
         return student.id;
       });
     } catch (error) {
       assertCreatable(error, 'This GR number or parent identifier is already in use.');
     }
 
-    await this.prisma.auditLog.create({
-      data: {
-        userId: actingUserId,
-        action: 'student.create',
-        entity: 'Student',
-        entityId: studentId,
-        metadata: JSON.stringify({ grNumber: dto.grNumber, name: dto.name, sectionId: dto.sectionId }),
-      },
-    });
     const created = await this.prisma.student.findUniqueOrThrow({
       where: { id: studentId },
       include: WITH_SECTION_AND_PARENTS,

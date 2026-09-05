@@ -14,6 +14,7 @@ describe('StudentService', () => {
     studentParent: { create: jest.Mock };
     user: { create: jest.Mock };
     parentProfile: { create: jest.Mock; findUnique: jest.Mock };
+    auditLog: { create: jest.Mock };
   };
   let prisma: {
     academicSession: { findFirst: jest.Mock };
@@ -39,6 +40,7 @@ describe('StudentService', () => {
       studentParent: { create: jest.fn() },
       user: { create: jest.fn() },
       parentProfile: { create: jest.fn(), findUnique: jest.fn() },
+      auditLog: { create: jest.fn() },
     };
     prisma = {
       academicSession: { findFirst: jest.fn().mockResolvedValue(activeSession) },
@@ -62,6 +64,34 @@ describe('StudentService', () => {
   it('rejects when neither parentProfileId nor newParent is given, without touching the database', async () => {
     await expect(
       service.create({ grNumber: 'GR-2001', name: 'New Student', sectionId: 'sec1' }, 'admin-1'),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects with a BadRequestException when both parentProfileId and newParent are explicitly null (not just omitted)', async () => {
+    await expect(
+      service.create(
+        {
+          grNumber: 'GR-2001', name: 'New Student', sectionId: 'sec1',
+          parentProfileId: null, newParent: null,
+        } as unknown as Parameters<typeof service.create>[0],
+        'admin-1',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects with a BadRequestException (not an unhandled error downstream) when parentProfileId is omitted and newParent is explicitly null', async () => {
+    tx.student.create.mockResolvedValue({ id: 's-mixed', grNumber: 'GR-2004', name: 'Mixed Null' });
+
+    await expect(
+      service.create(
+        {
+          grNumber: 'GR-2004', name: 'Mixed Null', sectionId: 'sec1',
+          newParent: null,
+        } as unknown as Parameters<typeof service.create>[0],
+        'admin-1',
+      ),
     ).rejects.toThrow(BadRequestException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
@@ -116,7 +146,7 @@ describe('StudentService', () => {
     });
     expect(tx.studentParent.create).toHaveBeenCalledWith({ data: { studentId: 's1', parentProfileId: 'p1' } });
     expect(tx.user.create).not.toHaveBeenCalled();
-    expect(prisma.auditLog.create).toHaveBeenCalledWith(
+    expect(tx.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ action: 'student.create', entityId: 's1' }) }),
     );
   });
@@ -141,6 +171,32 @@ describe('StudentService', () => {
       expect.objectContaining({ data: expect.objectContaining({ identifier: 'new-parent@seeds.edu.pk', role: 'PARENT' }) }),
     );
     expect(tx.studentParent.create).toHaveBeenCalledWith({ data: { studentId: 's2', parentProfileId: 'p-new' } });
+
+    // Finding 1: the inline-created Parent account must get its own parent.create audit-log row,
+    // in the same shape ParentService.create() writes, in addition to the student.create row.
+    expect(tx.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'parent.create',
+          entity: 'ParentProfile',
+          entityId: 'p-new',
+        }),
+      }),
+    );
+    expect(tx.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'student.create', entity: 'Student', entityId: 's2' }),
+      }),
+    );
+    const allAuditPayloads = tx.auditLog.create.mock.calls.map((call) => JSON.stringify(call[0]));
+    expect(allAuditPayloads.some((payload) => payload.includes('ChangeMe123!'))).toBe(false);
+    const parentAuditCall = tx.auditLog.create.mock.calls.find(
+      (call) => call[0].data.action === 'parent.create',
+    )![0];
+    expect(JSON.parse(parentAuditCall.data.metadata)).toEqual({
+      identifier: 'new-parent@seeds.edu.pk',
+      name: 'New Parent',
+    });
   });
 
   it('translates a duplicate GR number or parent identifier into a BadRequestException', async () => {
