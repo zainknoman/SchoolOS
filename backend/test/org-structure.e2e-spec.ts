@@ -31,31 +31,66 @@ describe('Org Structure (e2e)', () => {
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'os-' } } })
       .catch(() => undefined);
-    const staleSchools = await prisma.school.findMany({ where: { name: 'OS E2E School' } });
+    const staleSchools = await prisma.school.findMany({
+      where: { name: 'OS E2E School' },
+    });
     for (const s of staleSchools) {
-      await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
+      await prisma.school
+        .delete({ where: { id: s.id } })
+        .catch(() => undefined);
     }
 
     const passwordHash = await argon2.hash(password);
     const superAdminUser = await prisma.user.create({
-      data: { identifier: 'os-super-admin@seeds.edu.pk', passwordHash, role: 'SUPER_ADMIN' },
+      data: {
+        identifier: 'os-super-admin@seeds.edu.pk',
+        passwordHash,
+        role: 'SUPER_ADMIN',
+      },
     });
     const schoolAdminUser = await prisma.user.create({
-      data: { identifier: 'os-school-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
+      data: {
+        identifier: 'os-school-admin@seeds.edu.pk',
+        passwordHash,
+        role: 'SCHOOL_ADMIN',
+      },
     });
 
-    Object.assign(ids, { superAdminUser: superAdminUser.id, schoolAdminUser: schoolAdminUser.id });
+    Object.assign(ids, {
+      superAdminUser: superAdminUser.id,
+      schoolAdminUser: schoolAdminUser.id,
+    });
   });
 
   afterAll(async () => {
-    if (ids.section) await prisma.section.delete({ where: { id: ids.section } }).catch(() => undefined);
-    if (ids.class) await prisma.class.delete({ where: { id: ids.class } }).catch(() => undefined);
+    if (ids.section)
+      await prisma.section
+        .delete({ where: { id: ids.section } })
+        .catch(() => undefined);
+    if (ids.class)
+      await prisma.class
+        .delete({ where: { id: ids.class } })
+        .catch(() => undefined);
     if (ids.academicSession)
-      await prisma.academicSession.delete({ where: { id: ids.academicSession } }).catch(() => undefined);
-    if (ids.campus) await prisma.campus.delete({ where: { id: ids.campus } }).catch(() => undefined);
-    if (ids.school) await prisma.school.delete({ where: { id: ids.school } }).catch(() => undefined);
+      await prisma.academicSession
+        .delete({ where: { id: ids.academicSession } })
+        .catch(() => undefined);
+    if (ids.campus)
+      await prisma.campus
+        .delete({ where: { id: ids.campus } })
+        .catch(() => undefined);
+    if (ids.school)
+      await prisma.school
+        .delete({ where: { id: ids.school } })
+        .catch(() => undefined);
     await prisma.user
-      .deleteMany({ where: { identifier: { in: ['os-super-admin@seeds.edu.pk', 'os-school-admin@seeds.edu.pk'] } } })
+      .deleteMany({
+        where: {
+          identifier: {
+            in: ['os-super-admin@seeds.edu.pk', 'os-school-admin@seeds.edu.pk'],
+          },
+        },
+      })
       .catch(() => undefined);
     await app.close();
   });
@@ -76,7 +111,12 @@ describe('Org Structure (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/v1/academic-sessions')
       .set('Authorization', `Bearer ${schoolAdminToken}`)
-      .send({ label: 'x', startDate: '2026-08-01', endDate: '2027-06-30', isActive: false })
+      .send({
+        label: 'x',
+        startDate: '2026-08-01',
+        endDate: '2027-06-30',
+        isActive: false,
+      })
       .expect(403);
     await request(app.getHttpServer())
       .post('/api/v1/classes')
@@ -111,14 +151,23 @@ describe('Org Structure (e2e)', () => {
     const session = await request(app.getHttpServer())
       .post('/api/v1/academic-sessions')
       .set('Authorization', `Bearer ${token}`)
-      .send({ label: 'OS Session', startDate: '2026-08-01', endDate: '2027-06-30', isActive: false })
+      .send({
+        label: 'OS Session',
+        startDate: '2026-08-01',
+        endDate: '2027-06-30',
+        isActive: false,
+      })
       .expect(201);
     ids.academicSession = session.body.id;
 
     const klass = await request(app.getHttpServer())
       .post('/api/v1/classes')
       .set('Authorization', `Bearer ${token}`)
-      .send({ campusId: ids.campus, academicSessionId: ids.academicSession, name: 'OS Class' })
+      .send({
+        campusId: ids.campus,
+        academicSessionId: ids.academicSession,
+        name: 'OS Class',
+      })
       .expect(201);
     ids.class = klass.body.id;
     expect(klass.body.campusName).toBe('OS Campus');
@@ -140,7 +189,9 @@ describe('Org Structure (e2e)', () => {
 
   it('deleting a Section with a real Timetable row is blocked with a 400, then succeeds once the row is gone', async () => {
     const token = await loginAs('os-super-admin@seeds.edu.pk');
-    const subject = await prisma.subject.create({ data: { name: 'OS Subject' } });
+    const subject = await prisma.subject.create({
+      data: { name: 'OS Subject' },
+    });
     const timetableEntry = await prisma.timetable.create({
       data: {
         sectionId: ids.section,
@@ -179,10 +230,17 @@ describe('Org Structure (e2e)', () => {
     const second = await request(app.getHttpServer())
       .post('/api/v1/academic-sessions')
       .set('Authorization', `Bearer ${token}`)
-      .send({ label: 'OS Session 2', startDate: '2027-08-01', endDate: '2028-06-30', isActive: true })
+      .send({
+        label: 'OS Session 2',
+        startDate: '2027-08-01',
+        endDate: '2028-06-30',
+        isActive: true,
+      })
       .expect(201);
 
-    const firstAfter = await prisma.academicSession.findUnique({ where: { id: ids.academicSession } });
+    const firstAfter = await prisma.academicSession.findUnique({
+      where: { id: ids.academicSession },
+    });
     expect(firstAfter?.isActive).toBe(false);
 
     await prisma.academicSession.delete({ where: { id: second.body.id } });
@@ -194,7 +252,12 @@ describe('Org Structure (e2e)', () => {
     const session = await request(app.getHttpServer())
       .post('/api/v1/academic-sessions')
       .set('Authorization', `Bearer ${token}`)
-      .send({ label: 'OS Floor Session', startDate: '2028-08-01', endDate: '2029-06-30', isActive: true })
+      .send({
+        label: 'OS Floor Session',
+        startDate: '2028-08-01',
+        endDate: '2029-06-30',
+        isActive: true,
+      })
       .expect(201);
 
     await request(app.getHttpServer())
