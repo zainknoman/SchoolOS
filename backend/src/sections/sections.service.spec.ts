@@ -79,6 +79,16 @@ describe('SectionsService', () => {
     );
   });
 
+  it('translates a foreign-key violation on create into a BadRequestException (invalid classId/classTeacherId)', async () => {
+    prisma.section.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', { code: 'P2003', clientVersion: 'test' }),
+    );
+
+    await expect(
+      service.create({ classId: 'missing', name: '3A' }, 'admin-1'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
   it('updates a section (classId is not editable, name and classTeacherId are)', async () => {
     prisma.section.findUnique.mockResolvedValue({ id: 'sec1', name: '3A', classId: 'cl1' });
     prisma.section.update.mockResolvedValue({ ...fullRecord, name: '3A (Renamed)' });
@@ -89,6 +99,17 @@ describe('SectionsService', () => {
     expect(prisma.section.update).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'sec1' }, data: { name: '3A (Renamed)', classTeacherId: 't1' } }),
     );
+  });
+
+  it('translates a foreign-key violation on update into a BadRequestException (invalid classTeacherId)', async () => {
+    prisma.section.findUnique.mockResolvedValue({ id: 'sec1', name: '3A', classId: 'cl1' });
+    prisma.section.update.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', { code: 'P2003', clientVersion: 'test' }),
+    );
+
+    await expect(
+      service.update('sec1', { classTeacherId: 'missing-teacher' }, 'admin-1'),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('throws NotFoundException updating a section that does not exist', async () => {

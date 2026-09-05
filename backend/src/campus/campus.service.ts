@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
+import { assertValidReferences } from '../common/prisma-create-guard';
 import { CreateCampusDto } from './dto/create-campus.dto';
 import { UpdateCampusDto } from './dto/update-campus.dto';
 
@@ -22,10 +23,9 @@ export class CampusService {
   }
 
   async create(dto: CreateCampusDto, actingUserId: string): Promise<CampusSummary> {
-    const record = await this.prisma.campus.create({
-      data: { schoolId: dto.schoolId, name: dto.name },
-      include: WITH_SCHOOL,
-    });
+    const record = await this.prisma.campus
+      .create({ data: { schoolId: dto.schoolId, name: dto.name }, include: WITH_SCHOOL })
+      .catch((error: unknown) => assertValidReferences(error, 'Invalid school reference.'));
     await this.prisma.auditLog.create({
       data: {
         userId: actingUserId,

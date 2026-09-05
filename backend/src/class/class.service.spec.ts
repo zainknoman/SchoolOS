@@ -51,6 +51,16 @@ describe('ClassService', () => {
     );
   });
 
+  it('translates a foreign-key violation on create into a BadRequestException (invalid campusId/academicSessionId)', async () => {
+    prisma.class.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', { code: 'P2003', clientVersion: 'test' }),
+    );
+
+    await expect(
+      service.create({ campusId: 'missing', academicSessionId: 'as1', name: 'Grade 3' }, 'admin-1'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
   it('lists classes with their campus + academic session names', async () => {
     prisma.class.findMany.mockResolvedValue([fullRecord]);
 

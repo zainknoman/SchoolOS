@@ -43,6 +43,14 @@ describe('CampusService', () => {
     );
   });
 
+  it('translates a foreign-key violation on create into a BadRequestException (invalid schoolId)', async () => {
+    prisma.campus.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', { code: 'P2003', clientVersion: 'test' }),
+    );
+
+    await expect(service.create({ schoolId: 'missing', name: 'x' }, 'admin-1')).rejects.toThrow(BadRequestException);
+  });
+
   it('lists campuses with their school name', async () => {
     prisma.campus.findMany.mockResolvedValue([
       { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', school: { name: 'The Seeds School' } },
