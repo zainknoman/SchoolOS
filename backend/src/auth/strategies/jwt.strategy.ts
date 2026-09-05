@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
@@ -9,7 +10,7 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(config: ConfigService) {
     super({
       // Header is tried first; ?access_token= is a fallback so a direct file-download link
       // (which can't set headers) still authenticates.
@@ -18,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         ExtractJwt.fromUrlQueryParameter('access_token'),
       ]),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_ACCESS_SECRET ?? 'dev-only-change-me-access',
+      secretOrKey: config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-only-change-me-access',
     });
   }
 
