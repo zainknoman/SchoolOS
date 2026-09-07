@@ -69,11 +69,73 @@ describe('TimetableView', () => {
     await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
     await flushPromises();
 
-    const rows = wrapper.findAll('tbody tr');
+    const rows = wrapper.findAll('[data-testid="entries-table"] tbody tr');
     expect(rows).toHaveLength(2);
     // Monday (day 1) sorts before Tuesday (day 2) even though the API returned Tuesday first.
     expect(rows[0]?.text()).toContain('Mathematics');
     expect(rows[1]?.text()).toContain('English');
+  });
+
+  it('renders the weekly grid view with each period in its day/period cell', async () => {
+    vi.mocked(api.sectionTimetable).mockResolvedValue([
+      {
+        id: 't1',
+        dayOfWeek: 1,
+        period: 1,
+        startTime: '08:00',
+        endTime: '08:40',
+        subject: 'Mathematics',
+        teacher: 'Mr. Second Teacher',
+        room: '4B',
+      },
+      {
+        id: 't2',
+        dayOfWeek: 2,
+        period: 1,
+        startTime: '08:00',
+        endTime: '08:40',
+        subject: 'English',
+        teacher: null,
+        room: null,
+      },
+    ]);
+
+    const wrapper = mount(TimetableView);
+    await flushPromises();
+    await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+    await flushPromises();
+
+    const gridWrap = wrapper.find('[data-testid="view-grid"]');
+    expect(gridWrap.exists()).toBe(true);
+
+    const mondayCell = wrapper.find('[data-testid="view-cell-1-1"]');
+    expect(mondayCell.text()).toContain('Mathematics');
+    expect(mondayCell.text()).toContain('Mr. Second Teacher');
+    expect(mondayCell.text()).toContain('Rm 4B');
+
+    // No teacher/room on this one — falls back to "No teacher" and omits the room clause entirely.
+    const tuesdayCell = wrapper.find('[data-testid="view-cell-1-2"]');
+    expect(tuesdayCell.text()).toContain('English');
+    expect(tuesdayCell.text()).toContain('No teacher');
+    expect(tuesdayCell.text()).not.toContain('Rm');
+
+    // Wednesday period 1 has nothing scheduled — shows the empty dash, not a cell.
+    expect(wrapper.find('[data-testid="view-empty-1-3"]').text()).toBe('—');
+    expect(wrapper.find('[data-testid="view-cell-1-3"]').exists()).toBe(false);
+
+    // The period header shows a real time drawn from an actual entry, not a placeholder.
+    expect(gridWrap.text()).toContain('08:00–08:40');
+  });
+
+  it('does not render the weekly grid for an empty section', async () => {
+    vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+
+    const wrapper = mount(TimetableView);
+    await flushPromises();
+    await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="view-grid"]').exists()).toBe(false);
   });
 
   it('shows "No periods scheduled" for an empty section', async () => {

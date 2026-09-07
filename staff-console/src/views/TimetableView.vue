@@ -203,7 +203,26 @@ const orderedDayOptions = DAY_OPTIONS.filter((d) => d.value !== 0).concat(
 ); // Mon..Sat, then Sun last — matches the school week, not JS's Sun-first Date.getDay() order
 
 const visibleDayOptions = computed(() => orderedDayOptions.filter((d) => bulkDays.value.includes(d.value)));
-const periodsRange = computed(() => Array.from({ length: bulkPeriodCount.value }, (_, i) => i + 1));
+
+// --- Read-only weekly grid (default View mode) — same Day-rows × Period-columns shape as the
+// bulk composer's grid, but derived straight from sortedEntries, no edit affordances. Existing
+// per-row Edit/Delete stays in the list table below; this is purely an at-a-glance view.
+const gridDayOptions = computed(() => orderedDayOptions.filter((d) => d.value !== 0)); // Mon..Sat
+const gridPeriods = computed(() => {
+  const periods = new Set(sortedEntries.value.map((e) => e.period));
+  return Array.from(periods).sort((a, b) => a - b);
+});
+
+function entryAt(period: number, day: number): TimetableEntrySummary | undefined {
+  return sortedEntries.value.find((e) => e.period === period && e.dayOfWeek === day);
+}
+
+// Header time is the first entry found for that period (any day) — a nominal label, not a claim
+// every day shares it exactly (a custom-times day, e.g. an early Friday, may differ slightly).
+function periodTimeLabel(period: number): string {
+  const match = sortedEntries.value.find((e) => e.period === period);
+  return match ? `${match.startTime}–${match.endTime}` : '';
+}
 
 // Interleaves a "break" column after every period except the last, so the gap between two
 // periods is a real, visible cell instead of something an admin has to infer from two time
@@ -597,6 +616,43 @@ async function onSaveBulk() {
     </template>
 
     <template v-else-if="selectedSectionId">
+      <div v-if="sortedEntries.length" class="tt-grid-wrap">
+        <table class="tt-grid" data-testid="view-grid">
+          <thead>
+            <tr>
+              <th class="tt-day-col">Day</th>
+              <th v-for="p in gridPeriods" :key="p" class="tt-period-col">
+                P{{ p }}
+                <span class="tt-period-time">{{ periodTimeLabel(p) }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="d in gridDayOptions" :key="d.value">
+              <td class="tt-day-label">{{ d.label }}</td>
+              <td v-for="p in gridPeriods" :key="p">
+                <div
+                  v-if="entryAt(p, d.value)"
+                  class="tt-cell"
+                  :data-testid="`view-cell-${p}-${d.value}`"
+                >
+                  <b>{{ entryAt(p, d.value)!.subject }}</b>
+                  <span
+                    >{{ entryAt(p, d.value)!.teacher ?? 'No teacher' }}<template
+                      v-if="entryAt(p, d.value)!.room"
+                    >
+                      · Rm {{ entryAt(p, d.value)!.room }}</template
+                    ></span
+                  >
+                </div>
+                <div v-else class="tt-empty" :data-testid="`view-empty-${p}-${d.value}`">—</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 v-if="sortedEntries.length" class="manage-heading">Manage periods</h2>
       <table v-if="sortedEntries.length" class="entries" data-testid="entries-table">
         <thead>
           <tr>
@@ -719,6 +775,75 @@ input {
   border-radius: var(--radius-sm);
   font: inherit;
   font-size: var(--font-size-sm);
+}
+.tt-grid-wrap {
+  overflow-x: auto;
+  margin-bottom: var(--space-4);
+}
+.tt-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 640px;
+  width: 100%;
+}
+.tt-grid th {
+  background: var(--color-muted-bg);
+  border: 1px solid var(--color-border);
+  padding: var(--space-2);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+.tt-period-time {
+  display: block;
+  font-weight: 400;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-family-mono);
+  margin-top: 2px;
+}
+.tt-grid td {
+  border: 1px solid var(--color-border);
+  padding: var(--space-1);
+  vertical-align: top;
+  min-width: 7.5rem;
+}
+.tt-day-label {
+  background: var(--color-muted-bg);
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  vertical-align: middle !important;
+  padding: var(--space-2) var(--space-3) !important;
+}
+.tt-cell {
+  background: var(--color-status-info-tint);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.55rem;
+  font-size: var(--font-size-sm);
+}
+.tt-cell b {
+  display: block;
+  color: var(--color-text);
+  font-weight: 700;
+}
+.tt-cell span {
+  display: block;
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  margin-top: 2px;
+}
+.tt-empty {
+  text-align: center;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+.manage-heading {
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-2);
 }
 .entries {
   width: 100%;
