@@ -33,7 +33,7 @@ async function onSubmit() {
 <template>
   <div class="login-page">
     <form class="login-card" @submit.prevent="onSubmit">
-      <h1 class="brand">SEEDS Staff Console</h1>
+      <h1 class="brand">School OS Staff Console</h1>
       <p class="subtitle">Sign in with your school account</p>
 
       <label class="field">

@@ -196,9 +196,9 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Widget _buildChildSwitcher() {
-    if (_isLoading) return const Text('SEEDS');
-    if (_loadError != null) return const Text('SEEDS');
-    if (_children.isEmpty) return const Text('SEEDS');
+    if (_isLoading) return const Text('School OS');
+    if (_loadError != null) return const Text('School OS');
+    if (_children.isEmpty) return const Text('School OS');
 
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(

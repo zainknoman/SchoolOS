@@ -43,7 +43,7 @@ class _ParentAppState extends State<ParentApp> {
         ChangeNotifierProvider<AuthState>.value(value: _auth),
       ],
       child: MaterialApp.router(
-        title: 'SEEDS',
+        title: 'School OS',
         theme: buildAppTheme(),
         routerConfig: _router,
       ),

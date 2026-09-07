@@ -30,7 +30,7 @@ describe('LoginView', () => {
     expect(wrapper.find('input[name="identifier"]').exists()).toBe(true);
     expect(wrapper.find('input[name="password"]').exists()).toBe(true);
     expect(wrapper.find('button[type="submit"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain('SEEDS');
+    expect(wrapper.text()).toContain('School OS');
   });
 
   it('redirects a TEACHER to /teacher after a successful login', async () => {

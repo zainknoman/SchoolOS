@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('SEEDS', style: Theme.of(context).textTheme.headlineMedium),
+                Text('School OS', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 4),
                 Text(
                   'Sign in to see your child\'s day',

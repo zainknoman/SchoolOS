@@ -244,7 +244,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
 <template>
   <div class="shell">
     <header class="topbar">
-      <span class="brand">SEEDS Staff Console</span>
+      <span class="brand">School OS Staff Console</span>
       <nav class="crumbs" aria-label="Breadcrumb" data-testid="breadcrumb">
         <b>{{ breadcrumbTitle }}</b>
       </nav>
