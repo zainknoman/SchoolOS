@@ -601,18 +601,41 @@ own implementer + task review, plus this manual verification task.
     implementation: an imported-but-never-called `beforeEach`, and a genuine test-order bug where
     a "no unread notifications" test inherited a leftover mocked value from an earlier test in the
     same file (no reset between them) — fixed with an `afterEach` mock reset.
-- Verified: 172/172 staff-console tests passing (25 files), `npm run build` (type-check) clean,
-  manually smoke-tested in a real running app (`npm run start:dev` + `npm run dev`) logged in as
-  `admin@seeds.edu.pk` (SCHOOL_ADMIN) and `accounts@seeds.edu.pk` (ACCOUNTS) — confirmed grouped
-  nav, breadcrumb, command palette (open via button and via `Ctrl+K`, filtered search, navigation),
-  two-tier notification badge/dot, light↔dark toggle (including persistence across a reload and on
-  the pre-login screen), and the Circulars/Timetable role-gating fix, all against real seeded data.
-- Follow-up (tracked, not blocking): `npm run lint` has one pre-existing failure
-  (`CommandPalette.spec.ts` imports `vi` from vitest but never uses it) — deferred through two task
-  reviews as Minor, to be closed in this pass's final whole-branch review rather than as a separate
-  fix round. The per-screen pass this shell redesign's spec also scoped (empty/loading/error state
-  machine + a shared `StatusPill.vue` across all 14 admin/teacher views) was deliberately not
-  started here — it's its own later plan, not a gap in this one.
+- Verified: 180/180 staff-console tests passing (26 files), `npm run lint` and `npm run build`
+  (type-check) both clean, manually smoke-tested in a real running app (`npm run start:dev` +
+  `npm run dev`) logged in as `admin@seeds.edu.pk` (SCHOOL_ADMIN) and `accounts@seeds.edu.pk`
+  (ACCOUNTS) — confirmed grouped nav, breadcrumb, command palette (open via button and via
+  `Ctrl+K`, filtered search, navigation), two-tier notification badge/dot, light↔dark toggle
+  (including persistence across a reload), and the Circulars/Timetable role-gating fix, all
+  against real seeded data.
+- Final whole-branch review (opus) caught what the per-task reviews couldn't see: `AppShell.vue`
+  loaded the persisted theme only inside its own `<script setup>`, but `LoginView.vue` is the one
+  route not wrapped in `AppShell` — an explicit theme choice was silently ignored on a cold load of
+  the pre-login screen (the manual smoke-test's "including...on the pre-login screen" claim in an
+  earlier draft of this section didn't actually hold for a cold load — logging out after toggling
+  inside the app looked correct but wasn't the same test). Fixed by extracting the theme logic to
+  a new `lib/theme.ts` and booting it from `main.ts` before `app.mount`, so every route — including
+  `/login` — gets the right theme before first paint; `AppShell.vue` now imports the same functions
+  instead of redefining them. Also fixed in the same pass: the `CommandPalette.spec.ts` unused
+  `vi` import that had been deferred through two task reviews as Minor (it actually left
+  `npm run lint` red — closed here, not deferred further), and a `PROJECT-STATUS.md` line that
+  overstated which nav-group wrappers are `v-if`-gated (only People and Org Structure actually are;
+  Overview/Operations/Communication render unconditionally today because their anchor item —
+  Dashboard/Fees/Messages — carries no further role gate).
+- Follow-up (tracked, not blocking): fixing the lint gate above surfaced a separate, pre-existing
+  `eslint` error in `TimetableView.vue:206` (`periodsRange` unused) that predates this pass
+  entirely (confirmed via git history) and that no task here touches — it had been masked because
+  `npm run lint`'s `oxlint`-then-`eslint` pipeline stops at the first failure, and oxlint was
+  failing first until this pass fixed it. Out of scope for this branch; worth a one-line fix
+  whenever `TimetableView.vue` is next touched. The per-screen pass this shell redesign's spec also
+  scoped (empty/loading/error state machine + a shared `StatusPill.vue` across all 14 admin/teacher
+  views) was deliberately not started here — it's its own later plan, not a gap in this one. Also
+  flagged by the final review but explicitly deferred to that later plan rather than fixed here:
+  `?focus=` round-trip test coverage (the query-param contract between `AppShell.vue`'s command
+  palette and the three views it deep-links into is currently verified by inspection, not a test),
+  and exporting `CommandPalette.vue`'s `GoToItem`/`ActionItem` interfaces instead of `AppShell.vue`
+  redeclaring them structurally-identical copies (same one-source-of-truth treatment already given
+  to `IconName`).
 
 ## Deferred (explicitly out of this build's scope)
 
