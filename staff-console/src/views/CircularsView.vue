@@ -3,12 +3,15 @@ import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type CircularSummary } from '../lib/api';
 import { detectDirection } from '../lib/textDirection';
+import { useFocusTarget } from '../lib/useFocusTarget';
 
 type CircularScope = 'school' | 'section';
 
 const auth = useAuthStore();
 const sections = ref<SectionSummary[]>([]);
 const title = ref('');
+const titleInputRef = ref<HTMLInputElement | null>(null);
+useFocusTarget({ title: titleInputRef });
 const description = ref('');
 const scope = ref<CircularScope>('school');
 const sectionId = ref('');
@@ -98,7 +101,7 @@ async function onPublish() {
 
     <label class="field">
       <span>Title</span>
-      <input data-testid="title-input" v-model="title" type="text" :disabled="isSaving" />
+      <input ref="titleInputRef" data-testid="title-input" v-model="title" type="text" :disabled="isSaving" />
     </label>
 
     <label class="field">

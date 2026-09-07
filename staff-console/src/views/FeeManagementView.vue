@@ -10,6 +10,7 @@ import {
   type FeePaymentSummary,
 } from '../lib/api';
 import { formatPkrFull } from '../lib/format';
+import { useFocusTarget } from '../lib/useFocusTarget';
 
 const auth = useAuthStore();
 
@@ -48,6 +49,8 @@ async function onCreateStructure() {
 // --- Issue vouchers ---
 const sections = ref<SectionSummary[]>([]);
 const issueSectionId = ref('');
+const issueSectionRef = ref<HTMLSelectElement | null>(null);
+useFocusTarget({ 'issue-section': issueSectionRef });
 const sectionStudents = ref<StudentSummary[]>([]);
 const selectedStudentIds = ref<string[]>([]);
 const selectedStructureIds = ref<string[]>([]);
@@ -167,7 +170,7 @@ async function onLoadLedger() {
 
       <label class="field">
         <span>Section</span>
-        <select data-testid="issue-section" v-model="issueSectionId" @change="onSectionChange">
+        <select ref="issueSectionRef" data-testid="issue-section" v-model="issueSectionId" @change="onSectionChange">
           <option value="" disabled>Choose a section</option>
           <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.className }} {{ s.name }}</option>
         </select>

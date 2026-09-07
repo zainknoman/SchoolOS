@@ -3,6 +3,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type ParentSummary, type StudentAdminSummary } from '../lib/api';
+import { useFocusTarget } from '../lib/useFocusTarget';
 
 const auth = useAuthStore();
 
@@ -21,6 +22,9 @@ const newParentPassword = ref('');
 const newParentName = ref('');
 const newParentPhone = ref('');
 const isSaving = ref(false);
+
+const grNumberInputRef = ref<HTMLInputElement | null>(null);
+useFocusTarget({ 'gr-number': grNumberInputRef });
 
 const editingId = ref<string | null>(null);
 const editGrNumber = ref('');
@@ -169,7 +173,7 @@ async function onDelete(id: string) {
 
     <div class="add-form">
       <div class="inline-form">
-        <input data-testid="add-gr-number" v-model="newGrNumber" type="text" placeholder="GR number" />
+        <input ref="grNumberInputRef" data-testid="add-gr-number" v-model="newGrNumber" type="text" placeholder="GR number" />
         <input data-testid="add-name" v-model="newName" type="text" placeholder="Full name" />
         <select data-testid="add-section" v-model="newSectionId">
           <option value="" disabled>Choose a section</option>

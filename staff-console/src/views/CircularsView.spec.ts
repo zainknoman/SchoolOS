@@ -1,9 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+import { createRouter, createMemoryHistory } from 'vue-router';
 import CircularsView from './CircularsView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+
+// useFocusTarget() (wired in Task 4) calls useRoute(), so every mount needs a router in scope —
+// same pattern MessagesView.spec.ts already uses for its own ?conversationId= deep link.
+async function mountView() {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/admin/circulars', name: 'admin-circulars', component: CircularsView }],
+  });
+  await router.push('/admin/circulars');
+  await router.isReady();
+  return mount(CircularsView, { global: { plugins: [router] } });
+}
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -45,7 +58,7 @@ describe('CircularsView', () => {
     vi.mocked(api.circularStats).mockResolvedValue({ delivered: 2, read: 1 });
     vi.mocked(api.publishCircular).mockResolvedValue(undefined);
 
-    const wrapper = mount(CircularsView);
+    const wrapper = await mountView();
     await flushPromises();
 
     expect(wrapper.text()).toContain('Delivered 2');
@@ -79,7 +92,7 @@ describe('CircularsView', () => {
         }),
     );
 
-    const wrapper = mount(CircularsView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('input[data-testid="title-input"]').setValue('New notice');
@@ -135,7 +148,7 @@ describe('CircularsView', () => {
       new Error('Something went wrong. Please try again.'),
     );
 
-    const wrapper = mount(CircularsView);
+    const wrapper = await mountView();
     await flushPromises();
     await wrapper.find('input[data-testid="title-input"]').setValue('New notice');
     await wrapper.find('textarea[data-testid="description-input"]').setValue('Details here.');

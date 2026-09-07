@@ -2,9 +2,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+import { createRouter, createMemoryHistory } from 'vue-router';
 import StudentManagementView from './StudentManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+
+// useFocusTarget() (wired in Task 4) calls useRoute(), so every mount needs a router in scope —
+// same pattern MessagesView.spec.ts already uses for its own ?conversationId= deep link.
+async function mountView() {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/admin/students', name: 'admin-students', component: StudentManagementView }],
+  });
+  await router.push('/admin/students');
+  await router.isReady();
+  return mount(StudentManagementView, { global: { plugins: [router] } });
+}
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -39,7 +52,7 @@ describe('StudentManagementView', () => {
   });
 
   it('lists students with their section and parent names', async () => {
-    const wrapper = mount(StudentManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     expect(wrapper.text()).toContain('Eshaal Sample');
@@ -54,7 +67,7 @@ describe('StudentManagementView', () => {
       parentNames: ['Existing Parent'],
     });
 
-    const wrapper = mount(StudentManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="add-gr-number"]').setValue('GR-2001');
@@ -76,7 +89,7 @@ describe('StudentManagementView', () => {
       parentNames: ['Inline Parent'],
     });
 
-    const wrapper = mount(StudentManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="add-gr-number"]').setValue('GR-2002');
@@ -100,7 +113,7 @@ describe('StudentManagementView', () => {
   it('edits only name/grNumber', async () => {
     vi.mocked(api.updateStudent).mockResolvedValue(undefined);
 
-    const wrapper = mount(StudentManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="edit-s1"]').trigger('click');
@@ -115,7 +128,7 @@ describe('StudentManagementView', () => {
     vi.mocked(api.deleteStudent).mockResolvedValue(undefined);
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-    const wrapper = mount(StudentManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-s1"]').trigger('click');
@@ -128,7 +141,7 @@ describe('StudentManagementView', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(api.deleteStudent).mockRejectedValue(new Error('Cannot delete this Student: other records still reference it.'));
 
-    const wrapper = mount(StudentManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-s1"]').trigger('click');

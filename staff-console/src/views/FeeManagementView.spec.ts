@@ -1,9 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+import { createRouter, createMemoryHistory } from 'vue-router';
 import FeeManagementView from './FeeManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+
+// useFocusTarget() (wired in Task 4) calls useRoute(), so every mount needs a router in scope —
+// same pattern MessagesView.spec.ts already uses for its own ?conversationId= deep link.
+async function mountView() {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/admin/fees', name: 'admin-fees', component: FeeManagementView }],
+  });
+  await router.push('/admin/fees');
+  await router.isReady();
+  return mount(FeeManagementView, { global: { plugins: [router] } });
+}
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -37,7 +50,7 @@ describe('FeeManagementView', () => {
   it('creates a fee structure and it appears in the checklist', async () => {
     vi.mocked(api.createFeeStructure).mockResolvedValue(undefined);
 
-    const wrapper = mount(FeeManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="structure-name"]').setValue('Transport Fee');
@@ -51,7 +64,7 @@ describe('FeeManagementView', () => {
   it('issues vouchers to a whole section when no individual students are checked', async () => {
     vi.mocked(api.issueFeeVouchers).mockResolvedValue(undefined);
 
-    const wrapper = mount(FeeManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="issue-section"]').setValue('sec-1');
@@ -71,7 +84,7 @@ describe('FeeManagementView', () => {
   it('issues vouchers to only the checked students when some are selected', async () => {
     vi.mocked(api.issueFeeVouchers).mockResolvedValue(undefined);
 
-    const wrapper = mount(FeeManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="issue-section"]').setValue('sec-1');
@@ -105,7 +118,7 @@ describe('FeeManagementView', () => {
     ]);
     vi.mocked(api.studentFeePayments).mockResolvedValue([]);
 
-    const wrapper = mount(FeeManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="ledger-section"]').setValue('sec-1');
@@ -136,7 +149,7 @@ describe('FeeManagementView', () => {
     ]);
     vi.mocked(api.receiptPdfUrl).mockReturnValue('https://api.example.com/fee-payments/p1/receipt.pdf?access_token=token-1');
 
-    const wrapper = mount(FeeManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="ledger-section"]').setValue('sec-1');
@@ -158,7 +171,7 @@ describe('FeeManagementView', () => {
     vi.mocked(api.studentFees).mockResolvedValue([]);
     vi.mocked(api.studentFeePayments).mockResolvedValue([]);
 
-    const wrapper = mount(FeeManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     // No "Student ID" text field — the only way in is section, then a named student.
@@ -201,7 +214,7 @@ describe('FeeManagementView', () => {
       { id: 'sec-2', name: '4B', className: 'Grade 4', campusName: 'Gulistan-e-Jauhar' },
     ]);
 
-    const wrapper = mount(FeeManagementView);
+    const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="ledger-section"]').setValue('sec-1');
