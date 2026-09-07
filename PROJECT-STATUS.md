@@ -548,6 +548,69 @@ under Sprint 11-12 below are unrelated and still open.
 - [ ] Real Firebase project for FCM (currently unwired)
 - [ ] Pilot rollout: one campus/class, 20-50 parents, before full cutover
 
+## Staff Console Shell Redesign (2026-09-07) ✅ DONE
+
+Not tied to an MVP feature — a UI/UX polish pass requested directly ("style looks good, implement
+it for all interfaces... for super admin, admin, teacher, parent etc"), decomposed at brainstorming
+time into two independent sub-projects by codebase. This is the first: the Vue staff console's
+shared shell. The Flutter parent app gets its own later spec/plan (not started).
+
+Spec: `docs/superpowers/specs/2026-09-07-staff-console-shell-redesign-design.md`. Plan:
+`docs/superpowers/plans/2026-09-07-staff-console-shell-redesign.md`. Built via
+subagent-driven-development in worktree `staff-console-shell-redesign`: 6 code tasks, each with its
+own implementer + task review, plus this manual verification task.
+
+- [x] **Design tokens** (`base.css`) — dark-mode variants for every existing token (both
+      `prefers-color-scheme: dark` and an explicit `[data-theme]` override, so a manual toggle wins
+      over the OS default in either direction), new semantic status tokens
+      (`--color-status-success/warning/critical/info/neutral` + tint pairs, deliberately separate
+      from `--color-accent`), `--font-family-mono` (IBM Plex Mono, for GR numbers/PKR amounts/dates
+      in tables), and a global low-specificity `input,select,textarea{background;color}` default —
+      closes a real gap where every existing view's form controls had no explicit
+      background/color and would have rendered as unstyled white boxes the moment dark mode went
+      live.
+- [x] **Route meta titles** — every route in `router/index.ts` now carries `meta.title`, driving the
+      new breadcrumb.
+- [x] **Grouped, role-gated sidebar nav** (`AppShell.vue`) — Overview/People/Org Structure/
+      Operations/Communication, each group wrapper `v-if`-gated so an empty group never renders its
+      label (not per-item `display:none`). Fixes a real pre-existing bug: the nav used to show
+      Circulars and Timetable to `ACCOUNTS`, but both routes' guards require `SCHOOL_ADMIN`/
+      `SUPER_ADMIN` only, silently bouncing that role back to `/admin` on click — new
+      `canManageCirculars`/`canManageTimetable` computeds close the gap.
+- [x] **Breadcrumb**, **`CommandPalette.vue`** (new component — `Ctrl/Cmd+K`, role-gated "Go to" +
+      "Actions" lists sourced from the same computeds the sidebar uses, Actions deep-link into a
+      specific form field via a `?focus=<id>` query param — same low-tech convention
+      `MessagesView.vue` already used for `?conversationId=`), **two-tier notifications** (numeric
+      badge for unread `message`-type only, a dot for unread `diary`/`circular`, derived
+      client-side from the existing `NotificationSummary.type` — no backend change), and a
+      **persisted light/dark theme toggle** (`localStorage`, wrapped in try/catch, defaults to
+      unset/OS-following until the user picks explicitly).
+- [x] New `useFocusTarget()` composable (`lib/useFocusTarget.ts`) wired into
+      `StudentManagementView`/`FeeManagementView`/`CircularsView` for the command palette's
+      "Actions" to focus the right input after navigating.
+- Notable fixes caught during this pass's own review process (not regressions on prior work):
+  - Adding `useFocusTarget()` (which calls `useRoute()`) to the three views above broke their
+    existing spec files, none of which previously mounted with a router. Fixed by adding a
+    router-in-scope mount helper to each, mirroring the existing precedent in
+    `MessagesView.spec.ts` (which has the same `useRoute()` need) — mount setup only, no
+    assertions changed.
+  - The plan's own literal `AppShell.spec.ts` text had two defects, both caught during
+    implementation: an imported-but-never-called `beforeEach`, and a genuine test-order bug where
+    a "no unread notifications" test inherited a leftover mocked value from an earlier test in the
+    same file (no reset between them) — fixed with an `afterEach` mock reset.
+- Verified: 172/172 staff-console tests passing (25 files), `npm run build` (type-check) clean,
+  manually smoke-tested in a real running app (`npm run start:dev` + `npm run dev`) logged in as
+  `admin@seeds.edu.pk` (SCHOOL_ADMIN) and `accounts@seeds.edu.pk` (ACCOUNTS) — confirmed grouped
+  nav, breadcrumb, command palette (open via button and via `Ctrl+K`, filtered search, navigation),
+  two-tier notification badge/dot, light↔dark toggle (including persistence across a reload and on
+  the pre-login screen), and the Circulars/Timetable role-gating fix, all against real seeded data.
+- Follow-up (tracked, not blocking): `npm run lint` has one pre-existing failure
+  (`CommandPalette.spec.ts` imports `vi` from vitest but never uses it) — deferred through two task
+  reviews as Minor, to be closed in this pass's final whole-branch review rather than as a separate
+  fix round. The per-screen pass this shell redesign's spec also scoped (empty/loading/error state
+  machine + a shared `StatusPill.vue` across all 14 admin/teacher views) was deliberately not
+  started here — it's its own later plan, not a gap in this one.
+
 ## Deferred (explicitly out of this build's scope)
 
 - [ ] Parent **web** portal (Phase 2 — same backend, zero rework, just not built alongside mobile)
@@ -572,11 +635,14 @@ under Sprint 11-12 below are unrelated and still open.
 
 ---
 
-**Next step:** **Sprint 11-12 — Hardening + Pilot** — FEAT-014's offline-caching slice is done (see
-above); remaining: FEAT-014's Play Store submission, switch the Prisma datasource from SQLite to
-PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire real
-S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one campus/class,
-20-50 parents) before full cutover. A broader security review pass beyond the five items the
-Security Hardening Pass already closed (see above) is worth doing before that pilot, but nothing
-specific is queued. Org Structure CRUD, People CRUD, and the Security Hardening Pass are all now
-done — no other unscheduled work outstanding.
+**Next step:** the Staff Console Shell Redesign is done (see above); its own spec scoped a follow-up
+per-screen pass (empty/loading/error state machine + a shared `StatusPill.vue` across all 14
+admin/teacher views) that has not been started — spec/plan not yet written. The parent-app (Flutter)
+half of the original design-refresh request also has not been started — its own spec is next after
+that. Separately, **Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's offline-caching
+slice is done; remaining: FEAT-014's Play Store submission, switch the Prisma datasource from
+SQLite to PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire
+real S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one
+campus/class, 20-50 parents) before full cutover. A broader security review pass beyond the five
+items the Security Hardening Pass already closed is worth doing before that pilot, but nothing
+specific is queued.
