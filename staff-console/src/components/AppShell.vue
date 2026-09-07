@@ -6,6 +6,7 @@ import { api, type NotificationSummary } from '../lib/api';
 import Icon, { type IconName } from './AppIcon.vue';
 import CommandPalette from './CommandPalette.vue';
 import { roleInitials } from '../lib/format';
+import { applyTheme, loadThemePreference, saveThemePreference } from '../lib/theme';
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -119,25 +120,7 @@ async function onLogout() {
 }
 
 // --- Theme toggle (persisted; falls back to OS prefers-color-scheme when unset) ---
-const THEME_STORAGE_KEY = 'seeds.theme';
 const themeOverride = ref<'light' | 'dark' | null>(null);
-
-function loadThemePreference(): 'light' | 'dark' | null {
-  try {
-    const raw = localStorage.getItem(THEME_STORAGE_KEY);
-    return raw === 'light' || raw === 'dark' ? raw : null;
-  } catch {
-    return null;
-  }
-}
-
-function applyTheme(mode: 'light' | 'dark' | null) {
-  if (mode) {
-    document.documentElement.setAttribute('data-theme', mode);
-  } else {
-    document.documentElement.removeAttribute('data-theme');
-  }
-}
 
 themeOverride.value = loadThemePreference();
 applyTheme(themeOverride.value);
@@ -154,11 +137,7 @@ function onToggleTheme() {
   const next: 'light' | 'dark' = isDarkActive.value ? 'light' : 'dark';
   themeOverride.value = next;
   applyTheme(next);
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, next);
-  } catch {
-    // Best-effort persistence only — the theme still applies for this session.
-  }
+  saveThemePreference(next);
 }
 
 // --- Command palette ---

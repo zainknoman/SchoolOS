@@ -572,11 +572,14 @@ own implementer + task review, plus this manual verification task.
 - [x] **Route meta titles** — every route in `router/index.ts` now carries `meta.title`, driving the
       new breadcrumb.
 - [x] **Grouped, role-gated sidebar nav** (`AppShell.vue`) — Overview/People/Org Structure/
-      Operations/Communication, each group wrapper `v-if`-gated so an empty group never renders its
-      label (not per-item `display:none`). Fixes a real pre-existing bug: the nav used to show
-      Circulars and Timetable to `ACCOUNTS`, but both routes' guards require `SCHOOL_ADMIN`/
-      `SUPER_ADMIN` only, silently bouncing that role back to `/admin` on click — new
-      `canManageCirculars`/`canManageTimetable` computeds close the gap.
+      Operations/Communication. Only the **People** (`v-if="canManagePeople"`) and **Org Structure**
+      (`v-if="canManageOrgStructure"`) group wrappers are actually `v-if`-gated so an empty group
+      never renders its label; **Overview**, **Operations**, and **Communication** render
+      unconditionally because their anchor item (Dashboard/Fees/Messages, respectively) carries no
+      further role gate today, so those labels never end up empty in practice. Fixes a real
+      pre-existing bug: the nav used to show Circulars and Timetable to `ACCOUNTS`, but both routes'
+      guards require `SCHOOL_ADMIN`/`SUPER_ADMIN` only, silently bouncing that role back to `/admin`
+      on click — new `canManageCirculars`/`canManageTimetable` computeds close the gap.
 - [x] **Breadcrumb**, **`CommandPalette.vue`** (new component — `Ctrl/Cmd+K`, role-gated "Go to" +
       "Actions" lists sourced from the same computeds the sidebar uses, Actions deep-link into a
       specific form field via a `?focus=<id>` query param — same low-tech convention

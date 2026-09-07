@@ -60,7 +60,7 @@ Additive only — every existing token keeps its current light-mode value.
 ## 2. Shell (`AppShell.vue`)
 
 - **Nav becomes grouped**, static (not collapsible — see Non-goals), gated by the *real*
-  `auth.role`/`auth.isPrincipal` (no demo role switcher — that was mockup-only):
+  `auth.role` (no demo role switcher — that was mockup-only):
   - Teacher: ungrouped, unchanged (Attendance/Diary/Timetable/Messages).
   - Admin/Accounts/Principal: **Overview** (Dashboard) / **People** (`canManagePeople`: Students,
     Parents, Teachers) / **Org Structure** (`canManageOrgStructure`: Schools, Campuses, Academic
