@@ -1,25 +1,55 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type NotificationSummary } from '../lib/api';
-import Icon from './AppIcon.vue';
+import Icon, { type IconName } from './AppIcon.vue';
+import CommandPalette from './CommandPalette.vue';
 import { roleInitials } from '../lib/format';
 
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
 const isTeacher = computed(() => auth.role === 'TEACHER');
 const isAdmin = computed(() => ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'].includes(auth.role ?? ''));
 const canManageLeave = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManageOrgStructure = computed(() => auth.role === 'SUPER_ADMIN');
 const canManagePeople = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
-const avatarInitials = computed(() => roleInitials(auth.role));
+// Fixes a real pre-existing bug (PROJECT-STATUS.md): the nav used to show Circulars/Timetable to
+// every admin-side role, but their route guards only allow SCHOOL_ADMIN/SUPER_ADMIN — an ACCOUNTS
+// user clicking either link used to silently bounce back to /admin with no explanation.
+const canManageCirculars = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
+const canManageTimetable = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 
+const avatarInitials = computed(() => roleInitials(auth.role));
+const roleLabel = computed(() => {
+  switch (auth.role) {
+    case 'TEACHER':
+      return 'Teacher';
+    case 'SCHOOL_ADMIN':
+      return 'School Admin';
+    case 'ACCOUNTS':
+      return 'Accounts';
+    case 'SUPER_ADMIN':
+      return 'Super Admin';
+    default:
+      return '';
+  }
+});
+
+const breadcrumbTitle = computed(() => (route.meta.title as string | undefined) ?? '');
+
+// --- Notifications (two-tier: numeric badge for actionable, dot for ambient) ---
 const notifications = ref<NotificationSummary[]>([]);
 const isNotifOpen = ref(false);
 const notifError = ref<string | null>(null);
-const unreadCount = computed(() => notifications.value.filter((n) => !n.readAt).length);
+const actionableUnreadCount = computed(
+  () => notifications.value.filter((n) => !n.readAt && n.type === 'message').length,
+);
+const hasAmbientUnread = computed(
+  () => notifications.value.some((n) => !n.readAt && n.type !== 'message'),
+);
 
 async function loadNotifications() {
   if (!auth.accessToken) return;
@@ -30,6 +60,12 @@ async function loadNotifications() {
   }
 }
 onMounted(loadNotifications);
+
+function notifIcon(type: NotificationSummary['type']): IconName {
+  if (type === 'message') return 'chat';
+  if (type === 'diary') return 'notebook';
+  return 'megaphone';
+}
 
 // Notifications for diary/circular events only ever target parents (see NotificationsService
 // callers); staff will realistically only ever see 'message' type here, but this stays generic
@@ -81,12 +117,178 @@ async function onLogout() {
   auth.logout();
   await router.push({ name: 'login' });
 }
+
+// --- Theme toggle (persisted; falls back to OS prefers-color-scheme when unset) ---
+const THEME_STORAGE_KEY = 'seeds.theme';
+const themeOverride = ref<'light' | 'dark' | null>(null);
+
+function loadThemePreference(): 'light' | 'dark' | null {
+  try {
+    const raw = localStorage.getItem(THEME_STORAGE_KEY);
+    return raw === 'light' || raw === 'dark' ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyTheme(mode: 'light' | 'dark' | null) {
+  if (mode) {
+    document.documentElement.setAttribute('data-theme', mode);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+
+themeOverride.value = loadThemePreference();
+applyTheme(themeOverride.value);
+
+function systemPrefersDark(): boolean {
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+}
+
+const isDarkActive = computed(() =>
+  themeOverride.value ? themeOverride.value === 'dark' : systemPrefersDark(),
+);
+
+function onToggleTheme() {
+  const next: 'light' | 'dark' = isDarkActive.value ? 'light' : 'dark';
+  themeOverride.value = next;
+  applyTheme(next);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, next);
+  } catch {
+    // Best-effort persistence only — the theme still applies for this session.
+  }
+}
+
+// --- Command palette ---
+const isPaletteOpen = ref(false);
+
+interface CmdkGoTo { testid: string; label: string; icon: IconName; to: string }
+interface CmdkAction { testid: string; label: string; icon: IconName; to: string; query?: Record<string, string> }
+
+const goToItems = computed<CmdkGoTo[]>(() => {
+  if (isTeacher.value) {
+    return [
+      { testid: 'cmdk-attendance', label: 'Attendance', icon: 'calendar', to: '/teacher' },
+      { testid: 'cmdk-diary', label: 'Diary', icon: 'notebook', to: '/teacher/diary' },
+      { testid: 'cmdk-messages', label: 'Messages', icon: 'chat', to: '/teacher/messages' },
+    ];
+  }
+  if (!isAdmin.value) return [];
+  const items: CmdkGoTo[] = [{ testid: 'cmdk-dashboard', label: 'Dashboard', icon: 'home', to: '/admin' }];
+  if (canManageOrgStructure.value) {
+    items.push(
+      { testid: 'cmdk-schools', label: 'Schools', icon: 'chalkboard', to: '/admin/schools' },
+      { testid: 'cmdk-campuses', label: 'Campuses', icon: 'grid', to: '/admin/campuses' },
+      {
+        testid: 'cmdk-academic-sessions',
+        label: 'Academic Sessions',
+        icon: 'calendar',
+        to: '/admin/academic-sessions',
+      },
+      { testid: 'cmdk-classes', label: 'Classes', icon: 'grid', to: '/admin/classes' },
+      { testid: 'cmdk-sections', label: 'Sections', icon: 'grid', to: '/admin/sections' },
+    );
+  }
+  if (canManagePeople.value) {
+    items.push(
+      { testid: 'cmdk-students', label: 'Students', icon: 'users', to: '/admin/students' },
+      { testid: 'cmdk-parents', label: 'Parents', icon: 'user-circle', to: '/admin/parents' },
+      { testid: 'cmdk-teachers', label: 'Teachers', icon: 'chalkboard', to: '/admin/teachers' },
+    );
+  }
+  if (canManageTimetable.value) {
+    items.push({ testid: 'cmdk-timetable', label: 'Timetable', icon: 'clock', to: '/admin/timetable' });
+  }
+  items.push({ testid: 'cmdk-fees', label: 'Fees', icon: 'receipt', to: '/admin/fees' });
+  if (canManageLeave.value) {
+    items.push({ testid: 'cmdk-leave', label: 'Leave', icon: 'calendar', to: '/admin/leave' });
+  }
+  if (canManageCirculars.value) {
+    items.push({ testid: 'cmdk-circulars', label: 'Circulars', icon: 'megaphone', to: '/admin/circulars' });
+  }
+  items.push({ testid: 'cmdk-messages', label: 'Messages', icon: 'chat', to: '/admin/messages' });
+  return items;
+});
+
+const actionItems = computed<CmdkAction[]>(() => {
+  const items: CmdkAction[] = [];
+  if (canManagePeople.value) {
+    items.push({
+      testid: 'cmdk-action-add-student',
+      label: 'Add student',
+      icon: 'users',
+      to: '/admin/students',
+      query: { focus: 'gr-number' },
+    });
+  }
+  if (isAdmin.value) {
+    items.push({
+      testid: 'cmdk-action-issue-vouchers',
+      label: 'Issue fee vouchers',
+      icon: 'receipt',
+      to: '/admin/fees',
+      query: { focus: 'issue-section' },
+    });
+  }
+  if (canManageLeave.value) {
+    items.push({
+      testid: 'cmdk-action-approve-leave',
+      label: 'Approve a leave request',
+      icon: 'calendar',
+      to: '/admin/leave',
+    });
+  }
+  if (canManageCirculars.value) {
+    items.push({
+      testid: 'cmdk-action-publish-circular',
+      label: 'Publish a circular',
+      icon: 'megaphone',
+      to: '/admin/circulars',
+      query: { focus: 'title' },
+    });
+  }
+  return items;
+});
+
+function onGlobalKeydown(event: KeyboardEvent) {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault();
+    isPaletteOpen.value = !isPaletteOpen.value;
+  }
+}
+onMounted(() => window.addEventListener('keydown', onGlobalKeydown));
+onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
 </script>
 
 <template>
   <div class="shell">
     <header class="topbar">
       <span class="brand">SEEDS Staff Console</span>
+      <nav class="crumbs" aria-label="Breadcrumb" data-testid="breadcrumb">
+        <b>{{ breadcrumbTitle }}</b>
+      </nav>
+      <div class="topbar-spacer"></div>
+      <button
+        type="button"
+        class="cmdk-trigger"
+        data-testid="cmdk-trigger"
+        @click="isPaletteOpen = true"
+      >
+        <Icon name="search" :size="15" />
+        <span>Jump to… or search</span>
+        <kbd>Ctrl K</kbd>
+      </button>
+      <button
+        type="button"
+        class="icon-button"
+        data-testid="theme-toggle"
+        :aria-label="isDarkActive ? 'Switch to light theme' : 'Switch to dark theme'"
+        @click="onToggleTheme"
+      >
+        <Icon :name="isDarkActive ? 'sun' : 'moon'" :size="18" />
+      </button>
       <div class="topbar-actions">
         <div class="notif-wrapper">
           <button
@@ -96,7 +298,10 @@ async function onLogout() {
             @click="isNotifOpen = !isNotifOpen"
           >
             <Icon name="bell" :size="18" />
-            <span v-if="unreadCount > 0" class="badge" data-testid="notif-badge">{{ unreadCount }}</span>
+            <span v-if="actionableUnreadCount > 0" class="badge" data-testid="notif-badge">{{
+              actionableUnreadCount
+            }}</span>
+            <span v-else-if="hasAmbientUnread" class="badge-dot" data-testid="notif-dot" aria-hidden="true"></span>
           </button>
           <div v-if="isNotifOpen" class="notif-dropdown" data-testid="notif-dropdown">
             <p v-if="notifError" class="notif-error" data-testid="notif-error" role="alert">{{ notifError }}</p>
@@ -117,12 +322,18 @@ async function onLogout() {
               :class="{ unread: !n.readAt }"
               @click="onOpenNotification(n)"
             >
-              <strong>{{ n.title }}</strong>
-              <span>{{ n.body }}</span>
+              <span class="notif-icon" :class="{ actionable: n.type === 'message' && !n.readAt }">
+                <Icon :name="notifIcon(n.type)" :size="14" />
+              </span>
+              <span class="notif-item-text">
+                <strong>{{ n.title }}</strong>
+                <span>{{ n.body }}</span>
+              </span>
             </button>
           </div>
         </div>
         <span data-testid="avatar" class="avatar" aria-hidden="true">{{ avatarInitials }}</span>
+        <span class="role-label">{{ roleLabel }}</span>
         <button data-testid="logout" class="logout" @click="onLogout">
           <Icon name="logout" :size="16" />
           Log out
@@ -139,20 +350,53 @@ async function onLogout() {
           <RouterLink data-testid="nav-messages" to="/teacher/messages"><Icon name="chat" />Messages</RouterLink>
         </template>
         <template v-else-if="isAdmin">
-          <RouterLink data-testid="nav-dashboard" to="/admin"><Icon name="home" />Dashboard</RouterLink>
-          <RouterLink v-if="canManageOrgStructure" data-testid="nav-schools" to="/admin/schools"><Icon name="chalkboard" />Schools</RouterLink>
-          <RouterLink v-if="canManageOrgStructure" data-testid="nav-campuses" to="/admin/campuses"><Icon name="grid" />Campuses</RouterLink>
-          <RouterLink v-if="canManageOrgStructure" data-testid="nav-academic-sessions" to="/admin/academic-sessions"><Icon name="calendar" />Academic Sessions</RouterLink>
-          <RouterLink v-if="canManagePeople" data-testid="nav-students" to="/admin/students"><Icon name="users" />Students</RouterLink>
-          <RouterLink v-if="canManagePeople" data-testid="nav-parents" to="/admin/parents"><Icon name="user-circle" />Parents</RouterLink>
-          <RouterLink v-if="canManagePeople" data-testid="nav-teachers" to="/admin/teachers"><Icon name="chalkboard" />Teachers</RouterLink>
-          <RouterLink v-if="canManageOrgStructure" data-testid="nav-classes" to="/admin/classes"><Icon name="grid" />Classes</RouterLink>
-          <RouterLink v-if="canManageOrgStructure" data-testid="nav-sections" to="/admin/sections"><Icon name="grid" />Sections</RouterLink>
-          <RouterLink data-testid="nav-timetable" to="/admin/timetable"><Icon name="clock" />Timetable</RouterLink>
-          <RouterLink data-testid="nav-circulars" to="/admin/circulars"><Icon name="megaphone" />Circulars</RouterLink>
-          <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />Fees</RouterLink>
-          <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"><Icon name="calendar" />Leave</RouterLink>
-          <RouterLink data-testid="nav-messages" to="/admin/messages"><Icon name="chat" />Messages</RouterLink>
+          <div class="nav-group">
+            <div class="nav-group-label">Overview</div>
+            <RouterLink data-testid="nav-dashboard" to="/admin"><Icon name="home" />Dashboard</RouterLink>
+          </div>
+
+          <div v-if="canManagePeople" class="nav-group">
+            <div class="nav-group-label">People</div>
+            <RouterLink data-testid="nav-students" to="/admin/students"><Icon name="users" />Students</RouterLink>
+            <RouterLink data-testid="nav-parents" to="/admin/parents"
+              ><Icon name="user-circle" />Parents</RouterLink
+            >
+            <RouterLink data-testid="nav-teachers" to="/admin/teachers"
+              ><Icon name="chalkboard" />Teachers</RouterLink
+            >
+          </div>
+
+          <div v-if="canManageOrgStructure" class="nav-group">
+            <div class="nav-group-label">Org Structure</div>
+            <RouterLink data-testid="nav-schools" to="/admin/schools"
+              ><Icon name="chalkboard" />Schools</RouterLink
+            >
+            <RouterLink data-testid="nav-campuses" to="/admin/campuses"><Icon name="grid" />Campuses</RouterLink>
+            <RouterLink data-testid="nav-academic-sessions" to="/admin/academic-sessions"
+              ><Icon name="calendar" />Academic Sessions</RouterLink
+            >
+            <RouterLink data-testid="nav-classes" to="/admin/classes"><Icon name="grid" />Classes</RouterLink>
+            <RouterLink data-testid="nav-sections" to="/admin/sections"><Icon name="grid" />Sections</RouterLink>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-group-label">Operations</div>
+            <RouterLink v-if="canManageTimetable" data-testid="nav-timetable" to="/admin/timetable"
+              ><Icon name="clock" />Timetable</RouterLink
+            >
+            <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />Fees</RouterLink>
+            <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"
+              ><Icon name="calendar" />Leave</RouterLink
+            >
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-group-label">Communication</div>
+            <RouterLink v-if="canManageCirculars" data-testid="nav-circulars" to="/admin/circulars"
+              ><Icon name="megaphone" />Circulars</RouterLink
+            >
+            <RouterLink data-testid="nav-messages" to="/admin/messages"><Icon name="chat" />Messages</RouterLink>
+          </div>
         </template>
       </nav>
 
@@ -160,12 +404,20 @@ async function onLogout() {
         <slot />
       </main>
     </div>
+
+    <CommandPalette
+      :open="isPaletteOpen"
+      :go-to-items="goToItems"
+      :action-items="actionItems"
+      @close="isPaletteOpen = false"
+    />
   </div>
 </template>
 
 <style scoped>
 .shell {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -173,22 +425,74 @@ async function onLogout() {
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-3);
   height: var(--topbar-height);
   padding: 0 var(--space-4);
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .brand {
   font-weight: 700;
   color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.crumbs {
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+.crumbs b {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.topbar-spacer {
+  flex: 1;
+}
+
+.cmdk-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 6px var(--space-2) 6px 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-muted);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  min-width: 200px;
+  transition: border-color var(--transition-fast);
+}
+.cmdk-trigger:hover {
+  border-color: var(--color-accent);
+}
+.cmdk-trigger span {
+  flex: 1;
+  text-align: left;
+}
+.cmdk-trigger kbd {
+  font-family: var(--font-family-mono);
+  font-size: 0.68rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  color: var(--color-muted);
 }
 
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
+}
+
+.role-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .icon-button {
@@ -219,6 +523,7 @@ async function onLogout() {
   color: var(--color-on-primary);
   font-size: var(--font-size-xs);
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .logout {
@@ -254,6 +559,25 @@ async function onLogout() {
   padding: var(--space-3);
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
+  overflow-y: auto;
+}
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: var(--space-3);
+}
+.nav-group:first-child {
+  margin-top: 0;
+}
+.nav-group-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  padding: 0.3rem 0.7rem 0.15rem;
 }
 
 .sidenav a {
@@ -300,11 +624,21 @@ async function onLogout() {
   justify-content: center;
   padding: 0 0.25rem;
 }
+.badge-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 1.5px solid var(--color-surface);
+}
 .notif-dropdown {
   position: absolute;
   top: 100%;
   right: 0;
-  width: 280px;
+  width: 300px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -315,9 +649,8 @@ async function onLogout() {
 }
 .notif-item {
   display: flex;
-  flex-direction: column;
   align-items: flex-start;
-  gap: 0.2rem;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border: none;
   border-bottom: 1px solid var(--color-border);
@@ -325,6 +658,27 @@ async function onLogout() {
   text-align: left;
   cursor: pointer;
   font: inherit;
+}
+.notif-icon {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-muted-bg);
+  color: var(--color-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.notif-icon.actionable {
+  background: var(--color-status-info-tint);
+  color: var(--color-status-info);
+}
+.notif-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
 }
 .notif-item.unread strong {
   font-weight: 700;

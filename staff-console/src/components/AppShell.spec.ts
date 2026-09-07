@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
@@ -20,7 +20,7 @@ function makeRouter() {
     routes: [
       { path: '/login', name: 'login', component: { template: '<div>login</div>' } },
       { path: '/teacher', name: 'teacher-home', component: { template: '<div>teacher</div>' } },
-      { path: '/admin', name: 'admin-home', component: { template: '<div>admin</div>' } },
+      { path: '/admin', name: 'admin-home', component: { template: '<div>admin</div>' }, meta: { title: 'Dashboard' } },
       { path: '/admin/fees', name: 'admin-fees', component: { template: '<div>fees</div>' } },
       { path: '/admin/leave', name: 'admin-leave', component: { template: '<div>leave</div>' } },
       { path: '/teacher/messages', name: 'teacher-messages', component: { template: '<div>messages</div>' } },
@@ -56,6 +56,16 @@ async function mountAsRole(role: string) {
   await flushPromises();
   return wrapper;
 }
+
+afterEach(() => {
+  document.documentElement.removeAttribute('data-theme');
+  localStorage.clear();
+  // vi.mocked(...).mockResolvedValue(...) (used throughout this file, not mockResolvedValueOnce)
+  // replaces the mock's default resolution for every subsequent test, not just the one that set
+  // it — reset it here so each test starts from the same empty-inbox baseline unless it sets its
+  // own notifications.
+  vi.mocked(api.listNotifications).mockResolvedValue([]);
+});
 
 describe('AppShell (role-gated nav)', () => {
   it('shows only Teacher nav items for a TEACHER role, with no admin items in the DOM at all', async () => {
@@ -182,6 +192,23 @@ describe('AppShell (role-gated nav)', () => {
 
     expect(wrapper.find('[data-testid="nav-fees"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-leave"]').exists()).toBe(false);
+  });
+
+  it('hides nav-circulars and nav-timetable for an ACCOUNTS role (fixes the route/nav mismatch bug)', async () => {
+    const wrapper = await mountAsRole('ACCOUNTS');
+
+    expect(wrapper.find('[data-testid="nav-circulars"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-timetable"]').exists()).toBe(false);
+    // Fees and Messages have no such restriction and should still show.
+    expect(wrapper.find('[data-testid="nav-fees"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-messages"]').exists()).toBe(true);
+  });
+
+  it('shows nav-circulars and nav-timetable for a SCHOOL_ADMIN role', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    expect(wrapper.find('[data-testid="nav-circulars"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-timetable"]').exists()).toBe(true);
   });
 
   it('shows a role-initials avatar and a notifications bell in the topbar', async () => {
@@ -351,5 +378,148 @@ describe('AppShell (role-gated nav)', () => {
     await flushPromises();
 
     expect(wrapper.vm.$router.currentRoute.value.path).toBe('/admin');
+  });
+});
+
+describe('AppShell (breadcrumb)', () => {
+  it("renders the current route's meta.title in the breadcrumb", async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+    await wrapper.vm.$router.push('/admin');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="breadcrumb"]').text()).toBe('Dashboard');
+  });
+});
+
+describe('AppShell (two-tier notifications)', () => {
+  it('shows a dot, not a number, when only non-message unread notifications exist', async () => {
+    vi.mocked(api.listNotifications).mockResolvedValue([
+      {
+        id: 'n1',
+        type: 'circular',
+        title: 'New circular',
+        body: 'Read this',
+        entityRef: 'circ-1',
+        readAt: null,
+        createdAt: '2026-08-29T00:00:00.000Z',
+      },
+    ]);
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    expect(wrapper.find('[data-testid="notif-badge"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="notif-dot"]').exists()).toBe(true);
+  });
+
+  it('shows the numeric badge (not a dot) when at least one message is unread, even alongside ambient unread', async () => {
+    vi.mocked(api.listNotifications).mockResolvedValue([
+      {
+        id: 'n1',
+        type: 'circular',
+        title: 'New circular',
+        body: 'Read this',
+        entityRef: 'circ-1',
+        readAt: null,
+        createdAt: '2026-08-29T00:00:00.000Z',
+      },
+      {
+        id: 'n2',
+        type: 'message',
+        title: 'New message',
+        body: 'Hi',
+        entityRef: 'conv-1',
+        readAt: null,
+        createdAt: '2026-08-29T00:00:00.000Z',
+      },
+    ]);
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    expect(wrapper.find('[data-testid="notif-badge"]').text()).toBe('1');
+    expect(wrapper.find('[data-testid="notif-dot"]').exists()).toBe(false);
+  });
+
+  it('shows neither badge nor dot when there is no unread notification', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    expect(wrapper.find('[data-testid="notif-badge"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="notif-dot"]').exists()).toBe(false);
+  });
+});
+
+describe('AppShell (theme toggle)', () => {
+  it('defaults to no explicit data-theme attribute (follows OS default)', async () => {
+    await mountAsRole('SCHOOL_ADMIN');
+
+    expect(document.documentElement.getAttribute('data-theme')).toBeNull();
+  });
+
+  it('sets data-theme="dark" and persists it on first click', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(localStorage.getItem('seeds.theme')).toBe('dark');
+  });
+
+  it('toggles back to light on a second click', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(localStorage.getItem('seeds.theme')).toBe('light');
+  });
+
+  it('reads a persisted preference back on mount', async () => {
+    localStorage.setItem('seeds.theme', 'dark');
+
+    await mountAsRole('SCHOOL_ADMIN');
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+  });
+});
+
+describe('AppShell (command palette)', () => {
+  it('opens the palette from the topbar trigger', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    expect(wrapper.find('[data-testid="cmdk-overlay"]').exists()).toBe(false);
+
+    await wrapper.find('[data-testid="cmdk-trigger"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="cmdk-overlay"]').exists()).toBe(true);
+  });
+
+  it('opens the palette on Ctrl+K and closes it on a second Ctrl+K', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+    await flushPromises();
+    expect(wrapper.find('[data-testid="cmdk-overlay"]').exists()).toBe(true);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+    await flushPromises();
+    expect(wrapper.find('[data-testid="cmdk-overlay"]').exists()).toBe(false);
+  });
+
+  it("only offers actions the current role can perform (e.g. no 'Add student' for ACCOUNTS)", async () => {
+    const wrapper = await mountAsRole('ACCOUNTS');
+
+    await wrapper.find('[data-testid="cmdk-trigger"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="cmdk-action-add-student"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="cmdk-action-issue-vouchers"]').exists()).toBe(true);
+  });
+
+  it("navigates to /admin/students with ?focus=gr-number for the 'Add student' action", async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    await wrapper.find('[data-testid="cmdk-trigger"]').trigger('click');
+    await wrapper.find('[data-testid="cmdk-action-add-student"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/admin/students');
+    expect(wrapper.vm.$router.currentRoute.value.query.focus).toBe('gr-number');
   });
 });
