@@ -1,7 +1,9 @@
 <script setup lang="ts">
 // Outline-style SVG icons (Phosphor "regular" visual language), 20px, currentColor stroke.
 // No emoji, no icon-library dependency — this project doesn't have one yet (MASTER.md).
-type IconName =
+// Exported (previously local-only) so CommandPalette.vue and AppShell.vue can import this exact
+// union instead of redeclaring it — one source of truth for which icon names exist.
+export type IconName =
   | 'home'
   | 'calendar'
   | 'notebook'
@@ -15,7 +17,10 @@ type IconName =
   | 'receipt'
   | 'logout'
   | 'bell'
-  | 'warning';
+  | 'warning'
+  | 'search'
+  | 'sun'
+  | 'moon';
 
 defineProps<{ name: IconName; size?: number }>();
 </script>
@@ -91,6 +96,17 @@ defineProps<{ name: IconName; size?: number }>();
     <template v-else-if="name === 'warning'">
       <path d="M12 3.5 21 19H3L12 3.5Z" />
       <path d="M12 10v4M12 16.5v.01" />
+    </template>
+    <template v-else-if="name === 'search'">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M20 20l-4.8-4.8" />
+    </template>
+    <template v-else-if="name === 'sun'">
+      <circle cx="12" cy="12" r="4.2" />
+      <path d="M12 2.5v2.5M12 19v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12H5M19 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8" />
+    </template>
+    <template v-else-if="name === 'moon'">
+      <path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z" />
     </template>
   </svg>
 </template>
