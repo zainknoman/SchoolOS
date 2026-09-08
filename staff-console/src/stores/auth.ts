@@ -22,6 +22,12 @@ function loadPersistedSession(): PersistedSession | null {
   }
 }
 
+// Single-flight guard for concurrent 401s: several in-flight requests can all expire around the
+// same moment, and the backend rotates the refresh token on every redemption — a second
+// concurrent refresh call would present an already-revoked token and fail. Kept as module-scope
+// state (not Pinia state) since it holds a Promise, not serializable session data.
+let inFlightRefresh: Promise<string | null> | null = null;
+
 export const useAuthStore = defineStore('auth', {
   state: () => {
     const persisted = loadPersistedSession();
@@ -45,6 +51,32 @@ export const useAuthStore = defineStore('auth', {
       this.refreshToken = session.refreshToken;
       this.role = session.role;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    },
+
+    // Called by the fetch interceptor (Task 5) on a 401. Returns the new access token on
+    // success, or null after logging out on failure.
+    refreshSession(): Promise<string | null> {
+      if (!this.refreshToken) return Promise.resolve(null);
+      if (!inFlightRefresh) {
+        inFlightRefresh = this._doRefresh().finally(() => {
+          inFlightRefresh = null;
+        });
+      }
+      return inFlightRefresh;
+    },
+
+    async _doRefresh(): Promise<string | null> {
+      try {
+        const session = await api.refresh(this.refreshToken as string);
+        this.accessToken = session.accessToken;
+        this.refreshToken = session.refreshToken;
+        this.role = session.role;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        return session.accessToken;
+      } catch {
+        this.logout();
+        return null;
+      }
     },
 
     logout() {
