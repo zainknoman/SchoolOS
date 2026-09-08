@@ -522,6 +522,77 @@ under Sprint 11-12 below are unrelated and still open.
   `Circular`/staff-file school-boundary gap (fine today, single-school system), and the Sprint 9-10
   stuck-pending-payment risk.
 
+## Sprint A — Stabilization I: Session, CI, Data ✅ DONE
+
+Not tied to a single MVP feature — the roadmap's first Tier-0 stabilization sprint, closing the
+"login only ever fails hard" and "no CI" gaps identified as risks before a pilot. Built via
+subagent-driven-development in worktree `sprint-a-stabilization`: 8 code tasks (backend Tasks 1-3,
+staff-console Tasks 4-5, parent-app Tasks 6-7, CI Task 8), each with its own implementer + task
+review, plus this closing verification task.
+
+- [x] **Boot-time JWT-secret fail-fast** — new shared `resolveAccessTokenSecret()`
+      (`backend/src/auth/jwt-secret.ts`), used by both `AuthModule`'s `JwtModule.registerAsync` and
+      `JwtStrategy`, throws at boot if `JWT_ACCESS_SECRET` is unset outside `development`/`test`
+      instead of silently signing/verifying with the shared `dev-only-change-me-access` fallback —
+      closes a real "ships with a guessable default secret" risk before any staging/production
+      deploy.
+- [x] **Refresh-token loop with rotation-on-use** — new `POST /api/v1/auth/refresh`
+      (`AuthService.refresh()`), backed by a hashed (`sha256`), single-use `RefreshToken` row per
+      session: presenting a token revokes it immediately, then issues a fresh access+refresh pair
+      via the same `issueSession()` `login()` already used — so a replayed/stolen refresh token is
+      rejected on its second use even though the legitimate caller already has a new pair. e2e
+      coverage for both the happy path (refresh-then-retry with the new access token) and the
+      rotation-on-reuse rejection.
+- [x] **staff-console retry-on-401 interceptor** — `api.refresh()` + `authStore.refreshSession()`
+      (single-flight-guarded, so several requests expiring around the same moment share one
+      in-flight refresh instead of each racing their own) wired into a new fetch interceptor
+      (`installFetchInterceptor`, `main.ts`): on a 401, attempt exactly one silent
+      refresh-and-retry before forcing logout, matching the spec's client-session contract.
+- [x] **parent-app retry-on-401 interceptor** — the same contract on the Flutter side:
+      `ApiClient.refresh()` + `AuthState.refreshSession()`, consumed by a new
+      `RefreshingHttpClient` (`lib/src/api/refreshing_http_client.dart`) wrapping `http.Client` —
+      one silent refresh-and-retry on a 401, then forced logout, wired into `main.dart`'s client
+      construction.
+- [x] **CI pipeline** — new `.github/workflows/ci.yml`, three jobs (`backend`/`staff-console`/
+      `parent-app`) on every PR and push to `main`: backend runs
+      `lint`/`build`/`test`/`test:e2e`, staff-console runs `lint`/`test`/`build`, parent-app runs
+      `flutter analyze`/`flutter test`. Codifies exactly the commands each of Tasks 1-7 already
+      verified locally, run against a real GitHub Actions checkout rather than a developer machine.
+- Notable finding (from this task's own closing verification, not a defect in Tasks 1-8): running
+  the full combined suite for the first time surfaced that `backend/test/jest-e2e.json`'s default
+  Jest hook timeout (5000ms) is too tight for a full `AppModule` bootstrap (Nest DI container +
+  Prisma/`better-sqlite3` connect) under Jest's default parallel workers — 11 suites, each booting
+  its own app instance concurrently — and that those parallel workers also contend for locks on the
+  one shared SQLite `dev.db` file — `npm run test:e2e` as literally specified fails deterministically
+  (8-10 of 11 suites) purely on `beforeAll` timeouts, reproduced identically on pre-Sprint-A `main`.
+  With `--runInBand` (serializing the workers, sidestepping the SQLite contention) and a realistic
+  timeout, the same 11 suites/57 tests pass cleanly, twice back-to-back — confirming Tasks 1-8's
+  actual integration is sound and this is a pre-existing test-runner/environment characteristic, not
+  a regression. See Follow-up below; this sharpens (doesn't replace) the Sprint 7-8 follow-up that
+  first flagged `dev.db` lock contention.
+- Verified (real numbers, this closing run): backend 225 unit tests (40 suites) all passing,
+  `npm run build` (type-check) clean; backend e2e 57 tests (11 suites) passing, run twice
+  back-to-back with `--runInBand`/a realistic hook timeout per the finding above (both runs clean,
+  no fixture leakage); staff-console 191 tests (27 files) passing, `npm run lint` and `npm run build`
+  both clean; parent-app 62/62 tests passing, `flutter analyze` reports 3 info-level
+  `prefer_initializing_formals` style suggestions (0 errors/warnings — 2 pre-existing in
+  `auth_state.dart`, 1 new in this sprint's own `refreshing_http_client.dart`, same non-blocking
+  category as before). Backend's `npm run lint` itself still reports the same pre-existing,
+  repo-wide Prettier/formatting debt already named in the Security Hardening Pass section above
+  (682 errors — confirmed byte-for-byte identical in count and file list to pre-Sprint-A `main`'s
+  672, aside from 10 new errors confined to the 3 files this sprint touched/added under
+  `src/auth/`, following the same never-`prettier --write`d convention as the rest of the codebase);
+  not fixed here, out of scope for a session-layer/CI sprint.
+- Follow-up (tracked, not blocking): the CI workflow has been created and committed
+  (`.github/workflows/ci.yml`) but **has not yet been pushed to GitHub** — pushing it and confirming
+  the workflow actually runs green on GitHub Actions, and then turning on branch protection
+  requiring it before merge, are both still open and require the repo owner's action. Also open:
+  give `backend/test/jest-e2e.json` its own SQLite file (already tracked as a Sprint 7-8 follow-up
+  for dev-server contention; this sprint's finding above shows it's needed for e2e's own parallel
+  workers too) and/or raise its default hook timeout — until then, run backend e2e locally with
+  `--runInBand` for a trustworthy signal rather than the bare `npm run test:e2e` default. Still open
+  from prior sprints (unchanged here): everything under Sprint 11-12 below.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
@@ -661,14 +732,23 @@ own implementer + task review, plus this manual verification task.
 
 ---
 
-**Next step:** the Staff Console Shell Redesign is done (see above); its own spec scoped a follow-up
-per-screen pass (empty/loading/error state machine + a shared `StatusPill.vue` across all 14
-admin/teacher views) that has not been started — spec/plan not yet written. The parent-app (Flutter)
-half of the original design-refresh request also has not been started — its own spec is next after
-that. Separately, **Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's offline-caching
-slice is done; remaining: FEAT-014's Play Store submission, switch the Prisma datasource from
-SQLite to PostgreSQL before any staging/production deploy, rotate the dev-only JWT secrets, wire
-real S3-compatible storage and a real Firebase project for FCM, then a pilot rollout (one
-campus/class, 20-50 parents) before full cutover. A broader security review pass beyond the five
-items the Security Hardening Pass already closed is worth doing before that pilot, but nothing
-specific is queued.
+**Next step:** **Sprint A — Stabilization I** is done (see above) — the working refresh-token loop
+with rotation-on-use, boot-time JWT-secret fail-fast, both clients' retry-on-401 interceptors, and
+the CI pipeline definition are all in place. What's left from that sprint is not code: pushing
+`.github/workflows/ci.yml` to GitHub, confirming it runs green, and turning on branch protection
+requiring it, all need the repo owner's action (see Sprint A's Follow-up above). The logical next
+piece of Tier-0 stabilization is **Sprint B** — migrating the Prisma datasource from SQLite to
+PostgreSQL, and hardening file uploads/CORS/rate-limiting — not yet spec'd. Separately, the Staff
+Console Shell Redesign is done (see above); its own spec scoped a follow-up per-screen pass
+(empty/loading/error state machine + a shared `StatusPill.vue` across all 14 admin/teacher views)
+that has not been started — spec/plan not yet written. The parent-app (Flutter) half of the
+original design-refresh request also has not been started — its own spec is next after that.
+**Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's offline-caching slice is done;
+remaining: FEAT-014's Play Store submission, switch the Prisma datasource from SQLite to
+PostgreSQL before any staging/production deploy (tracked here and as Sprint B above — same item,
+two names), rotate the dev-only JWT secrets in `backend/.env` (Sprint A's boot-time fail-fast now
+refuses to boot on the dev-only secret outside dev/test, so a stale secret is caught immediately
+rather than silently deployed — the rotation itself still needs doing), wire real S3-compatible
+storage and a real Firebase project for FCM, then a pilot rollout (one campus/class, 20-50 parents)
+before full cutover. A broader security review pass beyond the five items the Security Hardening
+Pass already closed is worth doing before that pilot, but nothing specific is queued.
