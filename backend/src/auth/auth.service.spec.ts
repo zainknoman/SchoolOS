@@ -208,7 +208,9 @@ describe('AuthService', () => {
     it('rejects an unknown refresh token', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(null);
 
-      await expect(service.refresh('garbage-token')).rejects.toThrow(GENERIC_AUTH_ERROR);
+      await expect(service.refresh('garbage-token')).rejects.toThrow(
+        GENERIC_AUTH_ERROR,
+      );
     });
 
     it('rejects an expired refresh token', async () => {
@@ -217,7 +219,9 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() - 1000),
       });
 
-      await expect(service.refresh('expired-token')).rejects.toThrow(GENERIC_AUTH_ERROR);
+      await expect(service.refresh('expired-token')).rejects.toThrow(
+        GENERIC_AUTH_ERROR,
+      );
     });
 
     it('rejects an already-revoked refresh token (rejects reuse)', async () => {
@@ -226,7 +230,9 @@ describe('AuthService', () => {
         revokedAt: new Date(),
       });
 
-      await expect(service.refresh('reused-token')).rejects.toThrow(GENERIC_AUTH_ERROR);
+      await expect(service.refresh('reused-token')).rejects.toThrow(
+        GENERIC_AUTH_ERROR,
+      );
       expect(prisma.refreshToken.update).not.toHaveBeenCalled();
     });
   });

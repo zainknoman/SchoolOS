@@ -85,9 +85,15 @@ export class AuthService {
 
   async refresh(refreshToken: string): Promise<SessionResult> {
     const tokenHash = hashToken(refreshToken);
-    const stored = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
+    const stored = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
 
-    if (!stored || stored.revokedAt || stored.expiresAt.getTime() < Date.now()) {
+    if (
+      !stored ||
+      stored.revokedAt ||
+      stored.expiresAt.getTime() < Date.now()
+    ) {
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }
 
@@ -100,7 +106,9 @@ export class AuthService {
       data: { revokedAt: new Date() },
     });
 
-    const user = await this.prisma.user.findUnique({ where: { id: stored.userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: stored.userId },
+    });
     if (!user) {
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }

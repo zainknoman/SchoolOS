@@ -563,35 +563,50 @@ review, plus this closing verification task.
   Jest hook timeout (5000ms) is too tight for a full `AppModule` bootstrap (Nest DI container +
   Prisma/`better-sqlite3` connect) under Jest's default parallel workers — 11 suites, each booting
   its own app instance concurrently — and that those parallel workers also contend for locks on the
-  one shared SQLite `dev.db` file — `npm run test:e2e` as literally specified fails deterministically
-  (8-10 of 11 suites) purely on `beforeAll` timeouts, reproduced identically on pre-Sprint-A `main`.
-  With `--runInBand` (serializing the workers, sidestepping the SQLite contention) and a realistic
-  timeout, the same 11 suites/57 tests pass cleanly, twice back-to-back — confirming Tasks 1-8's
-  actual integration is sound and this is a pre-existing test-runner/environment characteristic, not
-  a regression. See Follow-up below; this sharpens (doesn't replace) the Sprint 7-8 follow-up that
-  first flagged `dev.db` lock contention.
+  one shared SQLite `dev.db` file, so `npm run test:e2e` as literally specified failed
+  deterministically (8-10 of 11 suites) purely on `beforeAll` timeouts, reproduced identically on
+  pre-Sprint-A `main`. **Root-caused and fixed in the post-review fix wave**: `jest-e2e.json` now
+  sets `"maxWorkers": 1` and `"testTimeout": 30000`, so the bare `npm run test:e2e` command is
+  reliable on its own — no `--runInBand` workaround needed. This sharpens (doesn't replace) the
+  Sprint 7-8 follow-up that first flagged `dev.db` lock contention; giving e2e its own SQLite file
+  remains a possible future improvement but is no longer required for a trustworthy signal.
 - Verified (real numbers, this closing run): backend 225 unit tests (40 suites) all passing,
   `npm run build` (type-check) clean; backend e2e 57 tests (11 suites) passing, run twice
-  back-to-back with `--runInBand`/a realistic hook timeout per the finding above (both runs clean,
-  no fixture leakage); staff-console 191 tests (27 files) passing, `npm run lint` and `npm run build`
-  both clean; parent-app 62/62 tests passing, `flutter analyze` reports 3 info-level
-  `prefer_initializing_formals` style suggestions (0 errors/warnings — 2 pre-existing in
-  `auth_state.dart`, 1 new in this sprint's own `refreshing_http_client.dart`, same non-blocking
-  category as before). Backend's `npm run lint` itself still reports the same pre-existing,
-  repo-wide Prettier/formatting debt already named in the Security Hardening Pass section above
-  (682 errors — confirmed byte-for-byte identical in count and file list to pre-Sprint-A `main`'s
-  672, aside from 10 new errors confined to the 3 files this sprint touched/added under
-  `src/auth/`, following the same never-`prettier --write`d convention as the rest of the codebase);
-  not fixed here, out of scope for a session-layer/CI sprint.
+  back-to-back with the bare `npm run test:e2e` command (both runs clean, no fixture leakage, no
+  `--runInBand` needed once `maxWorkers`/`testTimeout` were set); staff-console 191 tests (27 files)
+  passing, `npm run lint` and `npm run build` both clean; parent-app 62/62 tests passing,
+  `flutter analyze` reports 3 info-level `prefer_initializing_formals` style suggestions (0
+  errors/warnings — 2 pre-existing in `auth_state.dart`, 1 new in this sprint's own
+  `refreshing_http_client.dart`, same non-blocking category as before). Backend's `npm run lint`
+  itself still reports the same pre-existing, repo-wide Prettier/formatting debt already named in
+  the Security Hardening Pass section above (682 errors — confirmed byte-for-byte identical in count
+  and file list to pre-Sprint-A `main`'s 672, aside from 10 new errors confined to the 3 files this
+  sprint touched/added under `src/auth/`, following the same never-`prettier --write`d convention as
+  the rest of the codebase); those 10 were fixed in the post-review fix wave (see below), leaving the
+  672 pre-existing errors untouched and out of scope for a session-layer/CI sprint.
 - Follow-up (tracked, not blocking): the CI workflow has been created and committed
   (`.github/workflows/ci.yml`) but **has not yet been pushed to GitHub** — pushing it and confirming
   the workflow actually runs green on GitHub Actions, and then turning on branch protection
-  requiring it before merge, are both still open and require the repo owner's action. Also open:
-  give `backend/test/jest-e2e.json` its own SQLite file (already tracked as a Sprint 7-8 follow-up
-  for dev-server contention; this sprint's finding above shows it's needed for e2e's own parallel
-  workers too) and/or raise its default hook timeout — until then, run backend e2e locally with
-  `--runInBand` for a trustworthy signal rather than the bare `npm run test:e2e` default. Still open
-  from prior sprints (unchanged here): everything under Sprint 11-12 below.
+  requiring it before merge, are both still open and require the repo owner's action. The backend
+  `lint` step in that workflow is deliberately `continue-on-error: true`, non-blocking pending the
+  672-error pre-existing Prettier/CRLF backlog (see Security Hardening Pass section above); flip it
+  to blocking once that backlog is cleared — staff-console's `lint` step stays blocking, it's clean.
+  Still open from prior sprints (unchanged here): everything under Sprint 11-12 below.
+- Follow-up (tracked, not blocking, found in the final whole-branch review): `AuthService.issueSession()`
+  mints a new `RefreshToken` row on every refresh, not just every login — with the 15-minute
+  access-token TTL, one actively-used session writes roughly a new row every 15 minutes (~96/day for
+  a single active user), and nothing ever prunes revoked or expired rows. Not a problem at pilot
+  scale, but worth tracking before it becomes one — e.g. a `deleteMany` on expired/revoked rows
+  inside `issueSession()`, or a scheduled sweep, whenever `auth/` is next touched.
+- Follow-up (tracked, not blocking, found in the final whole-branch review): the retry-on-401
+  interceptors added by this sprint (staff-console's `installFetchInterceptor`, parent-app's
+  `RefreshingHttpClient`) don't cover every authenticated request. `voucherPdfUrl`/`receiptPdfUrl` on
+  both clients build `?access_token=<token>` URLs opened via `<a href>` (staff-console) or
+  `url_launcher` (parent-app) — neither ever passes through `window.fetch` or `RefreshingHttpClient`,
+  so a user whose access token has expired and whose first action after being idle is clicking one of
+  those links gets a hard 401 with no silent refresh. This is a real, if narrow, gap in this sprint's
+  own "zero user-visible interruption" goal for that one traffic class — a known limitation, not a
+  closed item.
 
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
