@@ -67,4 +67,45 @@ describe('Auth (e2e)', () => {
         expect([401, 404]).toContain(res.status);
       });
   });
+
+  it('exchanges a refresh token for a new access+refresh token pair', async () => {
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ identifier: testIdentifier, password: testPassword })
+      .expect(201);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: loginRes.body.refreshToken })
+      .expect(201);
+
+    expect(res.body.accessToken).toEqual(expect.any(String));
+    expect(res.body.refreshToken).toEqual(expect.any(String));
+    expect(res.body.refreshToken).not.toBe(loginRes.body.refreshToken);
+    expect(res.body.role).toBe('PARENT');
+  });
+
+  it('rejects reuse of an already-redeemed refresh token (rotation-on-use)', async () => {
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ identifier: testIdentifier, password: testPassword })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: loginRes.body.refreshToken })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: loginRes.body.refreshToken })
+      .expect(401);
+  });
+
+  it('rejects an unknown/garbage refresh token', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: 'not-a-real-token' })
+      .expect(401);
+  });
 });
