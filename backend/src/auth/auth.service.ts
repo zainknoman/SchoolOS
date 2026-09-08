@@ -83,6 +83,31 @@ export class AuthService {
     return this.issueSession(user.id, user.role);
   }
 
+  async refresh(refreshToken: string): Promise<SessionResult> {
+    const tokenHash = hashToken(refreshToken);
+    const stored = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
+
+    if (!stored || stored.revokedAt || stored.expiresAt.getTime() < Date.now()) {
+      throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+    }
+
+    // Rotation-on-use: revoke the presented token immediately, so a replayed copy of it (e.g.
+    // from a stolen log or a slow network retry racing a legitimate refresh) is rejected by the
+    // check above the next time anyone tries to use it — even though the legitimate caller
+    // already received a fresh pair below.
+    await this.prisma.refreshToken.update({
+      where: { id: stored.id },
+      data: { revokedAt: new Date() },
+    });
+
+    const user = await this.prisma.user.findUnique({ where: { id: stored.userId } });
+    if (!user) {
+      throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+    }
+
+    return this.issueSession(user.id, user.role);
+  }
+
   private async issueSession(
     userId: string,
     role: string,

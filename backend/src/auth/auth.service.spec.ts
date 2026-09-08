@@ -177,4 +177,57 @@ describe('AuthService', () => {
       service.assertRole('TEACHER', ['TEACHER', 'SCHOOL_ADMIN']),
     ).not.toThrow();
   });
+
+  describe('refresh', () => {
+    const storedToken = {
+      id: 'rt-1',
+      userId: 'user-1',
+      tokenHash: expect.any(String),
+      expiresAt: new Date(Date.now() + 60_000),
+      revokedAt: null as Date | null,
+    };
+
+    it('exchanges a valid, unexpired, unrevoked refresh token for a new session', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue(storedToken);
+      prisma.refreshToken.update.mockResolvedValue({});
+      prisma.user.findUnique.mockResolvedValue({ ...baseUser });
+      prisma.refreshToken.create.mockResolvedValue({});
+
+      const result = await service.refresh('some-raw-refresh-token');
+
+      expect(result.accessToken).toBe('signed-access-token');
+      expect(typeof result.refreshToken).toBe('string');
+      expect(result.role).toBe('PARENT');
+      // the presented token is revoked as part of the same exchange (rotation-on-use)
+      expect(prisma.refreshToken.update).toHaveBeenCalledWith({
+        where: { id: 'rt-1' },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('rejects an unknown refresh token', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue(null);
+
+      await expect(service.refresh('garbage-token')).rejects.toThrow(GENERIC_AUTH_ERROR);
+    });
+
+    it('rejects an expired refresh token', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        ...storedToken,
+        expiresAt: new Date(Date.now() - 1000),
+      });
+
+      await expect(service.refresh('expired-token')).rejects.toThrow(GENERIC_AUTH_ERROR);
+    });
+
+    it('rejects an already-revoked refresh token (rejects reuse)', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        ...storedToken,
+        revokedAt: new Date(),
+      });
+
+      await expect(service.refresh('reused-token')).rejects.toThrow(GENERIC_AUTH_ERROR);
+      expect(prisma.refreshToken.update).not.toHaveBeenCalled();
+    });
+  });
 });
