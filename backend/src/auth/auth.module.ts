@@ -9,6 +9,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { ACCESS_TOKEN_TTL } from './auth.constants';
+import { resolveAccessTokenSecret } from './jwt-secret';
 
 // Exported so its secret-resolution can be unit-tested without booting the whole Nest DI
 // container. Takes a ConfigService (populated from .env by ConfigModule.forRoot() before any
@@ -16,8 +17,7 @@ import { ACCESS_TOKEN_TTL } from './auth.constants';
 // registerAsync call below for why that distinction matters here specifically.
 export function jwtModuleFactory(config: ConfigService) {
   return {
-    secret:
-      config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-only-change-me-access',
+    secret: resolveAccessTokenSecret(config),
     signOptions: { expiresIn: ACCESS_TOKEN_TTL },
   };
 }
