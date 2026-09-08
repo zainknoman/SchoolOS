@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'src/api/api_client.dart';
+import 'src/api/refreshing_http_client.dart';
 import 'src/auth/auth_state.dart';
 import 'src/auth/token_store.dart';
 import 'src/router/app_router.dart';
@@ -23,7 +25,13 @@ class ParentApp extends StatefulWidget {
 }
 
 class _ParentAppState extends State<ParentApp> {
-  late final ApiClient _api = ApiClient(baseUrl: _apiBaseUrl);
+  // _api's RefreshingHttpClient closes over `_auth` via a closure that isn't invoked until an
+  // actual 401 happens — by then `_auth`'s own (lazy, late-final) initializer below has always
+  // already run, since evaluating `_auth`'s initializer is what first triggers `_api`'s.
+  late final ApiClient _api = ApiClient(
+    baseUrl: _apiBaseUrl,
+    client: RefreshingHttpClient(inner: http.Client(), onUnauthorized: () => _auth.refreshSession()),
+  );
   late final AuthState _auth = AuthState(api: _api, tokenStore: SecureTokenStore());
   late final GoRouter _router = buildAppRouter(_auth);
 
