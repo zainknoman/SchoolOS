@@ -13,7 +13,13 @@ class AuthState extends ChangeNotifier {
   final TokenStore _tokenStore;
 
   String? _accessToken;
+  String? _refreshToken;
   String? _role;
+
+  // Single-flight guard for concurrent 401s: several in-flight requests can all expire around the
+  // same moment, and the backend rotates the refresh token on every redemption — a second
+  // concurrent refresh call would present an already-revoked token and fail.
+  Future<String?>? _inFlightRefresh;
 
   bool get isAuthenticated => _accessToken != null;
   String? get role => _role;
@@ -23,9 +29,11 @@ class AuthState extends ChangeNotifier {
   /// forced to log in again every time the app opens (FEAT-005 acceptance criteria).
   Future<void> restoreSession() async {
     final accessToken = await _tokenStore.read('accessToken');
+    final refreshToken = await _tokenStore.read('refreshToken');
     final role = await _tokenStore.read('role');
-    if (accessToken != null && role != null) {
+    if (accessToken != null && refreshToken != null && role != null) {
       _accessToken = accessToken;
+      _refreshToken = refreshToken;
       _role = role;
       notifyListeners();
     }
@@ -37,6 +45,7 @@ class AuthState extends ChangeNotifier {
     final session = await _api.login(identifier, password);
 
     _accessToken = session.accessToken;
+    _refreshToken = session.refreshToken;
     _role = session.role;
 
     await _tokenStore.write('accessToken', session.accessToken);
@@ -46,8 +55,40 @@ class AuthState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Called by [RefreshingHttpClient] on a 401. Returns the new access token on success (having
+  /// already persisted the rotated session), or null after logging out on failure.
+  Future<String?> refreshSession() {
+    return _inFlightRefresh ??= _doRefresh().whenComplete(() {
+      _inFlightRefresh = null;
+    });
+  }
+
+  Future<String?> _doRefresh() async {
+    final refreshToken = _refreshToken;
+    if (refreshToken == null) return null;
+
+    try {
+      final session = await _api.refresh(refreshToken);
+
+      _accessToken = session.accessToken;
+      _refreshToken = session.refreshToken;
+      _role = session.role;
+
+      await _tokenStore.write('accessToken', session.accessToken);
+      await _tokenStore.write('refreshToken', session.refreshToken);
+      await _tokenStore.write('role', session.role);
+
+      notifyListeners();
+      return session.accessToken;
+    } catch (_) {
+      await logout();
+      return null;
+    }
+  }
+
   Future<void> logout() async {
     _accessToken = null;
+    _refreshToken = null;
     _role = null;
 
     await _tokenStore.delete('accessToken');

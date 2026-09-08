@@ -58,6 +58,20 @@ class ApiClient {
     return LoginResponse.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
 
+  Future<LoginResponse> refresh(String refreshToken) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/refresh'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refreshToken': refreshToken}),
+    );
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+
+    return LoginResponse.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
   Future<List<ChildSummary>> meChildren(String accessToken) async {
     final list = await _get('/api/v1/me/children', accessToken) as List<dynamic>;
     return list.map((e) => ChildSummary.fromJson(e as Map<String, dynamic>)).toList();

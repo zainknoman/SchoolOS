@@ -37,6 +37,31 @@ void main() {
     );
   }
 
+  ApiClient refreshingClient() {
+    return ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        if (request.url.path == '/api/v1/auth/login') {
+          return http.Response(
+            jsonEncode({'accessToken': 'access-1', 'refreshToken': 'refresh-1', 'role': 'PARENT'}),
+            200,
+          );
+        }
+        if (request.url.path == '/api/v1/auth/refresh') {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          if (body['refreshToken'] == 'refresh-1') {
+            return http.Response(
+              jsonEncode({'accessToken': 'access-2', 'refreshToken': 'refresh-2', 'role': 'PARENT'}),
+              200,
+            );
+          }
+          return http.Response(jsonEncode({'message': 'Invalid credentials'}), 401);
+        }
+        return http.Response('not found', 404);
+      }),
+    );
+  }
+
   test('starts logged out', () {
     final auth = AuthState(api: okClient(), tokenStore: store);
     expect(auth.isAuthenticated, isFalse);
@@ -85,5 +110,38 @@ void main() {
     expect(auth.isAuthenticated, isFalse);
     expect(auth.role, isNull);
     expect(await store.read('accessToken'), isNull);
+  });
+
+  test('refreshSession() exchanges the stored refresh token for a new session and persists it', () async {
+    final auth = AuthState(api: refreshingClient(), tokenStore: store);
+    await auth.login('parent-a@seeds.edu.pk', 'ChangeMe123!');
+
+    final newAccessToken = await auth.refreshSession();
+
+    expect(newAccessToken, 'access-2');
+    expect(auth.accessToken, 'access-2');
+    expect(await store.read('accessToken'), 'access-2');
+    expect(await store.read('refreshToken'), 'refresh-2');
+  });
+
+  test('refreshSession() logs out and returns null when the refresh call itself fails', () async {
+    final auth = AuthState(api: refreshingClient(), tokenStore: store);
+    await auth.login('parent-a@seeds.edu.pk', 'ChangeMe123!');
+    // Corrupt the stored refresh token so the mock server rejects it.
+    await store.write('refreshToken', 'a-token-the-mock-server-does-not-recognize');
+    final authWithBadToken = AuthState(api: refreshingClient(), tokenStore: store);
+    await authWithBadToken.restoreSession();
+
+    final result = await authWithBadToken.refreshSession();
+
+    expect(result, isNull);
+    expect(authWithBadToken.isAuthenticated, isFalse);
+    expect(await store.read('accessToken'), isNull);
+  });
+
+  test('refreshSession() returns null immediately when there is no refresh token to use', () async {
+    final auth = AuthState(api: okClient(), tokenStore: store);
+    final result = await auth.refreshSession();
+    expect(result, isNull);
   });
 }
