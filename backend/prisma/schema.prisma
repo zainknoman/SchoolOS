@@ -446,7 +446,7 @@ model FeePaymentAllocation {
 model Receipt {
   id           String     @id @default(uuid())
   feePaymentId String     @unique
-  feePayment   FeePayment @relation(fields: [feePaymentId], references: [id], onDelete: Cascade)
+  feePayment   FeePayment @relation(fields: [feePaymentId], references: [id], onDelete: Restrict)
   receiptNumber String    @unique
   createdAt    DateTime   @default(now())
 }

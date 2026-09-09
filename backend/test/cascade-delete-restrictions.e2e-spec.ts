@@ -120,4 +120,34 @@ describe('Historical-record delete restrictions (e2e)', () => {
     const stillThere = await prisma.leaveRequest.findFirst({ where: { studentId } });
     expect(stillThere).not.toBeNull();
   });
+  
+  it('refuses to delete a fee payment that has a receipt', async () => {
+    const payment = await prisma.feePayment.create({
+      data: {
+        amount: 1000,
+        method: 'manual',
+        status: 'completed',
+      },
+    });
+
+    const receipt = await prisma.receipt.create({
+      data: {
+        feePaymentId: payment.id,
+        receiptNumber: `CDR-RECEIPT-${Date.now()}`,
+      },
+    });
+
+    await expect(
+      prisma.feePayment.delete({ where: { id: payment.id } }),
+    ).rejects.toThrow();
+
+    const stillThere = await prisma.receipt.findUnique({
+      where: { id: receipt.id },
+    });
+
+    expect(stillThere).not.toBeNull();
+
+    await prisma.receipt.delete({ where: { id: receipt.id } });
+    await prisma.feePayment.delete({ where: { id: payment.id } });
+  });
 });
