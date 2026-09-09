@@ -3,12 +3,23 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { Public } from './decorators/public.decorator';
+import { Throttle } from '@nestjs/throttler';
+import {
+  AUTH_LOGIN_THROTTLE_LIMIT,
+  THROTTLE_TTL_MS,
+} from '../config/throttler.config';
 
 @Controller('api/v1/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Throttle({
+    default: {
+      limit: AUTH_LOGIN_THROTTLE_LIMIT,
+      ttl: THROTTLE_TTL_MS,
+    },
+  })
   @Post('login')
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto.identifier, dto.password);

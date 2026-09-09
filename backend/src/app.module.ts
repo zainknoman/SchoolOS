@@ -25,9 +25,13 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { ParentModule } from './parent/parent.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { StudentModule } from './student/student.module';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { GENERAL_THROTTLE_LIMIT, THROTTLE_TTL_MS } from './config/throttler.config';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([{ name: 'default', ttl: THROTTLE_TTL_MS, limit: GENERAL_THROTTLE_LIMIT }]),
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
@@ -54,6 +58,8 @@ import { StudentModule } from './student/student.module';
     StudentModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}
