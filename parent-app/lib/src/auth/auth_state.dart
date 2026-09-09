@@ -5,9 +5,10 @@ import 'token_store.dart';
 /// Parent app's session state — deliberately mirrors staff-console's Pinia auth store so the two
 /// clients behave the same way against the same backend contract.
 class AuthState extends ChangeNotifier {
-  AuthState({required ApiClient api, required TokenStore tokenStore})
-    : _api = api,
-      _tokenStore = tokenStore;
+  //AuthState({required ApiClient api, required TokenStore tokenStore})
+  //  : _api = api,
+  //    _tokenStore = tokenStore;
+  AuthState({required this._api, required this._tokenStore});
 
   final ApiClient _api;
   final TokenStore _tokenStore;

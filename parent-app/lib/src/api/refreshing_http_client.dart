@@ -5,7 +5,8 @@ import 'package:http/http.dart' as http;
 /// http.Client layer (via [http.BaseClient.send], which every convenience method like `get`/`post`
 /// funnels through) means none of ApiClient's ~25 existing methods need to change.
 class RefreshingHttpClient extends http.BaseClient {
-  RefreshingHttpClient({required http.Client inner, required this.onUnauthorized}) : _inner = inner;
+  //RefreshingHttpClient({required http.Client inner, required this.onUnauthorized}) : _inner = inner;
+  RefreshingHttpClient({required this._inner, required this.onUnauthorized});
 
   final http.Client _inner;
 
