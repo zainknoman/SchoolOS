@@ -686,6 +686,67 @@ Merged to `main` 2026-09-10 (`b487cee..14428ce`). Plan:
 - Verified (Sprint C closing run): full backend suite green — 239 unit tests (42 suites), 64 e2e
   tests (13 suites) — `npm run build` clean.
 
+## Sprint D — Staff Console Component Extraction (UI Sprint 2) ✅ DONE
+
+Roadmap's second UI sprint (`docs/superpowers/specs/2026-09-10-sprint-d-component-extraction-design.md`,
+`docs/superpowers/plans/2026-09-10-sprint-d-component-extraction.md`), closing the "8 CRUD screens
+each hand-roll their own table/form/button markup" gap the UI/UX Audit flagged as its single
+highest-leverage fix. Pure UI-layer dedup — zero intended visual change, no API/schema/business-logic
+change. Merged to `main` 2026-09-10 (`01fd167..d4e4e50`), 19 tasks: 4 shared components + `useConfirm()`
+via subagent-driven-development (Tasks 1-3), switched to inline execution for the remainder (Tasks
+4-19, per a mid-sprint request to reduce subagent token spend).
+
+- [x] **4 new shared components** — `Button.vue`, `FormField.vue` (text/password/date/select/checkbox,
+      a visually-hidden `sr-only` label for accessibility with zero visible change, an opt-in `grow`
+      prop replicating each screen's original per-field flex sizing), `EntityTable.vue` (generic,
+      scoped `#cell-<key>`/`#actions` slots), `ConfirmDialog.vue` + a `useConfirm()` singleton queue
+      (mounted once in `AppShell.vue`, replaces every native `window.confirm()` with a themed modal —
+      Escape/click-outside/Cancel all decline, focus moves to Cancel on open and returns to the
+      trigger on close, a second concurrent `confirm()` call queues behind the first). Each has its
+      own component spec.
+- [x] **All 8 CRUD screens migrated** (School → Campus → AcademicSession → Section → Class → Teacher →
+      Parent → Student, increasing complexity order) onto the shared components — every existing
+      `data-testid` preserved via passthrough, every screen's existing spec updated in the same
+      commit as its migration, not a separate pass.
+- [x] **Every remaining `window.confirm()` call replaced** — all 8 CRUD screens' delete guards, plus
+      new guards added to Timetable's delete/bulk-replace and Leave's reject (previously unconfirmed
+      entirely). A new regression spec (`noWindowConfirm.spec.ts`) bans any `window.confirm` reference
+      anywhere in `staff-console/src`.
+- [x] **Dead teacher Timetable nav link removed** (`AppShell.vue` — pointed at `href="#"`, no real
+      route; Sprint I re-adds a real `RouterLink` once a teacher-facing timetable view exists) and the
+      breadcrumb's mismatched `aria-label="Breadcrumb"` renamed to `"Page title"` (the audit's
+      "trivial: rename the label" framing, not the "small: build a real trail" alternative).
+- Five real gaps between the design doc and the actual codebase were found and resolved during
+  planning (documented in the plan's "Resolved Spec Gaps" section): `FormField` needed a `date` type
+  the doc's prop union omitted (`AcademicSessionManagementView`'s two date fields); `EntityTable`
+  needed an `editingId` prop the doc's own slot example required but its props list omitted; the
+  doc's "label above control" language would have added visible text no current screen has — resolved
+  in favor of the doc's own overriding "zero visual change" constraint via the sr-only label instead;
+  `StudentManagementView`'s GR-number deep-link (`useFocusTarget`) needed widening from
+  `Ref<HTMLElement>` to `Ref<{ focus(): void }>` so a `FormField` instance could satisfy it; per-field
+  `flex: 1` growth turned out not to be uniform across the 7 `.inline-form` screens (verified by
+  reading every view's own `<style>` block) — `FormField`'s `grow` prop lets each migrated field match
+  its exact pre-migration behavior.
+- Four real defects self-caught during implementation, all fixed inline: a `ConfirmDialog` focus-
+  management watcher needed `flush: 'post'` (caught during plan review, before any code was written);
+  `EntityTable.spec.ts`'s test type needed an index signature for `vue-tsc` (vitest doesn't type-check,
+  so this slipped through its own task's test run until a later `type-check` pass caught it); jsdom's
+  `URL` constructor doesn't support two-arg relative resolution against a `file:` base, breaking the
+  regression spec as originally drafted — fixed with `path.dirname()` instead; the regression spec's
+  Node builtin imports needed a scoped `/// <reference types="node" />` since the app's tsconfig is
+  browser-only. One more, ESLint-only: `Button.vue` trips `vue/multi-word-component-names` (every
+  pre-existing component name happens to be multi-word) — kept the spec-mandated name and added a
+  scoped `ignores` entry rather than renaming it through 8 already-migrated screens.
+- Verified: `npm run test` (33 files, 226 tests) / `type-check` / `lint` all green in `staff-console`;
+  live-smoke-tested in the browser against real seed data (Super Admin role) — every migrated screen
+  renders pixel-equivalent to before, and the new `ConfirmDialog` correctly guards a Student delete
+  and surfaces the backend's real referential-integrity rejection ("Cannot delete this Student: other
+  records still reference it.") with zero data loss.
+- Follow-up (tracked, not blocking): the plan's own Step 4 manual pixel-equivalence pass across all 8
+  CRUD screens plus Timetable/Leave was only spot-checked (Students + a Delete-confirm round-trip),
+  not walked screen-by-screen — worth a fuller pass opportunistically, though nothing found so far
+  suggests a regression.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
@@ -827,11 +888,11 @@ own implementer + task review, plus this manual verification task.
 
 ---
 
-**Next step:** **Sprint A**, **Sprint B**, and **Sprint C** are all done, and CI is confirmed green
-on GitHub Actions against `main` (2026-09-10 — see Sprint A's Follow-up above). What's left from
-Sprint A is not code: turning on branch protection requiring the CI workflow before merge needs the
-repo owner's action. The next unstarted roadmap sprint is **Sprint D — Staff Console Component
-Extraction (UI Sprint 2)** — not yet spec'd. Separately,
+**Next step:** **Sprint A**, **Sprint B**, **Sprint C**, and **Sprint D** are all done, and CI is
+confirmed green on GitHub Actions against `main` (2026-09-10 — see Sprint A's Follow-up above).
+What's left from Sprint A is not code: turning on branch protection requiring the CI workflow before
+merge needs the repo owner's action. The next unstarted roadmap sprint is **Sprint E — Payment
+Gateway & Local Rails (Phase 2)** — not yet spec'd. Separately,
 the Staff Console Shell Redesign is done (see above); its own spec scoped a follow-up per-screen pass
 (empty/loading/error state machine + a shared `StatusPill.vue` across all 14 admin/teacher views)
 that has not been started — spec/plan not yet written. The parent-app (Flutter) half of the
