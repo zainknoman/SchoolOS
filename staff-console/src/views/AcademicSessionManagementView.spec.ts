@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import AcademicSessionManagementView from './AcademicSessionManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -12,6 +13,9 @@ vi.mock('../lib/api', () => ({
     updateAcademicSession: vi.fn(),
     deleteAcademicSession: vi.fn(),
   },
+}));
+vi.mock('../lib/useConfirm', () => ({
+  useConfirm: vi.fn(),
 }));
 
 describe('AcademicSessionManagementView', () => {
@@ -23,6 +27,7 @@ describe('AcademicSessionManagementView', () => {
     vi.mocked(api.listAcademicSessions).mockResolvedValue([
       { id: 'as1', label: '2026-2027', startDate: '2026-08-01', endDate: '2027-06-30', isActive: true },
     ]);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
   it('lists sessions, showing which one is active, and creates a new one', async () => {
@@ -68,21 +73,29 @@ describe('AcademicSessionManagementView', () => {
     });
   });
 
-  it('deletes a session after confirmation', async () => {
+  it('deletes a session after confirmation, and does nothing if the confirmation is declined', async () => {
     vi.mocked(api.deleteAcademicSession).mockResolvedValue(undefined);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
     const wrapper = mount(AcademicSessionManagementView);
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-as1"]').trigger('click');
     await flushPromises();
+    expect(api.deleteAcademicSession).not.toHaveBeenCalled();
 
+    await wrapper.find('[data-testid="delete-as1"]').trigger('click');
+    await flushPromises();
     expect(api.deleteAcademicSession).toHaveBeenCalledWith('token-1', 'as1');
+    expect(confirmFn).toHaveBeenCalledWith({
+      title: 'Delete this academic session?',
+      message: 'This cannot be undone.',
+      danger: true,
+    });
   });
 
   it('shows the backend error when delete is blocked by dependent records', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(api.deleteAcademicSession).mockRejectedValue(
       new Error('Cannot delete this Academic session: other records still reference it.'),
     );
