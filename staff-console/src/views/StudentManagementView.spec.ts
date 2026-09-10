@@ -6,6 +6,7 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 import StudentManagementView from './StudentManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 // useFocusTarget() (wired in Task 4) calls useRoute(), so every mount needs a router in scope —
 // same pattern MessagesView.spec.ts already uses for its own ?conversationId= deep link.
@@ -29,6 +30,9 @@ vi.mock('../lib/api', () => ({
     deleteStudent: vi.fn(),
   },
 }));
+vi.mock('../lib/useConfirm', () => ({
+  useConfirm: vi.fn(),
+}));
 
 describe('StudentManagementView', () => {
   beforeEach(() => {
@@ -49,6 +53,7 @@ describe('StudentManagementView', () => {
         parentNames: ['Existing Parent'],
       },
     ]);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
   it('lists students with their section and parent names', async () => {
@@ -124,21 +129,29 @@ describe('StudentManagementView', () => {
     expect(api.updateStudent).toHaveBeenCalledWith('token-1', 's1', { grNumber: 'GR-1001', name: 'Renamed Student' });
   });
 
-  it('deletes a student after confirmation', async () => {
+  it('deletes a student after confirmation, and does nothing if the confirmation is declined', async () => {
     vi.mocked(api.deleteStudent).mockResolvedValue(undefined);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
     const wrapper = await mountView();
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-s1"]').trigger('click');
     await flushPromises();
+    expect(api.deleteStudent).not.toHaveBeenCalled();
 
+    await wrapper.find('[data-testid="delete-s1"]').trigger('click');
+    await flushPromises();
     expect(api.deleteStudent).toHaveBeenCalledWith('token-1', 's1');
+    expect(confirmFn).toHaveBeenCalledWith({
+      title: 'Delete this student?',
+      message: 'This cannot be undone.',
+      danger: true,
+    });
   });
 
   it('shows the backend error when delete is blocked by real attendance/fee/leave history', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(api.deleteStudent).mockRejectedValue(new Error('Cannot delete this Student: other records still reference it.'));
 
     const wrapper = await mountView();

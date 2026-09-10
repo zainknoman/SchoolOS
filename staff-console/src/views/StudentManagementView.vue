@@ -4,8 +4,13 @@ import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type ParentSummary, type StudentAdminSummary } from '../lib/api';
 import { useFocusTarget } from '../lib/useFocusTarget';
+import EntityTable from '../components/EntityTable.vue';
+import FormField from '../components/FormField.vue';
+import Button from '../components/Button.vue';
+import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
+const { confirm } = useConfirm();
 
 const sections = ref<SectionSummary[]>([]);
 const parents = ref<ParentSummary[]>([]);
@@ -23,8 +28,8 @@ const newParentName = ref('');
 const newParentPhone = ref('');
 const isSaving = ref(false);
 
-const grNumberInputRef = ref<HTMLInputElement | null>(null);
-useFocusTarget({ 'gr-number': grNumberInputRef });
+const grNumberFieldRef = ref<{ focus(): void } | null>(null);
+useFocusTarget({ 'gr-number': grNumberFieldRef });
 
 const editingId = ref<string | null>(null);
 const editGrNumber = ref('');
@@ -117,7 +122,7 @@ async function onSaveEdit(id: string) {
 
 async function onDelete(id: string) {
   if (!auth.accessToken) return;
-  if (!window.confirm('Delete this student? This cannot be undone.')) return;
+  if (!(await confirm({ title: 'Delete this student?', message: 'This cannot be undone.', danger: true }))) return;
   errorMessage.value = null;
   try {
     await api.deleteStudent(auth.accessToken, id);
@@ -133,75 +138,87 @@ async function onDelete(id: string) {
     <h1>Students</h1>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <table class="entity-table">
-      <thead>
-        <tr>
-          <th>GR Number</th>
-          <th>Name</th>
-          <th>Section</th>
-          <th>Parents</th>
-          <th class="actions-col"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="s in students" :key="s.id">
-          <template v-if="editingId === s.id">
-            <td><input :data-testid="`edit-gr-${s.id}`" v-model="editGrNumber" type="text" /></td>
-            <td><input :data-testid="`edit-name-${s.id}`" v-model="editName" type="text" /></td>
-            <td>{{ s.sectionName ?? '—' }}</td>
-            <td>{{ s.parentNames.join(', ') || '—' }}</td>
-            <td class="actions-col">
-              <button type="button" :data-testid="`save-${s.id}`" @click="onSaveEdit(s.id)">Save</button>
-              <button type="button" class="secondary" @click="cancelEdit">Cancel</button>
-            </td>
-          </template>
-          <template v-else>
-            <td>{{ s.grNumber }}</td>
-            <td>{{ s.name }}</td>
-            <td>{{ s.sectionName ?? '—' }}</td>
-            <td>{{ s.parentNames.join(', ') || '—' }}</td>
-            <td class="actions-col">
-              <button type="button" :data-testid="`edit-${s.id}`" @click="startEdit(s)">Edit</button>
-              <button type="button" class="secondary" :data-testid="`delete-${s.id}`" @click="onDelete(s.id)">
-                Delete
-              </button>
-            </td>
-          </template>
-        </tr>
-      </tbody>
-    </table>
+    <EntityTable
+      :items="students"
+      :columns="[
+        { key: 'grNumber', label: 'GR Number' },
+        { key: 'name', label: 'Name' },
+        { key: 'sectionName', label: 'Section' },
+        { key: 'parentNames', label: 'Parents' },
+      ]"
+      row-key="id"
+      :editing-id="editingId"
+    >
+      <template #cell-grNumber="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-gr-${item.id}`" v-model="editGrNumber" type="text" />
+        <span v-else>{{ item.grNumber }}</span>
+      </template>
+      <template #cell-name="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <span v-else>{{ item.name }}</span>
+      </template>
+      <template #cell-sectionName="{ item }">
+        {{ item.sectionName ?? '—' }}
+      </template>
+      <template #cell-parentNames="{ item }">
+        {{ item.parentNames.join(', ') || '—' }}
+      </template>
+      <template #actions="{ item, editing }">
+        <template v-if="editing">
+          <Button :data-testid="`save-${item.id}`" @click="onSaveEdit(item.id)">Save</Button>
+          <Button variant="secondary" @click="cancelEdit">Cancel</Button>
+        </template>
+        <template v-else>
+          <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
+          <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
+            Delete
+          </Button>
+        </template>
+      </template>
+    </EntityTable>
 
     <div class="add-form">
       <div class="inline-form">
-        <input ref="grNumberInputRef" data-testid="add-gr-number" v-model="newGrNumber" type="text" placeholder="GR number" />
-        <input data-testid="add-name" v-model="newName" type="text" placeholder="Full name" />
-        <select data-testid="add-section" v-model="newSectionId">
-          <option value="" disabled>Choose a section</option>
-          <option v-for="sec in sections" :key="sec.id" :value="sec.id">
-            {{ sec.className }} {{ sec.name }} ({{ sec.campusName }})
-          </option>
-        </select>
+        <FormField
+          ref="grNumberFieldRef"
+          v-model="newGrNumber"
+          label="GR number"
+          type="text"
+          data-testid="add-gr-number"
+          placeholder="GR number"
+          grow
+        />
+        <FormField v-model="newName" label="Full name" type="text" data-testid="add-name" placeholder="Full name" grow />
+        <FormField
+          v-model="newSectionId"
+          label="Section"
+          type="select"
+          data-testid="add-section"
+          placeholder="Choose a section"
+          :options="sections.map((sec) => ({ value: sec.id, label: `${sec.className} ${sec.name} (${sec.campusName})` }))"
+        />
       </div>
 
-      <label class="checkbox-row">
-        <input data-testid="toggle-new-parent" v-model="useNewParent" type="checkbox" />
-        + New Parent (instead of picking an existing one)
-      </label>
+      <FormField v-model="useNewParent" label="+ New Parent (instead of picking an existing one)" type="checkbox" data-testid="toggle-new-parent" />
 
       <div v-if="!useNewParent" class="inline-form">
-        <select data-testid="add-parent-select" v-model="newParentProfileId">
-          <option value="" disabled>Choose a parent</option>
-          <option v-for="p in parents" :key="p.id" :value="p.id">{{ p.name }} ({{ p.identifier }})</option>
-        </select>
+        <FormField
+          v-model="newParentProfileId"
+          label="Parent"
+          type="select"
+          data-testid="add-parent-select"
+          placeholder="Choose a parent"
+          :options="parents.map((p) => ({ value: p.id, label: `${p.name} (${p.identifier})` }))"
+        />
       </div>
       <div v-else class="inline-form">
-        <input data-testid="new-parent-identifier" v-model="newParentIdentifier" type="text" placeholder="Parent login email" />
-        <input data-testid="new-parent-password" v-model="newParentPassword" type="password" placeholder="Initial password" />
-        <input data-testid="new-parent-name" v-model="newParentName" type="text" placeholder="Parent full name" />
-        <input data-testid="new-parent-phone" v-model="newParentPhone" type="text" placeholder="Phone (optional)" />
+        <FormField v-model="newParentIdentifier" label="Parent login email" type="text" data-testid="new-parent-identifier" placeholder="Parent login email" grow />
+        <FormField v-model="newParentPassword" label="Initial password" type="password" data-testid="new-parent-password" placeholder="Initial password" grow />
+        <FormField v-model="newParentName" label="Parent full name" type="text" data-testid="new-parent-name" placeholder="Parent full name" grow />
+        <FormField v-model="newParentPhone" label="Phone" type="text" data-testid="new-parent-phone" placeholder="Phone (optional)" grow />
       </div>
 
-      <button type="button" data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add Student</button>
+      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add Student</Button>
     </div>
   </div>
 </template>
@@ -214,23 +231,6 @@ async function onDelete(id: string) {
   color: var(--color-destructive);
   margin-bottom: var(--space-3);
 }
-.entity-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: var(--space-4);
-}
-.entity-table th,
-.entity-table td {
-  text-align: left;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-}
-.actions-col {
-  width: 1%;
-  white-space: nowrap;
-  display: flex;
-  gap: var(--space-2);
-}
 .add-form {
   display: flex;
   flex-direction: column;
@@ -241,40 +241,8 @@ async function onDelete(id: string) {
 }
 .inline-form {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-2);
   flex-wrap: wrap;
-}
-.inline-form input,
-.inline-form select {
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font: inherit;
-}
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: var(--font-size-sm);
-}
-button {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 600;
-  cursor: pointer;
-  align-self: flex-start;
-}
-button.secondary {
-  background: transparent;
-  color: var(--color-destructive);
-  border: 1px solid var(--color-destructive);
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 </style>
