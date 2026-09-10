@@ -203,4 +203,51 @@ describe('FeePaymentsService', () => {
     prisma.feePayment.findUnique.mockResolvedValue(null);
     await expect(service.getById('missing')).rejects.toThrow(NotFoundException);
   });
+
+  it('reconcile() records a completed cash payment with a receipt, without touching the gateway', async () => {
+    prisma.feeVoucher.findUnique.mockResolvedValue({
+      id: 'v1',
+      items: [{ amount: 500000 }],
+      allocations: [{ amount: 200000 }],
+    });
+    prisma.feePayment.create.mockResolvedValue({
+      id: 'pay-2',
+      amount: 300000,
+      method: 'cash',
+      status: 'completed',
+      allocations: [{ feeVoucherId: 'v1' }],
+      receipt: { id: 'r2' },
+      createdAt: new Date('2026-09-10'),
+    });
+
+    const result = await service.reconcile('v1', { amount: 300000, method: 'cash' }, 'admin-1');
+
+    expect(adapter.initiate).not.toHaveBeenCalled();
+    expect(prisma.feePayment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ amount: 300000, method: 'cash', status: 'completed' }),
+      }),
+    );
+    expect(result).toEqual(expect.objectContaining({ status: 'completed', receiptId: 'r2' }));
+  });
+
+  it("reconcile() rejects an amount greater than the voucher's remaining balance", async () => {
+    prisma.feeVoucher.findUnique.mockResolvedValue({
+      id: 'v1',
+      items: [{ amount: 500000 }],
+      allocations: [{ amount: 200000 }],
+    });
+
+    await expect(
+      service.reconcile('v1', { amount: 999999, method: 'cash' }, 'admin-1'),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.feePayment.create).not.toHaveBeenCalled();
+  });
+
+  it('reconcile() throws NotFoundException for a missing voucher', async () => {
+    prisma.feeVoucher.findUnique.mockResolvedValue(null);
+    await expect(service.reconcile('missing', { amount: 100, method: 'cash' }, 'admin-1')).rejects.toThrow(
+      NotFoundException,
+    );
+  });
 });

@@ -7,6 +7,7 @@ import { FeesPdfService } from './fees-pdf.service';
 import { CreateFeeStructureDto } from './dto/create-fee-structure.dto';
 import { IssueVouchersDto } from './dto/issue-vouchers.dto';
 import { PayVoucherDto } from './dto/pay-voucher.dto';
+import { ReconcilePaymentDto } from './dto/reconcile-payment.dto';
 import { StudentAccessService, RequestUser } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 
@@ -73,6 +74,12 @@ export class FeesController {
       'X-Content-Type-Options': 'nosniff',
     });
     res.send(buffer);
+  }
+
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @Post('fee-vouchers/:id/reconcile')
+  reconcile(@Param('id') id: string, @Body() dto: ReconcilePaymentDto, @Req() req: AuthenticatedRequest) {
+    return this.feePayments.reconcile(id, dto, req.user.id);
   }
 
   @Roles('PARENT')

@@ -143,6 +143,56 @@ export class FeePaymentsService {
     return this.toSummary(updated);
   }
 
+  /**
+   * Staff-recorded cash/bank-transfer payment — no gateway involved, so it's created directly as
+   * `completed` (staff are asserting money was already received in person/via bank), unlike
+   * pay()'s gateway flow which starts `pending` and waits for the webhook.
+   */
+  async reconcile(
+    voucherId: string,
+    dto: { amount: number; method: 'cash' | 'bank_transfer'; note?: string },
+    actingUserId: string,
+  ): Promise<PaymentSummary> {
+    const voucher = await this.prisma.feeVoucher.findUnique({
+      where: { id: voucherId },
+      include: { items: true, allocations: true },
+    });
+    if (!voucher) {
+      throw new NotFoundException('Fee voucher not found');
+    }
+    const totalAmount = voucher.items.reduce((sum, i) => sum + i.amount, 0);
+    const alreadyAllocated = voucher.allocations.reduce((sum, a) => sum + a.amount, 0);
+    const amountDue = totalAmount - alreadyAllocated;
+    if (dto.amount > amountDue) {
+      throw new BadRequestException(`Amount exceeds this voucher's remaining balance of ${amountDue}`);
+    }
+
+    const receiptNumber = `RCPT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomUUID().slice(0, 6)}`;
+    const payment = await this.prisma.feePayment.create({
+      data: {
+        amount: dto.amount,
+        method: dto.method,
+        status: 'completed',
+        reference: `manual_${randomUUID()}`,
+        allocations: { create: [{ feeVoucherId: voucherId, amount: dto.amount }] },
+        receipt: { create: { receiptNumber } },
+      },
+      include: { allocations: true, receipt: true },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'fee-payment.reconcile',
+        entity: 'FeePayment',
+        entityId: payment.id,
+        metadata: JSON.stringify({ voucherId, amount: dto.amount, method: dto.method, note: dto.note }),
+      },
+    });
+
+    return this.toSummary(payment);
+  }
+
   async getForStudent(studentId: string): Promise<PaymentSummary[]> {
     const payments = await this.prisma.feePayment.findMany({
       where: { allocations: { some: { feeVoucher: { studentId } } } },
