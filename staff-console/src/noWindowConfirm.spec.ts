@@ -1,3 +1,7 @@
+/// <reference types="node" />
+// This file's Node builtin imports (fs/path/url) need ambient Node types, which the app's own
+// tsconfig (browser-only, extends @vue/tsconfig/tsconfig.dom.json) doesn't include by default —
+// scoped to just this file rather than widening the whole app's type-check surface.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
