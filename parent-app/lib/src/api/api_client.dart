@@ -11,6 +11,12 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+/// Matches the backend's dev/test-only default (see resolveStubWebhookSecret in
+/// backend/src/fees/gateways/gateway-config.ts). Only ever reaches a real deployment's webhook
+/// route if that route is somehow left wired up outside dev/test — which the backend's own
+/// fail-fast on PAYMENT_STUB_WEBHOOK_SECRET is designed to prevent.
+const stubWebhookSecret = 'dev-only-stub-webhook-secret';
+
 /// Thin wrapper over the shared SEEDS backend — the same `/api/v1` contract the staff console
 /// calls. Takes an injected [http.Client] so tests can supply `MockClient` instead of hitting a
 /// real server.
@@ -205,10 +211,11 @@ class ApiClient {
     return list.map((e) => FeePaymentSummary.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<PaymentInitiation> payVoucher(String accessToken, String voucherId) async {
+  Future<PaymentInitiation> payVoucher(String accessToken, String voucherId, String method) async {
     final res = await _client.post(
       Uri.parse('$baseUrl/api/v1/fee-vouchers/$voucherId/pay'),
-      headers: {'Authorization': 'Bearer $accessToken'},
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({'method': method}),
     );
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw ApiException(_errorMessage(res), res.statusCode);
@@ -216,15 +223,24 @@ class ApiClient {
     return PaymentInitiation.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
 
-  Future<FeePaymentSummary> confirmPayment(String accessToken, String paymentId) async {
+  /// Simulates a real gateway's webhook call for the stub gateway only — local dev/tests have no
+  /// real JazzCash/EasyPaisa server to receive a checkout and call the webhook itself, so this
+  /// plays that role instead, going through the exact same signature-checked backend route a
+  /// real gateway would hit.
+  Future<void> completeStubPayment(String reference) async {
     final res = await _client.post(
-      Uri.parse('$baseUrl/api/v1/fee-payments/$paymentId/confirm'),
-      headers: {'Authorization': 'Bearer $accessToken'},
+      Uri.parse('$baseUrl/api/v1/payments/webhook/stub'),
+      headers: {'Content-Type': 'application/json', 'x-stub-signature': stubWebhookSecret},
+      body: jsonEncode({'reference': reference, 'status': 'completed'}),
     );
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw ApiException(_errorMessage(res), res.statusCode);
     }
-    return FeePaymentSummary.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  Future<FeePaymentSummary> getPayment(String accessToken, String paymentId) async {
+    final json = await _get('/api/v1/fee-payments/$paymentId', accessToken) as Map<String, dynamic>;
+    return FeePaymentSummary.fromJson(json);
   }
 
   Uri voucherPdfUrl(String voucherId, String accessToken) => Uri.parse(
