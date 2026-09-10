@@ -83,16 +83,15 @@ export class FeesController {
     return this.feePayments.pay(id, req.user.id, dto.method);
   }
 
-  @Roles('PARENT')
-  @Post('fee-payments/:id/confirm')
-  async confirmPayment(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  @Get('fee-payments/:id')
+  async getPayment(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const payment = await this.feePayments.getById(id);
     const studentId = payment.allocations[0]?.feeVoucher.studentId;
     if (!studentId) {
       throw new NotFoundException('Payment not found');
     }
     await this.studentAccess.assertCanAccessStudent(req.user, studentId);
-    return this.feePayments.confirm(id, req.user.id);
+    return this.feePayments.toSummary(payment);
   }
 
   @Get('fee-payments/:id/receipt.pdf')

@@ -59,7 +59,7 @@ export class JazzCashWebhookSigner implements PaymentWebhookSigner {
     this.signer = new JazzCashSigner(integritySalt);
   }
 
-  verifyAndParse(body: Record<string, string>): WebhookVerificationResult {
+  verifyAndParse(body: Record<string, string>, _headers: Record<string, string | undefined>): WebhookVerificationResult {
     if (!this.signer.verify(body, body.pp_SecureHash)) {
       return { valid: false };
     }

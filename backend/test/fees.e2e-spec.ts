@@ -185,24 +185,33 @@ describe('Fees (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${ids.voucher}/pay`)
       .set('Authorization', `Bearer ${parentBToken}`)
+      .send({ method: 'jazzcash' })
       .expect(403);
   });
 
-  it('a parent pays a voucher end-to-end through the stub gateway, and can then download the receipt PDF', async () => {
+  it('a parent pays a voucher end-to-end via the stub gateway webhook, and can then download the receipt PDF', async () => {
     const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
 
     const initiated = await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${ids.voucher}/pay`)
       .set('Authorization', `Bearer ${parentAToken}`)
+      .send({ method: 'jazzcash' })
       .expect(201);
     expect(initiated.body.redirectUrl).toBeDefined();
     const paymentId = initiated.body.paymentId as string;
+    const reference = new URL(`http://x${initiated.body.redirectUrl}`).searchParams.get('ref');
 
-    const confirmed = await request(app.getHttpServer())
-      .post(`/api/v1/fee-payments/${paymentId}/confirm`)
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/webhook/stub')
+      .set('x-stub-signature', 'dev-only-stub-webhook-secret')
+      .send({ reference, status: 'completed' })
+      .expect(200);
+
+    const payment = await request(app.getHttpServer())
+      .get(`/api/v1/fee-payments/${paymentId}`)
       .set('Authorization', `Bearer ${parentAToken}`)
-      .expect(201);
-    expect(confirmed.body).toEqual(expect.objectContaining({ status: 'completed', voucherIds: [ids.voucher] }));
+      .expect(200);
+    expect(payment.body).toEqual(expect.objectContaining({ status: 'completed', voucherIds: [ids.voucher] }));
 
     const fees = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/fees`)
@@ -217,6 +226,139 @@ describe('Fees (e2e)', () => {
       .set('Authorization', `Bearer ${parentAToken}`)
       .expect(200);
     expect(receipt.headers['content-type']).toBe('application/pdf');
+  });
+
+  it('a repeated webhook call for an already-completed payment is a no-op', async () => {
+    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const issued = await request(app.getHttpServer())
+      .post('/api/v1/fee-vouchers')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ studentIds: [ids.childA], month: '2026-10', dueDate: '2026-10-10', feeStructureIds: [ids.structure] })
+      .expect(201);
+    const voucherId = issued.body[0].id;
+
+    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const initiated = await request(app.getHttpServer())
+      .post(`/api/v1/fee-vouchers/${voucherId}/pay`)
+      .set('Authorization', `Bearer ${parentAToken}`)
+      .send({ method: 'jazzcash' })
+      .expect(201);
+    const reference = new URL(`http://x${initiated.body.redirectUrl}`).searchParams.get('ref');
+
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/webhook/stub')
+      .set('x-stub-signature', 'dev-only-stub-webhook-secret')
+      .send({ reference, status: 'completed' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/webhook/stub')
+      .set('x-stub-signature', 'dev-only-stub-webhook-secret')
+      .send({ reference, status: 'completed' })
+      .expect(200);
+
+    const payments = await request(app.getHttpServer())
+      .get(`/api/v1/students/${ids.childA}/fees/payments`)
+      .set('Authorization', `Bearer ${parentAToken}`)
+      .expect(200);
+    const matching = payments.body.filter((p: { voucherIds: string[] }) => p.voucherIds.includes(voucherId));
+    expect(matching).toHaveLength(1);
+  });
+
+  it('an unsigned webhook call is rejected and does not mutate payment state', async () => {
+    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const issued = await request(app.getHttpServer())
+      .post('/api/v1/fee-vouchers')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ studentIds: [ids.childA], month: '2026-11', dueDate: '2026-11-10', feeStructureIds: [ids.structure] })
+      .expect(201);
+    const voucherId = issued.body[0].id;
+
+    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const initiated = await request(app.getHttpServer())
+      .post(`/api/v1/fee-vouchers/${voucherId}/pay`)
+      .set('Authorization', `Bearer ${parentAToken}`)
+      .send({ method: 'jazzcash' })
+      .expect(201);
+    const reference = new URL(`http://x${initiated.body.redirectUrl}`).searchParams.get('ref');
+
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/webhook/stub')
+      .set('x-stub-signature', 'wrong-secret')
+      .send({ reference, status: 'completed' })
+      .expect(401);
+
+    const payment = await request(app.getHttpServer())
+      .get(`/api/v1/fee-payments/${initiated.body.paymentId}`)
+      .set('Authorization', `Bearer ${parentAToken}`)
+      .expect(200);
+    expect(payment.body.status).toBe('pending');
+  });
+
+  it('the old client-callable confirm route no longer exists', async () => {
+    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    await request(app.getHttpServer())
+      .post('/api/v1/fee-payments/some-id/confirm')
+      .set('Authorization', `Bearer ${parentAToken}`)
+      .expect(404);
+  });
+
+  it('staff records a cash payment against a voucher, and it appears completed with a receipt', async () => {
+    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const issued = await request(app.getHttpServer())
+      .post('/api/v1/fee-vouchers')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ studentIds: [ids.childA], month: '2026-12', dueDate: '2026-12-10', feeStructureIds: [ids.structure] })
+      .expect(201);
+    const voucherId = issued.body[0].id;
+
+    const reconciled = await request(app.getHttpServer())
+      .post(`/api/v1/fee-vouchers/${voucherId}/reconcile`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ amount: 500000, method: 'cash', note: 'Paid at front office' })
+      .expect(201);
+    expect(reconciled.body).toEqual(expect.objectContaining({ status: 'completed', method: 'cash' }));
+
+    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const fees = await request(app.getHttpServer())
+      .get(`/api/v1/students/${ids.childA}/fees`)
+      .set('Authorization', `Bearer ${parentAToken}`)
+      .expect(200);
+    expect(fees.body.find((v: { id: string }) => v.id === voucherId)).toEqual(
+      expect.objectContaining({ status: 'paid', amountDue: 0 }),
+    );
+  });
+
+  it("reconciling more than a voucher's remaining balance is rejected", async () => {
+    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const issued = await request(app.getHttpServer())
+      .post('/api/v1/fee-vouchers')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ studentIds: [ids.childA], month: '2027-01', dueDate: '2027-01-10', feeStructureIds: [ids.structure] })
+      .expect(201);
+    const voucherId = issued.body[0].id;
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/fee-vouchers/${voucherId}/reconcile`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ amount: 99999999, method: 'cash' })
+      .expect(400);
+  });
+
+  it('a TEACHER cannot reconcile a payment', async () => {
+    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const issued = await request(app.getHttpServer())
+      .post('/api/v1/fee-vouchers')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ studentIds: [ids.childA], month: '2027-02', dueDate: '2027-02-10', feeStructureIds: [ids.structure] })
+      .expect(201);
+    const voucherId = issued.body[0].id;
+
+    const teacherToken = await loginAs('fee-teacher@seeds.edu.pk');
+    await request(app.getHttpServer())
+      .post(`/api/v1/fee-vouchers/${voucherId}/reconcile`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ amount: 100, method: 'cash' })
+      .expect(403);
   });
 
   it('a voucher PDF is downloadable by the owning parent via the ?access_token= fallback', async () => {

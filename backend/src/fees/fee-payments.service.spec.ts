@@ -73,7 +73,7 @@ describe('FeePaymentsService', () => {
     expect(result).toEqual({ redirectUrl: '/pay/x', paymentId: 'pay-1' });
   });
 
-  it('confirm() completed creates a Receipt and marks the payment completed', async () => {
+  it('confirmFromWebhook("completed") creates a Receipt and marks the payment completed', async () => {
     prisma.feePayment.findUnique.mockResolvedValue({
       id: 'pay-1',
       status: 'pending',
@@ -81,7 +81,6 @@ describe('FeePaymentsService', () => {
       allocations: [],
       receipt: null,
     });
-    gateway.confirm.mockResolvedValue({ status: 'completed' });
     prisma.feePayment.update.mockResolvedValue({
       id: 'pay-1',
       amount: 300000,
@@ -92,8 +91,11 @@ describe('FeePaymentsService', () => {
       createdAt: new Date('2026-09-01'),
     });
 
-    const result = await service.confirm('pay-1', 'parent-1');
+    const result = await service.confirmFromWebhook('stub_1', 'completed');
 
+    expect(prisma.feePayment.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { reference: 'stub_1' } }),
+    );
     expect(prisma.feePayment.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: 'completed', receipt: { create: expect.anything() } }),
@@ -104,7 +106,7 @@ describe('FeePaymentsService', () => {
     );
   });
 
-  it('confirm() failed zeroes the allocation amount instead of leaving it counted against the voucher', async () => {
+  it('confirmFromWebhook("failed") zeroes the allocation amount instead of leaving it counted against the voucher', async () => {
     prisma.feePayment.findUnique.mockResolvedValue({
       id: 'pay-1',
       status: 'pending',
@@ -112,7 +114,6 @@ describe('FeePaymentsService', () => {
       allocations: [],
       receipt: null,
     });
-    gateway.confirm.mockResolvedValue({ status: 'failed' });
     prisma.feePayment.update.mockResolvedValue({
       id: 'pay-1',
       amount: 300000,
@@ -123,7 +124,7 @@ describe('FeePaymentsService', () => {
       createdAt: new Date('2026-09-01'),
     });
 
-    const result = await service.confirm('pay-1', 'parent-1');
+    const result = await service.confirmFromWebhook('stub_1', 'failed');
 
     expect(prisma.feePaymentAllocation.updateMany).toHaveBeenCalledWith({
       where: { feePaymentId: 'pay-1' },
@@ -133,12 +134,12 @@ describe('FeePaymentsService', () => {
     expect(result.status).toBe('failed');
   });
 
-  it('confirm() failed keeps the allocation row\'s feeVoucherId FK intact, so a subsequent getById() can still resolve ownership instead of 404ing', async () => {
+  it('confirmFromWebhook("failed") keeps the allocation row\'s feeVoucherId FK intact, so a subsequent getById() can still resolve ownership instead of 404ing', async () => {
     // The allocation is zeroed, not deleted — FeesController derives the ownership-check
-    // studentId from payment.allocations[0]?.feeVoucher.studentId, both for a retried confirm()
-    // call and for the receipt.pdf route. If the row had been deleted, getById() would come back
-    // with an empty allocations array and that derivation would silently produce `undefined`,
-    // manifesting as a misleading 404 "Payment not found" for the payment's rightful owner.
+    // studentId from payment.allocations[0]?.feeVoucher.studentId, both for the receipt.pdf
+    // route. If the row had been deleted, getById() would come back with an empty allocations
+    // array and that derivation would silently produce `undefined`, manifesting as a misleading
+    // 404 "Payment not found" for the payment's rightful owner.
     prisma.feePayment.findUnique.mockResolvedValueOnce({
       id: 'pay-1',
       status: 'pending',
@@ -146,7 +147,6 @@ describe('FeePaymentsService', () => {
       allocations: [],
       receipt: null,
     });
-    gateway.confirm.mockResolvedValue({ status: 'failed' });
     prisma.feePayment.update.mockResolvedValue({
       id: 'pay-1',
       amount: 300000,
@@ -157,7 +157,7 @@ describe('FeePaymentsService', () => {
       createdAt: new Date('2026-09-01'),
     });
 
-    await service.confirm('pay-1', 'parent-1');
+    await service.confirmFromWebhook('stub_1', 'failed');
 
     // Simulate the post-failure DB state a real Postgres/SQLite row would have: the allocation
     // row still exists (amount: 0) with its feeVoucher/student relation intact.
@@ -176,21 +176,27 @@ describe('FeePaymentsService', () => {
     expect(studentId).toBe('s1');
   });
 
-  it('confirm() is idempotent — a payment already completed is returned as-is without calling the gateway again', async () => {
+  it('confirmFromWebhook is idempotent — a payment already resolved is returned as-is on a repeat webhook call', async () => {
     prisma.feePayment.findUnique.mockResolvedValue({
       id: 'pay-1',
       amount: 300000,
       method: 'jazzcash',
       status: 'completed',
+      reference: 'stub_1',
       allocations: [{ feeVoucherId: 'v1' }],
       receipt: { id: 'r1' },
       createdAt: new Date('2026-09-01'),
     });
 
-    const result = await service.confirm('pay-1', 'parent-1');
+    const result = await service.confirmFromWebhook('stub_1', 'completed');
 
-    expect(gateway.confirm).not.toHaveBeenCalled();
+    expect(prisma.feePayment.update).not.toHaveBeenCalled();
     expect(result.status).toBe('completed');
+  });
+
+  it('confirmFromWebhook throws NotFoundException for an unknown reference', async () => {
+    prisma.feePayment.findUnique.mockResolvedValue(null);
+    await expect(service.confirmFromWebhook('unknown-ref', 'completed')).rejects.toThrow(NotFoundException);
   });
 
   it('getById throws NotFoundException for a missing payment', async () => {

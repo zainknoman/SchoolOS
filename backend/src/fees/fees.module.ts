@@ -4,6 +4,7 @@ import { FeeVouchersService } from './fee-vouchers.service';
 import { FeePaymentsService } from './fee-payments.service';
 import { FeesPdfService } from './fees-pdf.service';
 import { FeesController } from './fees.controller';
+import { PaymentsWebhookController } from './payments-webhook.controller';
 import { StudentAccessService } from '../common/student-access.service';
 import { PAYMENT_GATEWAY_ADAPTER_FACTORY, PaymentGatewayAdapterFactoryImpl } from './payment-gateway-adapter-factory';
 
@@ -16,6 +17,6 @@ import { PAYMENT_GATEWAY_ADAPTER_FACTORY, PaymentGatewayAdapterFactoryImpl } fro
     StudentAccessService,
     { provide: PAYMENT_GATEWAY_ADAPTER_FACTORY, useClass: PaymentGatewayAdapterFactoryImpl },
   ],
-  controllers: [FeesController],
+  controllers: [FeesController, PaymentsWebhookController],
 })
 export class FeesModule {}

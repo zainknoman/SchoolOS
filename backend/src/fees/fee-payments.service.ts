@@ -1,11 +1,8 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  PAYMENT_GATEWAY_ADAPTER_FACTORY,
-  PaymentGatewayAdapterFactory,
-  PaymentMethod,
-} from './payment-gateway-adapter-factory';
+import { PAYMENT_GATEWAY_ADAPTER_FACTORY } from './payment-gateway-adapter-factory';
+import type { PaymentGatewayAdapterFactory, PaymentMethod } from './payment-gateway-adapter-factory';
 
 export interface PaymentSummary {
   id: string;
@@ -73,23 +70,25 @@ export class FeePaymentsService {
     return { redirectUrl, paymentId: payment.id };
   }
 
-  async confirm(paymentId: string, actingUserId: string): Promise<PaymentSummary> {
+  /**
+   * The only way a payment becomes completed/failed — called exclusively from
+   * PaymentsWebhookController after that controller has already verified the calling gateway's
+   * signature. Looks the payment up by its unique `reference`, never by an id a client could
+   * supply, so nothing outside a verified webhook can move a payment out of "pending".
+   */
+  async confirmFromWebhook(reference: string, status: 'completed' | 'failed'): Promise<PaymentSummary> {
     const payment = await this.prisma.feePayment.findUnique({
-      where: { id: paymentId },
+      where: { reference },
       include: { allocations: true, receipt: true },
     });
     if (!payment) {
-      throw new NotFoundException('Payment not found');
-    }
-    if (payment.status === 'completed') {
-      // Idempotent — a retried confirm call after the first already succeeded is a no-op.
-      return this.toSummary(payment);
+      throw new NotFoundException(`No payment found for reference "${reference}"`);
     }
     if (payment.status !== 'pending') {
-      throw new BadRequestException(`Cannot confirm a payment in status "${payment.status}"`);
+      // Idempotent — gateways retry webhook delivery; a repeat call for an already-resolved
+      // payment must not run the transition twice.
+      return this.toSummary(payment);
     }
-
-    const { status } = await this.gateway.confirm(payment.reference!);
 
     if (status === 'failed') {
       const updated = await this.prisma.$transaction(async (tx) => {
@@ -97,15 +96,15 @@ export class FeePaymentsService {
         // amountDue = sum(items) - sum(allocations) is unaffected by a zero-amount allocation, so
         // the voucher still correctly shows as unpaid/available for a fresh attempt — but the
         // feeVoucherId FK stays intact, so FeesController can still derive studentId from
-        // payment.allocations[0]?.feeVoucher.studentId for ownership checks on a retried
-        // confirm() or a receipt.pdf request. Deleting the row instead orphans the payment: it
-        // becomes unreachable (404 "Payment not found") even to its rightful owner.
+        // payment.allocations[0]?.feeVoucher.studentId for a receipt.pdf request. Deleting the
+        // row instead orphans the payment: it becomes unreachable (404 "Payment not found") even
+        // to its rightful owner.
         await tx.feePaymentAllocation.updateMany({
-          where: { feePaymentId: paymentId },
+          where: { feePaymentId: payment.id },
           data: { amount: 0 },
         });
         return tx.feePayment.update({
-          where: { id: paymentId },
+          where: { id: payment.id },
           data: { status: 'failed' },
           include: { allocations: true, receipt: true },
         });
@@ -113,10 +112,10 @@ export class FeePaymentsService {
 
       await this.prisma.auditLog.create({
         data: {
-          userId: actingUserId,
-          action: 'fee-payment.confirm',
+          userId: null,
+          action: 'fee-payment.webhook-confirm',
           entity: 'FeePayment',
-          entityId: paymentId,
+          entityId: payment.id,
           metadata: JSON.stringify({ status: 'failed' }),
         },
       });
@@ -124,19 +123,19 @@ export class FeePaymentsService {
       return this.toSummary(updated);
     }
 
-    const receiptNumber = `RCPT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${paymentId.slice(0, 6)}`;
+    const receiptNumber = `RCPT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${payment.id.slice(0, 6)}`;
     const updated = await this.prisma.feePayment.update({
-      where: { id: paymentId },
+      where: { id: payment.id },
       data: { status: 'completed', receipt: { create: { receiptNumber } } },
       include: { allocations: true, receipt: true },
     });
 
     await this.prisma.auditLog.create({
       data: {
-        userId: actingUserId,
-        action: 'fee-payment.confirm',
+        userId: null,
+        action: 'fee-payment.webhook-confirm',
         entity: 'FeePayment',
-        entityId: paymentId,
+        entityId: payment.id,
         metadata: JSON.stringify({ status: 'completed' }),
       },
     });
@@ -167,7 +166,7 @@ export class FeePaymentsService {
     return payment;
   }
 
-  private toSummary(payment: {
+  toSummary(payment: {
     id: string;
     amount: number;
     method: string;

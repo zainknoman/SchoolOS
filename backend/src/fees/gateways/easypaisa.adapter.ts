@@ -44,7 +44,7 @@ export class EasyPaisaWebhookSigner implements PaymentWebhookSigner {
     this.signer = new EasyPaisaSigner(hashKey);
   }
 
-  verifyAndParse(body: Record<string, string>): WebhookVerificationResult {
+  verifyAndParse(body: Record<string, string>, _headers: Record<string, string | undefined>): WebhookVerificationResult {
     const { merchantHashedReq, ...rest } = body;
     if (!this.signer.verify(rest, merchantHashedReq)) {
       return { valid: false };
