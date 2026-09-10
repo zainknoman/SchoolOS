@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import CampusManagementView from './CampusManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -13,6 +14,9 @@ vi.mock('../lib/api', () => ({
     updateCampus: vi.fn(),
     deleteCampus: vi.fn(),
   },
+}));
+vi.mock('../lib/useConfirm', () => ({
+  useConfirm: vi.fn(),
 }));
 
 describe('CampusManagementView', () => {
@@ -25,6 +29,7 @@ describe('CampusManagementView', () => {
     vi.mocked(api.listCampuses).mockResolvedValue([
       { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The Seeds School' },
     ]);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
   it('lists campuses (with their school name) and creates a new one under a chosen school', async () => {
@@ -59,21 +64,29 @@ describe('CampusManagementView', () => {
     expect(api.updateCampus).toHaveBeenCalledWith('token-1', 'c1', { name: 'Gulistan-e-Jauhar (Main)' });
   });
 
-  it('deletes a campus after confirmation', async () => {
+  it('deletes a campus after confirmation, and does nothing if the confirmation is declined', async () => {
     vi.mocked(api.deleteCampus).mockResolvedValue(undefined);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
     const wrapper = mount(CampusManagementView);
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-c1"]').trigger('click');
     await flushPromises();
+    expect(api.deleteCampus).not.toHaveBeenCalled();
 
+    await wrapper.find('[data-testid="delete-c1"]').trigger('click');
+    await flushPromises();
     expect(api.deleteCampus).toHaveBeenCalledWith('token-1', 'c1');
+    expect(confirmFn).toHaveBeenCalledWith({
+      title: 'Delete this campus?',
+      message: 'This cannot be undone.',
+      danger: true,
+    });
   });
 
   it('shows the backend error when delete is blocked by dependent records', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(api.deleteCampus).mockRejectedValue(new Error('Cannot delete this Campus: other records still reference it.'));
 
     const wrapper = mount(CampusManagementView);
