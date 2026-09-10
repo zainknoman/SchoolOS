@@ -20,6 +20,18 @@ export default defineConfigWithVueTs(
   ...pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
 
+  {
+    name: 'app/base-component-names',
+    rules: {
+      // Sprint D's shared Button.vue is a deliberately generic, single-word base component
+      // (see docs/superpowers/specs/2026-09-10-sprint-d-component-extraction-design.md) — used
+      // as <Button> throughout every migrated CRUD screen, so renaming it would contradict the
+      // approved design and ripple through every call site. Every other component keeps the
+      // multi-word rule at its default strength.
+      'vue/multi-word-component-names': ['error', { ignores: ['Button'] }],
+    },
+  },
+
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
   skipFormatting,
