@@ -3,8 +3,13 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type TeacherAdminSummary } from '../lib/api';
+import EntityTable from '../components/EntityTable.vue';
+import FormField from '../components/FormField.vue';
+import Button from '../components/Button.vue';
+import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
+const { confirm } = useConfirm();
 
 const teachers = ref<TeacherAdminSummary[]>([]);
 const errorMessage = ref<string | null>(null);
@@ -76,7 +81,7 @@ async function onSaveEdit(id: string) {
 
 async function onDelete(id: string) {
   if (!auth.accessToken) return;
-  if (!window.confirm('Delete this teacher? This cannot be undone.')) return;
+  if (!(await confirm({ title: 'Delete this teacher?', message: 'This cannot be undone.', danger: true }))) return;
   errorMessage.value = null;
   try {
     await api.deleteTeacher(auth.accessToken, id);
@@ -92,51 +97,45 @@ async function onDelete(id: string) {
     <h1>Teachers</h1>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <table class="entity-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Login</th>
-          <th class="actions-col"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="t in teachers" :key="t.id">
-          <template v-if="editingId === t.id">
-            <td><input :data-testid="`edit-name-${t.id}`" v-model="editName" type="text" /></td>
-            <td>
-              {{ t.identifier }}
-              <input
-                :data-testid="`edit-password-${t.id}`"
-                v-model="editPassword"
-                type="password"
-                placeholder="New password (leave blank to keep)"
-              />
-            </td>
-            <td class="actions-col">
-              <button type="button" :data-testid="`save-${t.id}`" @click="onSaveEdit(t.id)">Save</button>
-              <button type="button" class="secondary" @click="cancelEdit">Cancel</button>
-            </td>
-          </template>
-          <template v-else>
-            <td>{{ t.name }}</td>
-            <td>{{ t.identifier }}</td>
-            <td class="actions-col">
-              <button type="button" :data-testid="`edit-${t.id}`" @click="startEdit(t)">Edit</button>
-              <button type="button" class="secondary" :data-testid="`delete-${t.id}`" @click="onDelete(t.id)">
-                Delete
-              </button>
-            </td>
-          </template>
-        </tr>
-      </tbody>
-    </table>
+    <EntityTable
+      :items="teachers"
+      :columns="[{ key: 'name', label: 'Name' }, { key: 'identifier', label: 'Login' }]"
+      row-key="id"
+      :editing-id="editingId"
+    >
+      <template #cell-name="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <span v-else>{{ item.name }}</span>
+      </template>
+      <template #cell-identifier="{ item, editing }">
+        {{ item.identifier }}
+        <input
+          v-if="editing"
+          :data-testid="`edit-password-${item.id}`"
+          v-model="editPassword"
+          type="password"
+          placeholder="New password (leave blank to keep)"
+        />
+      </template>
+      <template #actions="{ item, editing }">
+        <template v-if="editing">
+          <Button :data-testid="`save-${item.id}`" @click="onSaveEdit(item.id)">Save</Button>
+          <Button variant="secondary" @click="cancelEdit">Cancel</Button>
+        </template>
+        <template v-else>
+          <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
+          <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
+            Delete
+          </Button>
+        </template>
+      </template>
+    </EntityTable>
 
     <div class="inline-form">
-      <input data-testid="add-identifier" v-model="newIdentifier" type="text" placeholder="Login email" />
-      <input data-testid="add-password" v-model="newPassword" type="password" placeholder="Initial password" />
-      <input data-testid="add-name" v-model="newName" type="text" placeholder="Full name" />
-      <button type="button" data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</button>
+      <FormField v-model="newIdentifier" label="Login email" type="text" data-testid="add-identifier" placeholder="Login email" grow />
+      <FormField v-model="newPassword" label="Initial password" type="password" data-testid="add-password" placeholder="Initial password" grow />
+      <FormField v-model="newName" label="Full name" type="text" data-testid="add-name" placeholder="Full name" grow />
+      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
     </div>
   </div>
 </template>
@@ -149,51 +148,10 @@ async function onDelete(id: string) {
   color: var(--color-destructive);
   margin-bottom: var(--space-3);
 }
-.entity-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: var(--space-4);
-}
-.entity-table th,
-.entity-table td {
-  text-align: left;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-}
-.actions-col {
-  width: 1%;
-  white-space: nowrap;
-  display: flex;
-  gap: var(--space-2);
-}
 .inline-form {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-2);
   flex-wrap: wrap;
-}
-.inline-form input {
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font: inherit;
-}
-button {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 600;
-  cursor: pointer;
-}
-button.secondary {
-  background: transparent;
-  color: var(--color-destructive);
-  border: 1px solid var(--color-destructive);
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 </style>

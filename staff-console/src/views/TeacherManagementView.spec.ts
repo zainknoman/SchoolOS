@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import TeacherManagementView from './TeacherManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -13,6 +14,9 @@ vi.mock('../lib/api', () => ({
     updateTeacher: vi.fn(),
     deleteTeacher: vi.fn(),
   },
+}));
+vi.mock('../lib/useConfirm', () => ({
+  useConfirm: vi.fn(),
 }));
 
 describe('TeacherManagementView', () => {
@@ -24,6 +28,7 @@ describe('TeacherManagementView', () => {
     vi.mocked(api.listAdminTeachers).mockResolvedValue([
       { id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'Existing Teacher' },
     ]);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
   it('lists teachers and creates a new one with an identifier and password', async () => {
@@ -76,21 +81,29 @@ describe('TeacherManagementView', () => {
     });
   });
 
-  it('deletes a teacher after confirmation', async () => {
+  it('deletes a teacher after confirmation, and does nothing if the confirmation is declined', async () => {
     vi.mocked(api.deleteTeacher).mockResolvedValue(undefined);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
     const wrapper = mount(TeacherManagementView);
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-t1"]').trigger('click');
     await flushPromises();
+    expect(api.deleteTeacher).not.toHaveBeenCalled();
 
+    await wrapper.find('[data-testid="delete-t1"]').trigger('click');
+    await flushPromises();
     expect(api.deleteTeacher).toHaveBeenCalledWith('token-1', 't1');
+    expect(confirmFn).toHaveBeenCalledWith({
+      title: 'Delete this teacher?',
+      message: 'This cannot be undone.',
+      danger: true,
+    });
   });
 
   it('shows the backend error when delete is blocked (e.g. the teacher has marked attendance)', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(api.deleteTeacher).mockRejectedValue(new Error('Cannot delete this Teacher: other records still reference it.'));
 
     const wrapper = mount(TeacherManagementView);
