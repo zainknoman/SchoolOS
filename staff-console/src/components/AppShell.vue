@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/auth';
 import { api, type NotificationSummary } from '../lib/api';
 import Icon, { type IconName } from './AppIcon.vue';
 import CommandPalette from './CommandPalette.vue';
+import ConfirmDialog from './ConfirmDialog.vue';
 import { roleInitials } from '../lib/format';
 import { applyTheme, loadThemePreference, saveThemePreference } from '../lib/theme';
 
@@ -390,6 +391,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
       :action-items="actionItems"
       @close="isPaletteOpen = false"
     />
+    <ConfirmDialog />
   </div>
 </template>
 
