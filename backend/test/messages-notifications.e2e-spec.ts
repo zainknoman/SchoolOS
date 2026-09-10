@@ -133,10 +133,29 @@ describe('Messages + Notifications (e2e)', () => {
       data: { studentId: orphanChild.id, parentProfileId: parentProfile.id },
     });
     ids.orphanChildId = orphanChild.id;
+
+    const otherParentProfile = await prisma.parentProfile.create({
+      data: { userId: otherParentUser.id, name: 'MN Other Parent' },
+    });
+    const otherChild = await prisma.student.create({ data: { grNumber: 'MN-3', name: 'MN Other Child' } });
+    await prisma.enrollment.create({
+      data: {
+        studentId: otherChild.id,
+        campusId: campus.id,
+        sectionId: section.id,
+        academicSessionId: session.id,
+        startDate: session.startDate,
+        status: 'ACTIVE',
+      },
+    });
+    await prisma.studentParent.create({
+      data: { studentId: otherChild.id, parentProfileId: otherParentProfile.id },
+    });
+    ids.otherChildId = otherChild.id;
   });
 
   afterAll(async () => {
-    await prisma.student.deleteMany({ where: { grNumber: { in: ['MN-1', 'MN-2'] } } }).catch(() => undefined);
+    await prisma.student.deleteMany({ where: { grNumber: { in: ['MN-1', 'MN-2', 'MN-3'] } } }).catch(() => undefined);
     await prisma.school.delete({ where: { id: ids.school } }).catch(() => undefined);
     // Same RESTRICT-vs-CASCADE ordering as the pre-flight cleanup above: delete this run's
     // Conversations (cascades their Messages) before deleting the mn- users who sent them.
@@ -209,6 +228,16 @@ describe('Messages + Notifications (e2e)', () => {
       .post(`/api/v1/conversations/${ids.conversationId}/messages`)
       .set('Authorization', `Bearer ${otherTeacherToken}`)
       .send({ body: 'butting in' })
+      .expect(403);
+  });
+
+  it("a parent cannot start a CLASS_TEACHER conversation using another parent's child's studentId", async () => {
+    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .post('/api/v1/conversations')
+      .set('Authorization', `Bearer ${parentToken}`)
+      .send({ recipientType: 'CLASS_TEACHER', studentId: ids.otherChildId, body: 'Not my child' })
       .expect(403);
   });
 
