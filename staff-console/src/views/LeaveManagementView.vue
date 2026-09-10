@@ -2,8 +2,10 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type LeaveRequestSummary } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
+const { confirm } = useConfirm();
 const statusFilter = ref<'pending' | 'approved' | 'rejected' | ''>('pending');
 const requests = ref<LeaveRequestSummary[]>([]);
 const errorMessage = ref<string | null>(null);
@@ -35,6 +37,8 @@ async function onApprove(id: string) {
 
 async function onReject(id: string) {
   if (!auth.accessToken) return;
+  if (!(await confirm({ title: 'Reject this leave request?', message: 'This cannot be undone.', danger: true })))
+    return;
   busyId.value = id;
   try {
     await api.rejectLeaveRequest(auth.accessToken, id);

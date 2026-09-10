@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import LeaveManagementView from './LeaveManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -11,6 +12,9 @@ vi.mock('../lib/api', () => ({
     approveLeaveRequest: vi.fn(),
     rejectLeaveRequest: vi.fn(),
   },
+}));
+vi.mock('../lib/useConfirm', () => ({
+  useConfirm: vi.fn(),
 }));
 
 describe('LeaveManagementView', () => {
@@ -21,6 +25,7 @@ describe('LeaveManagementView', () => {
     vi.mocked(api.listLeaveRequests).mockReset();
     vi.mocked(api.approveLeaveRequest).mockReset();
     vi.mocked(api.rejectLeaveRequest).mockReset();
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
   it('lists pending requests and approves one', async () => {
@@ -51,7 +56,7 @@ describe('LeaveManagementView', () => {
     expect(api.approveLeaveRequest).toHaveBeenCalledWith('token-1', 'lr-1');
   });
 
-  it('rejects a request', async () => {
+  it('rejects a request after confirmation, and does nothing if declined', async () => {
     vi.mocked(api.listLeaveRequests).mockResolvedValueOnce([
       {
         id: 'lr-2',
@@ -66,14 +71,25 @@ describe('LeaveManagementView', () => {
     ]);
     vi.mocked(api.rejectLeaveRequest).mockResolvedValue(undefined);
     vi.mocked(api.listLeaveRequests).mockResolvedValueOnce([]);
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
     const wrapper = mount(LeaveManagementView);
     await flushPromises();
 
     await wrapper.find('[data-testid="reject-lr-2"]').trigger('click');
     await flushPromises();
+    expect(api.rejectLeaveRequest).not.toHaveBeenCalled();
+
+    await wrapper.find('[data-testid="reject-lr-2"]').trigger('click');
+    await flushPromises();
 
     expect(api.rejectLeaveRequest).toHaveBeenCalledWith('token-1', 'lr-2');
+    expect(confirmFn).toHaveBeenCalledWith({
+      title: 'Reject this leave request?',
+      message: 'This cannot be undone.',
+      danger: true,
+    });
   });
 
   it('shows an error message when the list fails to load', async () => {
