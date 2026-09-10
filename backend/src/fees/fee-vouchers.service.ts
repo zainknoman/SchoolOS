@@ -122,10 +122,12 @@ export class FeeVouchersService {
   ): VoucherSummary {
     const totalAmount = voucher.items.reduce((sum, i) => sum + i.amount, 0);
     const amountDue = totalAmount - amountPaid;
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
     let status: VoucherSummary['status'];
     if (amountDue <= 0) status = 'paid';
     else if (amountPaid > 0) status = 'partial';
-    else if (voucher.dueDate < new Date()) status = 'overdue';
+    else if (voucher.dueDate < startOfToday) status = 'overdue';
     else status = 'unpaid';
     return {
       id: voucher.id,

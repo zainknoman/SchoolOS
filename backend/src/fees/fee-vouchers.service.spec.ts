@@ -111,6 +111,28 @@ describe('FeeVouchersService', () => {
     expect(result[1]).toEqual(expect.objectContaining({ amountPaid: 0, amountDue: 500000, status: 'overdue' }));
   });
 
+  it('a voucher due today is unpaid, not overdue (status flips the day AFTER the due date, not on it)', async () => {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    prisma.feeVoucher.findMany.mockResolvedValue([
+      {
+        id: 'v-today',
+        studentId: 's1',
+        month: '2026-09',
+        dueDate: today,
+        items: [{ label: 'Tuition Fee', amount: 500000 }],
+        allocations: [],
+      },
+    ]);
+
+    const result = await service.getForStudent('s1');
+
+    expect(result[0]).toEqual(
+      expect.objectContaining({ amountPaid: 0, amountDue: 500000, status: 'unpaid' }),
+    );
+  });
+
   it('getById throws NotFoundException for a missing voucher', async () => {
     prisma.feeVoucher.findUnique.mockResolvedValue(null);
     await expect(service.getById('missing')).rejects.toThrow(NotFoundException);
