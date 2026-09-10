@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EnrollmentService } from '../enrollment/enrollment.service';
 import { MarkAttendanceDto } from './dto/mark-attendance.dto';
 
 export interface AttendanceDay {
@@ -18,20 +19,27 @@ export interface AttendanceSummary {
 
 @Injectable()
 export class AttendanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly enrollmentService: EnrollmentService,
+  ) {}
 
   /**
    * Attendance is immutable from the parent side by construction — this is the ONLY write path,
    * and it lives behind the `@Roles('TEACHER','SCHOOL_ADMIN','SUPER_ADMIN')` guard on the
    * controller, never exposed to PARENT. Every write is audit-logged (never skippable).
+   *
+   * `Attendance.markedById` is a required Teacher FK. A TEACHER has a Teacher profile and is
+   * attributed directly; a SCHOOL_ADMIN/SUPER_ADMIN doesn't, so — mirroring
+   * LeaveService.approve()'s identical problem for admin-approved leave — the write is attributed
+   * to the student's current section's class teacher instead. The AuditLog row still names the
+   * real acting user (markingUserId), regardless of whose Teacher id the FK points at.
    */
   async markAttendance(dto: MarkAttendanceDto, markingUserId: string) {
     const teacher = await this.prisma.teacher.findUnique({
       where: { userId: markingUserId },
     });
-    if (!teacher) {
-      throw new NotFoundException('Only a teacher account can mark attendance');
-    }
+    const markedById = teacher ? teacher.id : await this.resolveClassTeacherId(dto.studentId);
 
     const date = new Date(dto.date);
     const record = await this.prisma.attendance.upsert({
@@ -40,9 +48,9 @@ export class AttendanceService {
         studentId: dto.studentId,
         date,
         status: dto.status,
-        markedById: teacher.id,
+        markedById,
       },
-      update: { status: dto.status, markedById: teacher.id },
+      update: { status: dto.status, markedById },
     });
 
     await this.prisma.auditLog.create({
@@ -60,6 +68,17 @@ export class AttendanceService {
     });
 
     return record;
+  }
+
+  private async resolveClassTeacherId(studentId: string): Promise<string> {
+    const enrollment = await this.enrollmentService.getCurrentEnrollment(studentId);
+    const section = await this.prisma.section.findUnique({ where: { id: enrollment.sectionId } });
+    if (!section?.classTeacherId) {
+      throw new BadRequestException(
+        "Cannot mark attendance: this student's section has no class teacher assigned",
+      );
+    }
+    return section.classTeacherId;
   }
 
   /**

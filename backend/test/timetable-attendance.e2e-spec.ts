@@ -108,6 +108,14 @@ describe('Timetable + Attendance (e2e)', () => {
       data: { userId: teacherUser.id, name: 'TTA Teacher' },
     });
 
+    await prisma.user.create({
+      data: {
+        identifier: 'tta-admin@seeds.edu.pk',
+        passwordHash,
+        role: 'SCHOOL_ADMIN',
+      },
+    });
+
     const parentAUser = await prisma.user.create({
       data: {
         identifier: 'tta-parent-a@seeds.edu.pk',
@@ -179,6 +187,7 @@ describe('Timetable + Attendance (e2e)', () => {
       childA: childA.id,
       childB: childB.id,
       section: section.id,
+      teacher: teacher.id,
     });
   });
 
@@ -205,6 +214,7 @@ describe('Timetable + Attendance (e2e)', () => {
           identifier: {
             in: [
               'tta-teacher@seeds.edu.pk',
+              'tta-admin@seeds.edu.pk',
               'tta-parent-a@seeds.edu.pk',
               'tta-parent-b@seeds.edu.pk',
             ],
@@ -263,6 +273,33 @@ describe('Timetable + Attendance (e2e)', () => {
       expect.arrayContaining([{ date: today, status: 'PRESENT' }]),
     );
     expect(res.body.summary.present).toBeGreaterThanOrEqual(1);
+  });
+
+  it('an Admin can also mark attendance (no Teacher profile of their own) — attributed to the section class teacher', async () => {
+    await prisma.section.update({
+      where: { id: ids.section },
+      data: { classTeacherId: ids.teacher },
+    });
+
+    const adminToken = await loginAs('tta-admin@seeds.edu.pk');
+    const today = new Date().toISOString().slice(0, 10);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/attendance')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ studentId: ids.childB, date: today, status: 'PRESENT' })
+      .expect(201);
+
+    const parentToken = await loginAs('tta-parent-b@seeds.edu.pk');
+    const month = today.slice(0, 7);
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/students/${ids.childB}/attendance?month=${month}`)
+      .set('Authorization', `Bearer ${parentToken}`)
+      .expect(200);
+
+    expect(res.body.days).toEqual(
+      expect.arrayContaining([{ date: today, status: 'PRESENT' }]),
+    );
   });
 
   it('staff can list every section (to pick which one to manage)', async () => {

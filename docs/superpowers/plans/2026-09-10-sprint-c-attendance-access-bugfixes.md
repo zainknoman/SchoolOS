@@ -366,7 +366,7 @@ block:
 and add immediately after it:
 
 ```typescript
-    const adminUser = await prisma.user.create({
+    await prisma.user.create({
       data: {
         identifier: 'tta-admin@seeds.edu.pk',
         passwordHash,
@@ -374,6 +374,8 @@ and add immediately after it:
       },
     });
 ```
+
+(Not bound to a variable — nothing downstream needs its id, only its identifier string for login.)
 
 Update the top-of-`beforeAll` self-healing cleanup's identifier prefix match — it already matches
 `tta-` as a prefix (`where: { identifier: { startsWith: 'tta-' } }`), so `tta-admin@seeds.edu.pk`
@@ -397,6 +399,14 @@ include it:
       .catch(() => undefined);
 ```
 
+Also add `teacher: teacher.id` to the `Object.assign(ids, { childA: childA.id, childB: childB.id,
+section: section.id });` call further down in `beforeAll` (becomes
+`Object.assign(ids, { childA: childA.id, childB: childB.id, section: section.id, teacher:
+teacher.id });`) — `teacher` (the `Teacher` row) is declared `const` inside `beforeAll`'s own
+function body, so unlike `ids` (declared at the `describe`-block level specifically so it can be
+shared) it is **not** visible from an `it(...)` callback; route it through `ids` like every other
+cross-scope value in this file.
+
 Then add this new test, right after the existing `'a teacher can mark attendance, and it is then
 visible to the linked parent'` test:
 
@@ -404,7 +414,7 @@ visible to the linked parent'` test:
   it('an Admin can also mark attendance (no Teacher profile of their own) — attributed to the section class teacher', async () => {
     await prisma.section.update({
       where: { id: ids.section },
-      data: { classTeacherId: teacher.id },
+      data: { classTeacherId: ids.teacher },
     });
 
     const adminToken = await loginAs('tta-admin@seeds.edu.pk');
@@ -429,10 +439,8 @@ visible to the linked parent'` test:
   });
 ```
 
-`teacher` (the `Teacher` row created in `beforeAll`) is already in scope in this file's outer
-`beforeAll` closure — no new variable needed. This test uses `ids.childB`/`tta-parent-b` (not
-`childA`/`parent-a`, already used by the teacher-marks-attendance test above it) so the two tests
-don't share mutable state.
+This test uses `ids.childB`/`tta-parent-b` (not `childA`/`parent-a`, already used by the
+teacher-marks-attendance test above it) so the two tests don't share mutable state.
 
 - [ ] **Step 6: Run the e2e test to verify it fails, then passes**
 
