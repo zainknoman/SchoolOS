@@ -3,8 +3,13 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type ClassSummary, type CampusSummary, type AcademicSessionSummary } from '../lib/api';
+import EntityTable from '../components/EntityTable.vue';
+import FormField from '../components/FormField.vue';
+import Button from '../components/Button.vue';
+import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
+const { confirm } = useConfirm();
 
 const campuses = ref<CampusSummary[]>([]);
 const academicSessions = ref<AcademicSessionSummary[]>([]);
@@ -75,7 +80,7 @@ async function onSaveEdit(id: string) {
 
 async function onDelete(id: string) {
   if (!auth.accessToken) return;
-  if (!window.confirm('Delete this class? This cannot be undone.')) return;
+  if (!(await confirm({ title: 'Delete this class?', message: 'This cannot be undone.', danger: true }))) return;
   errorMessage.value = null;
   try {
     await api.deleteClass(auth.accessToken, id);
@@ -91,52 +96,53 @@ async function onDelete(id: string) {
     <h1>Classes</h1>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <table class="entity-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Campus</th>
-          <th>Academic Session</th>
-          <th class="actions-col"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="c in classes" :key="c.id">
-          <template v-if="editingId === c.id">
-            <td><input :data-testid="`edit-name-${c.id}`" v-model="editName" type="text" /></td>
-            <td>{{ c.campusName }}</td>
-            <td>{{ c.academicSessionLabel }}</td>
-            <td class="actions-col">
-              <button type="button" :data-testid="`save-${c.id}`" @click="onSaveEdit(c.id)">Save</button>
-              <button type="button" class="secondary" @click="cancelEdit">Cancel</button>
-            </td>
-          </template>
-          <template v-else>
-            <td>{{ c.name }}</td>
-            <td>{{ c.campusName }}</td>
-            <td>{{ c.academicSessionLabel }}</td>
-            <td class="actions-col">
-              <button type="button" :data-testid="`edit-${c.id}`" @click="startEdit(c)">Edit</button>
-              <button type="button" class="secondary" :data-testid="`delete-${c.id}`" @click="onDelete(c.id)">
-                Delete
-              </button>
-            </td>
-          </template>
-        </tr>
-      </tbody>
-    </table>
+    <EntityTable
+      :items="classes"
+      :columns="[
+        { key: 'name', label: 'Name' },
+        { key: 'campusName', label: 'Campus' },
+        { key: 'academicSessionLabel', label: 'Academic Session' },
+      ]"
+      row-key="id"
+      :editing-id="editingId"
+    >
+      <template #cell-name="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <span v-else>{{ item.name }}</span>
+      </template>
+      <template #actions="{ item, editing }">
+        <template v-if="editing">
+          <Button :data-testid="`save-${item.id}`" @click="onSaveEdit(item.id)">Save</Button>
+          <Button variant="secondary" @click="cancelEdit">Cancel</Button>
+        </template>
+        <template v-else>
+          <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
+          <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
+            Delete
+          </Button>
+        </template>
+      </template>
+    </EntityTable>
 
     <div class="inline-form">
-      <select data-testid="add-campus" v-model="newCampusId">
-        <option value="" disabled>Choose a campus</option>
-        <option v-for="c in campuses" :key="c.id" :value="c.id">{{ c.name }}</option>
-      </select>
-      <select data-testid="add-session" v-model="newAcademicSessionId">
-        <option value="" disabled>Choose an academic session</option>
-        <option v-for="s in academicSessions" :key="s.id" :value="s.id">{{ s.label }}</option>
-      </select>
-      <input data-testid="add-name" v-model="newName" type="text" placeholder="e.g. Grade 4" />
-      <button type="button" data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</button>
+      <FormField
+        v-model="newCampusId"
+        label="Campus"
+        type="select"
+        data-testid="add-campus"
+        placeholder="Choose a campus"
+        :options="campuses.map((c) => ({ value: c.id, label: c.name }))"
+      />
+      <FormField
+        v-model="newAcademicSessionId"
+        label="Academic session"
+        type="select"
+        data-testid="add-session"
+        placeholder="Choose an academic session"
+        :options="academicSessions.map((s) => ({ value: s.id, label: s.label }))"
+      />
+      <FormField v-model="newName" label="Class name" type="text" data-testid="add-name" placeholder="e.g. Grade 4" grow />
+      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
     </div>
   </div>
 </template>
@@ -149,52 +155,10 @@ async function onDelete(id: string) {
   color: var(--color-destructive);
   margin-bottom: var(--space-3);
 }
-.entity-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: var(--space-4);
-}
-.entity-table th,
-.entity-table td {
-  text-align: left;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-}
-.actions-col {
-  width: 1%;
-  white-space: nowrap;
-  display: flex;
-  gap: var(--space-2);
-}
 .inline-form {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-2);
   flex-wrap: wrap;
-}
-.inline-form input,
-.inline-form select {
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font: inherit;
-}
-button {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 600;
-  cursor: pointer;
-}
-button.secondary {
-  background: transparent;
-  color: var(--color-destructive);
-  border: 1px solid var(--color-destructive);
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 </style>

@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import ClassManagementView from './ClassManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -15,6 +16,9 @@ vi.mock('../lib/api', () => ({
     updateClass: vi.fn(),
     deleteClass: vi.fn(),
   },
+}));
+vi.mock('../lib/useConfirm', () => ({
+  useConfirm: vi.fn(),
 }));
 
 describe('ClassManagementView', () => {
@@ -32,6 +36,7 @@ describe('ClassManagementView', () => {
     vi.mocked(api.listClasses).mockResolvedValue([
       { id: 'cl1', name: 'Grade 3', campusId: 'c1', campusName: 'Gulistan-e-Jauhar', academicSessionId: 'as1', academicSessionLabel: '2026-2027' },
     ]);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
   it('lists classes (with campus + session names) and creates a new one', async () => {
@@ -68,21 +73,29 @@ describe('ClassManagementView', () => {
     expect(api.updateClass).toHaveBeenCalledWith('token-1', 'cl1', { name: 'Grade 3 (Renamed)' });
   });
 
-  it('deletes a class after confirmation', async () => {
+  it('deletes a class after confirmation, and does nothing if the confirmation is declined', async () => {
     vi.mocked(api.deleteClass).mockResolvedValue(undefined);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
     const wrapper = mount(ClassManagementView);
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-cl1"]').trigger('click');
     await flushPromises();
+    expect(api.deleteClass).not.toHaveBeenCalled();
 
+    await wrapper.find('[data-testid="delete-cl1"]').trigger('click');
+    await flushPromises();
     expect(api.deleteClass).toHaveBeenCalledWith('token-1', 'cl1');
+    expect(confirmFn).toHaveBeenCalledWith({
+      title: 'Delete this class?',
+      message: 'This cannot be undone.',
+      danger: true,
+    });
   });
 
   it('shows the backend error when delete is blocked by dependent records', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(api.deleteClass).mockRejectedValue(new Error('Cannot delete this Class: other records still reference it.'));
 
     const wrapper = mount(ClassManagementView);
