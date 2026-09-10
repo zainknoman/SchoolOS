@@ -912,6 +912,52 @@ Committed directly to `main` (`daa53fe..65c88de`), 9 code tasks via inline execu
   a small, separately-scoped follow-up. A physical/emulated Android device smoke test (voucher-style
   live walkthrough, matching Sprint E's precedent) is worth doing once both of the above exist.
 
+## Sprint G — Parent App Second-Pass UI Polish (UI Sprint 3) ✅ DONE
+
+Roadmap's UI Sprint 3 (`docs/superpowers/plans/2026-09-11-sprint-g-parent-app-ui-polish.md`),
+bringing the parent app's design maturity in line with the staff console's 2026-09-07 shell
+redesign. Committed directly to `main` (`bceade8..c8e6b89`), 4 code tasks via inline execution
+(superpowers:writing-plans → superpowers:systematic-debugging on the verification failures below)
+plus this closing entry.
+
+- [x] **`ThemeController` + dark theme** — new `parent-app/lib/src/theme/theme_controller.dart`
+      (`ChangeNotifier`, persisted via `shared_preferences`, mirrors `AuthState`'s
+      constructor-then-async-restore shape) and `buildDarkAppTheme()`/`AppColorsDark` in
+      `app_theme.dart`, with exact hex parity to the staff console's `base.css`
+      `:root[data-theme='dark']` tokens. Wired into `main.dart`/`test_harness.dart` via
+      `MaterialApp.router`'s `darkTheme`/`themeMode`; a new "Appearance" dropdown in `MoreTab`
+      switches it.
+- [x] **`HomeTab`'s Fees/Results cards fixed** — Fees now shows the real outstanding balance
+      (`studentFees` summed `amountDue`), not a hardcoded `'—'`; Results is a grayed-out (`Opacity`)
+      "Coming soon" placeholder instead of fabricated data, since report cards aren't built until
+      Sprint I.
+- [x] **`activeChildId` threaded into `LeaveScreen` and Messages-compose** — both previously always
+      defaulted to `children.first`, showing the wrong child's data after a parent switched the
+      active child in `HomeShell`'s top switcher. `LeaveScreen` gained an `initialChildId` param;
+      `MessagesTab`/`_ComposeView` gained `activeChildId`.
+- [x] **Bottom-nav "Notifications" tab renamed to "Circulars"** — was colliding in meaning with the
+      AppBar notification-bell tooltip (still "Notifications", a different feature — the bell opens
+      the cross-cutting alerts sheet, the tab shows `CircularsTab` specifically); only the tab label
+      and its one fallback-text array reference changed.
+- [x] **Offline caching extended to Fees and Messages** — both now use the existing
+      `loadWithCache`/`DataCache`/`LastUpdatedBanner` (no new caching primitive), matching
+      `CalendarTab`/`CircularsTab`'s established pattern; `FeeVoucherItem`/`FeeVoucherSummary`/
+      `ConversationSummary` gained `toJson()` for the cache's serialization.
+- **Three real bugs caught during the verification pass, not by the individually-touched files** —
+  same category this repo has hit before (Sprints E, F): (1) `FeesTab._loadPayments()` caught a
+  failed payments fetch but never set `_payments` away from `null`, so the Payment History section
+  kept rendering a perpetual `CircularProgressIndicator` — any widget test on a failing-payments mock
+  hung `pumpAndSettle` indefinitely. Fixed to degrade to an empty list on failure, matching the
+  class's own doc comment. (2) `leave_screen_test.dart`'s new "defaults to the actively-selected
+  child" test read `request.url.pathSegments[2]` for `/api/v1/students/child-2/leave-requests` —
+  segment 2 is `'students'`, segment 3 is the child id; off-by-one in the test. (3)
+  `home_tab_test.dart`'s fees-fetch-failure test asserted `findsOneWidget` for `'Unavailable'`/`'—'`,
+  but since `HomeTab` now fetches both attendance and fees, a mock that 404s every request fails both
+  and both stat cards show it — assertions updated to `findsNWidgets(2)`.
+- Verified: `flutter analyze` clean, full `flutter test` suite green (86 tests, up from 77 at the
+  start of Sprint F). Not live-smoke-tested against a running backend — this sprint touched only
+  `parent-app`, no backend/staff-console surface, per the roadmap's own Features line.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
