@@ -584,10 +584,9 @@ review, plus this closing verification task.
   sprint touched/added under `src/auth/`, following the same never-`prettier --write`d convention as
   the rest of the codebase); those 10 were fixed in the post-review fix wave (see below), leaving the
   672 pre-existing errors untouched and out of scope for a session-layer/CI sprint.
-- Follow-up (tracked, not blocking): the CI workflow has been created and committed
-  (`.github/workflows/ci.yml`) but **has not yet been pushed to GitHub** — pushing it and confirming
-  the workflow actually runs green on GitHub Actions, and then turning on branch protection
-  requiring it before merge, are both still open and require the repo owner's action. The backend
+- Follow-up (tracked, not blocking): **CI confirmed green on GitHub Actions 2026-09-10** — all three
+  jobs (backend, staff-console, parent-app) pass against `main`. Turning on branch protection
+  requiring it before merge is still open and requires the repo owner's action. The backend
   `lint` step in that workflow is deliberately `continue-on-error: true`, non-blocking pending the
   672-error pre-existing Prettier/CRLF backlog (see Security Hardening Pass section above); flip it
   to blocking once that backlog is cleared — staff-console's `lint` step stays blocking, it's clean.
@@ -634,9 +633,9 @@ allow-list, rate limiting, Postgres migration.
   pre-existing upload-limit e2e tests (Sprint B's "Upload limits" item, actually landed in the
   2026-09-05 Security Hardening Pass) reverified passing, confirming that checklist item was already
   satisfied rather than newly done here.
-- Follow-up (tracked, not blocking): `docs/superpowers/plans/2026-09-08-sprint-b-stabilization-ii.md`'s
-  own "Final verification" step of confirming CI is green on GitHub Actions has not been done from
-  this session — verified locally only; someone with repo access should confirm the Actions run.
+- `docs/superpowers/plans/2026-09-08-sprint-b-stabilization-ii.md`'s own "Final verification" step
+  of confirming CI is green on GitHub Actions is now done — confirmed 2026-09-10 (see Sprint C
+  section below).
 
 ## Sprint C — Attendance & Access Bug Fixes + Verification Pass ✅ DONE
 
@@ -828,13 +827,11 @@ own implementer + task review, plus this manual verification task.
 
 ---
 
-**Next step:** **Sprint A** and **Sprint B** (Stabilization I and II) are both done (see above). What's
-left from Sprint A is not code: pushing `.github/workflows/ci.yml` to GitHub, confirming it runs
-green, and turning on branch protection requiring it, all need the repo owner's action (see Sprint
-A's Follow-up above); Sprint B similarly needs someone with repo access to confirm its CI run is
-green on GitHub Actions (see Sprint B's Follow-up above). **Sprint C — Attendance & Access Bug Fixes
-+ Verification Pass** is done (see above). The next unstarted roadmap sprint is **Sprint D — Staff
-Console Component Extraction (UI Sprint 2)** — not yet spec'd. Separately,
+**Next step:** **Sprint A**, **Sprint B**, and **Sprint C** are all done, and CI is confirmed green
+on GitHub Actions against `main` (2026-09-10 — see Sprint A's Follow-up above). What's left from
+Sprint A is not code: turning on branch protection requiring the CI workflow before merge needs the
+repo owner's action. The next unstarted roadmap sprint is **Sprint D — Staff Console Component
+Extraction (UI Sprint 2)** — not yet spec'd. Separately,
 the Staff Console Shell Redesign is done (see above); its own spec scoped a follow-up per-screen pass
 (empty/loading/error state machine + a shared `StatusPill.vue` across all 14 admin/teacher views)
 that has not been started — spec/plan not yet written. The parent-app (Flutter) half of the
