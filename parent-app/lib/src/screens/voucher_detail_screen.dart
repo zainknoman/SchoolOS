@@ -16,6 +16,45 @@ class VoucherDetailScreen extends StatelessWidget {
   final String accessToken;
   final ApiClient api;
 
+  Future<void> _payNow(BuildContext context) async {
+    // Neither gateway has a real merchant account yet, so both methods resolve to the stub
+    // adapter today (see PaymentGatewayAdapterFactoryImpl) — 'jazzcash' is just a starting
+    // default; a real method choice becomes meaningful once a real account exists.
+    final initiation = await api.payVoucher(accessToken, voucher.id, 'jazzcash');
+    if (!context.mounted) return;
+
+    final redirectUri = Uri.parse(initiation.redirectUrl);
+
+    if (redirectUri.path == '/pay/stub-checkout') {
+      final reference = redirectUri.queryParameters['ref']!;
+      final paid = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => StubCheckoutScreen(
+            paymentId: initiation.paymentId,
+            reference: reference,
+            amountDue: voucher.amountDue,
+            accessToken: accessToken,
+            api: api,
+          ),
+        ),
+      );
+      if (paid == true && context.mounted) Navigator.of(context).pop();
+      return;
+    }
+
+    // Real-gateway path: not reachable in this environment (no real merchant account is
+    // configured, so the factory always falls back to the stub above) — kept so the seam exists
+    // once real credentials do, matching this codebase's StorageAdapter/PushAdapter precedent of
+    // building the swap point before the real backing exists.
+    await launchUrl(Uri.parse(initiation.redirectUrl), mode: LaunchMode.externalApplication);
+    if (!context.mounted) return;
+    final payment = await api.getPayment(accessToken, initiation.paymentId);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment status: ${payment.status}')));
+      if (payment.status == 'completed') Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,24 +83,7 @@ class VoucherDetailScreen extends StatelessWidget {
           if (voucher.amountDue > 0)
             ElevatedButton(
               key: const Key('payNowButton'),
-              onPressed: () async {
-                // The pushed StubCheckoutScreen returns `true` once the payment is confirmed. This
-                // screen holds the pre-payment `voucher` and never re-fetches it, so rather than
-                // showing stale "Total due"/an enabled Pay Now on an already-paid voucher, pop back
-                // out to FeesTab too — it already reloads its voucher list on return from
-                // _openVoucher, so the parent lands on fresh data instead of a stale detail screen.
-                final paid = await Navigator.of(context).push<bool>(
-                  MaterialPageRoute(
-                    builder: (_) => StubCheckoutScreen(
-                      voucherId: voucher.id,
-                      amountDue: voucher.amountDue,
-                      accessToken: accessToken,
-                      api: api,
-                    ),
-                  ),
-                );
-                if (paid == true && context.mounted) Navigator.of(context).pop();
-              },
+              onPressed: () => _payNow(context),
               child: const Text('Pay Now'),
             ),
         ],

@@ -2,19 +2,22 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 
 /// Stands in for JazzCash/EasyPaisa's hosted checkout page — no real merchant account exists yet
-/// (see StubPaymentGatewayAdapter on the backend). "Complete Payment" here plays the role of the
-/// gateway's redirect-back/webhook: it drives POST /fee-vouchers/:id/pay then
-/// POST /fee-payments/:id/confirm, exactly as a real gateway integration would from this screen.
+/// (see StubPaymentGatewayAdapter/PaymentsWebhookController on the backend). "Complete Payment"
+/// plays the role of the gateway itself: it calls the backend's stub webhook route (the same
+/// signature-checked path a real gateway would hit), then polls the payment to reflect whatever
+/// status the webhook actually set — this screen never assumes success.
 class StubCheckoutScreen extends StatefulWidget {
   const StubCheckoutScreen({
     super.key,
-    required this.voucherId,
+    required this.paymentId,
+    required this.reference,
     required this.amountDue,
     required this.accessToken,
     required this.api,
   });
 
-  final String voucherId;
+  final String paymentId;
+  final String reference;
   final int amountDue;
   final String accessToken;
   final ApiClient api;
@@ -34,9 +37,14 @@ class _StubCheckoutScreenState extends State<StubCheckoutScreen> {
       _error = null;
     });
     try {
-      final initiation = await widget.api.payVoucher(widget.accessToken, widget.voucherId);
-      await widget.api.confirmPayment(widget.accessToken, initiation.paymentId);
-      if (mounted) setState(() => _isComplete = true);
+      await widget.api.completeStubPayment(widget.reference);
+      final payment = await widget.api.getPayment(widget.accessToken, widget.paymentId);
+      if (mounted) {
+        setState(() {
+          _isComplete = payment.status == 'completed';
+          if (!_isComplete) _error = 'Payment did not complete (status: ${payment.status}).';
+        });
+      }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {

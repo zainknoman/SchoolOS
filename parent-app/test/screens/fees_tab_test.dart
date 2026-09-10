@@ -105,8 +105,10 @@ void main() {
               201,
             );
           }
-          if (request.method == 'POST' &&
-              request.url.path == '/api/v1/fee-payments/p1/confirm') {
+          if (request.method == 'POST' && request.url.path == '/api/v1/payments/webhook/stub') {
+            return http.Response(jsonEncode({'received': true}), 200);
+          }
+          if (request.method == 'GET' && request.url.path == '/api/v1/fee-payments/p1') {
             return http.Response(
               jsonEncode({
                 'id': 'p1',
@@ -116,7 +118,7 @@ void main() {
                 'voucherIds': ['v1'],
                 'receiptId': 'r1',
               }),
-              201,
+              200,
             );
           }
           return http.Response('not found', 404);
