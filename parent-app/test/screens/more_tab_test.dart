@@ -56,4 +56,82 @@ void main() {
 
     expect(themeController.mode, ThemeMode.dark);
   });
+
+  testWidgets('changing the notification channel dropdown calls the API with the right body', (
+    tester,
+  ) async {
+    final requests = <http.Request>[];
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        requests.add(request);
+        return http.Response('', 200);
+      }),
+    );
+    final themeController = ThemeController();
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [ChangeNotifierProvider<ThemeController>.value(value: themeController)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: MoreTab(
+              accessToken: 'tok',
+              api: api,
+              children: const [_child],
+              activeChildId: 'child-1',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('notificationChannelDropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('WhatsApp').last);
+    await tester.pumpAndSettle();
+
+    expect(requests, hasLength(1));
+    expect(requests.single.method, 'PATCH');
+    expect(requests.single.url.path, '/api/v1/me/notification-preferences');
+    expect(requests.single.body, '{"channel":"WHATSAPP"}');
+  });
+
+  testWidgets('toggling the digest checkbox calls the API with the right body', (tester) async {
+    final requests = <http.Request>[];
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        requests.add(request);
+        return http.Response('', 200);
+      }),
+    );
+    final themeController = ThemeController();
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [ChangeNotifierProvider<ThemeController>.value(value: themeController)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: MoreTab(
+              accessToken: 'tok',
+              api: api,
+              children: const [_child],
+              activeChildId: 'child-1',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('digestEnabledCheckbox')));
+    await tester.pumpAndSettle();
+
+    expect(requests, hasLength(1));
+    expect(requests.single.method, 'PATCH');
+    expect(requests.single.url.path, '/api/v1/me/notification-preferences');
+    expect(requests.single.body, '{"digestEnabled":true}');
+  });
 }

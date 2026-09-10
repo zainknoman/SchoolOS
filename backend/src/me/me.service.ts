@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UpdateNotificationPreferencesDto } from './dto/update-notification-preferences.dto';
 
 export interface ChildSummary {
   id: string;
@@ -74,6 +75,25 @@ export class MeService {
       where: { token },
       create: { userId, token, platform },
       update: { userId, platform },
+    });
+  }
+
+  /**
+   * Partial update — only the fields present in the DTO are written, so a client can flip just
+   * the channel or just the digest checkbox without needing to resend the other. The no-op
+   * behavior for a channel with no resolvable destination (e.g. WHATSAPP with no ParentProfile
+   * phone) lives in the adapter, not here — this write always succeeds.
+   */
+  async updateNotificationPreferences(
+    userId: string,
+    dto: UpdateNotificationPreferencesDto,
+  ): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.channel !== undefined && { notificationChannel: dto.channel }),
+        ...(dto.digestEnabled !== undefined && { digestEnabled: dto.digestEnabled }),
+      },
     });
   }
 }

@@ -256,4 +256,58 @@ describe('Me / children (e2e)', () => {
       .send({ token: 'x', platform: 'android' })
       .expect(401);
   });
+
+  it('updates notification preferences and persists both fields', async () => {
+    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/me/notification-preferences')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ channel: 'WHATSAPP', digestEnabled: true })
+      .expect(200);
+
+    const parentAUser = await prisma.user.findUnique({
+      where: { identifier: 'me2e-parent-a@seeds.edu.pk' },
+    });
+    expect(parentAUser?.notificationChannel).toBe('WHATSAPP');
+    expect(parentAUser?.digestEnabled).toBe(true);
+
+    // Reset for any later test relying on the default.
+    await prisma.user.update({
+      where: { identifier: 'me2e-parent-a@seeds.edu.pk' },
+      data: { notificationChannel: 'PUSH', digestEnabled: false },
+    });
+  });
+
+  it('rejects an invalid channel value (proves ValidationPipe is active in this test app)', async () => {
+    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/me/notification-preferences')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ channel: 'CARRIER_PIGEON' })
+      .expect(400);
+  });
+
+  it('succeeds setting channel WHATSAPP even with no ParentProfile.phone on file (no-op lives in the adapter, not the write)', async () => {
+    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/me/notification-preferences')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ channel: 'WHATSAPP' })
+      .expect(200);
+
+    await prisma.user.update({
+      where: { identifier: 'me2e-parent-a@seeds.edu.pk' },
+      data: { notificationChannel: 'PUSH' },
+    });
+  });
+
+  it('rejects the request entirely with no token', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/me/notification-preferences')
+      .send({ channel: 'PUSH' })
+      .expect(401);
+  });
 });

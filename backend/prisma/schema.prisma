@@ -41,6 +41,12 @@ enum ConversationRecipientType {
   PRINCIPAL
 }
 
+enum NotificationChannel {
+  PUSH
+  WHATSAPP
+  SMS
+}
+
 // --- Identity -----------------------------------------------------------
 
 model User {
@@ -55,6 +61,8 @@ model User {
   isPrincipal  Boolean  @default(false)
   lockedUntil  DateTime?
   failedLoginCount Int  @default(0)
+  notificationChannel NotificationChannel @default(PUSH)
+  digestEnabled       Boolean             @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -376,14 +384,17 @@ model Message {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  type      String
-  title     String
-  body      String
-  entityRef String?
-  readAt    DateTime?
-  createdAt DateTime @default(now())
+  id           String    @id @default(uuid())
+  userId       String
+  type         String
+  title        String
+  body         String
+  entityRef    String?
+  readAt       DateTime?
+  // Null means "not yet sent through the user's chosen channel" — always set immediately for a
+  // non-digest user, left null until DigestDispatchJob bundles it for a digest-enabled user.
+  dispatchedAt DateTime?
+  createdAt    DateTime  @default(now())
 
   @@index([userId])
 }

@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { MeService } from './me.service';
 import { RegisterDeviceTokenDto } from './dto/register-device-token.dto';
+import { UpdateNotificationPreferencesDto } from './dto/update-notification-preferences.dto';
 
 interface AuthenticatedRequest extends Request {
   user: { id: string; role: string };
@@ -31,5 +32,13 @@ export class MeController {
       dto.token,
       dto.platform,
     );
+  }
+
+  @Patch('notification-preferences')
+  updateNotificationPreferences(
+    @Body() dto: UpdateNotificationPreferencesDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.meService.updateNotificationPreferences(req.user.id, dto);
   }
 }

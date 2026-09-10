@@ -7,17 +7,44 @@ import { LoggingPushAdapter } from './logging-push.adapter';
 import { FcmPushAdapter } from './fcm-push.adapter';
 import { AdminFcmSender } from './fcm-sender';
 import { resolveFirebaseConfig } from './fcm-config';
+import { WhatsAppAdapter } from './whatsapp.adapter';
+import { HttpWhatsAppSender } from './whatsapp-sender';
+import { resolveWhatsAppConfig } from './whatsapp-config';
+import { SmsAdapter } from './sms.adapter';
+import { HttpSmsSender } from './sms-sender';
+import { resolveSmsConfig } from './sms-config';
+import { WHATSAPP_ADAPTER, SMS_ADAPTER } from './channel-registry';
+import { DigestDispatchJob } from './digest-dispatch.job';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Module({
   providers: [
     NotificationsService,
+    DigestDispatchJob,
     {
       provide: PUSH_ADAPTER,
       useFactory: (config: ConfigService, prisma: PrismaService) => {
         const firebaseConfig = resolveFirebaseConfig(config);
         if (!firebaseConfig) return new LoggingPushAdapter();
         return new FcmPushAdapter(new AdminFcmSender(firebaseConfig), prisma);
+      },
+      inject: [ConfigService, PrismaService],
+    },
+    {
+      provide: WHATSAPP_ADAPTER,
+      useFactory: (config: ConfigService, prisma: PrismaService) => {
+        const whatsAppConfig = resolveWhatsAppConfig(config);
+        if (!whatsAppConfig) return new LoggingPushAdapter();
+        return new WhatsAppAdapter(new HttpWhatsAppSender(whatsAppConfig), prisma);
+      },
+      inject: [ConfigService, PrismaService],
+    },
+    {
+      provide: SMS_ADAPTER,
+      useFactory: (config: ConfigService, prisma: PrismaService) => {
+        const smsConfig = resolveSmsConfig(config);
+        if (!smsConfig) return new LoggingPushAdapter();
+        return new SmsAdapter(new HttpSmsSender(smsConfig), prisma);
       },
       inject: [ConfigService, PrismaService],
     },

@@ -206,6 +206,25 @@ class ApiClient {
     }
   }
 
+  /// Partial update — omit whichever field isn't changing so the backend leaves it untouched.
+  Future<void> updateNotificationPreferences(
+    String accessToken, {
+    String? channel,
+    bool? digestEnabled,
+  }) async {
+    final res = await _client.patch(
+      Uri.parse('$baseUrl/api/v1/me/notification-preferences'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({
+        'channel': ?channel,
+        'digestEnabled': ?digestEnabled,
+      }),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
+
 
   /// A direct, headers-free download link — the backend's JwtStrategy accepts the token as
   /// ?access_token= specifically so links like this (opened via url_launcher) can authenticate.
