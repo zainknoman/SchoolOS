@@ -747,6 +747,93 @@ via subagent-driven-development (Tasks 1-3), switched to inline execution for th
   not walked screen-by-screen — worth a fuller pass opportunistically, though nothing found so far
   suggests a regression.
 
+## Sprint E — Payment Gateway & Local Rails (Phase 2) ✅ DONE
+
+Roadmap's Phase 2 sprint (`docs/superpowers/specs/2026-09-10-sprint-e-payment-gateway-design.md`,
+`docs/superpowers/plans/2026-09-10-sprint-e-payment-gateway.md`), closing the "let a parent actually
+pay a fee voucher" gap and the client-self-confirm security hole the old stubbed flow shipped with.
+Committed directly to `main` (`325f752..1e82044`), 9 code tasks via inline execution
+(superpowers:executing-plans) plus this closing verification task.
+
+- **Reconciliation with the roadmap doc, done during brainstorming, not assumed:** the roadmap's own
+  Sprint E section describes a `PaymentGateway` adapter and PDF voucher generation as greenfield work
+  — both were already stale claims, since Sprint 9-10 (Fees + Leave) had already built a swappable
+  `PaymentGatewayAdapter` (stubbed) and `FeesPdfService` (pdfkit) before this roadmap was even
+  compiled. Of the four checklist lines, **PDF voucher generation needed no new work**, only
+  re-verification (done in this session's live smoke test, below) — the other three (real gateway
+  adapters, webhook signature verification, cash reconciliation) were real.
+- [x] **JazzCash/EasyPaisa adapters, built to public spec, NOT verified against a live sandbox** — no
+      real merchant account exists in this environment (confirmed with the user before starting).
+      `JazzCashAdapter`/`JazzCashSigner` implement the community-standard `pp_SecureHash` algorithm
+      (sorted `pp_*` fields, `&`-joined, salt-prefixed, HMAC-SHA256, uppercase hex) against JazzCash's
+      own confirmed sandbox field names; `EasyPaisaAdapter`/`EasyPaisaSigner` implement the same HMAC
+      shape but with its **exact field list explicitly left as a `// TODO: confirm against your
+      EasyPaisa merchant integration doc`** in the code — every source checked (including two URLs
+      the user asked to be checked directly) either hedges EasyPaisa's exact field order or doesn't
+      cover it at all. A new `PaymentGatewayAdapterFactoryImpl` (`backend/src/fees/
+      payment-gateway-adapter-factory.ts`) selects the real adapter per payment method, falling back
+      to the existing `StubPaymentGatewayAdapter` in development/test or when a provider's env vars
+      are unset (all-or-nothing per provider — a partial config outside dev/test fails loudly,
+      mirroring `resolveAccessTokenSecret()`'s precedent).
+- [x] **Security fix: payment confirmation moved from client-callable to signed-webhook-only** — the
+      pre-existing flow let the *paying parent's own client* call `POST /fee-payments/:id/confirm`
+      directly, which is a real hole against any live gateway (nothing stopped a client from
+      self-confirming without paying). That route is now gone entirely (e2e-locked: calling it
+      404s). New `POST /api/v1/payments/webhook/:gateway` (public, no JWT — gateways can't
+      authenticate as a user) verifies a gateway-specific signature before calling the new
+      `FeePaymentsService.confirmFromWebhook()`, which looks payments up by their unique `reference`,
+      never a client-supplied id. Idempotent (a repeat webhook call for an already-resolved payment
+      is a no-op) and rejects unsigned/badly-signed calls with 401 without mutating state — both
+      e2e-covered. The stub gateway's own dev/test flow now drives this exact code path too (a fixed
+      dev-only shared-secret header, not real HMAC — there's nothing real to sign for a gateway that
+      doesn't exist server-side) rather than a special-cased bypass.
+- [x] **Cash/bank-transfer reconciliation** — new `POST /api/v1/fee-vouchers/:id/reconcile`
+      (`SCHOOL_ADMIN`/`SUPER_ADMIN`/`ACCOUNTS` only) records a `FeePayment` directly as `completed`
+      (no gateway involved), rejects an amount exceeding the voucher's remaining balance, and
+      generates a receipt the same way gateway confirmation does. Added to `FeeManagementView.vue`'s
+      existing Student Ledger section (a "Record payment" button per voucher row + inline form) —
+      no new dedicated screen, per the design decision to reuse the ledger staff already use.
+- [x] **Both clients updated for the new contract** — `pay()` now requires a `method`
+      (`'jazzcash' | 'easypaisa'`); a parent can no longer self-confirm, so both clients poll the new
+      `GET /api/v1/fee-payments/:id` instead. `staff-console`'s only change is the reconcile form.
+      `parent-app`'s `StubCheckoutScreen` now drives the stub webhook + poll instead of a direct
+      confirm call; `VoucherDetailScreen` branches on the returned `redirectUrl` — the stub path
+      (always taken in this environment, since no real gateway is configured) pushes the existing
+      checkout screen, and a real-gateway path (structurally present, **not reachable or tested in
+      this environment**) opens the URL via the already-present `url_launcher` dependency rather than
+      adding a `webview_flutter` dependency for a flow that can't be exercised here anyway.
+- Two real gaps found only by running full test suites, not caught by the directly-touched files:
+  `tsc --noEmit` (not `jest`, which runs with `isolatedModules: true` and doesn't type-check across
+  files) caught a decorated-constructor-parameter `import type` requirement and a `verifyAndParse()`
+  call-site arity mismatch — same category of gap this repo has hit before (Sprint 9-10's
+  `StubPaymentGatewayAdapter.confirm()` arity bug). Running the **full** `flutter test` suite (not
+  just the files the plan named) caught `fees_tab_test.dart`'s own full-payment-flow test still
+  mocking the now-removed `POST /fee-payments/:id/confirm` — fixed to mock the stub webhook +
+  `GET /fee-payments/:id` it now actually calls.
+- Verified: backend 278 unit tests (49 suites) and 70 e2e tests (13 suites, run twice consecutively,
+  no fixture leakage) all passing, `npm run build` clean, `npm run lint` shows only the pre-existing
+  repo-wide Prettier/CRLF backlog (no new errors in any file this sprint touched); staff-console 227
+  tests (33 files) passing, lint and build both clean; parent-app `flutter analyze` clean, full
+  `flutter test` suite passing. **Live-smoke-tested against real seed data** (this session, backend
+  dev server + real Postgres): issued a real voucher for `Eshaal Sample` (GR-1001), reconciled a real
+  cash payment against it and downloaded a genuine PDF receipt; issued a second voucher, initiated a
+  real parent payment (falls back to the stub adapter, as expected with no real merchant account),
+  confirmed an unsigned webhook call is rejected (401) without mutating state, confirmed a correctly
+  *stub*-signed webhook call completes the payment and a receipt PDF downloads, and confirmed the old
+  `POST /fee-payments/:id/confirm` route now 404s. A full browser UI walkthrough (staff-console +
+  parent-app Chrome preview) was **not** done this session — the API-level smoke test above exercises
+  the same real backend code path the UI calls, and both clients' own component/widget test suites
+  (227 + full parent-app suite) cover the UI layer; a browser pass is worth doing before a pilot
+  school sees this feature.
+- Follow-up (tracked, not blocking): live verification against a real JazzCash/EasyPaisa sandbox is
+  blocked on merchant onboarding (weeks of vendor lead time, per the roadmap's own "Long-lead
+  integrations" section) — not an engineering task this sprint could close. EasyPaisa's exact
+  field list/order remains unconfirmed in code, flagged inline. A job-runner/scheduled-retry queue
+  for webhook delivery failures was deliberately not built (webhook handling is synchronous; gateways
+  handle their own retry) — revisit if this becomes observable once a real gateway account exists.
+  A third-party payment aggregator (e.g. rapidgateway.pk, surfaced while researching this sprint) was
+  not evaluated as an alternative to direct integration.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
