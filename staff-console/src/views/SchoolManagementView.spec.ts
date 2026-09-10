@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import SchoolManagementView from './SchoolManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -13,6 +14,9 @@ vi.mock('../lib/api', () => ({
     deleteSchool: vi.fn(),
   },
 }));
+vi.mock('../lib/useConfirm', () => ({
+  useConfirm: vi.fn(),
+}));
 
 describe('SchoolManagementView', () => {
   beforeEach(() => {
@@ -21,6 +25,7 @@ describe('SchoolManagementView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listSchools).mockResolvedValue([{ id: 's1', name: 'The Seeds School' }]);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
   it('lists schools and creates a new one', async () => {
@@ -55,7 +60,8 @@ describe('SchoolManagementView', () => {
 
   it('deletes a school after confirmation, and does nothing if the confirmation is declined', async () => {
     vi.mocked(api.deleteSchool).mockResolvedValue(undefined);
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
     const wrapper = mount(SchoolManagementView);
     await flushPromises();
@@ -67,12 +73,14 @@ describe('SchoolManagementView', () => {
     await wrapper.find('[data-testid="delete-s1"]').trigger('click');
     await flushPromises();
     expect(api.deleteSchool).toHaveBeenCalledWith('token-1', 's1');
-
-    confirmSpy.mockRestore();
+    expect(confirmFn).toHaveBeenCalledWith({
+      title: 'Delete this school?',
+      message: 'This cannot be undone.',
+      danger: true,
+    });
   });
 
   it('shows the backend error when delete is blocked by dependent records', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(api.deleteSchool).mockRejectedValue(new Error('Cannot delete this School: other records still reference it.'));
 
     const wrapper = mount(SchoolManagementView);

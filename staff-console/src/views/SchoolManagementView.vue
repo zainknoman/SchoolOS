@@ -2,8 +2,13 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type SchoolSummary } from '../lib/api';
+import EntityTable from '../components/EntityTable.vue';
+import FormField from '../components/FormField.vue';
+import Button from '../components/Button.vue';
+import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
+const { confirm } = useConfirm();
 
 const schools = ref<SchoolSummary[]>([]);
 const errorMessage = ref<string | null>(null);
@@ -62,7 +67,7 @@ async function onSaveEdit(id: string) {
 
 async function onDelete(id: string) {
   if (!auth.accessToken) return;
-  if (!window.confirm('Delete this school? This cannot be undone.')) return;
+  if (!(await confirm({ title: 'Delete this school?', message: 'This cannot be undone.', danger: true }))) return;
   errorMessage.value = null;
   try {
     await api.deleteSchool(auth.accessToken, id);
@@ -78,40 +83,28 @@ async function onDelete(id: string) {
     <h1>Schools</h1>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <table class="entity-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th class="actions-col"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="s in schools" :key="s.id">
-          <template v-if="editingId === s.id">
-            <td>
-              <input :data-testid="`edit-name-${s.id}`" v-model="editName" type="text" />
-            </td>
-            <td class="actions-col">
-              <button type="button" :data-testid="`save-${s.id}`" @click="onSaveEdit(s.id)">Save</button>
-              <button type="button" class="secondary" @click="cancelEdit">Cancel</button>
-            </td>
-          </template>
-          <template v-else>
-            <td>{{ s.name }}</td>
-            <td class="actions-col">
-              <button type="button" :data-testid="`edit-${s.id}`" @click="startEdit(s)">Edit</button>
-              <button type="button" class="secondary" :data-testid="`delete-${s.id}`" @click="onDelete(s.id)">
-                Delete
-              </button>
-            </td>
-          </template>
-        </tr>
-      </tbody>
-    </table>
+    <EntityTable :items="schools" :columns="[{ key: 'name', label: 'Name' }]" row-key="id" :editing-id="editingId">
+      <template #cell-name="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <span v-else>{{ item.name }}</span>
+      </template>
+      <template #actions="{ item, editing }">
+        <template v-if="editing">
+          <Button :data-testid="`save-${item.id}`" @click="onSaveEdit(item.id)">Save</Button>
+          <Button variant="secondary" @click="cancelEdit">Cancel</Button>
+        </template>
+        <template v-else>
+          <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
+          <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
+            Delete
+          </Button>
+        </template>
+      </template>
+    </EntityTable>
 
     <div class="inline-form">
-      <input data-testid="add-name" v-model="newName" type="text" placeholder="School name" />
-      <button type="button" data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</button>
+      <FormField v-model="newName" label="School name" type="text" data-testid="add-name" placeholder="School name" grow />
+      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
     </div>
   </div>
 </template>
@@ -124,50 +117,9 @@ async function onDelete(id: string) {
   color: var(--color-destructive);
   margin-bottom: var(--space-3);
 }
-.entity-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: var(--space-4);
-}
-.entity-table th,
-.entity-table td {
-  text-align: left;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-}
-.actions-col {
-  width: 1%;
-  white-space: nowrap;
-  display: flex;
-  gap: var(--space-2);
-}
 .inline-form {
   display: flex;
   gap: var(--space-2);
-}
-.inline-form input {
-  flex: 1;
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font: inherit;
-}
-button {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 600;
-  cursor: pointer;
-}
-button.secondary {
-  background: transparent;
-  color: var(--color-destructive);
-  border: 1px solid var(--color-destructive);
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  align-items: flex-end;
 }
 </style>
