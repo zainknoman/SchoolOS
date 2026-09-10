@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import ParentManagementView from './ParentManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -13,6 +14,9 @@ vi.mock('../lib/api', () => ({
     updateParent: vi.fn(),
     deleteParent: vi.fn(),
   },
+}));
+vi.mock('../lib/useConfirm', () => ({
+  useConfirm: vi.fn(),
 }));
 
 describe('ParentManagementView', () => {
@@ -24,6 +28,7 @@ describe('ParentManagementView', () => {
     vi.mocked(api.listAdminParents).mockResolvedValue([
       { id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'Existing Parent', phone: '0300-1111111', childrenCount: 2 },
     ]);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
   it('lists parents (with their linked-children count) and creates a new one', async () => {
@@ -78,17 +83,26 @@ describe('ParentManagementView', () => {
     expect(api.updateParent).toHaveBeenCalledWith('token-1', 'p1', { name: 'Renamed Parent', phone: '0300-1111111' });
   });
 
-  it('deletes a parent after confirmation', async () => {
+  it('deletes a parent after confirmation, and does nothing if the confirmation is declined', async () => {
     vi.mocked(api.deleteParent).mockResolvedValue(undefined);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
     const wrapper = mount(ParentManagementView);
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-p1"]').trigger('click');
     await flushPromises();
+    expect(api.deleteParent).not.toHaveBeenCalled();
 
+    await wrapper.find('[data-testid="delete-p1"]').trigger('click');
+    await flushPromises();
     expect(api.deleteParent).toHaveBeenCalledWith('token-1', 'p1');
+    expect(confirmFn).toHaveBeenCalledWith({
+      title: 'Delete this parent?',
+      message: 'This cannot be undone.',
+      danger: true,
+    });
   });
 
   it('shows the backend error when create fails on a duplicate identifier', async () => {
