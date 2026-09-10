@@ -838,6 +838,21 @@ export const api = {
     return asJson(res);
   },
 
+  async reconcileVoucher(
+    accessToken: string,
+    voucherId: string,
+    payload: { amount: number; method: 'cash' | 'bank_transfer'; note?: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-vouchers/${voucherId}/reconcile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
   // Direct authenticated download links (the backend's JwtStrategy accepts ?access_token= as a
   // fallback specifically so links like this work) — not fetch calls, used directly as <a href>.
   voucherPdfUrl(accessToken: string, voucherId: string): string {

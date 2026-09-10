@@ -121,6 +121,36 @@ const ledgerVouchers = ref<FeeVoucherSummary[]>([]);
 const ledgerPayments = ref<FeePaymentSummary[]>([]);
 const ledgerError = ref<string | null>(null);
 
+const reconcilingVoucherId = ref<string | null>(null);
+const reconcileAmount = ref('');
+const reconcileMethod = ref<'cash' | 'bank_transfer'>('cash');
+const reconcileNote = ref('');
+const reconcileError = ref<string | null>(null);
+
+function startReconcile(voucherId: string, amountDuePaisa: number) {
+  reconcilingVoucherId.value = voucherId;
+  reconcileAmount.value = (amountDuePaisa / 100).toString();
+  reconcileMethod.value = 'cash';
+  reconcileNote.value = '';
+  reconcileError.value = null;
+}
+
+async function onReconcile() {
+  if (!auth.accessToken || !reconcilingVoucherId.value || !reconcileAmount.value) return;
+  reconcileError.value = null;
+  try {
+    await api.reconcileVoucher(auth.accessToken, reconcilingVoucherId.value, {
+      amount: Math.round(Number(reconcileAmount.value) * 100),
+      method: reconcileMethod.value,
+      note: reconcileNote.value || undefined,
+    });
+    reconcilingVoucherId.value = null;
+    await onLoadLedger();
+  } catch (err) {
+    reconcileError.value = err instanceof Error ? err.message : 'Could not record payment.';
+  }
+}
+
 async function onLedgerSectionChange() {
   ledgerStudentId.value = '';
   ledgerVouchers.value = [];
@@ -245,6 +275,7 @@ async function onLoadLedger() {
             <th class="num">Paid</th>
             <th class="num">Due</th>
             <th>Status</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -255,9 +286,40 @@ async function onLoadLedger() {
             <td class="num">{{ formatPkrFull(v.amountPaid / 100) }}</td>
             <td class="num">{{ formatPkrFull(v.amountDue / 100) }}</td>
             <td>{{ v.status }}</td>
+            <td>
+              <button
+                v-if="v.amountDue > 0"
+                :data-testid="`record-payment-${v.id}`"
+                @click="startReconcile(v.id, v.amountDue)"
+              >
+                Record payment
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
+
+      <div v-if="reconcilingVoucherId" class="card">
+        <h3>Record cash / bank-transfer payment</h3>
+        <p v-if="reconcileError" class="error" role="alert">{{ reconcileError }}</p>
+        <label class="field">
+          <span>Amount (PKR)</span>
+          <input data-testid="reconcile-amount" v-model="reconcileAmount" type="number" />
+        </label>
+        <label class="field">
+          <span>Method</span>
+          <select data-testid="reconcile-method" v-model="reconcileMethod">
+            <option value="cash">Cash</option>
+            <option value="bank_transfer">Bank transfer</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Note (optional)</span>
+          <input data-testid="reconcile-note" v-model="reconcileNote" type="text" />
+        </label>
+        <button data-testid="reconcile-submit" @click="onReconcile">Record payment</button>
+        <button data-testid="reconcile-cancel" @click="reconcilingVoucherId = null">Cancel</button>
+      </div>
 
       <ul v-if="ledgerPayments.length" class="payments-list">
         <li v-for="p in ledgerPayments" :key="p.id">

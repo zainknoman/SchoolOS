@@ -28,6 +28,7 @@ vi.mock('../lib/api', () => ({
     studentFees: vi.fn(),
     studentFeePayments: vi.fn(),
     receiptPdfUrl: vi.fn(),
+    reconcileVoucher: vi.fn(),
   },
 }));
 
@@ -228,5 +229,45 @@ describe('FeeManagementView', () => {
 
     expect(wrapper.text()).not.toContain('unpaid');
     expect((wrapper.find('[data-testid="ledger-student"]').element as HTMLSelectElement).value).toBe('');
+  });
+
+  it('staff records a cash payment against a voucher from the ledger, then the ledger reloads', async () => {
+    vi.mocked(api.studentFees).mockResolvedValue([
+      {
+        id: 'v1',
+        studentId: 's1',
+        month: '2026-09',
+        dueDate: '2026-09-10',
+        items: [{ label: 'Tuition Fee', amount: 500000 }],
+        totalAmount: 500000,
+        amountPaid: 0,
+        amountDue: 500000,
+        status: 'unpaid',
+      },
+    ]);
+    vi.mocked(api.studentFeePayments).mockResolvedValue([]);
+    vi.mocked(api.reconcileVoucher).mockResolvedValue(undefined);
+
+    const wrapper = await mountView();
+    await flushPromises();
+    await wrapper.find('[data-testid="ledger-section"]').setValue('sec-1');
+    await flushPromises();
+    await wrapper.find('[data-testid="ledger-student"]').setValue('s1');
+    await flushPromises();
+
+    await wrapper.find('[data-testid="record-payment-v1"]').trigger('click');
+    await wrapper.find('[data-testid="reconcile-amount"]').setValue('5000');
+    await wrapper.find('[data-testid="reconcile-method"]').setValue('cash');
+    await wrapper.find('[data-testid="reconcile-submit"]').trigger('click');
+    await flushPromises();
+
+    expect(api.reconcileVoucher).toHaveBeenCalledWith('token-1', 'v1', {
+      amount: 500000,
+      method: 'cash',
+      note: undefined,
+    });
+    // Ledger reloads after a successful reconcile — studentFees/studentFeePayments called twice
+    // each (once on select, once on reload).
+    expect(vi.mocked(api.studentFees).mock.calls.length).toBe(2);
   });
 });
