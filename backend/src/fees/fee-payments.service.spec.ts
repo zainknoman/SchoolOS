@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { FeePaymentsService } from './fee-payments.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { PAYMENT_GATEWAY_ADAPTER } from './payment-gateway-adapter';
+import { PAYMENT_GATEWAY_ADAPTER_FACTORY } from './payment-gateway-adapter-factory';
 
 describe('FeePaymentsService', () => {
   let service: FeePaymentsService;
@@ -13,7 +13,8 @@ describe('FeePaymentsService', () => {
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
-  let gateway: { initiate: jest.Mock; confirm: jest.Mock };
+  let gatewayFactory: { getAdapter: jest.Mock };
+  let adapter: { initiate: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -23,12 +24,13 @@ describe('FeePaymentsService', () => {
       auditLog: { create: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
-    gateway = { initiate: jest.fn(), confirm: jest.fn() };
+    adapter = { initiate: jest.fn() };
+    gatewayFactory = { getAdapter: jest.fn().mockReturnValue(adapter) };
     const moduleRef = await Test.createTestingModule({
       providers: [
         FeePaymentsService,
         { provide: PrismaService, useValue: prisma },
-        { provide: PAYMENT_GATEWAY_ADAPTER, useValue: gateway },
+        { provide: PAYMENT_GATEWAY_ADAPTER_FACTORY, useValue: gatewayFactory },
       ],
     }).compile();
     service = moduleRef.get(FeePaymentsService);
@@ -41,26 +43,28 @@ describe('FeePaymentsService', () => {
       allocations: [{ amount: 500000 }],
     });
 
-    await expect(service.pay('v1', 'parent-1')).rejects.toThrow(BadRequestException);
-    expect(gateway.initiate).not.toHaveBeenCalled();
+    await expect(service.pay('v1', 'parent-1', 'jazzcash')).rejects.toThrow(BadRequestException);
+    expect(adapter.initiate).not.toHaveBeenCalled();
   });
 
-  it('pay() initiates against the gateway for the remaining amountDue and creates a pending payment + allocation', async () => {
+  it('pay() picks the adapter for the requested method and creates a pending payment tagged with it', async () => {
     prisma.feeVoucher.findUnique.mockResolvedValue({
       id: 'v1',
       items: [{ amount: 500000 }],
       allocations: [{ amount: 200000 }],
     });
-    gateway.initiate.mockResolvedValue({ redirectUrl: '/pay/x', gatewayReference: 'stub_1' });
+    adapter.initiate.mockResolvedValue({ redirectUrl: '/pay/x', gatewayReference: 'stub_1' });
     prisma.feePayment.create.mockResolvedValue({ id: 'pay-1' });
 
-    const result = await service.pay('v1', 'parent-1');
+    const result = await service.pay('v1', 'parent-1', 'easypaisa');
 
-    expect(gateway.initiate).toHaveBeenCalledWith(expect.objectContaining({ amount: 300000 }));
+    expect(gatewayFactory.getAdapter).toHaveBeenCalledWith('easypaisa');
+    expect(adapter.initiate).toHaveBeenCalledWith(expect.objectContaining({ amount: 300000 }));
     expect(prisma.feePayment.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           amount: 300000,
+          method: 'easypaisa',
           status: 'pending',
           allocations: { create: [{ feeVoucherId: 'v1', amount: 300000 }] },
         }),

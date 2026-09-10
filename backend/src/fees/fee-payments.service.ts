@@ -1,8 +1,11 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { PAYMENT_GATEWAY_ADAPTER } from './payment-gateway-adapter';
-import type { PaymentGatewayAdapter } from './payment-gateway-adapter';
+import {
+  PAYMENT_GATEWAY_ADAPTER_FACTORY,
+  PaymentGatewayAdapterFactory,
+  PaymentMethod,
+} from './payment-gateway-adapter-factory';
 
 export interface PaymentSummary {
   id: string;
@@ -18,10 +21,14 @@ export interface PaymentSummary {
 export class FeePaymentsService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(PAYMENT_GATEWAY_ADAPTER) private readonly gateway: PaymentGatewayAdapter,
+    @Inject(PAYMENT_GATEWAY_ADAPTER_FACTORY) private readonly gatewayFactory: PaymentGatewayAdapterFactory,
   ) {}
 
-  async pay(voucherId: string, actingUserId: string): Promise<{ redirectUrl: string; paymentId: string }> {
+  async pay(
+    voucherId: string,
+    actingUserId: string,
+    method: PaymentMethod,
+  ): Promise<{ redirectUrl: string; paymentId: string }> {
     const voucher = await this.prisma.feeVoucher.findUnique({
       where: { id: voucherId },
       include: { items: true, allocations: true },
@@ -37,15 +44,16 @@ export class FeePaymentsService {
     }
 
     const reference = `pay_${randomUUID()}`;
-    const { redirectUrl, gatewayReference } = await this.gateway.initiate({ amount: amountDue, reference });
+    const adapter = this.gatewayFactory.getAdapter(method);
+    const { redirectUrl, gatewayReference } = await adapter.initiate({ amount: amountDue, reference });
 
     // The allocation is created eagerly here (not on confirm) so amountDue immediately reflects a
-    // payment in flight — a failed confirm removes it again (see confirm() below), so a payment
-    // that never completes never permanently reduces what's due.
+    // payment in flight — a failed confirm removes it again (see confirmFromWebhook() below), so
+    // a payment that never completes never permanently reduces what's due.
     const payment = await this.prisma.feePayment.create({
       data: {
         amount: amountDue,
-        method: 'jazzcash',
+        method,
         status: 'pending',
         reference: gatewayReference,
         allocations: { create: [{ feeVoucherId: voucherId, amount: amountDue }] },
@@ -58,7 +66,7 @@ export class FeePaymentsService {
         action: 'fee-payment.initiate',
         entity: 'FeePayment',
         entityId: payment.id,
-        metadata: JSON.stringify({ voucherId, amount: amountDue }),
+        metadata: JSON.stringify({ voucherId, amount: amountDue, method }),
       },
     });
 

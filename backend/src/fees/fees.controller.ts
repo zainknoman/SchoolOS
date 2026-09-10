@@ -6,6 +6,7 @@ import { FeePaymentsService } from './fee-payments.service';
 import { FeesPdfService } from './fees-pdf.service';
 import { CreateFeeStructureDto } from './dto/create-fee-structure.dto';
 import { IssueVouchersDto } from './dto/issue-vouchers.dto';
+import { PayVoucherDto } from './dto/pay-voucher.dto';
 import { StudentAccessService, RequestUser } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 
@@ -76,10 +77,10 @@ export class FeesController {
 
   @Roles('PARENT')
   @Post('fee-vouchers/:id/pay')
-  async pay(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  async pay(@Param('id') id: string, @Body() dto: PayVoucherDto, @Req() req: AuthenticatedRequest) {
     const voucher = await this.feeVouchers.getById(id);
     await this.studentAccess.assertCanAccessStudent(req.user, voucher.studentId);
-    return this.feePayments.pay(id, req.user.id);
+    return this.feePayments.pay(id, req.user.id, dto.method);
   }
 
   @Roles('PARENT')

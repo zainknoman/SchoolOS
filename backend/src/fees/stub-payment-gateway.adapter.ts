@@ -1,17 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import {
-  PaymentConfirmation,
-  PaymentGatewayAdapter,
-  PaymentInitiation,
-} from './payment-gateway-adapter';
+import { PaymentGatewayAdapter, PaymentInitiation } from './payment-gateway-adapter';
 
 /**
- * No real JazzCash/EasyPaisa merchant account exists yet — this adapter simulates the
- * redirect-and-callback shape a real gateway would use (a hosted checkout URL, then a confirm
- * call standing in for the gateway's webhook) and always confirms 'completed'. Swapping in a real
- * merchant-backed implementation later is a one-file change behind the same PaymentGatewayAdapter
- * interface, matching the PushAdapter/StorageAdapter precedent.
+ * No real JazzCash/EasyPaisa merchant account exists yet — this adapter simulates a gateway's
+ * hosted-checkout redirect. Local dev/tests simulate the gateway's own webhook call afterward
+ * (see PaymentsWebhookController + StubWebhookSigner) rather than this adapter confirming
+ * anything itself.
  */
 @Injectable()
 export class StubPaymentGatewayAdapter implements PaymentGatewayAdapter {
@@ -21,9 +16,5 @@ export class StubPaymentGatewayAdapter implements PaymentGatewayAdapter {
       redirectUrl: `/pay/stub-checkout?ref=${gatewayReference}&amount=${input.amount}`,
       gatewayReference,
     };
-  }
-
-  async confirm(gatewayReference: string): Promise<PaymentConfirmation> {
-    return { status: 'completed' };
   }
 }

@@ -5,8 +5,7 @@ import { FeePaymentsService } from './fee-payments.service';
 import { FeesPdfService } from './fees-pdf.service';
 import { FeesController } from './fees.controller';
 import { StudentAccessService } from '../common/student-access.service';
-import { PAYMENT_GATEWAY_ADAPTER } from './payment-gateway-adapter';
-import { StubPaymentGatewayAdapter } from './stub-payment-gateway.adapter';
+import { PAYMENT_GATEWAY_ADAPTER_FACTORY, PaymentGatewayAdapterFactoryImpl } from './payment-gateway-adapter-factory';
 
 @Module({
   providers: [
@@ -15,7 +14,7 @@ import { StubPaymentGatewayAdapter } from './stub-payment-gateway.adapter';
     FeePaymentsService,
     FeesPdfService,
     StudentAccessService,
-    { provide: PAYMENT_GATEWAY_ADAPTER, useClass: StubPaymentGatewayAdapter },
+    { provide: PAYMENT_GATEWAY_ADAPTER_FACTORY, useClass: PaymentGatewayAdapterFactoryImpl },
   ],
   controllers: [FeesController],
 })

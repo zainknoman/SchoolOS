@@ -10,9 +10,4 @@ describe('StubPaymentGatewayAdapter', () => {
     expect(first.gatewayReference).not.toBe(second.gatewayReference);
     expect(first.redirectUrl).toContain('amount=50000');
   });
-
-  it('confirm() always resolves completed — no real gateway exists yet', async () => {
-    const result = await adapter.confirm('stub_anything');
-    expect(result.status).toBe('completed');
-  });
 });
