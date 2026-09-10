@@ -195,6 +195,18 @@ class ApiClient {
     }
   }
 
+  Future<void> registerDeviceToken(String accessToken, String token, String platform) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/me/device-tokens'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({'token': token, 'platform': platform}),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
+
+
   /// A direct, headers-free download link — the backend's JwtStrategy accepts the token as
   /// ?access_token= specifically so links like this (opened via url_launcher) can authenticate.
   Uri fileDownloadUrl(String fileId, String accessToken) =>
