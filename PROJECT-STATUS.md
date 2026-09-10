@@ -608,6 +608,70 @@ review, plus this closing verification task.
   own "zero user-visible interruption" goal for that one traffic class — a known limitation, not a
   closed item.
 
+## Sprint B — Stabilization II: Database & Hardening ✅ DONE
+
+Roadmap's second Tier-0 stabilization sprint (`docs/superpowers/plans/2026-09-08-sprint-b-stabilization-ii.md`),
+closing the remaining Repo-Audit security gaps appropriate-for-dev-only plus the SQLite→PostgreSQL
+migration. Merged to `main` 2026-09-09 (`b762240..fc53413`), 4 tasks: onDelete-policy fix, CORS
+allow-list, rate limiting, Postgres migration.
+
+- [x] **`FeePaymentAllocation`/`Receipt` `onDelete` policy resolved** — `Receipt.feePayment` changed
+      from `Cascade` to `Restrict`, matching its sibling `FeePaymentAllocation.feePayment` (both are
+      now un-droppable via a parent `FeePayment` delete, same precedent as the Sprint 6.5
+      `Student → Attendance/FeeVoucher/LeaveRequest` fix).
+- [x] **CORS scoped to a known allow-list** — new `backend/src/config/cors.config.ts`
+      (`CORS_ORIGINS` env var, defaults to staff-console's `http://localhost:5173`), replacing the
+      previous bare `app.enableCors()` (reflected any Origin).
+- [x] **Rate limiting** — global `@nestjs/throttler` guard (100 req/min general) plus a stricter
+      5/min override on `POST /auth/login`; test-only limits relaxed to 1000 so existing e2e suites
+      that log in repeatedly aren't broken.
+- [x] **Postgres migration** — `schema.prisma` datasource switched to `postgresql`, `PrismaService`/
+      `seed.ts` now construct `PrismaClient` via `@prisma/adapter-pg`, SQLite-era migrations replaced
+      with one generated Postgres baseline, CI's backend job gained a `postgres` service container.
+      Local dev now requires a reachable Postgres instance (`backend/.env`'s `DATABASE_URL`) — SQLite
+      is no longer a fallback.
+- Verified: full backend unit suite (237 tests) and `npm run build` clean on 2026-09-10; the
+  pre-existing upload-limit e2e tests (Sprint B's "Upload limits" item, actually landed in the
+  2026-09-05 Security Hardening Pass) reverified passing, confirming that checklist item was already
+  satisfied rather than newly done here.
+- Follow-up (tracked, not blocking): `docs/superpowers/plans/2026-09-08-sprint-b-stabilization-ii.md`'s
+  own "Final verification" step of confirming CI is green on GitHub Actions has not been done from
+  this session — verified locally only; someone with repo access should confirm the Actions run.
+
+## Sprint C — Attendance & Access Bug Fixes + Verification Pass ⏳ IN PROGRESS
+
+- [x] **Parent-app login unreachable from local dev preview (found 2026-09-10, not an originally
+      planned Sprint C item)** — the parent app is Flutter-mobile in production (not subject to
+      CORS), but this dev machine has no Android emulator and no Windows C++ toolchain, so
+      `flutter run -d chrome` (a real browser origin, a fresh port every run) is the only way to
+      preview it locally, and Sprint B's new CORS allow-list didn't include it. Every request from
+      the parent-app preview failed as a generic, unhelpful `TypeError: Failed to fetch` in the
+      browser console, surfacing in the UI as "Something went wrong. Please try again." on login —
+      looked like an auth bug, wasn't one (curl against the same endpoint with the same credentials
+      always succeeded). Fixed: `buildCorsOriginOption()` (`backend/src/config/cors.config.ts`)
+      accepts any `localhost`/`127.0.0.1` origin, any port, in development/test only; staging/
+      production keep the strict `CORS_ORIGINS` allow-list unchanged. Verified live in a real browser
+      session against both `parent-a@seeds.edu.pk` and `parent-b@seeds.edu.pk` (real JWTs issued, Home
+      dashboard rendered with real seeded data). New unit coverage in `cors.config.spec.ts` (10 tests,
+      up from 4); full backend suite (237 tests) and `npm run build` clean.
+- Found during the same verification pass (not fixed yet, tracked as a Sprint C follow-up): 
+  `FeeVouchersService`'s status computation (`voucher.dueDate < new Date()`) flags a voucher
+  `overdue` from the moment its due date starts (any time past midnight on the due date), not once
+  it's actually passed — a voucher due "today" already reads as overdue. Caught by
+  `fees.e2e-spec.ts` failing when run on the voucher's own due date.
+- [ ] Fix Admin/Super-Admin attendance-marking bug (`Teacher.findUnique` role fallthrough) — root
+      cause confirmed: `AttendanceService.markAttendance()` requires a `Teacher` row for the acting
+      user (`Attendance.markedById` is a required FK to `Teacher.id`), which a `SCHOOL_ADMIN`/
+      `SUPER_ADMIN` account doesn't have, so the `@Roles()` guard authorizes them but the service then
+      404s. `LeaveService.approve()` already solved the identical FK problem for admin-approved leave
+      by attributing the write to the student's section's `classTeacherId` instead of the acting
+      admin — same fix applies here. Not yet implemented.
+- [x] Fix Circulars nav-role bug (`AppShell.vue`'s `isAdmin` condition) — already closed by the
+      2026-09-07 Staff Console Shell Redesign's `canManageCirculars` computed (ahead of this sprint
+      being scoped); confirmed via code read, no new work needed.
+- [ ] Verify Fees/Messaging enforce the same scoping rigor already proven on Attendance/Diary — not
+      started.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
@@ -735,8 +799,10 @@ own implementer + task review, plus this manual verification task.
 
 ## Environment / one-time setup
 
-- [x] PostgreSQL/Docker — not available on this machine; using SQLite for local dev (tracked above,
-      not forgotten)
+- [x] PostgreSQL — installed and running locally (`localhost:5432`, native Windows service, not
+      Docker — `docker` itself is still unavailable on this machine) as of Sprint B (2026-09-09/10);
+      `backend/.env`'s `DATABASE_URL` points at it. SQLite is no longer a valid fallback (see Sprint
+      B above).
 - [x] Flutter SDK installed (3.47.1), Android SDK cmdline-tools installed, `flutter doctor` green
       except Visual Studio (unrelated — only needed for native Windows desktop builds)
 - [x] Windows Developer Mode enabled (needed for Flutter plugin builds)
@@ -747,21 +813,25 @@ own implementer + task review, plus this manual verification task.
 
 ---
 
-**Next step:** **Sprint A — Stabilization I** is done (see above) — the working refresh-token loop
-with rotation-on-use, boot-time JWT-secret fail-fast, both clients' retry-on-401 interceptors, and
-the CI pipeline definition are all in place. What's left from that sprint is not code: pushing
-`.github/workflows/ci.yml` to GitHub, confirming it runs green, and turning on branch protection
-requiring it, all need the repo owner's action (see Sprint A's Follow-up above). The logical next
-piece of Tier-0 stabilization is **Sprint B** — migrating the Prisma datasource from SQLite to
-PostgreSQL, and hardening file uploads/CORS/rate-limiting — not yet spec'd. Separately, the Staff
-Console Shell Redesign is done (see above); its own spec scoped a follow-up per-screen pass
+**Next step:** **Sprint A** and **Sprint B** (Stabilization I and II) are both done (see above). What's
+left from Sprint A is not code: pushing `.github/workflows/ci.yml` to GitHub, confirming it runs
+green, and turning on branch protection requiring it, all need the repo owner's action (see Sprint
+A's Follow-up above); Sprint B similarly needs someone with repo access to confirm its CI run is
+green on GitHub Actions (see Sprint B's Follow-up above). **Sprint C — Attendance & Access Bug Fixes
++ Verification Pass** is in progress (see above): the parent-app-login CORS gap found while starting
+this sprint is fixed and verified; the Circulars nav-role bug turned out already fixed by an earlier
+sprint; still open are the Admin/Super-Admin attendance-marking fix (root cause confirmed, fix
+designed, not yet implemented), the Fees/Messaging scoping verification pass, and the
+newly-found fee-voucher-due-date-off-by-one bug — see
+`docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` for the implementation plan. Separately,
+the Staff Console Shell Redesign is done (see above); its own spec scoped a follow-up per-screen pass
 (empty/loading/error state machine + a shared `StatusPill.vue` across all 14 admin/teacher views)
 that has not been started — spec/plan not yet written. The parent-app (Flutter) half of the
 original design-refresh request also has not been started — its own spec is next after that.
-**Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's offline-caching slice is done;
-remaining: FEAT-014's Play Store submission, switch the Prisma datasource from SQLite to
-PostgreSQL before any staging/production deploy (tracked here and as Sprint B above — same item,
-two names), rotate the dev-only JWT secrets in `backend/.env` (Sprint A's boot-time fail-fast now
+**Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's offline-caching slice is done, and the
+Prisma-to-PostgreSQL switch this section used to list is now done (Sprint B, above); remaining:
+FEAT-014's Play Store submission, rotate the dev-only JWT secrets in `backend/.env` (Sprint A's
+boot-time fail-fast now
 refuses to boot on the dev-only secret outside dev/test, so a stale secret is caught immediately
 rather than silently deployed — the rotation itself still needs doing), wire real S3-compatible
 storage and a real Firebase project for FCM, then a pilot rollout (one campus/class, 20-50 parents)
