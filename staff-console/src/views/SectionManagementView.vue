@@ -3,8 +3,13 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type ClassSummary, type TeacherSummary } from '../lib/api';
+import EntityTable from '../components/EntityTable.vue';
+import FormField from '../components/FormField.vue';
+import Button from '../components/Button.vue';
+import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
+const { confirm } = useConfirm();
 
 const classes = ref<ClassSummary[]>([]);
 const teachers = ref<TeacherSummary[]>([]);
@@ -81,7 +86,7 @@ async function onSaveEdit(id: string) {
 
 async function onDelete(id: string) {
   if (!auth.accessToken) return;
-  if (!window.confirm('Delete this section? This cannot be undone.')) return;
+  if (!(await confirm({ title: 'Delete this section?', message: 'This cannot be undone.', danger: true }))) return;
   errorMessage.value = null;
   try {
     await api.deleteSection(auth.accessToken, id);
@@ -97,60 +102,60 @@ async function onDelete(id: string) {
     <h1>Sections</h1>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <table class="entity-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Class</th>
-          <th>Campus</th>
-          <th>Class Teacher</th>
-          <th class="actions-col"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="s in sections" :key="s.id">
-          <template v-if="editingId === s.id">
-            <td><input :data-testid="`edit-name-${s.id}`" v-model="editName" type="text" /></td>
-            <td>{{ s.className }}</td>
-            <td>{{ s.campusName }}</td>
-            <td>
-              <select :data-testid="`edit-teacher-${s.id}`" v-model="editTeacherId">
-                <option value="">— None —</option>
-                <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
-              </select>
-            </td>
-            <td class="actions-col">
-              <button type="button" :data-testid="`save-${s.id}`" @click="onSaveEdit(s.id)">Save</button>
-              <button type="button" class="secondary" @click="cancelEdit">Cancel</button>
-            </td>
-          </template>
-          <template v-else>
-            <td>{{ s.name }}</td>
-            <td>{{ s.className }}</td>
-            <td>{{ s.campusName }}</td>
-            <td>{{ s.classTeacherName ?? '— None —' }}</td>
-            <td class="actions-col">
-              <button type="button" :data-testid="`edit-${s.id}`" @click="startEdit(s)">Edit</button>
-              <button type="button" class="secondary" :data-testid="`delete-${s.id}`" @click="onDelete(s.id)">
-                Delete
-              </button>
-            </td>
-          </template>
-        </tr>
-      </tbody>
-    </table>
+    <EntityTable
+      :items="sections"
+      :columns="[
+        { key: 'name', label: 'Name' },
+        { key: 'className', label: 'Class' },
+        { key: 'campusName', label: 'Campus' },
+        { key: 'classTeacherName', label: 'Class Teacher' },
+      ]"
+      row-key="id"
+      :editing-id="editingId"
+    >
+      <template #cell-name="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <span v-else>{{ item.name }}</span>
+      </template>
+      <template #cell-classTeacherName="{ item, editing }">
+        <select v-if="editing" :data-testid="`edit-teacher-${item.id}`" v-model="editTeacherId">
+          <option value="">— None —</option>
+          <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+        </select>
+        <span v-else>{{ item.classTeacherName ?? '— None —' }}</span>
+      </template>
+      <template #actions="{ item, editing }">
+        <template v-if="editing">
+          <Button :data-testid="`save-${item.id}`" @click="onSaveEdit(item.id)">Save</Button>
+          <Button variant="secondary" @click="cancelEdit">Cancel</Button>
+        </template>
+        <template v-else>
+          <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
+          <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
+            Delete
+          </Button>
+        </template>
+      </template>
+    </EntityTable>
 
     <div class="inline-form">
-      <select data-testid="add-class" v-model="newClassId">
-        <option value="" disabled>Choose a class</option>
-        <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }} ({{ c.campusName }})</option>
-      </select>
-      <input data-testid="add-name" v-model="newName" type="text" placeholder="e.g. 3B" />
-      <select data-testid="add-teacher" v-model="newTeacherId">
-        <option value="">— No class teacher —</option>
-        <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
-      </select>
-      <button type="button" data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</button>
+      <FormField
+        v-model="newClassId"
+        label="Class"
+        type="select"
+        data-testid="add-class"
+        placeholder="Choose a class"
+        :options="classes.map((c) => ({ value: c.id, label: `${c.name} (${c.campusName})` }))"
+      />
+      <FormField v-model="newName" label="Section name" type="text" data-testid="add-name" placeholder="e.g. 3B" grow />
+      <FormField
+        v-model="newTeacherId"
+        label="Class teacher"
+        type="select"
+        data-testid="add-teacher"
+        :options="[{ value: '', label: '— No class teacher —' }, ...teachers.map((t) => ({ value: t.id, label: t.name }))]"
+      />
+      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
     </div>
   </div>
 </template>
@@ -163,52 +168,10 @@ async function onDelete(id: string) {
   color: var(--color-destructive);
   margin-bottom: var(--space-3);
 }
-.entity-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: var(--space-4);
-}
-.entity-table th,
-.entity-table td {
-  text-align: left;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-}
-.actions-col {
-  width: 1%;
-  white-space: nowrap;
-  display: flex;
-  gap: var(--space-2);
-}
 .inline-form {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-2);
   flex-wrap: wrap;
-}
-.inline-form input,
-.inline-form select {
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font: inherit;
-}
-button {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 600;
-  cursor: pointer;
-}
-button.secondary {
-  background: transparent;
-  color: var(--color-destructive);
-  border: 1px solid var(--color-destructive);
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 </style>

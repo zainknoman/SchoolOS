@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import SectionManagementView from './SectionManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -15,6 +16,9 @@ vi.mock('../lib/api', () => ({
     updateSection: vi.fn(),
     deleteSection: vi.fn(),
   },
+}));
+vi.mock('../lib/useConfirm', () => ({
+  useConfirm: vi.fn(),
 }));
 
 describe('SectionManagementView', () => {
@@ -30,6 +34,7 @@ describe('SectionManagementView', () => {
     vi.mocked(api.listSections).mockResolvedValue([
       { id: 'sec1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar', classTeacherId: 't1', classTeacherName: 'Ms. Ayesha' },
     ]);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
   it('lists sections (with class teacher) and creates a new one', async () => {
@@ -93,21 +98,29 @@ describe('SectionManagementView', () => {
     expect(api.updateSection).toHaveBeenCalledWith('token-1', 'sec1', { name: '3A', classTeacherId: null });
   });
 
-  it('deletes a section after confirmation', async () => {
+  it('deletes a section after confirmation, and does nothing if the confirmation is declined', async () => {
     vi.mocked(api.deleteSection).mockResolvedValue(undefined);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
     const wrapper = mount(SectionManagementView);
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-sec1"]').trigger('click');
     await flushPromises();
+    expect(api.deleteSection).not.toHaveBeenCalled();
 
+    await wrapper.find('[data-testid="delete-sec1"]').trigger('click');
+    await flushPromises();
     expect(api.deleteSection).toHaveBeenCalledWith('token-1', 'sec1');
+    expect(confirmFn).toHaveBeenCalledWith({
+      title: 'Delete this section?',
+      message: 'This cannot be undone.',
+      danger: true,
+    });
   });
 
   it('shows the backend error when delete is blocked by real Timetable/Diary/Circular history', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(api.deleteSection).mockRejectedValue(new Error('Cannot delete this Section: other records still reference it.'));
 
     const wrapper = mount(SectionManagementView);
