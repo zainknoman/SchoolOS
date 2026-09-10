@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:parent_app/src/api/api_client.dart';
 import 'package:parent_app/src/auth/auth_state.dart';
 import 'package:parent_app/src/auth/token_store.dart';
+import 'package:parent_app/src/notifications/device_token_registrar.dart';
+import 'package:parent_app/src/notifications/push_token_provider.dart';
 import 'package:parent_app/src/router/app_router.dart';
 import 'package:parent_app/src/theme/app_theme.dart';
 
@@ -12,15 +14,26 @@ import 'package:parent_app/src/theme/app_theme.dart';
 /// neither of which is available in the widget-test environment. Also seeds an empty
 /// `shared_preferences` mock store, since FEAT-014's offline cache (`DataCache`) reads/writes
 /// it on every screen and would otherwise hang on the unmocked platform channel.
-Widget buildTestApp({required ApiClient api, TokenStore? tokenStore}) {
+///
+/// [deviceTokenRegistrar] defaults to a Noop-backed one so existing tests are unaffected; pass a
+/// real one (built with a fake PushTokenProvider) only in the tests that specifically exercise
+/// device-token registration or push-tap navigation.
+Widget buildTestApp({
+  required ApiClient api,
+  TokenStore? tokenStore,
+  DeviceTokenRegistrar? deviceTokenRegistrar,
+}) {
   SharedPreferences.setMockInitialValues({});
   final auth = AuthState(api: api, tokenStore: tokenStore ?? InMemoryTokenStore());
   final router = buildAppRouter(auth);
+  final registrar =
+      deviceTokenRegistrar ?? DeviceTokenRegistrar(api: api, tokenProvider: NoopPushTokenProvider());
 
   return MultiProvider(
     providers: [
       Provider<ApiClient>.value(value: api),
       ChangeNotifierProvider<AuthState>.value(value: auth),
+      Provider<DeviceTokenRegistrar>.value(value: registrar),
     ],
     child: MaterialApp.router(theme: buildAppTheme(), routerConfig: router),
   );

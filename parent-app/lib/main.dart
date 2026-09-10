@@ -6,6 +6,8 @@ import 'src/api/api_client.dart';
 import 'src/api/refreshing_http_client.dart';
 import 'src/auth/auth_state.dart';
 import 'src/auth/token_store.dart';
+import 'src/notifications/device_token_registrar.dart';
+import 'src/notifications/push_token_provider.dart';
 import 'src/router/app_router.dart';
 import 'src/theme/app_theme.dart';
 
@@ -33,6 +35,10 @@ class _ParentAppState extends State<ParentApp> {
     client: RefreshingHttpClient(inner: http.Client(), onUnauthorized: () => _auth.refreshSession()),
   );
   late final AuthState _auth = AuthState(api: _api, tokenStore: SecureTokenStore());
+  late final DeviceTokenRegistrar _deviceTokenRegistrar = DeviceTokenRegistrar(
+    api: _api,
+    tokenProvider: FirebaseMessagingTokenProvider(),
+  );
   late final GoRouter _router = buildAppRouter(_auth);
 
   @override
@@ -49,6 +55,7 @@ class _ParentAppState extends State<ParentApp> {
       providers: [
         Provider<ApiClient>.value(value: _api),
         ChangeNotifierProvider<AuthState>.value(value: _auth),
+        Provider<DeviceTokenRegistrar>.value(value: _deviceTokenRegistrar),
       ],
       child: MaterialApp.router(
         title: 'School OS',
