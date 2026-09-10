@@ -106,7 +106,7 @@ H — Communication Depth: WhatsApp, SMS, Digest Bundling (Phase 4)").
 - Modify: `backend/prisma/schema.prisma`
 - New: migration
 
-- [ ] **Step 1:** Add to `schema.prisma`:
+- [x] **Step 1:** Add to `schema.prisma`:
   ```prisma
   enum NotificationChannel {
     PUSH
@@ -117,11 +117,11 @@ H — Communication Depth: WhatsApp, SMS, Digest Bundling (Phase 4)").
   On `model User`: `notificationChannel NotificationChannel @default(PUSH)` and
   `digestEnabled Boolean @default(false)`.
   On `model Notification`: `dispatchedAt DateTime?`.
-- [ ] **Step 2:** Run `npx prisma migrate dev --name notification_channel_preferences` (additive
+- [x] **Step 2:** Run `npx prisma migrate dev --name notification_channel_preferences` (additive
   only — every new field has a default/is nullable, so no backfill migration is needed).
-- [ ] **Step 3:** Run `npm run build` to confirm the generated Prisma client compiles against
+- [x] **Step 3:** Run `npm run build` to confirm the generated Prisma client compiles against
   existing call sites (it will — nothing consumes these fields yet).
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add backend/prisma/schema.prisma backend/prisma/migrations
   git commit -m "feat(backend): add NotificationChannel, per-user channel/digest preferences, Notification.dispatchedAt"
@@ -144,23 +144,23 @@ H — Communication Depth: WhatsApp, SMS, Digest Bundling (Phase 4)").
 - `resolveWhatsAppConfig(config): WhatsAppConfig | undefined`, `resolveSmsConfig(config): SmsConfig |
   undefined` — same all-or-nothing + dev/test-carve-out contract as `resolveFirebaseConfig`.
 
-- [ ] **Step 1:** Write failing unit tests for `resolveWhatsAppConfig`/`resolveSmsConfig` (unset →
+- [x] **Step 1:** Write failing unit tests for `resolveWhatsAppConfig`/`resolveSmsConfig` (unset →
   `undefined`; fully set → the config object; partial outside dev/test → throws; partial inside
   dev/test → `undefined`) — copy `fcm-config.spec.ts` structure, swap env var names
   (`WHATSAPP_BUSINESS_PHONE_ID`/`WHATSAPP_ACCESS_TOKEN`; `SMS_GATEWAY_API_KEY`/`SMS_GATEWAY_SENDER_ID`
   — confirm exact field names against whichever gateway is actually contracted before this task
   starts; treat as `// TODO: confirm` until then, matching Sprint E's EasyPaisa precedent).
-- [ ] **Step 2:** Implement both config resolvers. Run tests, confirm pass.
-- [ ] **Step 3:** Write failing unit tests for `WhatsAppAdapter`/`SmsAdapter`: sends via the injected
+- [x] **Step 2:** Implement both config resolvers. Run tests, confirm pass.
+- [x] **Step 3:** Write failing unit tests for `WhatsAppAdapter`/`SmsAdapter`: sends via the injected
   sender when the user has a `ParentProfile.phone`; no-ops (sender never called) when the user has no
   `ParentProfile` or a null `phone`. Mock `PrismaService` and the sender interface.
-- [ ] **Step 4:** Implement `WhatsAppSender`/`SmsSender` (thin `fetch`/HTTP-client wrappers over each
+- [x] **Step 4:** Implement `WhatsAppSender`/`SmsSender` (thin `fetch`/HTTP-client wrappers over each
   provider's send-message endpoint) and the two adapters consuming them + `PrismaService.parentProfile
   .findUnique({ where: { userId } })` (verify the actual relation name/shape in `schema.prisma`
   before writing this query — `ParentProfile` may be keyed by its own id with a `User` back-relation
   rather than a direct `userId` FK; check `model ParentProfile` before assuming).
-- [ ] **Step 5:** Run the full new test file set, confirm pass. Run `npm run build`.
-- [ ] **Step 6: Commit**
+- [x] **Step 5:** Run the full new test file set, confirm pass. Run `npm run build`.
+- [x] **Step 6: Commit**
   ```bash
   git add backend/src/notifications
   git commit -m "feat(backend): add WhatsAppAdapter/SmsAdapter behind the existing PushAdapter interface"
@@ -182,21 +182,21 @@ H — Communication Depth: WhatsApp, SMS, Digest Bundling (Phase 4)").
   `PrismaService.user.findUnique` lookup) before sending, and checks `digestEnabled` to decide
   whether to send immediately or leave `dispatchedAt: null`.
 
-- [ ] **Step 1:** Write failing tests for `notify()`: (a) a user with `notificationChannel: WHATSAPP`
+- [x] **Step 1:** Write failing tests for `notify()`: (a) a user with `notificationChannel: WHATSAPP`
   and `digestEnabled: false` causes the WhatsApp adapter (not push) to receive the `send()` call; (b)
   a user with `digestEnabled: true` causes **no** adapter `send()` call and the created `Notification`
   row has `dispatchedAt: null`; (c) the existing default-push, non-digest behavior from Sprint F is
   unchanged (regression coverage).
-- [ ] **Step 2:** Implement the registry + the `notify()` changes. Keep the existing "adapter failure
+- [x] **Step 2:** Implement the registry + the `notify()` changes. Keep the existing "adapter failure
   must never fail the write" try/catch behavior unchanged around whichever adapter gets picked.
-- [ ] **Step 3:** Update `notifications.module.ts` to provide `WHATSAPP_ADAPTER`/`SMS_ADAPTER` tokens
+- [x] **Step 3:** Update `notifications.module.ts` to provide `WHATSAPP_ADAPTER`/`SMS_ADAPTER` tokens
   (same factory-with-config-fallback shape as the existing `PUSH_ADAPTER` provider) and inject the
   registry into `NotificationsService`.
-- [ ] **Step 4:** Run `notifications.service.spec.ts`, confirm pass. Run the full backend unit suite
+- [x] **Step 4:** Run `notifications.service.spec.ts`, confirm pass. Run the full backend unit suite
   to catch any other spec that constructs `NotificationsService` directly and now needs the extra
   providers mocked (check `notifications.controller.spec.ts` and anywhere else that imports the
   service in isolation).
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   ```bash
   git add backend/src/notifications
   git commit -m "feat(backend): make NotificationsService.notify() channel-aware, skip immediate send for digest users"
@@ -217,19 +217,19 @@ H — Communication Depth: WhatsApp, SMS, Digest Bundling (Phase 4)").
   specified more precisely elsewhere in the roadmap; 15 minutes is a reasonable default, make it a
   named constant so it's a one-line change later, not a magic string).
 
-- [ ] **Step 1:** Write a failing integration-style test: seed two undispatched `Notification` rows
+- [x] **Step 1:** Write a failing integration-style test: seed two undispatched `Notification` rows
   for the same digest-enabled user (different `type`s), run `job.run()`, assert exactly one adapter
   `send()` call with a body that mentions both, and both rows now have `dispatchedAt` set. A second
   test: a non-digest user's rows (already dispatched immediately by `notify()`) are untouched by the
   job (query excludes rows with `dispatchedAt` already set, which is every non-digest row).
-- [ ] **Step 2:** Implement `DigestDispatchJob`: query `Notification.findMany({ where: { dispatchedAt:
+- [x] **Step 2:** Implement `DigestDispatchJob`: query `Notification.findMany({ where: { dispatchedAt:
   null, user: { digestEnabled: true } } })`, group by `userId`, build one bundled title/body per user
   (e.g. "You have 3 new updates: …"), resolve that user's channel adapter via the same registry Task 3
   built, call `send()` once per user, then `updateMany` the included row ids' `dispatchedAt`.
-- [ ] **Step 3:** Wire `ScheduleModule.forRoot()` into `AppModule` if not already present (check first
+- [x] **Step 3:** Wire `ScheduleModule.forRoot()` into `AppModule` if not already present (check first
   — Sprint E's PROPOSED note flagged this gap but may not have been resolved yet).
-- [ ] **Step 4:** Run the new test file, confirm pass. Run the full backend suite.
-- [ ] **Step 5: Commit**
+- [x] **Step 4:** Run the new test file, confirm pass. Run the full backend suite.
+- [x] **Step 5: Commit**
   ```bash
   git add backend/src/notifications backend/src/app.module.ts
   git commit -m "feat(backend): add DigestDispatchJob bundling undispatched notifications per digest-enabled user"
@@ -250,16 +250,16 @@ H — Communication Depth: WhatsApp, SMS, Digest Bundling (Phase 4)").
 - Produces: `PATCH /api/v1/me/notification-preferences` — body `{ channel: NotificationChannel,
   digestEnabled: boolean }`, both optional (partial update), auth-scoped to the calling user only.
 
-- [ ] **Step 1:** Write failing e2e tests: valid update persists both fields; invalid `channel` value
+- [x] **Step 1:** Write failing e2e tests: valid update persists both fields; invalid `channel` value
   rejected by `@IsIn` (proving `ValidationPipe` is actually active in the test app, not just assumed);
   a parent user setting `channel: WHATSAPP` with no `ParentProfile.phone` on file still succeeds (the
   no-op behavior lives in the adapter, not the preference write).
-- [ ] **Step 2:** Implement the DTO (`@IsIn(['PUSH','WHATSAPP','SMS']) @IsOptional() channel?`;
+- [x] **Step 2:** Implement the DTO (`@IsIn(['PUSH','WHATSAPP','SMS']) @IsOptional() channel?`;
   `@IsBoolean() @IsOptional() digestEnabled?`), controller method, and
   `MeService.updateNotificationPreferences(userId, dto)` (a `prisma.user.update` with only the
   provided fields).
-- [ ] **Step 3:** Run the e2e suite, confirm pass.
-- [ ] **Step 4: Commit**
+- [x] **Step 3:** Run the e2e suite, confirm pass.
+- [x] **Step 4: Commit**
   ```bash
   git add backend/src/me
   git commit -m "feat(backend): add PATCH /me/notification-preferences"
@@ -276,19 +276,19 @@ H — Communication Depth: WhatsApp, SMS, Digest Bundling (Phase 4)").
 **Interfaces:**
 - Produces: `ApiClient.updateNotificationPreferences({String? channel, bool? digestEnabled})`.
 
-- [ ] **Step 1:** Write a failing widget test: a new "Notifications" card in `MoreTab` (below
+- [x] **Step 1:** Write a failing widget test: a new "Notifications" card in `MoreTab` (below
   Appearance) with a channel dropdown (Push/WhatsApp/SMS) and a digest checkbox; changing either
   calls the API with the right body.
-- [ ] **Step 2:** Add `ApiClient.updateNotificationPreferences`, following the exact shape of an
+- [x] **Step 2:** Add `ApiClient.updateNotificationPreferences`, following the exact shape of an
   existing simple-PATCH `ApiClient` method (e.g. whichever leave/fees method already does a bodied
   PATCH/POST — copy its error handling, don't reinvent it).
-- [ ] **Step 3:** Add the card to `MoreTab`, wired the same way the existing Appearance
+- [x] **Step 3:** Add the card to `MoreTab`, wired the same way the existing Appearance
   `DropdownButton` is (local state seeded from whatever `MoreTab` is passed — check whether current
   preferences need to be fetched on mount or passed in from `HomeShell`, matching how `activeChildId`
   is already threaded).
-- [ ] **Step 4:** Run `flutter test test/screens/more_tab_test.dart`, confirm pass. Run
+- [x] **Step 4:** Run `flutter test test/screens/more_tab_test.dart`, confirm pass. Run
   `flutter analyze && flutter test` (full suite) to confirm nothing else regressed.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   ```bash
   git add parent-app/lib/src/api/api_client.dart parent-app/lib/src/screens/more_tab.dart parent-app/test/screens/more_tab_test.dart
   git commit -m "feat(parent-app): add channel/digest notification preferences to More"

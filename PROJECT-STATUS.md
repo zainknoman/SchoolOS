@@ -958,6 +958,72 @@ plus this closing entry.
   start of Sprint F). Not live-smoke-tested against a running backend — this sprint touched only
   `parent-app`, no backend/staff-console surface, per the roadmap's own Features line.
 
+## Sprint H — Communication Depth: WhatsApp, SMS, Digest Bundling (Phase 4) ✅ DONE
+
+Roadmap's Phase 4 sprint (`docs/superpowers/plans/2026-09-11-sprint-h-communication-depth.md`),
+closing the Pakistan-specific "parents don't check in-app/push" gap the competitor research named as
+unmatched by any of the ten global leaders reviewed. Committed directly to `main` (`2937df2..02a6243`),
+built inline (no worktree) given the user's request to create every file first, then verify and
+commit in a second pass.
+
+- [x] **`NotificationChannel` + per-user preferences** — new enum (`PUSH`/`WHATSAPP`/`SMS`),
+      `User.notificationChannel` (default `PUSH`) and `User.digestEnabled` (default `false`),
+      `Notification.dispatchedAt` (nullable) — one additive migration
+      (`20260911000000_notification_channel_preferences`), no backfill needed.
+- [x] **`WhatsAppAdapter`/`SmsAdapter`** — both implement the existing `PushAdapter` interface
+      (`fcm-push.adapter.ts`'s precedent), resolving the target user's `ParentProfile.phone` and
+      no-op'ing (not throwing) when the user has no linked profile or no phone on file — WhatsApp/SMS
+      only ever resolve a destination for `PARENT` accounts this sprint, matching the roadmap's own
+      constraint. `resolveWhatsAppConfig`/`resolveSmsConfig` mirror `resolveFirebaseConfig`'s exact
+      all-or-nothing + dev/test-carve-out contract; both fall back to the existing channel-agnostic
+      `LoggingPushAdapter` when unset (the expected state in every environment here — no real
+      WhatsApp Business/SMS gateway credentials exist, same as Sprint E's JazzCash/EasyPaisa and
+      Sprint F's Firebase precedent). The SMS gateway's exact field names are still `// TODO: confirm`
+      against whichever provider actually gets contracted, per Sprint E's EasyPaisa precedent for an
+      unconfirmed field list.
+- [x] **Channel-aware, digest-aware `NotificationsService.notify()`** — looks up the target user's
+      `notificationChannel`/`digestEnabled` and dispatches through a new `channel-registry.ts`
+      (`resolveAdapterFor`) instead of always calling the single injected push adapter. A
+      digest-enabled user's `Notification` row is still written immediately (in-app visibility
+      unchanged) but the send is skipped and `dispatchedAt` left `null`.
+- [x] **`DigestDispatchJob`** — new `@nestjs/schedule` dependency (none existed yet, same "no job
+      runner exists yet" gap Sprint E's PROPOSED-architecture note flagged); `@Cron('*/15 * * * *')`
+      bundles each digest-enabled user's undispatched `Notification` rows into one `send()` call and
+      stamps them dispatched, reusing the same channel registry.
+- [x] **`PATCH /api/v1/me/notification-preferences`** — partial update (`channel`/`digestEnabled`,
+      both optional), auth-scoped to the calling user; a parent setting `channel: WHATSAPP` with no
+      phone on file still succeeds (the no-op lives in the adapter, not the write).
+- [x] **Parent-app settings UI** — `MoreTab` converted to a `StatefulWidget`, new "Notification
+      channel" card (Push/WhatsApp/SMS dropdown + digest checkbox) below Appearance, calling
+      `ApiClient.updateNotificationPreferences` via the existing PATCH pattern. No GET endpoint for
+      current preferences exists yet, so local state starts at the backend's own defaults
+      (Push, digest off) rather than fetching on mount — a deliberate, narrow scope choice, not an
+      oversight.
+- Two real gaps caught only during the build-then-verify pass (files were created before running
+  anything, per the user's explicit request): `@nestjs/schedule` and `NotificationChannel` were
+  referenced in code before `npm install`/`npx prisma generate` had actually run, so the very first
+  `npm run build` failed with 12 type errors; both were resolved by actually installing the
+  dependency and regenerating the Prisma client (the migration itself applied cleanly on the first
+  try). `flutter analyze` flagged two `use_null_aware_elements` info-lints on the new
+  `updateNotificationPreferences` body — fixed to use the same `'key': ?value` null-aware map syntax
+  `startConversation` already established, rather than the `if (x != null) 'key': x` form used
+  originally.
+- Verified: `npx prisma migrate dev` applied cleanly against the local Postgres instance, `npm run
+  build` clean, backend unit suite 308/308 (56 suites) and e2e suite 77/77 (13 suites) both green,
+  lint clean on every Sprint H file (confirmed by grep against the lint output — the pre-existing
+  807-error repo-wide CRLF/Prettier backlog named in the Security Hardening Pass section above is
+  untouched and unrelated); parent-app `flutter analyze` clean, full `flutter test` suite 88/88
+  green. **Not** live-verified against a real WhatsApp Business/SMS sandbox — no credentials exist in
+  this environment (see Adapter bullet above); both channels are structurally complete and exercised
+  end-to-end down to `LoggingPushAdapter`'s log output, same "structurally complete, not
+  live-verified" bar Sprints E and F shipped at.
+- Follow-up (tracked, not blocking): no `GET` endpoint exists yet for a parent to read back their
+  current notification preferences — the settings card always opens showing the server-side
+  defaults (Push, digest off) even if a prior PATCH changed them, until the app is restarted and
+  re-synced some other way. Real WhatsApp Business/SMS gateway credentials, and confirming the SMS
+  gateway's actual field names against a contracted provider, remain open (same category as Sprint
+  E's JazzCash/EasyPaisa and Sprint F's Firebase items above).
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
@@ -1077,7 +1143,8 @@ own implementer + task review, plus this manual verification task.
 
 - [ ] Parent **web** portal (Phase 2 — same backend, zero rework, just not built alongside mobile)
 - [ ] Public website refresh (separate, lower-priority track)
-- [ ] WhatsApp integration
+- [x] ~~WhatsApp integration~~ — done, Sprint H (above); not live-verified against a real sandbox
+      (no credentials in this environment)
 - [ ] Results/report cards, exam timetable, PTM booking, homework tracker, event RSVP (Release 2+
       per `MVP-Plan-V3.md`)
 - [ ] Payroll, full accounting ERP, library, transport GPS, RFID/biometric, canteen/wallet, AI
@@ -1099,21 +1166,19 @@ own implementer + task review, plus this manual verification task.
 
 ---
 
-**Next step:** **Sprint A**, **Sprint B**, **Sprint C**, and **Sprint D** are all done, and CI is
-confirmed green on GitHub Actions against `main` (2026-09-10 — see Sprint A's Follow-up above).
-What's left from Sprint A is not code: turning on branch protection requiring the CI workflow before
-merge needs the repo owner's action. The next unstarted roadmap sprint is **Sprint E — Payment
-Gateway & Local Rails (Phase 2)** — not yet spec'd. Separately,
-the Staff Console Shell Redesign is done (see above); its own spec scoped a follow-up per-screen pass
-(empty/loading/error state machine + a shared `StatusPill.vue` across all 14 admin/teacher views)
-that has not been started — spec/plan not yet written. The parent-app (Flutter) half of the
-original design-refresh request also has not been started — its own spec is next after that.
-**Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's offline-caching slice is done, and the
-Prisma-to-PostgreSQL switch this section used to list is now done (Sprint B, above); remaining:
-FEAT-014's Play Store submission, rotate the dev-only JWT secrets in `backend/.env` (Sprint A's
-boot-time fail-fast now
-refuses to boot on the dev-only secret outside dev/test, so a stale secret is caught immediately
-rather than silently deployed — the rotation itself still needs doing), wire real S3-compatible
-storage and a real Firebase project for FCM, then a pilot rollout (one campus/class, 20-50 parents)
-before full cutover. A broader security review pass beyond the five items the Security Hardening
-Pass already closed is worth doing before that pilot, but nothing specific is queued.
+**Next step:** **Sprints A through H** are all done (Sprint H — WhatsApp/SMS/digest bundling —
+pushed to `main` 2026-09-11, see above), and CI is confirmed green on GitHub Actions against `main`
+(2026-09-10 — see Sprint A's Follow-up above). What's left from Sprint A is not code: turning on
+branch protection requiring the CI workflow before merge needs the repo owner's action. No roadmap
+sprint past H is spec'd yet. Separately, the Staff Console Shell Redesign is done (see above); its
+own spec scoped a follow-up per-screen pass (empty/loading/error state machine + a shared
+`StatusPill.vue` across all 14 admin/teacher views) that has not been started — spec/plan not yet
+written. **Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's offline-caching slice is
+done, and the Prisma-to-PostgreSQL switch this section used to list is now done (Sprint B, above);
+remaining: FEAT-014's Play Store submission, rotate the dev-only JWT secrets in `backend/.env`
+(Sprint A's boot-time fail-fast now refuses to boot on the dev-only secret outside dev/test, so a
+stale secret is caught immediately rather than silently deployed — the rotation itself still needs
+doing), wire real S3-compatible storage, a real Firebase project for FCM, and real WhatsApp
+Business/SMS gateway credentials (Sprint H, above), then a pilot rollout (one campus/class, 20-50
+parents) before full cutover. A broader security review pass beyond the five items the Security
+Hardening Pass already closed is worth doing before that pilot, but nothing specific is queued.
