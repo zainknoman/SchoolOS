@@ -246,7 +246,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
   <div class="shell">
     <header class="topbar">
       <span class="brand">School OS Staff Console</span>
-      <nav class="crumbs" aria-label="Breadcrumb" data-testid="breadcrumb">
+      <nav class="crumbs" aria-label="Page title" data-testid="breadcrumb">
         <b>{{ breadcrumbTitle }}</b>
       </nav>
       <div class="topbar-spacer"></div>
@@ -326,7 +326,6 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
         <template v-if="isTeacher">
           <RouterLink data-testid="nav-attendance" to="/teacher"><Icon name="calendar" />Attendance</RouterLink>
           <RouterLink data-testid="nav-diary" to="/teacher/diary"><Icon name="notebook" />Diary</RouterLink>
-          <a data-testid="nav-timetable" href="#"><Icon name="clock" />Timetable</a>
           <RouterLink data-testid="nav-messages" to="/teacher/messages"><Icon name="chat" />Messages</RouterLink>
         </template>
         <template v-else-if="isAdmin">

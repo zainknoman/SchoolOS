@@ -73,8 +73,10 @@ describe('AppShell (role-gated nav)', () => {
 
     expect(wrapper.text()).toContain('Attendance');
     expect(wrapper.text()).toContain('Diary');
-    expect(wrapper.text()).toContain('Timetable');
     expect(wrapper.text()).toContain('Messages');
+    // The teacher Timetable nav link was removed as dead (it pointed to href="#" with no route) —
+    // Sprint I will re-add a real RouterLink once a teacher-facing timetable view exists.
+    expect(wrapper.find('[data-testid="nav-timetable"]').exists()).toBe(false);
 
     // Not CSS-hidden — absent from the DOM entirely.
     expect(wrapper.text()).not.toContain('Students');
@@ -382,12 +384,13 @@ describe('AppShell (role-gated nav)', () => {
 });
 
 describe('AppShell (breadcrumb)', () => {
-  it("renders the current route's meta.title in the breadcrumb", async () => {
+  it("renders the current route's meta.title in the breadcrumb, with a Page title aria-label", async () => {
     const wrapper = await mountAsRole('SCHOOL_ADMIN');
     await wrapper.vm.$router.push('/admin');
     await flushPromises();
 
     expect(wrapper.find('[data-testid="breadcrumb"]').text()).toBe('Dashboard');
+    expect(wrapper.find('[data-testid="breadcrumb"]').attributes('aria-label')).toBe('Page title');
   });
 });
 
