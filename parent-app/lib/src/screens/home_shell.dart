@@ -233,7 +233,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             icon: _unreadCirculars > 0
                 ? Badge(label: Text('$_unreadCirculars'), child: const Icon(Icons.notifications_none))
                 : const Icon(Icons.notifications_none),
-            label: 'Notifications',
+            label: 'Circulars',
           ),
           const NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
           const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Fees'),
@@ -324,7 +324,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       );
     }
 
-    if (_tabIndex == 3) {
+if (_tabIndex == 3) {
       final auth = context.read<AuthState>();
       final api = context.read<ApiClient>();
       return MessagesTab(
@@ -336,6 +336,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         accessToken: auth.accessToken!,
         api: api,
         children: _children,
+        activeChildId: _activeChildId,
         initialConversationId: _messagesInitialConversationId,
       );
     }
@@ -356,10 +357,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         accessToken: context.read<AuthState>().accessToken!,
         api: context.read<ApiClient>(),
         children: _children,
+        activeChildId: _activeChildId,
       );
     }
 
-    final labels = ['Home', 'Calendar', 'Notifications', 'Messages', 'Fees', 'More'];
+    final labels = ['Home', 'Calendar', 'Circulars', 'Messages', 'Fees', 'More'];
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),

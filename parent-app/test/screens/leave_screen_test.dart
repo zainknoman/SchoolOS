@@ -16,6 +16,15 @@ const _child = ChildSummary(
   section: '3A',
 );
 
+const _secondChild = ChildSummary(
+  id: 'child-2',
+  name: 'Ahmed Sample',
+  grNumber: 'GR-2002',
+  campus: 'Gulshan-e-Iqbal',
+  schoolClass: 'Grade 6',
+  section: '6B',
+);
+
 void main() {
   testWidgets('submits a leave request and shows it in the past-requests list', (tester) async {
     var submitted = false;
@@ -74,5 +83,37 @@ void main() {
 
     expect(find.text('Leave request submitted.'), findsOneWidget);
     expect(find.text('Family trip'), findsWidgets);
+  });
+
+  testWidgets('defaults to the actively-selected child, not always the first one', (tester) async {
+    String? requestedStudentId;
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        if (request.method == 'GET' &&
+            request.url.path.startsWith('/api/v1/students/') &&
+            request.url.path.endsWith('/leave-requests')) {
+          requestedStudentId = request.url.pathSegments[3];
+          return http.Response(jsonEncode(<dynamic>[]), 200);
+        }
+        return http.Response('not found', 404);
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LeaveScreen(
+          accessToken: 'tok',
+          api: api,
+          children: const [_child, _secondChild],
+          initialChildId: 'child-2',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // child-2 (Ahmed) is the active child, not children.first (child-1 / Eshaal).
+    expect(requestedStudentId, 'child-2');
+    expect(find.text('Ahmed Sample'), findsOneWidget);
   });
 }

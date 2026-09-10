@@ -4,10 +4,10 @@ import '../api/models.dart';
 import '../theme/text_direction.dart';
 
 /// Home tab (bottom-nav index 0) — greeting, active-child summary, a 2x2 stat/quick-link grid,
-/// and the most recent announcements. Fetches its own attendance data (the same self-contained
-/// pattern `CalendarTab` and `CircularsTab` use); circulars are passed down from `HomeShell`,
-/// which already fetches them for the Notifications bottom-nav badge — avoids a redundant
-/// parent-scoped fetch every time the active child changes.
+/// and the most recent announcements. Fetches its own attendance/fees data (the same
+/// self-contained pattern `CalendarTab` and `CircularsTab` use); circulars are passed down from
+/// `HomeShell`, which already fetches them for the Notifications bottom-nav badge — avoids a
+/// redundant parent-scoped fetch every time the active child changes.
 class HomeTab extends StatefulWidget {
   const HomeTab({
     super.key,
@@ -39,11 +39,14 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   AttendanceReport? _attendance;
   String? _attendanceError;
+  List<FeeVoucherSummary>? _vouchers;
+  String? _feesError;
 
   @override
   void initState() {
     super.initState();
     _loadAttendance();
+    _loadFees();
   }
 
   Future<void> _loadAttendance() async {
@@ -53,6 +56,15 @@ class _HomeTabState extends State<HomeTab> {
       if (mounted) setState(() => _attendance = attendance);
     } on ApiException catch (e) {
       if (mounted) setState(() => _attendanceError = e.message);
+    }
+  }
+
+  Future<void> _loadFees() async {
+    try {
+      final vouchers = await widget.api.studentFees(widget.accessToken, widget.studentId);
+      if (mounted) setState(() => _vouchers = vouchers);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _feesError = e.message);
     }
   }
 
@@ -66,6 +78,12 @@ class _HomeTabState extends State<HomeTab> {
         ? '${_attendance!.summary.attendancePercentage}%'
         : (_attendanceError != null ? '—' : '…');
     final attendanceHint = _attendanceError != null ? 'Unavailable' : 'This Month';
+
+    final vouchers = _vouchers;
+    final feesValue = vouchers != null
+        ? 'PKR ${(vouchers.fold<int>(0, (sum, v) => sum + v.amountDue) / 100).toStringAsFixed(0)}'
+        : (_feesError != null ? '—' : '…');
+    final feesHint = _feesError != null ? 'Unavailable' : 'Outstanding';
 
     // A SingleChildScrollView + Column (rather than ListView) so every child — including the
     // 2x2 stat grid and the announcements below it — is built eagerly. A ListView's SliverList
@@ -122,14 +140,15 @@ class _HomeTabState extends State<HomeTab> {
               _StatCard(
                 key: const Key('homeFeesCard'),
                 label: 'Fees',
-                value: '—',
-                hint: 'Outstanding',
+                value: feesValue,
+                hint: feesHint,
                 onTap: widget.onOpenFees,
               ),
               const _StatCard(
                 key: Key('homeResultsCard'),
                 label: 'Results',
-                value: 'View latest results',
+                value: 'Coming soon',
+                muted: true,
               ),
               _StatCard(
                 key: const Key('homeTimetableCard'),
@@ -173,30 +192,46 @@ class _HomeTabState extends State<HomeTab> {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({super.key, required this.label, required this.value, this.hint, this.onTap});
+  const _StatCard({
+    super.key,
+    required this.label,
+    required this.value,
+    this.hint,
+    this.onTap,
+    this.muted = false,
+  });
 
   final String label;
   final String value;
   final String? hint;
   final VoidCallback? onTap;
 
+  /// Report cards (the Results feature this card links to) aren't built yet (roadmap Sprint I) —
+  /// muted keeps the card visible as a preview of what's coming, per the roadmap's "hide/gray"
+  /// instruction, rather than fabricating a number or removing the card outright.
+  final bool muted;
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(label, style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: 4),
-              Text(value, style: Theme.of(context).textTheme.titleMedium),
-              if (hint != null) Text(hint!, style: Theme.of(context).textTheme.bodySmall),
-            ],
+    final theme = Theme.of(context);
+    return Opacity(
+      opacity: muted ? 0.5 : 1,
+      child: Card(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(label, style: theme.textTheme.bodySmall),
+                const SizedBox(height: 4),
+                Text(value, style: theme.textTheme.titleMedium),
+                if (hint != null) Text(hint!, style: theme.textTheme.bodySmall),
+              ],
+            ),
           ),
         ),
       ),

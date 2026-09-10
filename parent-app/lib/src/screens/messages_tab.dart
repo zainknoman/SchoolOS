@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../cache/cached_load.dart';
+import '../cache/data_cache.dart';
+import '../cache/last_updated_banner.dart';
 import '../theme/text_direction.dart';
 
 enum _MessagesView { list, compose, thread }
@@ -42,12 +45,17 @@ class MessagesTab extends StatefulWidget {
     required this.accessToken,
     required this.api,
     required this.children,
+    required this.activeChildId,
     this.initialConversationId,
   });
 
   final String accessToken;
   final ApiClient api;
   final List<ChildSummary> children;
+
+  /// The child currently selected in HomeShell's top switcher — the compose flow defaults its
+  /// "About which child?" picker to this instead of always children.first.
+  final String? activeChildId;
 
   /// Set when this tab is opened from a `type: 'message'` notification — opens straight to that
   /// conversation's thread instead of the list, so the reader doesn't have to hunt for it.
@@ -61,6 +69,8 @@ class _MessagesTabState extends State<MessagesTab> {
   _MessagesView _view = _MessagesView.list;
   List<ConversationSummary>? _conversations;
   String? _error;
+  DateTime? _lastUpdated;
+  bool _stale = false;
   String? _openConversationId;
   ConversationDetail? _openConversation;
 
@@ -74,12 +84,29 @@ class _MessagesTabState extends State<MessagesTab> {
   }
 
   Future<void> _loadList() async {
-    try {
-      final conversations = await widget.api.conversations(widget.accessToken);
-      if (mounted) setState(() => _conversations = conversations);
-    } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    }
+    final cache = await DataCache.open();
+    await loadWithCache<List<ConversationSummary>>(
+      cache: cache,
+      cacheKey: 'cache:conversations',
+      fetch: () => widget.api.conversations(widget.accessToken),
+      toJson: (list) => list.map((c) => c.toJson()).toList(),
+      fromJson: (json) => (json as List<dynamic>)
+          .map((e) => ConversationSummary.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      onData: (data, lastUpdated, {required stale}) {
+        if (mounted) {
+          setState(() {
+            _conversations = data;
+            _lastUpdated = lastUpdated;
+            _stale = stale;
+            _error = null;
+          });
+        }
+      },
+      onError: (message) {
+        if (mounted) setState(() => _error = message);
+      },
+    );
   }
 
   Future<void> _openThread(String id) async {
@@ -115,6 +142,7 @@ class _MessagesTabState extends State<MessagesTab> {
           accessToken: widget.accessToken,
           api: widget.api,
           children: widget.children,
+          activeChildId: widget.activeChildId,
           onCancel: () => setState(() => _view = _MessagesView.list),
           onSent: () {
             setState(() => _view = _MessagesView.list);
@@ -147,25 +175,38 @@ class _MessagesTabState extends State<MessagesTab> {
         onPressed: () => setState(() => _view = _MessagesView.compose),
         child: const Icon(Icons.add),
       ),
-      body: conversations.isEmpty
-          ? const Center(child: Text('No messages yet.'))
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: conversations.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, i) {
-                final c = conversations[i];
-                return ListTile(
-                  onTap: () => _openThread(c.id),
-                  leading: Icon(c.unread ? Icons.circle : Icons.circle_outlined, size: 12),
-                  title: Text(
-                    c.otherPartyName,
-                    style: TextStyle(fontWeight: c.unread ? FontWeight.bold : FontWeight.normal),
-                  ),
-                  subtitle: Text(recipientLabel(c.recipientType)),
-                );
-              },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
             ),
+          ),
+          Expanded(
+            child: conversations.isEmpty
+                ? const Center(child: Text('No messages yet.'))
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: conversations.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, i) {
+                      final c = conversations[i];
+                      return ListTile(
+                        onTap: () => _openThread(c.id),
+                        leading: Icon(c.unread ? Icons.circle : Icons.circle_outlined, size: 12),
+                        title: Text(
+                          c.otherPartyName,
+                          style: TextStyle(fontWeight: c.unread ? FontWeight.bold : FontWeight.normal),
+                        ),
+                        subtitle: Text(recipientLabel(c.recipientType)),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -175,6 +216,7 @@ class _ComposeView extends StatefulWidget {
     required this.accessToken,
     required this.api,
     required this.children,
+    required this.activeChildId,
     required this.onCancel,
     required this.onSent,
   });
@@ -182,6 +224,7 @@ class _ComposeView extends StatefulWidget {
   final String accessToken;
   final ApiClient api;
   final List<ChildSummary> children;
+  final String? activeChildId;
   final VoidCallback onCancel;
   final VoidCallback onSent;
 
@@ -199,7 +242,11 @@ class _ComposeViewState extends State<_ComposeView> {
   @override
   void initState() {
     super.initState();
-    _studentId = widget.children.isNotEmpty ? widget.children.first.id : null;
+    final activeChildIsInList =
+        widget.children.any((c) => c.id == widget.activeChildId);
+    _studentId = activeChildIsInList
+        ? widget.activeChildId
+        : (widget.children.isNotEmpty ? widget.children.first.id : null);
   }
 
   @override

@@ -10,6 +10,7 @@ import 'src/notifications/device_token_registrar.dart';
 import 'src/notifications/push_token_provider.dart';
 import 'src/router/app_router.dart';
 import 'src/theme/app_theme.dart';
+import 'src/theme/theme_controller.dart';
 
 // Override at build/run time with --dart-define=API_BASE_URL=http://10.0.2.2:3000 for the Android
 // emulator (which can't reach the host's localhost directly), or the LAN IP for a physical device.
@@ -39,6 +40,7 @@ class _ParentAppState extends State<ParentApp> {
     api: _api,
     tokenProvider: FirebaseMessagingTokenProvider(),
   );
+  late final ThemeController _themeController = ThemeController();
   late final GoRouter _router = buildAppRouter(_auth);
 
   @override
@@ -47,6 +49,7 @@ class _ParentAppState extends State<ParentApp> {
     // Fire-and-forget: AuthState.notifyListeners() (via restoreSession) drives the router's
     // refreshListenable, so a restored session reroutes away from /login automatically.
     _auth.restoreSession();
+    _themeController.restore();
   }
 
   @override
@@ -56,11 +59,16 @@ class _ParentAppState extends State<ParentApp> {
         Provider<ApiClient>.value(value: _api),
         ChangeNotifierProvider<AuthState>.value(value: _auth),
         Provider<DeviceTokenRegistrar>.value(value: _deviceTokenRegistrar),
+        ChangeNotifierProvider<ThemeController>.value(value: _themeController),
       ],
-      child: MaterialApp.router(
-        title: 'School OS',
-        theme: buildAppTheme(),
-        routerConfig: _router,
+      child: Consumer<ThemeController>(
+        builder: (context, themeController, _) => MaterialApp.router(
+          title: 'School OS',
+          theme: buildAppTheme(),
+          darkTheme: buildDarkAppTheme(),
+          themeMode: themeController.mode,
+          routerConfig: _router,
+        ),
       ),
     );
   }

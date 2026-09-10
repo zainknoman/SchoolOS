@@ -5,18 +5,31 @@ import '../api/models.dart';
 /// Pushed from the "More" tab (not a bottom-nav tab itself) — a submit form (child picker only
 /// when there's more than one child) plus a status list of past requests for the selected child.
 class LeaveScreen extends StatefulWidget {
-  const LeaveScreen({super.key, required this.accessToken, required this.api, required this.children});
+  const LeaveScreen({
+    super.key,
+    required this.accessToken,
+    required this.api,
+    required this.children,
+    this.initialChildId,
+  });
 
   final String accessToken;
   final ApiClient api;
   final List<ChildSummary> children;
+
+  /// The child currently selected in HomeShell's top switcher, if any (null when LeaveScreen is
+  /// reached from a context with no active-child concept). Falls back to children.first when null
+  /// or when it doesn't match any child actually passed in.
+  final String? initialChildId;
 
   @override
   State<LeaveScreen> createState() => _LeaveScreenState();
 }
 
 class _LeaveScreenState extends State<LeaveScreen> {
-  late String _selectedChildId = widget.children.first.id;
+  late String _selectedChildId = widget.children.any((c) => c.id == widget.initialChildId)
+      ? widget.initialChildId!
+      : widget.children.first.id;
   DateTime? _startDate;
   DateTime? _endDate;
   final _reasonController = TextEditingController();

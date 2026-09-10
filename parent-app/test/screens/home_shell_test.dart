@@ -149,7 +149,7 @@ void main() {
 
     expect(find.text('1'), findsOneWidget);
 
-    await tester.tap(find.text('Notifications'));
+    await tester.tap(find.text('Circulars'));
     await tester.pumpAndSettle();
 
     expect(find.text('PTM'), findsOneWidget);

@@ -295,6 +295,15 @@ class ConversationSummary {
         lastMessageAt: json['lastMessageAt'] as String,
         unread: json['unread'] as bool,
       );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'recipientType': recipientType,
+    'studentId': studentId,
+    'otherPartyName': otherPartyName,
+    'lastMessageAt': lastMessageAt,
+    'unread': unread,
+  };
 }
 
 class MessageSummary {
@@ -385,6 +394,8 @@ class FeeVoucherItem {
     label: json['label'] as String,
     amount: json['amount'] as int,
   );
+
+  Map<String, dynamic> toJson() => {'label': label, 'amount': amount};
 }
 
 class FeeVoucherSummary {
@@ -424,6 +435,18 @@ class FeeVoucherSummary {
         amountDue: json['amountDue'] as int,
         status: json['status'] as String,
       );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'studentId': studentId,
+    'month': month,
+    'dueDate': dueDate,
+    'items': items.map((i) => i.toJson()).toList(),
+    'totalAmount': totalAmount,
+    'amountPaid': amountPaid,
+    'amountDue': amountDue,
+    'status': status,
+  };
 }
 
 class FeePaymentSummary {

@@ -28,6 +28,39 @@ void main() {
             200,
           );
         }
+        if (request.url.path == '/api/v1/students/s1/fees') {
+          return http.Response(
+            jsonEncode([
+              {
+                'id': 'v1',
+                'studentId': 's1',
+                'month': '2026-09',
+                'dueDate': '2026-09-10',
+                'items': [
+                  {'label': 'Tuition Fee', 'amount': 500000},
+                ],
+                'totalAmount': 500000,
+                'amountPaid': 0,
+                'amountDue': 500000,
+                'status': 'unpaid',
+              },
+              {
+                'id': 'v2',
+                'studentId': 's1',
+                'month': '2026-08',
+                'dueDate': '2026-08-10',
+                'items': [
+                  {'label': 'Tuition Fee', 'amount': 500000},
+                ],
+                'totalAmount': 500000,
+                'amountPaid': 500000,
+                'amountDue': 0,
+                'status': 'paid',
+              },
+            ]),
+            200,
+          );
+        }
         return http.Response('not found', 404);
       }),
     );
@@ -97,33 +130,42 @@ void main() {
     expect(seeAllTapped, isTrue);
   });
 
-  testWidgets('shows static placeholders for Fees and Results, not fabricated data', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: HomeTab(
-            studentId: 's1',
-            childName: 'Zara Ahmed',
-            childClass: 'Class 8A',
-            accessToken: 'tok',
-            api: makeClient(),
-            circulars: sampleCirculars,
-            onOpenTimetable: () {},
-            onSeeAllAnnouncements: () {},
-            onOpenFees: () {},
+  testWidgets(
+    'shows the real outstanding balance on the Fees card and a grayed-out Results placeholder',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeTab(
+              studentId: 's1',
+              childName: 'Zara Ahmed',
+              childClass: 'Class 8A',
+              accessToken: 'tok',
+              api: makeClient(),
+              circulars: sampleCirculars,
+              onOpenTimetable: () {},
+              onSeeAllAnnouncements: () {},
+              onOpenFees: () {},
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('—'), findsOneWidget);
-    expect(find.text('View latest results'), findsOneWidget);
-  });
+      // Only v1's 500000-paisa amountDue is outstanding (v2 is fully paid): PKR 5000.
+      expect(find.text('PKR 5000'), findsOneWidget);
+      expect(find.text('Coming soon'), findsOneWidget);
+      expect(find.text('—'), findsNothing);
+      expect(find.text('View latest results'), findsNothing);
 
-  testWidgets('degrades only the attendance card, not the whole screen, when attendance fails', (
+      final opacity = tester.widget<Opacity>(
+        find.descendant(of: find.byKey(const Key('homeResultsCard')), matching: find.byType(Opacity)),
+      );
+      expect(opacity.opacity, lessThan(1.0));
+    },
+  );
+
+  testWidgets('shows a dash on the Fees card when the fees fetch fails, without blocking the rest', (
     tester,
   ) async {
     final failingClient = ApiClient(
@@ -151,11 +193,13 @@ void main() {
     await tester.pumpAndSettle();
 
     // The rest of the screen still renders — greeting, child card, and announcements — even
-    // though the attendance fetch failed; only the Attendance stat card is affected.
+    // though both the attendance and fees fetches failed; only their own stat cards are affected.
     expect(find.text('Assalam-o-Alaikum'), findsOneWidget);
     expect(find.text('Zara Ahmed'), findsOneWidget);
     expect(find.text('Independence Day Holiday'), findsOneWidget);
-    expect(find.text('Unavailable'), findsOneWidget);
+    // Both the attendance and fees fetches fail under this mock, so both stat cards show it.
+    expect(find.text('Unavailable'), findsNWidgets(2));
+    expect(find.text('—'), findsNWidgets(2));
   });
 
   testWidgets('the stat grid does not overflow on a phone-sized viewport', (tester) async {

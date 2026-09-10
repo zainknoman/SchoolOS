@@ -5,8 +5,13 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:parent_app/src/api/api_client.dart';
 import 'package:parent_app/src/screens/fees_tab.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('lists vouchers with status and payment history with a receipt link', (tester) async {
     final api = ApiClient(
       baseUrl: 'http://test',
@@ -59,6 +64,7 @@ void main() {
     expect(find.text('unpaid'), findsOneWidget);
     expect(find.text('completed'), findsOneWidget);
     expect(find.byIcon(Icons.receipt_long_outlined), findsOneWidget);
+    expect(find.textContaining('Last updated'), findsOneWidget);
   });
 
   testWidgets(
@@ -149,6 +155,46 @@ void main() {
       expect(find.text('Voucher — 2026-09'), findsNothing);
       expect(find.text('paid'), findsOneWidget);
       expect(find.text('unpaid'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'falls back to cached vouchers with a Last updated timestamp when the live fetch fails',
+    (tester) async {
+      final cachedAt = DateTime.now().subtract(const Duration(hours: 2));
+      SharedPreferences.setMockInitialValues({
+        'cache:fees:child-1': jsonEncode({
+          'fetchedAt': cachedAt.toIso8601String(),
+          'data': [
+            {
+              'id': 'v1',
+              'studentId': 'child-1',
+              'month': '2026-09',
+              'dueDate': '2026-09-10',
+              'items': [
+                {'label': 'Tuition Fee', 'amount': 500000},
+              ],
+              'totalAmount': 500000,
+              'amountPaid': 0,
+              'amountDue': 500000,
+              'status': 'unpaid',
+            },
+          ],
+        }),
+      });
+      final api = ApiClient(
+        baseUrl: 'http://test',
+        client: MockClient((request) async => http.Response('server down', 500)),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: FeesTab(studentId: 'child-1', accessToken: 'tok', api: api)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('2026-09'), findsOneWidget);
+      expect(find.textContaining('Last updated'), findsOneWidget);
+      expect(find.textContaining('offline'), findsOneWidget);
     },
   );
 }

@@ -8,33 +8,45 @@ import 'package:parent_app/src/notifications/device_token_registrar.dart';
 import 'package:parent_app/src/notifications/push_token_provider.dart';
 import 'package:parent_app/src/router/app_router.dart';
 import 'package:parent_app/src/theme/app_theme.dart';
+import 'package:parent_app/src/theme/theme_controller.dart';
 
 /// Builds the same provider/router tree as `ParentApp` (lib/main.dart), but with an injected
 /// [ApiClient] and [TokenStore] instead of a real network client and platform secure storage —
 /// neither of which is available in the widget-test environment. Also seeds an empty
-/// `shared_preferences` mock store, since FEAT-014's offline cache (`DataCache`) reads/writes
-/// it on every screen and would otherwise hang on the unmocked platform channel.
+/// `shared_preferences` mock store, since FEAT-014's offline cache (`DataCache`) and
+/// `ThemeController` both read/write it and would otherwise hang on the unmocked platform channel.
 ///
 /// [deviceTokenRegistrar] defaults to a Noop-backed one so existing tests are unaffected; pass a
 /// real one (built with a fake PushTokenProvider) only in the tests that specifically exercise
-/// device-token registration or push-tap navigation.
+/// device-token registration or push-tap navigation. [themeController] defaults to a fresh,
+/// unrestored controller (system mode) — pass one already set to a mode to test theme-dependent UI.
 Widget buildTestApp({
   required ApiClient api,
   TokenStore? tokenStore,
   DeviceTokenRegistrar? deviceTokenRegistrar,
+  ThemeController? themeController,
 }) {
   SharedPreferences.setMockInitialValues({});
   final auth = AuthState(api: api, tokenStore: tokenStore ?? InMemoryTokenStore());
   final router = buildAppRouter(auth);
   final registrar =
       deviceTokenRegistrar ?? DeviceTokenRegistrar(api: api, tokenProvider: NoopPushTokenProvider());
+  final theme = themeController ?? ThemeController();
 
   return MultiProvider(
     providers: [
       Provider<ApiClient>.value(value: api),
       ChangeNotifierProvider<AuthState>.value(value: auth),
       Provider<DeviceTokenRegistrar>.value(value: registrar),
+      ChangeNotifierProvider<ThemeController>.value(value: theme),
     ],
-    child: MaterialApp.router(theme: buildAppTheme(), routerConfig: router),
+    child: Consumer<ThemeController>(
+      builder: (context, themeController, _) => MaterialApp.router(
+        theme: buildAppTheme(),
+        darkTheme: buildDarkAppTheme(),
+        themeMode: themeController.mode,
+        routerConfig: router,
+      ),
+    ),
   );
 }

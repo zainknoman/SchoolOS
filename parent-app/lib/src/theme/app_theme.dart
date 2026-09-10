@@ -58,3 +58,63 @@ ThemeData buildAppTheme() {
     ),
   );
 }
+
+/// Same tokens as the staff console's `:root[data-theme='dark']` block
+/// (staff-console/src/assets/base.css) — exact hex parity, not a re-derived palette.
+class AppColorsDark {
+  static const primary = Color(0xFFF1F5F9);
+  static const accent = Color(0xFF4FC0F0);
+  static const background = Color(0xFF0B1220);
+  static const surface = Color(0xFF111A2C);
+  static const text = Color(0xFFDCE4EE);
+  static const muted = Color(0xFF8C9AB3);
+  static const border = Color(0xFF233150);
+  static const destructive = Color(0xFFF87171);
+  static const present = Color(0xFF4ADE80);
+  static const lateStatus = Color(0xFFFBBF24);
+}
+
+ThemeData buildDarkAppTheme() {
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: AppColorsDark.accent,
+    primary: AppColorsDark.accent,
+    surface: AppColorsDark.surface,
+    error: AppColorsDark.destructive,
+    brightness: Brightness.dark,
+  );
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: AppColorsDark.background,
+    textTheme: GoogleFonts.plusJakartaSansTextTheme(
+      ThemeData(brightness: Brightness.dark).textTheme,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColorsDark.surface,
+      foregroundColor: AppColorsDark.primary,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColorsDark.surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColorsDark.border),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColorsDark.accent,
+        foregroundColor: AppColorsDark.background,
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: AppColorsDark.surface,
+      indicatorColor: AppColorsDark.accent.withValues(alpha: 0.12),
+    ),
+  );
+}
