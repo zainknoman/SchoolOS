@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import * as argon2 from 'argon2';
@@ -32,6 +32,11 @@ describe('Me / children (e2e)', () => {
       imports: [AppModule],
     }).compile();
     app = moduleFixture.createNestApplication();
+    // Mirrors main.ts's bootstrap() exactly — without this, class-validator decorators (e.g.
+    // RegisterDeviceTokenDto's @IsIn) are inert in this test app, unlike the real deployed server.
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     prisma = moduleFixture.get(PrismaService);
     await app.init();
 
@@ -40,15 +45,23 @@ describe('Me / children (e2e)', () => {
     // school (Enrollment's campus/section/academicSession relations are Restrict).
     await prisma.user
       .deleteMany({
-        where: { identifier: { in: ['me2e-parent-a@seeds.edu.pk', 'me2e-parent-b@seeds.edu.pk'] } },
+        where: {
+          identifier: {
+            in: ['me2e-parent-a@seeds.edu.pk', 'me2e-parent-b@seeds.edu.pk'],
+          },
+        },
       })
       .catch(() => undefined);
     await prisma.student
       .deleteMany({ where: { grNumber: { startsWith: 'ME2E-' } } })
       .catch(() => undefined);
-    const stale = await prisma.school.findMany({ where: { name: 'ME2E School' } });
+    const stale = await prisma.school.findMany({
+      where: { name: 'ME2E School' },
+    });
     for (const s of stale) {
-      await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
+      await prisma.school
+        .delete({ where: { id: s.id } })
+        .catch(() => undefined);
     }
 
     const school = await prisma.school.create({
@@ -170,6 +183,12 @@ describe('Me / children (e2e)', () => {
         },
       })
       .catch(() => undefined);
+
+    await prisma.deviceToken
+      .deleteMany({
+        where: { token: { in: ['me2e-fcm-token-1', 'me2e-fcm-token-2'] } },
+      })
+      .catch(() => undefined);
     await app.close();
   });
 
@@ -188,5 +207,53 @@ describe('Me / children (e2e)', () => {
 
   it('rejects the request entirely with no token', async () => {
     await request(app.getHttpServer()).get('/api/v1/me/children').expect(401);
+  });
+
+  it('registers a device token for the authenticated user, upserting on repeat calls', async () => {
+    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .post('/api/v1/me/device-tokens')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ token: 'me2e-fcm-token-1', platform: 'android' })
+      .expect(201);
+
+    const stored = await prisma.deviceToken.findUnique({
+      where: { token: 'me2e-fcm-token-1' },
+    });
+    expect(stored?.platform).toBe('android');
+
+    // Same token registers again (e.g. app restart) — must not create a duplicate row.
+    await request(app.getHttpServer())
+      .post('/api/v1/me/device-tokens')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ token: 'me2e-fcm-token-1', platform: 'android' })
+      .expect(201);
+
+    const count = await prisma.deviceToken.count({
+      where: { token: 'me2e-fcm-token-1' },
+    });
+    expect(count).toBe(1);
+
+    await prisma.deviceToken.deleteMany({
+      where: { token: 'me2e-fcm-token-1' },
+    });
+  });
+
+  it('rejects an invalid platform value', async () => {
+    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .post('/api/v1/me/device-tokens')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ token: 'me2e-fcm-token-2', platform: 'windows-phone' })
+      .expect(400);
+  });
+
+  it('rejects the request entirely with no token', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/me/device-tokens')
+      .send({ token: 'x', platform: 'android' })
+      .expect(401);
   });
 });

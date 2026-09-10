@@ -6,11 +6,13 @@ describe('MeService', () => {
   let service: MeService;
   let prisma: {
     parentProfile: { findUnique: jest.Mock };
+    deviceToken: { upsert: jest.Mock };
   };
 
   beforeEach(async () => {
     prisma = {
       parentProfile: { findUnique: jest.fn() },
+      deviceToken: { upsert: jest.fn() },
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -18,6 +20,24 @@ describe('MeService', () => {
     }).compile();
 
     service = moduleRef.get(MeService);
+  });
+
+  describe('registerDeviceToken', () => {
+    it('upserts by token, reassigning userId/platform if the token now belongs to a different user', async () => {
+      prisma.deviceToken.upsert.mockResolvedValue({});
+
+      await service.registerDeviceToken('user-1', 'fcm-token-abc', 'android');
+
+      expect(prisma.deviceToken.upsert).toHaveBeenCalledWith({
+        where: { token: 'fcm-token-abc' },
+        create: {
+          userId: 'user-1',
+          token: 'fcm-token-abc',
+          platform: 'android',
+        },
+        update: { userId: 'user-1', platform: 'android' },
+      });
+    });
   });
 
   it('returns every child linked to the authenticated parent, with campus/class/section', async () => {

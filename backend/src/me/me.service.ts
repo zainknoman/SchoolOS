@@ -31,7 +31,10 @@ export class MeService {
                   where: { status: 'ACTIVE' },
                   orderBy: { startDate: 'desc' },
                   take: 1,
-                  include: { campus: true, section: { include: { class: true } } },
+                  include: {
+                    campus: true,
+                    section: { include: { class: true } },
+                  },
                 },
               },
             },
@@ -54,6 +57,23 @@ export class MeService {
         class: enrollment.section.class.name,
         section: enrollment.section.name,
       };
+    });
+  }
+
+  /**
+   * Upsert by token (not userId+token) — a device token is unique per install, and if the same
+   * device logs out and a different user logs back in on it, the token must move to the new
+   * user, not create a stale duplicate row still pointing at the old one.
+   */
+  async registerDeviceToken(
+    userId: string,
+    token: string,
+    platform: string,
+  ): Promise<void> {
+    await this.prisma.deviceToken.upsert({
+      where: { token },
+      create: { userId, token, platform },
+      update: { userId, platform },
     });
   }
 }
