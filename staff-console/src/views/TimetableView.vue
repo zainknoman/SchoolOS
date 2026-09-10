@@ -9,6 +9,7 @@ import {
   type TimetableEntrySummary,
   type TimetableEntryInput,
 } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 const DAY_OPTIONS = [
   { value: 1, label: 'Monday' },
@@ -36,6 +37,7 @@ function blankForm(): EntryForm {
 }
 
 const auth = useAuthStore();
+const { confirm } = useConfirm();
 
 const sections = ref<SectionSummary[]>([]);
 const subjects = ref<SubjectSummary[]>([]);
@@ -160,6 +162,7 @@ async function onSaveEdit(id: string) {
 
 async function onDelete(id: string) {
   if (!auth.accessToken) return;
+  if (!(await confirm({ title: 'Remove this period?', message: 'This cannot be undone.', danger: true }))) return;
   message.value = null;
   errorMessage.value = null;
   try {
@@ -427,6 +430,14 @@ function isBulkValid(): boolean {
 
 async function onSaveBulk() {
   if (!auth.accessToken || !selectedSectionId.value || !isBulkValid()) return;
+  if (
+    !(await confirm({
+      title: 'Replace this timetable?',
+      message: 'This will overwrite every period currently scheduled for this section. This cannot be undone.',
+      danger: true,
+    }))
+  )
+    return;
   message.value = null;
   errorMessage.value = null;
   isSaving.value = true;

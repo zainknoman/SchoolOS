@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import TimetableView from './TimetableView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -16,6 +17,9 @@ vi.mock('../lib/api', () => ({
     deleteTimetableEntry: vi.fn(),
     replaceSectionTimetable: vi.fn(),
   },
+}));
+vi.mock('../lib/useConfirm', () => ({
+  useConfirm: vi.fn(),
 }));
 
 describe('TimetableView', () => {
@@ -38,6 +42,7 @@ describe('TimetableView', () => {
     vi.mocked(api.updateTimetableEntry).mockReset();
     vi.mocked(api.deleteTimetableEntry).mockReset();
     vi.mocked(api.replaceSectionTimetable).mockReset();
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
   it('lists a section\'s periods ordered by day then period once a section is picked', async () => {
@@ -257,7 +262,7 @@ describe('TimetableView', () => {
     expect(wrapper.text()).toContain('Mathematics');
   });
 
-  it('deletes a period', async () => {
+  it('deletes a period after confirmation, and does nothing if declined', async () => {
     vi.mocked(api.sectionTimetable).mockResolvedValue([
       {
         id: 't1',
@@ -271,6 +276,8 @@ describe('TimetableView', () => {
       },
     ]);
     vi.mocked(api.deleteTimetableEntry).mockResolvedValue(undefined);
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
     const wrapper = mount(TimetableView);
     await flushPromises();
@@ -279,9 +286,18 @@ describe('TimetableView', () => {
 
     await wrapper.find('[data-testid="delete-t1"]').trigger('click');
     await flushPromises();
+    expect(api.deleteTimetableEntry).not.toHaveBeenCalled();
+
+    await wrapper.find('[data-testid="delete-t1"]').trigger('click');
+    await flushPromises();
 
     expect(api.deleteTimetableEntry).toHaveBeenCalledWith('token-1', 't1');
     expect(wrapper.text()).toContain('Period removed.');
+    expect(confirmFn).toHaveBeenCalledWith({
+      title: 'Remove this period?',
+      message: 'This cannot be undone.',
+      danger: true,
+    });
   });
 
   it('shows an error if a period fails to save', async () => {
@@ -359,6 +375,34 @@ describe('TimetableView', () => {
       expect(wrapper.text()).toContain('Timetable saved (1 period).');
       // Composer closes back to the (now-reloaded) list view.
       expect(wrapper.find('[data-testid="bulk-grid"]').exists()).toBe(false);
+    });
+
+    it('asks for confirmation before replacing the timetable, and does nothing if declined', async () => {
+      vi.mocked(api.sectionTimetable).mockResolvedValue([]);
+      vi.mocked(api.replaceSectionTimetable).mockResolvedValue(undefined);
+      const confirmFn = vi.fn().mockResolvedValueOnce(false);
+      vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
+
+      const wrapper = mount(TimetableView);
+      await flushPromises();
+      await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="open-bulk"]').trigger('click');
+      await flushPromises();
+
+      await wrapper.find('[data-testid="bulk-start-1"]').setValue('08:00');
+      await wrapper.find('[data-testid="bulk-end-1"]').setValue('08:40');
+      await wrapper.find('[data-testid="bulk-subject-1-1"]').setValue('sub-1');
+
+      await wrapper.find('[data-testid="save-bulk"]').trigger('click');
+      await flushPromises();
+
+      expect(confirmFn).toHaveBeenCalledWith({
+        title: 'Replace this timetable?',
+        message: 'This will overwrite every period currently scheduled for this section. This cannot be undone.',
+        danger: true,
+      });
+      expect(api.replaceSectionTimetable).not.toHaveBeenCalled();
     });
 
     it('unchecking a day removes its column and excludes it from the saved entries', async () => {
