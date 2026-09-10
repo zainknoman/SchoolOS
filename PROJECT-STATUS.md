@@ -638,7 +638,10 @@ allow-list, rate limiting, Postgres migration.
   own "Final verification" step of confirming CI is green on GitHub Actions has not been done from
   this session — verified locally only; someone with repo access should confirm the Actions run.
 
-## Sprint C — Attendance & Access Bug Fixes + Verification Pass ⏳ IN PROGRESS
+## Sprint C — Attendance & Access Bug Fixes + Verification Pass ✅ DONE
+
+Merged to `main` 2026-09-10 (`b487cee..14428ce`). Plan:
+`docs/superpowers/plans/2026-09-10-sprint-c-attendance-access-bugfixes.md`.
 
 - [x] **Parent-app login unreachable from local dev preview (found 2026-09-10, not an originally
       planned Sprint C item)** — the parent app is Flutter-mobile in production (not subject to
@@ -654,23 +657,35 @@ allow-list, rate limiting, Postgres migration.
       session against both `parent-a@seeds.edu.pk` and `parent-b@seeds.edu.pk` (real JWTs issued, Home
       dashboard rendered with real seeded data). New unit coverage in `cors.config.spec.ts` (10 tests,
       up from 4); full backend suite (237 tests) and `npm run build` clean.
-- Found during the same verification pass (not fixed yet, tracked as a Sprint C follow-up): 
-  `FeeVouchersService`'s status computation (`voucher.dueDate < new Date()`) flags a voucher
-  `overdue` from the moment its due date starts (any time past midnight on the due date), not once
-  it's actually passed — a voucher due "today" already reads as overdue. Caught by
-  `fees.e2e-spec.ts` failing when run on the voucher's own due date.
-- [ ] Fix Admin/Super-Admin attendance-marking bug (`Teacher.findUnique` role fallthrough) — root
-      cause confirmed: `AttendanceService.markAttendance()` requires a `Teacher` row for the acting
-      user (`Attendance.markedById` is a required FK to `Teacher.id`), which a `SCHOOL_ADMIN`/
-      `SUPER_ADMIN` account doesn't have, so the `@Roles()` guard authorizes them but the service then
-      404s. `LeaveService.approve()` already solved the identical FK problem for admin-approved leave
-      by attributing the write to the student's section's `classTeacherId` instead of the acting
-      admin — same fix applies here. Not yet implemented.
+- [x] **Fee-voucher due-date status off-by-one (found during the same verification pass)** —
+      `FeeVouchersService`'s status computation (`voucher.dueDate < new Date()`) flagged a voucher
+      `overdue` from the moment its due date started (any time past midnight on the due date), not
+      once it had actually passed — a voucher due "today" read as overdue. Caught by
+      `fees.e2e-spec.ts` failing when run on the voucher's own due date. Fixed: compare against the
+      start of today instead of the current instant; new unit test locks in the boundary.
+- [x] **Admin/Super-Admin attendance-marking bug fixed** (`Teacher.findUnique` role fallthrough) —
+      `AttendanceService.markAttendance()` required a `Teacher` row for the acting user
+      (`Attendance.markedById` is a required FK to `Teacher.id`), which a `SCHOOL_ADMIN`/
+      `SUPER_ADMIN` account doesn't have, so the `@Roles()` guard authorized them but the service
+      then 404'd. Fixed the same way `LeaveService.approve()` already solved the identical FK
+      problem for admin-approved leave: attribute the write to the student's section's
+      `classTeacherId` instead of the acting admin (AuditLog still names the real acting user). New
+      unit + e2e coverage; smoke-tested live against real seed data — `admin@seeds.edu.pk` marked
+      Eshaal Sample (GR-1001, section 3A) present, immediately visible to `parent-a@seeds.edu.pk`.
 - [x] Fix Circulars nav-role bug (`AppShell.vue`'s `isAdmin` condition) — already closed by the
       2026-09-07 Staff Console Shell Redesign's `canManageCirculars` computed (ahead of this sprint
       being scoped); confirmed via code read, no new work needed.
-- [ ] Verify Fees/Messaging enforce the same scoping rigor already proven on Attendance/Diary — not
-      started.
+- [x] **Verify Fees/Messaging enforce the same scoping rigor already proven on Attendance/Diary** —
+      Fees (`fees.controller.ts`) already called `StudentAccessService.assertCanAccessStudent` on
+      every parent-facing read, with a passing cross-parent-403 e2e test; reverified passing.
+      Messaging (`conversations.service.ts`) already scoped `getById`/`reply`/`markRead` to the
+      conversation's two parties, with passing e2e coverage — but nothing tested
+      `ConversationsService.create()`'s cross-child case (a parent supplying another parent's
+      child's `studentId` when starting a `CLASS_TEACHER` conversation). Added that test; it passed
+      on the first run, confirming the scoping was already correct — no production code change
+      needed, this was the roadmap's "must be checked, not assumed" gap.
+- Verified (Sprint C closing run): full backend suite green — 239 unit tests (42 suites), 64 e2e
+  tests (13 suites) — `npm run build` clean.
 
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
@@ -818,12 +833,8 @@ left from Sprint A is not code: pushing `.github/workflows/ci.yml` to GitHub, co
 green, and turning on branch protection requiring it, all need the repo owner's action (see Sprint
 A's Follow-up above); Sprint B similarly needs someone with repo access to confirm its CI run is
 green on GitHub Actions (see Sprint B's Follow-up above). **Sprint C — Attendance & Access Bug Fixes
-+ Verification Pass** is in progress (see above): the parent-app-login CORS gap found while starting
-this sprint is fixed and verified; the Circulars nav-role bug turned out already fixed by an earlier
-sprint; still open are the Admin/Super-Admin attendance-marking fix (root cause confirmed, fix
-designed, not yet implemented), the Fees/Messaging scoping verification pass, and the
-newly-found fee-voucher-due-date-off-by-one bug — see
-`docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` for the implementation plan. Separately,
++ Verification Pass** is done (see above). The next unstarted roadmap sprint is **Sprint D — Staff
+Console Component Extraction (UI Sprint 2)** — not yet spec'd. Separately,
 the Staff Console Shell Redesign is done (see above); its own spec scoped a follow-up per-screen pass
 (empty/loading/error state machine + a shared `StatusPill.vue` across all 14 admin/teacher views)
 that has not been started — spec/plan not yet written. The parent-app (Flutter) half of the
