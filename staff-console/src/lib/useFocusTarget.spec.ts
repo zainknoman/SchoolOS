@@ -49,4 +49,28 @@ describe('useFocusTarget', () => {
     expect(focusSpy).not.toHaveBeenCalled();
     wrapper.unmount();
   });
+
+  it('focuses a non-HTMLElement target that only exposes a focus() method', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/target', name: 'target', component: { template: '<div />' } }],
+    });
+
+    const focusSpy = vi.fn();
+    const TestComponent = defineComponent({
+      setup() {
+        const fakeTarget = ref<{ focus(): void } | null>({ focus: focusSpy });
+        useFocusTarget({ 'gr-number': fakeTarget });
+        return () => h('div');
+      },
+    });
+
+    await router.push('/target?focus=gr-number');
+    await router.isReady();
+    const wrapper = mount(TestComponent, { global: { plugins: [router] } });
+    await wrapper.vm.$nextTick();
+
+    expect(focusSpy).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
 });
