@@ -834,6 +834,84 @@ Committed directly to `main` (`325f752..1e82044`), 9 code tasks via inline execu
   A third-party payment aggregator (e.g. rapidgateway.pk, surfaced while researching this sprint) was
   not evaluated as an alternative to direct integration.
 
+## Sprint F — Push Notifications, Both Clients (Phase 3) ✅ DONE
+
+Roadmap's Phase 3 sprint (`docs/superpowers/plans/2026-09-11-sprint-f-push-notifications.md`),
+closing the "a parent learns about a new circular/message/diary entry without opening the app" gap.
+Committed directly to `main` (`daa53fe..65c88de`), 9 code tasks via inline execution
+(superpowers:writing-plans → manual verification pass) plus this closing entry.
+
+- **Reconciliation with the roadmap doc, found during planning, not assumed:** the roadmap's Sprint F
+  section describes a `NotificationDispatchService` as greenfield work — that claim was already
+  stale. `NotificationsService` (`backend/src/notifications/notifications.service.ts`) was built
+  ahead of schedule during Sprint 7-8: it already writes the in-app `Notification` row **and** calls
+  a swappable `PushAdapter.send()` on every diary/circular/message write path, wired to a
+  `LoggingPushAdapter` no-op. This sprint did not rebuild that dispatch layer — it filled in the real
+  adapter behind the existing seam, plus the registration endpoint and both Flutter-side pieces the
+  roadmap actually named.
+- [x] **`FcmPushAdapter`, built to the real firebase-admin SDK contract, NOT verified against a real
+      Firebase project or device** — no Firebase project exists in this environment and no Android
+      emulator/Windows Flutter toolchain is available (same constraint noted in Sprint C prep), same
+      shape as Sprint E's unverified JazzCash/EasyPaisa sandbox. `FcmPushAdapter`
+      (`backend/src/notifications/fcm-push.adapter.ts`) looks up a user's `DeviceToken` rows, sends
+      via `AdminFcmSender`'s `sendEachForMulticast`, and deletes tokens FCM reports as unregistered.
+      A new `resolveFirebaseConfig()` (`backend/src/notifications/fcm-config.ts`) mirrors
+      `resolveJazzCashConfig`/`resolveEasyPaisaConfig`'s all-or-nothing shape: unset entirely falls
+      back to `LoggingPushAdapter`, a partial config outside dev/test fails loudly at boot.
+      `NotificationsModule`'s `PUSH_ADAPTER` provider is now a factory that picks between the two.
+- [x] **`POST /api/v1/me/device-tokens`** — new, e2e-tested. Upserts by `token` (not `userId`+`token`)
+      so a device moving between accounts (logout/login on a shared device) reassigns the mapping
+      instead of leaving a stale duplicate.
+- [x] **FCM on Flutter, structurally complete, gracefully degraded pending a real project** — added
+      `firebase_core`/`firebase_messaging` to `pubspec.yaml`. `PushTokenProvider`
+      (`parent-app/lib/src/notifications/push_token_provider.dart`) wraps `firebase_messaging`;
+      `FirebaseMessagingTokenProvider.getToken()` treats a failed `Firebase.initializeApp()` (which
+      is expected today — see below) as "no push this session," not a crash. `DeviceTokenRegistrar`
+      registers a token via the new endpoint on `HomeShell` mount, best-effort. `firebase_options.dart`
+      is a **hand-written placeholder**, not `flutterfire configure`-generated (no real Firebase
+      project to configure against) — replacing it is the only step needed once one exists; no other
+      code changes. Deliberately avoids `dart:io` (uses `defaultTargetPlatform`/`kIsWeb` instead) so
+      `flutter run -d chrome`, the only locally-previewable target in this dev environment, keeps
+      working, and avoids native Gradle/plist wiring so CI's `flutter analyze`/`flutter test` (which
+      never runs `flutter build apk`) stays green.
+- [x] **Interim foreground-resume polling stopgap** — `HomeShell` (`WidgetsBindingObserver`)
+      re-fetches notification/circular counts on `AppLifecycleState.resumed`, shipped and tested
+      independently of live FCM verification, exactly as the roadmap's own note allowed.
+- [x] **Tapped-push-notification deep linking** (not separately named in the roadmap's checklist, but
+      required by its Definition of Done) — `HomeShell` now listens on
+      `FirebaseMessaging.onMessageOpenedApp` and reuses the exact same type→tab navigation mapping
+      the in-app `NotificationsSheet` already used, via an extracted `_navigateForNotificationType`.
+      **Known, deliberate gap:** only the background-to-foreground tap case is wired;
+      `getInitialMessage()` (a cold-start deep link from a fully terminated app) is not — still
+      satisfies the roadmap's "within a few seconds" Definition of Done and the more common tap case,
+      tracked here rather than silently dropped.
+- Two real bugs caught only by actually running the full suites, not by the individually-touched
+  files — same category this repo has hit before (Sprint E's `tsc --noEmit` catch, Sprint 9-10's
+  arity bug): (1) `FcmPushAdapter` carried an unnecessary `@Injectable()` decorator, which broke
+  `npm run build` under `isolatedModules`/`emitDecoratorMetadata` (TS1272) since it's constructed
+  manually in the module factory, not through Nest's DI container — removed, matching
+  `JazzCashAdapter`/`EasyPaisaAdapter`'s precedent of no decorator on factory-built adapters.
+  (2) `test/me.e2e-spec.ts` never called `app.useGlobalPipes(new ValidationPipe(...))` the way
+  `main.ts`'s real bootstrap does, so `RegisterDeviceTokenDto`'s `@IsIn` validation was silently
+  inert in that test app — a pre-existing gap in the e2e harness, not the DTO, exposed by this
+  sprint's first e2e test to actually assert on DTO-level rejection. Fixed by mirroring `main.ts` in
+  the test's `beforeAll`. A structural Flutter test bug (three new `testWidgets` blocks accidentally
+  nested inside an existing test's body instead of as siblings, throwing `StateError: Can't call
+  test() once tests have begun running`) was also caught and fixed during this pass.
+- Verified: backend 287 unit tests (51 suites) and 73 e2e tests (13 suites) all passing, `npm run
+  build` clean, lint clean on every file this sprint touched (pre-existing repo-wide Prettier/CRLF
+  backlog untouched, per Sprint A's note that it's non-blocking); parent-app `flutter analyze` clean,
+  full `flutter test` suite (77 tests, including 10/10 in `home_shell_test.dart`) passing. **Not**
+  live-smoke-tested against a running backend + real device — no Firebase project and no Android
+  emulator/Windows Flutter toolchain in this dev environment (see the "NOT verified" bullets above);
+  the automated suites above exercise every code path except the actual Google-servers round trip.
+- Follow-up (tracked, not blocking): create a real Firebase project, run `flutterfire configure` to
+  replace `parent-app/lib/firebase_options.dart`, and set `FIREBASE_PROJECT_ID`/`CLIENT_EMAIL`/
+  `PRIVATE_KEY` in a real deployment's env — at that point `FcmPushAdapter`/`FirebaseMessagingTokenProvider`
+  activate with no further code changes. `getInitialMessage()` cold-start deep linking (see above) is
+  a small, separately-scoped follow-up. A physical/emulated Android device smoke test (voucher-style
+  live walkthrough, matching Sprint E's precedent) is worth doing once both of the above exist.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
