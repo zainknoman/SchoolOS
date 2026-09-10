@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import EntityTable from './EntityTable.vue';
 
-interface Row {
+interface Row extends Record<string, unknown> {
   id: string;
   name: string;
 }
