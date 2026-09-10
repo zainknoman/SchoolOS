@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
 import '../auth/auth_state.dart';
+import '../notifications/device_token_registrar.dart';
+import '../notifications/notification_target.dart';
 import 'calendar_tab.dart';
 import 'circulars_tab.dart';
 import 'fees_tab.dart';
@@ -23,7 +26,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   late int _tabIndex = widget.initialTab;
   List<ChildSummary> _children = [];
   String? _activeChildId;
@@ -32,6 +35,7 @@ class _HomeShellState extends State<HomeShell> {
   List<CircularSummary> _circulars = [];
   int _unreadCirculars = 0;
   int _unreadNotifications = 0;
+  StreamSubscription<NotificationTarget>? _pushTapSubscription;
 
   /// Which CalendarTab sub-tab (0 = Timetable, 1 = Attendance, 2 = Diary) should be shown next
   /// time the Calendar tab is built. Set to 2 (Diary) when the user taps a `type: 'diary'`
@@ -48,9 +52,63 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadChildren();
     _loadCirculars();
     _loadNotificationCount();
+    _registerDeviceToken();
+    _listenForPushTaps();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pushTapSubscription?.cancel();
+    super.dispose();
+  }
+
+  /// Interim stopgap (ships independently of full FCM, per the roadmap's Sprint F note): a
+  /// backgrounded app that gets resumed re-fetches the counts a real push would have kept fresh,
+  /// so a parent who missed a push (or on a build where push isn't configured yet) still sees an
+  /// accurate badge within moments of reopening the app rather than only on a cold start.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadNotificationCount();
+      _loadCirculars();
+    }
+  }
+
+  Future<void> _registerDeviceToken() async {
+    final auth = context.read<AuthState>();
+    final token = auth.accessToken;
+    if (token == null) return;
+    await context.read<DeviceTokenRegistrar>().registerIfPossible(token);
+  }
+
+  void _listenForPushTaps() {
+    final registrar = context.read<DeviceTokenRegistrar>();
+    _pushTapSubscription = registrar.tokenProvider.onNotificationTapped.listen((target) {
+      if (!mounted) return;
+      _navigateForNotificationType(target.type, target.entityRef);
+    });
+  }
+
+  /// Shared by both the in-app NotificationsSheet (a tapped row) and a tapped push notification
+  /// (_listenForPushTaps) — one navigation mapping for "a notification of this type was opened",
+  /// regardless of which surface it came from.
+  void _navigateForNotificationType(String type, String? entityRef) {
+    setState(() {
+      if (type == 'diary') {
+        _tabIndex = 1;
+        _calendarInitialSubTab = 2;
+      }
+      if (type == 'circular') _tabIndex = 2;
+      if (type == 'message') {
+        _tabIndex = 3;
+        _messagesInitialConversationId = entityRef;
+      }
+    });
   }
 
   Future<void> _loadCirculars() async {
@@ -102,17 +160,7 @@ class _HomeShellState extends State<HomeShell> {
           api: api,
           onOpenType: (type, entityRef) {
             Navigator.of(context).pop();
-            setState(() {
-              if (type == 'diary') {
-                _tabIndex = 1;
-                _calendarInitialSubTab = 2;
-              }
-              if (type == 'circular') _tabIndex = 2;
-              if (type == 'message') {
-                _tabIndex = 3;
-                _messagesInitialConversationId = entityRef;
-              }
-            });
+            _navigateForNotificationType(type, entityRef);
           },
         ),
       ),
