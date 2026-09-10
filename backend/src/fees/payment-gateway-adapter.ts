@@ -3,15 +3,12 @@ export interface PaymentInitiation {
   gatewayReference: string;
 }
 
-export interface PaymentConfirmation {
-  status: 'completed' | 'failed';
-}
-
+/**
+ * initiate() only. There is no confirm() — payment outcome only ever arrives via the signed
+ * webhook (see PaymentsWebhookController), never by an adapter calling back to its own gateway.
+ * Carrying a confirm() every adapter must implement but nothing calls would be dead-code weight,
+ * not a real abstraction.
+ */
 export interface PaymentGatewayAdapter {
   initiate(input: { amount: number; reference: string }): Promise<PaymentInitiation>;
-  // Standing in for a real gateway's webhook — called by the client after the stub "checkout"
-  // completes.
-  confirm(gatewayReference: string): Promise<PaymentConfirmation>;
 }
-
-export const PAYMENT_GATEWAY_ADAPTER = 'PAYMENT_GATEWAY_ADAPTER';
