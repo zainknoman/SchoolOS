@@ -2,6 +2,16 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status: ✅ Shipped** — committed to `main` 2026-09-11 (`0a2a558`, plus a preceding
+test-regression fix `b8fe38e`) as one combined pass alongside Sprint I and K, not task-by-task, so
+the step checkboxes below were never ticked incrementally and are left as this plan's original scope
+record rather than a completion log. Validated 2026-09-11: full backend (308/308), staff-console
+(227/227) and parent-app (88/88) test suites all green. **Known gap:** the staff-console
+accessibility/i18n/sidebar additions to `AppShell.vue`/`CommandPalette.vue` have no dedicated new
+test cases (every pre-existing `AppShell.spec.ts` case still passes unmodified, just not extended);
+parent-app's side (theme/locale) *is* covered — `theme_controller_test.dart`,
+`text_direction_test.dart`. Full detail: `PROJECT-STATUS.md`'s "Sprint I/J/K" section.
+
 **Goal:** Close the accessibility gaps that are missing rather than deliberately deferred (focus trap,
 ARIA, `Semantics`), and build out a full localization + responsive-shell story on **both clients** —
 scope decisions the user made explicitly (both clients localized; a real collapsible sidebar, not a

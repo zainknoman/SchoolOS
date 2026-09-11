@@ -2,6 +2,16 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status: ✅ Shipped** — committed to `main` 2026-09-11 (`0a2a558`, plus a preceding
+test-regression fix `b8fe38e`) as one combined pass alongside Sprint J and K, not task-by-task, so
+the step checkboxes below were never ticked incrementally and are left as this plan's original scope
+record rather than a completion log. Validated 2026-09-11: full backend (308/308), staff-console
+(227/227) and parent-app (88/88) test suites all green. **Known gap:** none of this sprint's new
+backend modules (`holidays`, `complaints`, `report-cards`) or `AuthService.forgotPassword`/
+`resetPassword`/bulk-attendance/timetable-conflict additions, nor their staff-console/parent-app
+screens, have dedicated test coverage yet — tracked, not blocking. Full detail:
+`PROJECT-STATUS.md`'s "Sprint I/J/K" section.
+
 **Goal:** Close the seven remaining named MVP-scope gaps the Gap Analysis's Medium/Low register still
 lists open, that don't each warrant their own sprint: report cards, a calendar-wide Holiday model,
 complaint tracking, forgot-password, a teacher's own timetable view (fixing Sprint D's dead nav link),

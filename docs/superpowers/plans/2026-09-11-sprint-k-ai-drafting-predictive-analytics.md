@@ -2,6 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status: ✅ Shipped** — committed to `main` 2026-09-11 (`0a2a558`, plus a preceding
+test-regression fix `b8fe38e`) as one combined pass alongside Sprint I and J, not task-by-task, so
+the step checkboxes below were never ticked incrementally and are left as this plan's original scope
+record rather than a completion log. Validated 2026-09-11: full backend (308/308), staff-console
+(227/227) and parent-app (88/88) test suites all green. **Known gap:** neither new backend module
+(`ai-drafting`, `attendance-risk`) nor the compose "Suggest draft" button/dashboard risk panel has
+dedicated test coverage yet — tracked, not blocking. Full detail: `PROJECT-STATUS.md`'s
+"Sprint I/J/K" section.
+
 **Goal:** Ship the project's first genuinely differentiated (not at-parity) capability — an
 AI-assisted first draft on circular/diary compose, and an attendance early-warning panel on the admin
 dashboard — following the "never auto-publish without staff review" and "computed from existing data,

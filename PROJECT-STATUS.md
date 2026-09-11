@@ -1024,6 +1024,63 @@ commit in a second pass.
   gateway's actual field names against a contracted provider, remain open (same category as Sprint
   E's JazzCash/EasyPaisa and Sprint F's Firebase items above).
 
+## Sprint I/J/K — Remaining Feature Gaps, Accessibility/Localization, AI Drafting + Predictive Analytics (Phases 5–8) ✅ DONE
+
+Roadmap's Phase 5–8 sprints, shipped together as one combined pass rather than sprint-by-sprint:
+`docs/superpowers/plans/2026-09-11-sprint-i-remaining-feature-gaps.md`,
+`docs/superpowers/plans/2026-09-11-sprint-j-accessibility-localization.md`,
+`docs/superpowers/plans/2026-09-11-sprint-k-ai-drafting-predictive-analytics.md`. Committed directly
+to `main`: a test-regression fix for pre-existing specs (`b8fe38e`) followed by the feature commit
+itself (`0a2a558`) — built and committed in one pass, not task-by-task via
+`subagent-driven-development` as each plan assumed, so the plans' own step checkboxes were never
+ticked incrementally (left as a historical record, not a completion log — see the status note each
+plan file now carries).
+
+- **Sprint I (remaining feature gaps):** calendar-wide `Holiday` model + an attendance holiday guard
+  (`backend/src/holidays`), staff-managed/parent-read-only `Complaint` tracking
+  (`backend/src/complaints`), forgot/reset-password on `AuthService` behind a swappable
+  `MailAdapter` (`LoggingMailAdapter` by default — no real SMTP account exists in this environment),
+  bulk attendance marking, timetable double-booking conflict detection, a teacher's own timetable
+  view (re-adds the nav-timetable `RouterLink` Sprint D had removed), and staff-uploaded/
+  parent-viewable Report Cards (`backend/src/report-cards`, staff-console `ReportCardsView`/
+  `ReportCardsPageView`, parent-app `report_cards_screen.dart`).
+- **Sprint J (accessibility + localization):** command palette focus trap and ARIA listbox
+  semantics, a skip-to-content link, disclosure ARIA attributes, `lang`/`dir` pairing for RTL
+  content, Flutter tooltip/`Semantics` fixes, `vue-i18n` on staff-console and
+  `flutter_localizations` on parent-app (English/Urdu chrome coverage with a persisted per-device
+  locale), and a collapsible/overlay staff-console sidebar below a mobile breakpoint.
+- **Sprint K (AI drafting + predictive analytics):** an `AiDraftingProvider`
+  (`backend/src/ai-drafting` — Anthropic + stub, defaulting to the stub since no API key is
+  provisioned) behind draft-suggestion endpoints on circulars/diary compose, and a nightly
+  `AttendanceRiskService` (`backend/src/attendance-risk`) that flags students crossing an absence
+  threshold, with an early-warning panel on the admin dashboard.
+- **Verified 2026-09-11** (this validation pass, run after the fact — not part of the original
+  build): backend unit suite **308/308** (56 suites), staff-console **227/227** (33 files),
+  parent-app `flutter test` **88/88**, all green run in isolation. The first combined run (all three
+  suites launched in parallel to save time) showed 2 backend `auth.service.spec.ts` failures
+  (`Exceeded timeout of 5000 ms`) — root-caused per `systematic-debugging` before touching anything:
+  re-running that one spec file alone passed 13/13 in 2.44s, and `git log -p` on `auth.service.ts`
+  confirmed `login()` itself was untouched by this work (only `forgotPassword`/`resetPassword` were
+  added alongside it). Confirmed CPU contention from three heavy test runners (Jest + Vitest +
+  `flutter test`) starting simultaneously, not a real regression — no code change was made.
+- **Known gap (flagged in the original `0a2a558` commit message, itemized here after checking each
+  directory for a `*.spec.ts`/`*_test.dart` sibling):** none of the five new backend modules
+  (`holidays`, `complaints`, `report-cards`, `ai-drafting`, `attendance-risk`) have their own spec
+  file, nor does `AuthService.forgotPassword`/`resetPassword`, `POST /attendance/bulk`, or the
+  timetable conflict check — `auth.service.spec.ts` still only covers pre-existing login/refresh
+  behavior. On the UI side: the new staff-console views (`HolidaysView`/`HolidaysPageView`,
+  `ComplaintsPageView`/`ComplaintsQueueView`, `ReportCardsView`/`ReportCardsPageView`) and Sprint J's
+  accessibility/i18n/sidebar additions to `AppShell.vue`/`CommandPalette.vue` have no dedicated spec
+  cases (existing `AppShell.spec.ts` cases still all pass, just not extended); the parent-app's
+  `complaints_screen.dart`/`report_cards_screen.dart` have no widget test either. The compose
+  "Suggest draft" button and the dashboard risk panel are likewise untested. This is the same
+  "structurally complete, ships behind a stub/fallback, not fully verified" bar Sprints E/F/H
+  shipped some pieces at (JazzCash/EasyPaisa, FCM, WhatsApp/SMS) — except there the gap was *live
+  external-service* verification; here it's automated test coverage of new first-party code. Tracked
+  as a follow-up, not blocking: the existing 623-test suite (308+227+88) staying green is a real
+  regression guard for everything it touches, it just doesn't yet touch this sprint's new surface
+  area.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
@@ -1145,8 +1202,9 @@ own implementer + task review, plus this manual verification task.
 - [ ] Public website refresh (separate, lower-priority track)
 - [x] ~~WhatsApp integration~~ — done, Sprint H (above); not live-verified against a real sandbox
       (no credentials in this environment)
-- [ ] Results/report cards, exam timetable, PTM booking, homework tracker, event RSVP (Release 2+
-      per `MVP-Plan-V3.md`)
+- [x] ~~Report cards~~ — done, Sprint I (above); ships without dedicated tests (see that section's
+      Known gap)
+- [ ] Exam timetable, PTM booking, homework tracker, event RSVP (Release 2+ per `MVP-Plan-V3.md`)
 - [ ] Payroll, full accounting ERP, library, transport GPS, RFID/biometric, canteen/wallet, AI
       tutor, complex LMS, online exams, inventory/HR — never in scope for this MVP
 
@@ -1166,19 +1224,24 @@ own implementer + task review, plus this manual verification task.
 
 ---
 
-**Next step:** **Sprints A through H** are all done (Sprint H — WhatsApp/SMS/digest bundling —
-pushed to `main` 2026-09-11, see above), and CI is confirmed green on GitHub Actions against `main`
-(2026-09-10 — see Sprint A's Follow-up above). What's left from Sprint A is not code: turning on
-branch protection requiring the CI workflow before merge needs the repo owner's action. No roadmap
-sprint past H is spec'd yet. Separately, the Staff Console Shell Redesign is done (see above); its
-own spec scoped a follow-up per-screen pass (empty/loading/error state machine + a shared
-`StatusPill.vue` across all 14 admin/teacher views) that has not been started — spec/plan not yet
-written. **Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's offline-caching slice is
-done, and the Prisma-to-PostgreSQL switch this section used to list is now done (Sprint B, above);
-remaining: FEAT-014's Play Store submission, rotate the dev-only JWT secrets in `backend/.env`
-(Sprint A's boot-time fail-fast now refuses to boot on the dev-only secret outside dev/test, so a
-stale secret is caught immediately rather than silently deployed — the rotation itself still needs
-doing), wire real S3-compatible storage, a real Firebase project for FCM, and real WhatsApp
-Business/SMS gateway credentials (Sprint H, above), then a pilot rollout (one campus/class, 20-50
-parents) before full cutover. A broader security review pass beyond the five items the Security
-Hardening Pass already closed is worth doing before that pilot, but nothing specific is queued.
+**Next step:** **Sprints A through K** are all done (Sprint I/J/K — remaining feature gaps,
+accessibility/localization, AI drafting + predictive analytics — committed to `main` 2026-09-11, see
+above), and CI is confirmed green on GitHub Actions against `main` (2026-09-10 — see Sprint A's
+Follow-up above). What's left from Sprint A is not code: turning on branch protection requiring the
+CI workflow before merge needs the repo owner's action. This was the roadmap's last spec'd sprint
+(**Phase 8 remainder** — EMI-style fee installments, admissions/lottery — is not yet spec'd). The
+biggest open item across Sprints I/J/K is not code either: none of their five new backend modules or
+new UI screens have their own dedicated test coverage yet (see that section's Known gap) — worth
+closing before this surface area gets built on further. Separately, the Staff Console Shell Redesign
+is done (see above); its own spec scoped a follow-up per-screen pass (empty/loading/error state
+machine + a shared `StatusPill.vue` across all 14 admin/teacher views) that has not been started —
+spec/plan not yet written. **Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's
+offline-caching slice is done, and the Prisma-to-PostgreSQL switch this section used to list is now
+done (Sprint B, above); remaining: FEAT-014's Play Store submission, rotate the dev-only JWT secrets
+in `backend/.env` (Sprint A's boot-time fail-fast now refuses to boot on the dev-only secret outside
+dev/test, so a stale secret is caught immediately rather than silently deployed — the rotation itself
+still needs doing), wire real S3-compatible storage, a real Firebase project for FCM, real WhatsApp
+Business/SMS gateway credentials (Sprint H), and a real Anthropic API key for live AI drafting
+(Sprint K, above), then a pilot rollout (one campus/class, 20-50 parents) before full cutover. A
+broader security review pass beyond the five items the Security Hardening Pass already closed is
+worth doing before that pilot, but nothing specific is queued.
