@@ -336,7 +336,7 @@ class ApiClient {
   // id, so this reads every holiday rather than scoping to the child's own campus. Holidays
   // aren't per-student PII, so the over-broad read is a safe, documented trade-off.
   Future<List<Holiday>> holidays(String accessToken, {String? from, String? to}) async {
-    final query = <String, String>{if (from != null) 'from': from, if (to != null) 'to': to};
+    final query = <String, String>{'from': ?from, 'to': ?to};
     final path = query.isEmpty
         ? '/api/v1/holidays'
         : '/api/v1/holidays?${Uri(queryParameters: query).query}';
