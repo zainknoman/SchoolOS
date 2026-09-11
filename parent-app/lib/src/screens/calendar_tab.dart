@@ -337,6 +337,7 @@ class _AttendanceTab extends StatefulWidget {
 
 class _AttendanceTabState extends State<_AttendanceTab> {
   AttendanceReport? _report;
+  List<Holiday> _holidays = [];
   String? _error;
   DateTime? _lastUpdated;
   bool _stale = false;
@@ -372,6 +373,20 @@ class _AttendanceTabState extends State<_AttendanceTab> {
         if (mounted) setState(() => _error = message);
       },
     );
+
+    try {
+      final holidays = await widget.api.holidays(widget.accessToken);
+      if (mounted) setState(() => _holidays = holidays);
+    } catch (_) {
+      // Non-critical overlay — the attendance report above already rendered without it.
+    }
+  }
+
+  Holiday? _holidayFor(String isoDate) {
+    for (final h in _holidays) {
+      if (h.covers(isoDate)) return h;
+    }
+    return null;
   }
 
   @override
@@ -414,6 +429,24 @@ class _AttendanceTabState extends State<_AttendanceTab> {
             ),
           ),
         ),
+        if (_holidays.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Card(
+            key: const Key('holidaysCard'),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Declared holidays', style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  for (final h in _holidays)
+                    Text('${h.title}: ${h.startDate} – ${h.endDate}'),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         for (final day in report.days.reversed)
           Card(
@@ -422,6 +455,9 @@ class _AttendanceTabState extends State<_AttendanceTab> {
             child: ListTile(
               dense: true,
               title: Text(day.date),
+              subtitle: _holidayFor(day.date) != null
+                  ? Text('Holiday: ${_holidayFor(day.date)!.title}')
+                  : null,
               trailing: Text(day.status),
             ),
           ),

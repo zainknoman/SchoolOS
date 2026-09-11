@@ -81,15 +81,14 @@ async function onSave() {
 
   try {
     const entries = Object.entries(statuses.value).filter(([, status]) => status !== '');
-    for (const [studentId, status] of entries) {
-      await api.markAttendance(auth.accessToken, {
-        studentId,
-        date: today,
-        status: status as AttendanceStatus,
-      });
-    }
+    await api.markAttendanceBulk(auth.accessToken, {
+      date: today,
+      marks: entries.map(([studentId, status]) => ({ studentId, status: status as AttendanceStatus })),
+    });
     message.value = `Saved attendance for ${entries.length} student(s).`;
   } catch (err) {
+    // A 400 here is most often the new Holiday guard rejecting the whole batch — surface its
+    // real message (e.g. "Cannot mark attendance on a declared holiday") instead of a generic one.
     errorMessage.value = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
   } finally {
     isSaving.value = false;
@@ -166,6 +165,7 @@ async function onSave() {
               :data-testid="`status-${student.id}-more`"
               class="overflow-trigger"
               aria-haspopup="true"
+              :aria-expanded="openOverflowFor === student.id"
               @click="toggleOverflow(student.id)"
             >
               …

@@ -516,3 +516,86 @@ class LeaveRequestSummary {
         status: json['status'] as String,
       );
 }
+
+class Holiday {
+  const Holiday({
+    required this.id,
+    required this.title,
+    required this.startDate,
+    required this.endDate,
+    this.campusId,
+  });
+
+  final String id;
+  final String title;
+  final String startDate;
+  final String endDate;
+  final String? campusId;
+
+  factory Holiday.fromJson(Map<String, dynamic> json) => Holiday(
+    id: json['id'] as String,
+    title: json['title'] as String,
+    startDate: json['startDate'] as String,
+    endDate: json['endDate'] as String,
+    campusId: json['campusId'] as String?,
+  );
+
+  /// Inclusive [DateTime] range check against this holiday's [startDate]/[endDate].
+  bool covers(String isoDate) {
+    final date = DateTime.parse(isoDate);
+    final start = DateTime.parse(startDate);
+    final end = DateTime.parse(endDate);
+    return !date.isBefore(start) && !date.isAfter(end);
+  }
+}
+
+class Complaint {
+  const Complaint({
+    required this.id,
+    required this.studentId,
+    required this.subject,
+    required this.description,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String studentId;
+  final String subject;
+  final String description;
+  final String status;
+  final String createdAt;
+
+  factory Complaint.fromJson(Map<String, dynamic> json) => Complaint(
+    id: json['id'] as String,
+    studentId: json['studentId'] as String,
+    subject: json['subject'] as String,
+    description: json['description'] as String,
+    status: json['status'] as String,
+    createdAt: json['createdAt'] as String,
+  );
+}
+
+class ReportCard {
+  const ReportCard({
+    required this.id,
+    required this.studentId,
+    required this.academicSessionId,
+    required this.fileId,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String studentId;
+  final String academicSessionId;
+  final String fileId;
+  final String createdAt;
+
+  factory ReportCard.fromJson(Map<String, dynamic> json) => ReportCard(
+    id: json['id'] as String,
+    studentId: json['studentId'] as String,
+    academicSessionId: json['academicSessionId'] as String,
+    fileId: json['fileId'] as String,
+    createdAt: json['createdAt'] as String,
+  );
+}

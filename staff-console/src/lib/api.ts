@@ -138,6 +138,42 @@ export interface TimetableEntryInput {
   room?: string;
 }
 
+export interface HolidaySummary {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  campusId: string | null;
+}
+
+export interface ComplaintSummary {
+  id: string;
+  studentId: string;
+  raisedById: string;
+  subject: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReportCardSummary {
+  id: string;
+  studentId: string;
+  academicSessionId: string;
+  fileId: string;
+  createdAt: string;
+}
+
+export interface AttendanceRiskSummary {
+  studentId: string;
+  studentName: string;
+  absenceRate: number;
+  flagged: boolean;
+  windowStart: string;
+  windowEnd: string;
+}
+
 export interface DiaryAttachmentSummary {
   id: string;
   originalName: string;
@@ -863,6 +899,10 @@ export const api = {
     return `${API_BASE_URL}/api/v1/fee-payments/${paymentId}/receipt.pdf?access_token=${encodeURIComponent(accessToken)}`;
   },
 
+  reportCardPdfUrl(accessToken: string, reportCardId: string): string {
+    return `${API_BASE_URL}/api/v1/report-cards/${reportCardId}/pdf?access_token=${encodeURIComponent(accessToken)}`;
+  },
+
   async listAdminTeachers(accessToken: string): Promise<TeacherAdminSummary[]> {
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/teachers`, { headers: authHeaders(accessToken) });
     return asJson(res);
@@ -988,5 +1028,180 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+  },
+
+  async forgotPassword(identifier: string): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier }),
+    });
+    return asJson(res);
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+    });
+    return asJson(res);
+  },
+
+  async markAttendanceBulk(
+    accessToken: string,
+    payload: { date: string; marks: { studentId: string; status: AttendanceStatus }[] },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/attendance/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async teacherTimetable(accessToken: string): Promise<TimetableEntrySummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/teachers/me/timetable`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async listHolidays(
+    accessToken: string,
+    params?: { campusId?: string; from?: string; to?: string },
+  ): Promise<HolidaySummary[]> {
+    const query = new URLSearchParams();
+    if (params?.campusId) query.set('campusId', params.campusId);
+    if (params?.from) query.set('from', params.from);
+    if (params?.to) query.set('to', params.to);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/holidays${suffix}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async createHoliday(
+    accessToken: string,
+    payload: { title: string; startDate: string; endDate: string; campusId?: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/holidays`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async updateHoliday(
+    accessToken: string,
+    id: string,
+    payload: { title?: string; startDate?: string; endDate?: string; campusId?: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/holidays/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async deleteHoliday(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/holidays/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listComplaints(accessToken: string, studentId: string): Promise<ComplaintSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/complaints?studentId=${encodeURIComponent(studentId)}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async createComplaint(
+    accessToken: string,
+    payload: { studentId: string; subject: string; description: string },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/complaints`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async updateComplaintStatus(accessToken: string, id: string, status: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/complaints/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async uploadReportCard(
+    accessToken: string,
+    payload: { studentId: string; academicSessionId: string; file: File },
+  ): Promise<void> {
+    const formData = new FormData();
+    formData.append('studentId', payload.studentId);
+    formData.append('academicSessionId', payload.academicSessionId);
+    formData.append('file', payload.file);
+    const res = await fetch(`${API_BASE_URL}/api/v1/report-cards`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+      body: formData,
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listReportCards(accessToken: string, studentId: string): Promise<ReportCardSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/report-cards?studentId=${encodeURIComponent(studentId)}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async suggestCircularDraft(accessToken: string, context: string): Promise<{ suggestion: string }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/circulars/draft-suggestion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify({ context }),
+    });
+    return asJson(res);
+  },
+
+  async suggestDiaryDraft(accessToken: string, context: string): Promise<{ suggestion: string }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/diary/draft-suggestion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify({ context }),
+    });
+    return asJson(res);
+  },
+
+  async getFlaggedStudents(accessToken: string): Promise<AttendanceRiskSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/attendance-risk`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
   },
 };

@@ -309,4 +309,56 @@ class ApiClient {
       throw ApiException(_errorMessage(res), res.statusCode);
     }
   }
+
+  Future<void> forgotPassword(String identifier) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'identifier': identifier}),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
+
+  Future<void> resetPassword(String token, String newPassword) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'token': token, 'newPassword': newPassword}),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
+
+  // No campusId is passed here — ChildSummary only exposes the campus's display name, not its
+  // id, so this reads every holiday rather than scoping to the child's own campus. Holidays
+  // aren't per-student PII, so the over-broad read is a safe, documented trade-off.
+  Future<List<Holiday>> holidays(String accessToken, {String? from, String? to}) async {
+    final query = <String, String>{if (from != null) 'from': from, if (to != null) 'to': to};
+    final path = query.isEmpty
+        ? '/api/v1/holidays'
+        : '/api/v1/holidays?${Uri(queryParameters: query).query}';
+    final list = await _get(path, accessToken) as List<dynamic>;
+    return list.map((e) => Holiday.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<Complaint>> complaints(String accessToken, String studentId) async {
+    final list =
+        await _get('/api/v1/complaints?studentId=${Uri.encodeQueryComponent(studentId)}', accessToken)
+            as List<dynamic>;
+    return list.map((e) => Complaint.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<ReportCard>> reportCards(String accessToken, String studentId) async {
+    final list =
+        await _get('/api/v1/report-cards?studentId=${Uri.encodeQueryComponent(studentId)}', accessToken)
+            as List<dynamic>;
+    return list.map((e) => ReportCard.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Uri reportCardPdfUrl(String reportCardId, String accessToken) => Uri.parse(
+    '$baseUrl/api/v1/report-cards/$reportCardId/pdf',
+  ).replace(queryParameters: {'access_token': accessToken});
 }

@@ -1,0 +1,22 @@
+{
+  "@@locale": "en",
+  "appTitle": "School OS",
+  "navHome": "Home",
+  "navCalendar": "Calendar",
+  "navCirculars": "Circulars",
+  "navMessages": "Messages",
+  "navFees": "Fees",
+  "navMore": "More",
+  "loginSubtitle": "Sign in to see your child's day",
+  "loginIdentifier": "Email or GR number",
+  "loginPassword": "Password",
+  "loginSubmit": "Sign in",
+  "loginSubmitting": "Signing in…",
+  "loginForgotPassword": "Forgot password?",
+  "moreLeaveApplications": "Leave Applications",
+  "moreComplaints": "Complaints",
+  "moreReportCards": "Report Cards",
+  "moreAppearance": "Appearance",
+  "moreNotificationChannel": "Notification channel",
+  "moreLanguage": "Language"
+}

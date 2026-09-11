@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import Icon, { type IconName } from './AppIcon.vue';
+
+const { t } = useI18n();
 
 interface GoToItem {
   testid: string;
@@ -31,6 +34,8 @@ const router = useRouter();
 const query = ref('');
 const selectedIndex = ref(0);
 const inputRef = ref<HTMLInputElement | null>(null);
+const panelRef = ref<HTMLDivElement | null>(null);
+let previouslyFocused: HTMLElement | null = null;
 
 const allItems = computed<PaletteItem[]>(() => [
   ...props.goToItems.map((i) => ({ group: 'Go to' as const, ...i })),
@@ -50,13 +55,24 @@ watch(query, () => {
 watch(
   () => props.open,
   async (isOpen) => {
-    if (!isOpen) return;
-    query.value = '';
-    selectedIndex.value = 0;
-    await nextTick();
-    inputRef.value?.focus();
+    if (isOpen) {
+      previouslyFocused = document.activeElement as HTMLElement | null;
+      query.value = '';
+      selectedIndex.value = 0;
+      await nextTick();
+      inputRef.value?.focus();
+    } else {
+      previouslyFocused?.focus();
+      previouslyFocused = null;
+    }
   },
 );
+
+function focusableItems(): HTMLElement[] {
+  const root = panelRef.value;
+  if (!root) return [];
+  return Array.from(root.querySelectorAll<HTMLElement>('.cmdk-item'));
+}
 
 function activate(item: PaletteItem) {
   if (item.group === 'Actions' && item.query) {
@@ -70,6 +86,24 @@ function activate(item: PaletteItem) {
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     emit('close');
+    return;
+  }
+  if (event.key === 'Tab') {
+    // Cycles focus between the input and the last item instead of letting Tab escape the
+    // dialog to the page behind it.
+    const items = focusableItems();
+    const active = document.activeElement;
+    if (event.shiftKey) {
+      if (active === inputRef.value) {
+        event.preventDefault();
+        (items[items.length - 1] ?? inputRef.value)?.focus();
+      }
+    } else {
+      if (active === items[items.length - 1] || (items.length === 0 && active === inputRef.value)) {
+        event.preventDefault();
+        inputRef.value?.focus();
+      }
+    }
     return;
   }
   if (event.key === 'ArrowDown') {
@@ -99,7 +133,14 @@ function onKeydown(event: KeyboardEvent) {
     data-testid="cmdk-overlay"
     @click.self="emit('close')"
   >
-    <div class="cmdk" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div
+      ref="panelRef"
+      class="cmdk"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="t('shell.commandPalette')"
+      @keydown="onKeydown"
+    >
       <div class="cmdk-input-row">
         <Icon name="search" :size="16" />
         <input
@@ -107,13 +148,17 @@ function onKeydown(event: KeyboardEvent) {
           data-testid="cmdk-input"
           v-model="query"
           type="text"
-          placeholder="Jump to a screen or run an action…"
+          :placeholder="t('shell.search')"
           autocomplete="off"
-          @keydown="onKeydown"
+          role="combobox"
+          aria-expanded="true"
+          :aria-activedescendant="
+            filteredItems[selectedIndex] ? `cmdk-option-${filteredItems[selectedIndex]!.testid}` : undefined
+          "
         />
         <kbd>Esc</kbd>
       </div>
-      <div class="cmdk-list" data-testid="cmdk-list">
+      <div class="cmdk-list" data-testid="cmdk-list" role="listbox">
         <template v-if="filteredItems.length">
           <template v-for="(item, index) in filteredItems" :key="item.testid">
             <div
@@ -123,7 +168,10 @@ function onKeydown(event: KeyboardEvent) {
               {{ item.group }}
             </div>
             <button
+              :id="`cmdk-option-${item.testid}`"
               type="button"
+              role="option"
+              :aria-selected="index === selectedIndex"
               class="cmdk-item"
               :class="{ selected: index === selectedIndex }"
               :data-testid="item.testid"

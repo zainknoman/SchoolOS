@@ -16,11 +16,24 @@ import { resolveSmsConfig } from './sms-config';
 import { WHATSAPP_ADAPTER, SMS_ADAPTER } from './channel-registry';
 import { DigestDispatchJob } from './digest-dispatch.job';
 import { PrismaService } from '../prisma/prisma.service';
+import { MAIL_ADAPTER } from './mail-adapter';
+import { LoggingMailAdapter } from './logging-mail.adapter';
+import { SmtpMailAdapter } from './smtp-mail.adapter';
+import { resolveSmtpConfig } from './smtp-config';
 
 @Module({
   providers: [
     NotificationsService,
     DigestDispatchJob,
+    {
+      provide: MAIL_ADAPTER,
+      useFactory: (config: ConfigService) => {
+        const smtpConfig = resolveSmtpConfig(config);
+        if (!smtpConfig) return new LoggingMailAdapter();
+        return new SmtpMailAdapter(smtpConfig);
+      },
+      inject: [ConfigService],
+    },
     {
       provide: PUSH_ADAPTER,
       useFactory: (config: ConfigService, prisma: PrismaService) => {
@@ -50,6 +63,6 @@ import { PrismaService } from '../prisma/prisma.service';
     },
   ],
   controllers: [NotificationsController],
-  exports: [NotificationsService],
+  exports: [NotificationsService, MAIL_ADAPTER],
 })
 export class NotificationsModule {}

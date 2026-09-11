@@ -13,6 +13,12 @@ const props = defineProps<{
   series: SparklineSeries[];
 }>();
 
+const accessibleLabel = computed(() =>
+  props.series
+    .map((s) => `${s.label}: ${s.values.join(', ')}`)
+    .join('. '),
+);
+
 const lines = computed(() =>
   props.series.map((s) => {
     const step = s.values.length > 1 ? 100 / (s.values.length - 1) : 0;
@@ -34,7 +40,13 @@ const lines = computed(() =>
         <span>50%</span>
         <span>0%</span>
       </div>
-      <svg class="sparkline-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <svg
+        class="sparkline-svg"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        role="img"
+        :aria-label="accessibleLabel"
+      >
         <polyline
           v-for="line in lines"
           :key="line.label"

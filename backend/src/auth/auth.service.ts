@@ -1,14 +1,19 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
 import { randomBytes, createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { MAIL_ADAPTER } from '../notifications/mail-adapter';
+import type { MailAdapter } from '../notifications/mail-adapter';
 import {
   MAX_FAILED_ATTEMPTS,
   LOCKOUT_DURATION_MINUTES,
   REFRESH_TOKEN_TTL_DAYS,
   GENERIC_AUTH_ERROR,
   ACCOUNT_LOCKED_ERROR,
+  PASSWORD_RESET_TOKEN_TTL_HOURS,
+  RESET_PASSWORD_GENERIC_ERROR,
 } from './auth.constants';
 
 export type SessionResult = {
@@ -26,6 +31,8 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly config: ConfigService,
+    @Inject(MAIL_ADAPTER) private readonly mail: MailAdapter,
   ) {}
 
   /**
@@ -114,6 +121,67 @@ export class AuthService {
     }
 
     return this.issueSession(user.id, user.role);
+  }
+
+  /**
+   * Always resolves normally, whether or not `identifier` matches a real account — the caller
+   * can't distinguish the two branches (standard user-enumeration defense).
+   */
+  async forgotPassword(identifier: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { identifier } });
+    if (!user) {
+      return;
+    }
+
+    const token = randomBytes(32).toString('hex');
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(token),
+        expiresAt: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_HOURS * 60 * 60_000),
+      },
+    });
+
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+    try {
+      await this.mail.send(
+        user.identifier,
+        'Reset your SchoolPortal password',
+        `Use this link to reset your password (expires in ${PASSWORD_RESET_TOKEN_TTL_HOURS} hour): ${resetLink}`,
+      );
+    } catch (err) {
+      // Best-effort, same as NotificationsService.notify() — a delivery failure must never leak
+      // through to the caller (who already sees the same generic response either way).
+      console.error('Password reset email delivery failed', err);
+    }
+  }
+
+  /**
+   * A successful reset ends every existing session for this user (every RefreshToken row is
+   * revoked), not just the request that performed the reset.
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const tokenHash = hashToken(token);
+    const stored = await this.prisma.passwordResetToken.findUnique({ where: { tokenHash } });
+
+    if (!stored || stored.usedAt || stored.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException(RESET_PASSWORD_GENERIC_ERROR);
+    }
+
+    const passwordHash = await argon2.hash(newPassword);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: stored.userId }, data: { passwordHash } }),
+      this.prisma.passwordResetToken.update({
+        where: { id: stored.id },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: stored.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
   }
 
   private async issueSession(

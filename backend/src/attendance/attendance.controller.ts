@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { AttendanceService } from './attendance.service';
 import { MarkAttendanceDto } from './dto/mark-attendance.dto';
+import { BulkMarkAttendanceDto } from './dto/bulk-mark-attendance.dto';
 import {
   StudentAccessService,
   RequestUser,
@@ -49,5 +50,11 @@ export class AttendanceController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.attendanceService.markAttendance(dto, req.user.id);
+  }
+
+  @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @Post('attendance/bulk')
+  markBulk(@Body() dto: BulkMarkAttendanceDto, @Req() req: AuthenticatedRequest) {
+    return this.attendanceService.markBulk(dto, req.user.id);
   }
 }

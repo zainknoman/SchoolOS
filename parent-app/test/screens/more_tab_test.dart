@@ -7,6 +7,8 @@ import 'package:parent_app/src/api/api_client.dart';
 import 'package:parent_app/src/api/models.dart';
 import 'package:parent_app/src/screens/more_tab.dart';
 import 'package:parent_app/src/theme/theme_controller.dart';
+import 'package:parent_app/src/theme/locale_controller.dart';
+import 'package:parent_app/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _child = ChildSummary(
@@ -32,8 +34,13 @@ void main() {
 
     await tester.pumpWidget(
       MultiProvider(
-        providers: [ChangeNotifierProvider<ThemeController>.value(value: themeController)],
+        providers: [
+          ChangeNotifierProvider<ThemeController>.value(value: themeController),
+          ChangeNotifierProvider<LocaleController>.value(value: LocaleController()),
+        ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: MoreTab(
               accessToken: 'tok',
@@ -72,8 +79,13 @@ void main() {
 
     await tester.pumpWidget(
       MultiProvider(
-        providers: [ChangeNotifierProvider<ThemeController>.value(value: themeController)],
+        providers: [
+          ChangeNotifierProvider<ThemeController>.value(value: themeController),
+          ChangeNotifierProvider<LocaleController>.value(value: LocaleController()),
+        ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: MoreTab(
               accessToken: 'tok',
@@ -111,8 +123,13 @@ void main() {
 
     await tester.pumpWidget(
       MultiProvider(
-        providers: [ChangeNotifierProvider<ThemeController>.value(value: themeController)],
+        providers: [
+          ChangeNotifierProvider<ThemeController>.value(value: themeController),
+          ChangeNotifierProvider<LocaleController>.value(value: LocaleController()),
+        ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: MoreTab(
               accessToken: 'tok',

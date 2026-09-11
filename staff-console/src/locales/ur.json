@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "attendance": "حاضری",
+    "diary": "ڈائری",
+    "timetable": "ٹائم ٹیبل",
+    "messages": "پیغامات",
+    "complaints": "شکایات",
+    "dashboard": "ڈیش بورڈ",
+    "students": "طلباء",
+    "parents": "والدین",
+    "teachers": "اساتذہ",
+    "schools": "اسکول",
+    "campuses": "کیمپس",
+    "academicSessions": "تعلیمی سیشن",
+    "classes": "جماعتیں",
+    "sections": "سیکشنز",
+    "fees": "فیس",
+    "leave": "چھٹی",
+    "holidays": "تعطیلات",
+    "reportCards": "رپورٹ کارڈ",
+    "circulars": "سرکلر"
+  },
+  "shell": {
+    "brand": "اسکول او ایس اسٹاف کنسول",
+    "skipToContent": "مواد پر جائیں",
+    "notifications": "اطلاعات",
+    "search": "کسی اسکرین پر جائیں یا کوئی عمل چلائیں…",
+    "commandPalette": "کمانڈ پیلیٹ",
+    "theme": "تھیم",
+    "language": "زبان"
+  },
+  "confirm": {
+    "cancel": "منسوخ کریں",
+    "confirm": "تصدیق کریں"
+  },
+  "login": {
+    "title": "اسکول او ایس اسٹاف کنسول",
+    "subtitle": "اپنے اسکول اکاؤنٹ سے سائن ان کریں",
+    "identifier": "ای میل یا جی آر نمبر",
+    "password": "پاس ورڈ",
+    "submit": "سائن ان کریں",
+    "submitting": "سائن ان ہو رہا ہے…",
+    "forgotPassword": "پاس ورڈ بھول گئے؟"
+  }
+}

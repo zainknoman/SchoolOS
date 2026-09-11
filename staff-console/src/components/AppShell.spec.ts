@@ -74,9 +74,10 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.text()).toContain('Attendance');
     expect(wrapper.text()).toContain('Diary');
     expect(wrapper.text()).toContain('Messages');
-    // The teacher Timetable nav link was removed as dead (it pointed to href="#" with no route) —
-    // Sprint I will re-add a real RouterLink once a teacher-facing timetable view exists.
-    expect(wrapper.find('[data-testid="nav-timetable"]').exists()).toBe(false);
+    // Sprint I re-added this link now that a real teacher-facing timetable view exists (it used
+    // to point to href="#" with no route, and Sprint D removed it as dead).
+    expect(wrapper.find('[data-testid="nav-timetable"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-timetable"]').attributes('href')).toBe('/teacher/timetable');
 
     // Not CSS-hidden — absent from the DOM entirely.
     expect(wrapper.text()).not.toContain('Students');

@@ -118,6 +118,7 @@ class _CircularsTabState extends State<CircularsTab> {
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.attachment),
+                        tooltip: 'Download attachment',
                         onPressed: () => launchUrl(
                           widget.api.fileDownloadUrl(
                             c.attachments.first.id,

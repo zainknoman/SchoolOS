@@ -4,6 +4,8 @@ import { DiaryService } from './diary.service';
 import { CreateDiaryEntryDto } from './dto/create-diary-entry.dto';
 import { StudentAccessService, RequestUser } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { AiDraftingService } from '../ai-drafting/ai-drafting.service';
+import { SuggestDraftDto } from '../ai-drafting/dto/suggest-draft.dto';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -14,12 +16,20 @@ export class DiaryController {
   constructor(
     private readonly diaryService: DiaryService,
     private readonly studentAccess: StudentAccessService,
+    private readonly aiDraftingService: AiDraftingService,
   ) {}
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('diary')
   createEntry(@Body() dto: CreateDiaryEntryDto, @Req() req: AuthenticatedRequest) {
     return this.diaryService.createEntry(dto, req.user.id);
+  }
+
+  // Never auto-publishes — matches CircularsController.suggestDraft's contract.
+  @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @Post('diary/draft-suggestion')
+  suggestDraft(@Body() dto: SuggestDraftDto, @Req() req: AuthenticatedRequest) {
+    return this.aiDraftingService.suggestDraft(req.user.id, 'diary', dto.context);
   }
 
   @Get('students/:id/diary')

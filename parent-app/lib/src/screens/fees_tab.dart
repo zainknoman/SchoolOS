@@ -125,6 +125,7 @@ class _FeesTabState extends State<FeesTab> {
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.receipt_long_outlined),
+                        tooltip: 'Download receipt',
                         onPressed: () => launchUrl(
                           widget.api.receiptPdfUrl(p.id, widget.accessToken),
                           mode: LaunchMode.externalApplication,

@@ -19,6 +19,18 @@ const router = createRouter({
       meta: { public: true, title: 'Log in' },
     },
     {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('../views/ForgotPasswordView.vue'),
+      meta: { public: true, title: 'Forgot password' },
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('../views/ResetPasswordView.vue'),
+      meta: { public: true, title: 'Reset password' },
+    },
+    {
       path: '/teacher',
       name: 'teacher-home',
       component: () => import('../views/TeacherHomeView.vue'),
@@ -31,10 +43,22 @@ const router = createRouter({
       meta: { requiresRole: ['TEACHER'], title: 'Diary' },
     },
     {
+      path: '/teacher/timetable',
+      name: 'teacher-timetable',
+      component: () => import('../views/TeacherTimetablePageView.vue'),
+      meta: { requiresRole: ['TEACHER'], title: 'Timetable' },
+    },
+    {
       path: '/teacher/messages',
       name: 'teacher-messages',
       component: () => import('../views/MessagesPageView.vue'),
       meta: { requiresRole: ['TEACHER'], title: 'Messages' },
+    },
+    {
+      path: '/teacher/complaints',
+      name: 'teacher-complaints',
+      component: () => import('../views/ComplaintsPageView.vue'),
+      meta: { requiresRole: ['TEACHER'], title: 'Complaints' },
     },
     {
       path: '/admin',
@@ -123,6 +147,24 @@ const router = createRouter({
       // Matches POST /api/v1/leave-requests/:id/approve's own @Roles — ACCOUNTS can't decide
       // leave, so it doesn't get this screen either (same precedent as admin-circulars/admin-timetable).
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Leave Applications' },
+    },
+    {
+      path: '/admin/holidays',
+      name: 'admin-holidays',
+      component: () => import('../views/HolidaysPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Holidays' },
+    },
+    {
+      path: '/admin/complaints',
+      name: 'admin-complaints',
+      component: () => import('../views/ComplaintsPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'], title: 'Complaints' },
+    },
+    {
+      path: '/admin/report-cards',
+      name: 'admin-report-cards',
+      component: () => import('../views/ReportCardsPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Report Cards' },
     },
     { path: '/', redirect: '/login' },
   ],

@@ -471,6 +471,7 @@ class _ThreadViewState extends State<_ThreadView> {
               IconButton(
                 key: const Key('sendReplyButton'),
                 icon: const Icon(Icons.send),
+                tooltip: 'Send reply',
                 onPressed: _isSending ? null : _reply,
               ),
             ],

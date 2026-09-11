@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type CircularSummary } from '../lib/api';
-import { detectDirection } from '../lib/textDirection';
+import { detectDirection, detectLang } from '../lib/textDirection';
 import { useFocusTarget } from '../lib/useFocusTarget';
 
 type CircularScope = 'school' | 'section';
@@ -20,6 +20,27 @@ const circulars = ref<(CircularSummary & { delivered?: number; read?: number })[
 const isSaving = ref(false);
 const message = ref<string | null>(null);
 const errorMessage = ref<string | null>(null);
+
+const showDraftPrompt = ref(false);
+const draftContext = ref('');
+const isSuggesting = ref(false);
+
+async function onSuggestDraft() {
+  if (!auth.accessToken || !draftContext.value.trim()) return;
+  isSuggesting.value = true;
+  errorMessage.value = null;
+  try {
+    const { suggestion } = await api.suggestCircularDraft(auth.accessToken, draftContext.value.trim());
+    // Appends, never overwrites — the staff member sees exactly what was added and can edit it.
+    description.value = description.value ? `${description.value}\n\n${suggestion}` : suggestion;
+    showDraftPrompt.value = false;
+    draftContext.value = '';
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not generate a draft suggestion.';
+  } finally {
+    isSuggesting.value = false;
+  }
+}
 
 async function loadLookups() {
   if (!auth.accessToken) return;
@@ -112,7 +133,35 @@ async function onPublish() {
         rows="3"
         :disabled="isSaving"
       ></textarea>
+      <button
+        type="button"
+        data-testid="suggest-draft-toggle"
+        class="link-button"
+        @click="showDraftPrompt = !showDraftPrompt"
+      >
+        Suggest draft
+      </button>
     </label>
+
+    <div v-if="showDraftPrompt" class="draft-prompt">
+      <label class="field">
+        <span>What's this circular about?</span>
+        <input
+          data-testid="draft-context-input"
+          v-model="draftContext"
+          type="text"
+          placeholder="e.g. Parent-teacher meeting next Friday"
+        />
+      </label>
+      <button
+        type="button"
+        data-testid="draft-context-submit"
+        :disabled="isSuggesting || !draftContext.trim()"
+        @click="onSuggestDraft"
+      >
+        {{ isSuggesting ? 'Generating…' : 'Generate' }}
+      </button>
+    </div>
 
     <label class="field">
       <span>Scope</span>
@@ -152,7 +201,7 @@ async function onPublish() {
       <h2>Published circulars</h2>
       <ul class="circulars-list">
         <li v-for="c in circulars" :key="c.id">
-          <strong :dir="detectDirection(c.title)">{{ c.title }}</strong> — {{ c.scope }}
+          <strong :dir="detectDirection(c.title)" :lang="detectLang(c.title)">{{ c.title }}</strong> — {{ c.scope }}
           <span data-testid="stats">Delivered {{ c.delivered }} · Read {{ c.read }}</span>
         </li>
       </ul>
@@ -179,6 +228,35 @@ textarea {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font: inherit;
+}
+.link-button {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-accent);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.draft-prompt {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+  margin-bottom: var(--space-4);
+}
+.draft-prompt button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.draft-prompt button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .success {
   color: var(--color-accent);

@@ -4,10 +4,11 @@ import { detectDirection } from '../lib/textDirection';
 
 const props = defineProps<{ text: string }>();
 const direction = computed(() => detectDirection(props.text));
+const lang = computed(() => (direction.value === 'rtl' ? 'ur' : 'en'));
 </script>
 
 <template>
-  <p :dir="direction" :class="{ urdu: direction === 'rtl' }">{{ text }}</p>
+  <p :dir="direction" :lang="lang" :class="{ urdu: direction === 'rtl' }">{{ text }}</p>
 </template>
 
 <style scoped>

@@ -26,6 +26,11 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { ParentModule } from './parent/parent.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { StudentModule } from './student/student.module';
+import { HolidaysModule } from './holidays/holidays.module';
+import { ComplaintsModule } from './complaints/complaints.module';
+import { ReportCardsModule } from './report-cards/report-cards.module';
+import { AiDraftingModule } from './ai-drafting/ai-drafting.module';
+import { AttendanceRiskModule } from './attendance-risk/attendance-risk.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { GENERAL_THROTTLE_LIMIT, THROTTLE_TTL_MS } from './config/throttler.config';
@@ -58,6 +63,11 @@ import { GENERAL_THROTTLE_LIMIT, THROTTLE_TTL_MS } from './config/throttler.conf
     ParentModule,
     TeacherModule,
     StudentModule,
+    HolidaysModule,
+    ComplaintsModule,
+    ReportCardsModule,
+    AiDraftingModule,
+    AttendanceRiskModule,
   ],
   controllers: [AppController],
   providers: [AppService,

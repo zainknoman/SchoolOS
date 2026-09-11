@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Put, Req } from '@nestjs/common';
 import type { Request } from 'express';
+import { PrismaService } from '../prisma/prisma.service';
 import { TimetableService } from './timetable.service';
 import { CreateTimetableEntryDto } from './dto/create-timetable-entry.dto';
 import { UpdateTimetableEntryDto } from './dto/update-timetable-entry.dto';
@@ -19,7 +20,18 @@ export class TimetableController {
   constructor(
     private readonly timetableService: TimetableService,
     private readonly studentAccess: StudentAccessService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  @Roles('TEACHER')
+  @Get('teachers/me/timetable')
+  async getForCurrentTeacher(@Req() req: AuthenticatedRequest) {
+    const teacher = await this.prisma.teacher.findUnique({ where: { userId: req.user.id } });
+    if (!teacher) {
+      throw new NotFoundException('No teacher profile for this account');
+    }
+    return this.timetableService.getForTeacher(teacher.id);
+  }
 
   @Get('students/:id/timetable')
   async getForStudent(

@@ -13,6 +13,7 @@ import 'home_tab.dart';
 import 'messages_tab.dart';
 import 'more_tab.dart';
 import 'notifications_sheet.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Authenticated shell: multi-child switcher up top, bottom nav below (Home / Calendar /
 /// Notifications / Messages / Fees / More — per the MVP plan). Every tab is a placeholder;
@@ -227,26 +228,36 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           if (i == 3) _messagesInitialConversationId = null;
         }),
         destinations: [
-          const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-          const NavigationDestination(icon: Icon(Icons.calendar_month_outlined), label: 'Calendar'),
+          NavigationDestination(icon: const Icon(Icons.home_outlined), label: AppLocalizations.of(context)!.navHome),
+          NavigationDestination(
+            icon: const Icon(Icons.calendar_month_outlined),
+            label: AppLocalizations.of(context)!.navCalendar,
+          ),
           NavigationDestination(
             icon: _unreadCirculars > 0
                 ? Badge(label: Text('$_unreadCirculars'), child: const Icon(Icons.notifications_none))
                 : const Icon(Icons.notifications_none),
-            label: 'Circulars',
+            label: AppLocalizations.of(context)!.navCirculars,
           ),
-          const NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
-          const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Fees'),
-          const NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More'),
+          NavigationDestination(
+            icon: const Icon(Icons.chat_bubble_outline),
+            label: AppLocalizations.of(context)!.navMessages,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: AppLocalizations.of(context)!.navFees,
+          ),
+          NavigationDestination(icon: const Icon(Icons.more_horiz), label: AppLocalizations.of(context)!.navMore),
         ],
       ),
     );
   }
 
   Widget _buildChildSwitcher() {
-    if (_isLoading) return const Text('School OS');
-    if (_loadError != null) return const Text('School OS');
-    if (_children.isEmpty) return const Text('School OS');
+    final title = AppLocalizations.of(context)!.appTitle;
+    if (_isLoading) return Text(title);
+    if (_loadError != null) return Text(title);
+    if (_children.isEmpty) return Text(title);
 
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(

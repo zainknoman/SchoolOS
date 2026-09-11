@@ -3,7 +3,11 @@ import 'package:provider/provider.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
 import '../theme/theme_controller.dart';
+import '../theme/locale_controller.dart';
 import 'leave_screen.dart';
+import 'complaints_screen.dart';
+import 'report_cards_screen.dart';
+import '../../l10n/app_localizations.dart';
 
 const _notificationChannels = ['PUSH', 'WHATSAPP', 'SMS'];
 
@@ -66,6 +70,8 @@ class _MoreTabState extends State<MoreTab> {
   @override
   Widget build(BuildContext context) {
     final themeMode = context.watch<ThemeController>().mode;
+    final locale = context.watch<LocaleController>().locale;
+    final l10n = AppLocalizations.of(context)!;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -74,7 +80,7 @@ class _MoreTabState extends State<MoreTab> {
           child: ListTile(
             key: const Key('moreLeaveApplications'),
             leading: const Icon(Icons.event_busy_outlined),
-            title: const Text('Leave Applications'),
+            title: Text(l10n.moreLeaveApplications),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
@@ -91,8 +97,46 @@ class _MoreTabState extends State<MoreTab> {
         const SizedBox(height: 12),
         Card(
           child: ListTile(
+            key: const Key('moreComplaints'),
+            leading: const Icon(Icons.report_gmailerrorred_outlined),
+            title: Text(l10n.moreComplaints),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ComplaintsScreen(
+                  accessToken: widget.accessToken,
+                  api: widget.api,
+                  children: widget.children,
+                  initialChildId: widget.activeChildId,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            key: const Key('moreReportCards'),
+            leading: const Icon(Icons.description_outlined),
+            title: Text(l10n.moreReportCards),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ReportCardsScreen(
+                  accessToken: widget.accessToken,
+                  api: widget.api,
+                  children: widget.children,
+                  initialChildId: widget.activeChildId,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
             leading: const Icon(Icons.dark_mode_outlined),
-            title: const Text('Appearance'),
+            title: Text(l10n.moreAppearance),
             trailing: DropdownButton<ThemeMode>(
               key: const Key('themeModeDropdown'),
               value: themeMode,
@@ -109,11 +153,31 @@ class _MoreTabState extends State<MoreTab> {
         ),
         const SizedBox(height: 12),
         Card(
+          child: ListTile(
+            leading: const Icon(Icons.language_outlined),
+            title: Text(l10n.moreLanguage),
+            trailing: DropdownButton<String>(
+              key: const Key('languageDropdown'),
+              value: locale?.languageCode ?? 'system',
+              items: const [
+                DropdownMenuItem(value: 'system', child: Text('System')),
+                DropdownMenuItem(value: 'en', child: Text('English')),
+                DropdownMenuItem(value: 'ur', child: Text('اردو')),
+              ],
+              onChanged: (code) {
+                if (code == null) return;
+                context.read<LocaleController>().setLocale(code == 'system' ? null : Locale(code));
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
           child: Column(
             children: [
               ListTile(
                 leading: const Icon(Icons.notifications_outlined),
-                title: const Text('Notification channel'),
+                title: Text(l10n.moreNotificationChannel),
                 trailing: DropdownButton<String>(
                   key: const Key('notificationChannelDropdown'),
                   value: _channel,

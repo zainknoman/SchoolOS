@@ -9,6 +9,8 @@ import 'package:parent_app/src/notifications/push_token_provider.dart';
 import 'package:parent_app/src/router/app_router.dart';
 import 'package:parent_app/src/theme/app_theme.dart';
 import 'package:parent_app/src/theme/theme_controller.dart';
+import 'package:parent_app/src/theme/locale_controller.dart';
+import 'package:parent_app/l10n/app_localizations.dart';
 
 /// Builds the same provider/router tree as `ParentApp` (lib/main.dart), but with an injected
 /// [ApiClient] and [TokenStore] instead of a real network client and platform secure storage —
@@ -32,6 +34,7 @@ Widget buildTestApp({
   final registrar =
       deviceTokenRegistrar ?? DeviceTokenRegistrar(api: api, tokenProvider: NoopPushTokenProvider());
   final theme = themeController ?? ThemeController();
+  final locale = LocaleController();
 
   return MultiProvider(
     providers: [
@@ -39,12 +42,15 @@ Widget buildTestApp({
       ChangeNotifierProvider<AuthState>.value(value: auth),
       Provider<DeviceTokenRegistrar>.value(value: registrar),
       ChangeNotifierProvider<ThemeController>.value(value: theme),
+      ChangeNotifierProvider<LocaleController>.value(value: locale),
     ],
     child: Consumer<ThemeController>(
       builder: (context, themeController, _) => MaterialApp.router(
         theme: buildAppTheme(),
         darkTheme: buildDarkAppTheme(),
         themeMode: themeController.mode,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         routerConfig: router,
       ),
     ),

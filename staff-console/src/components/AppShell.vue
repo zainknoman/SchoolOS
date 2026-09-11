@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 import { api, type NotificationSummary } from '../lib/api';
 import Icon, { type IconName } from './AppIcon.vue';
@@ -8,10 +9,64 @@ import CommandPalette from './CommandPalette.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 import { roleInitials } from '../lib/format';
 import { applyTheme, loadThemePreference, saveThemePreference } from '../lib/theme';
+import {
+  applyLocaleToDocument,
+  loadLocalePreference,
+  saveLocalePreference,
+  type AppLocale,
+} from '../lib/i18n';
 
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+const { t, locale } = useI18n();
+
+const currentLocale = ref<AppLocale>(loadLocalePreference());
+function onLocaleChange() {
+  locale.value = currentLocale.value;
+  saveLocalePreference(currentLocale.value);
+  applyLocaleToDocument(currentLocale.value);
+}
+
+// --- Collapsible/overlay sidebar (below a mobile breakpoint only) ---
+const sidebarOpen = ref(false);
+const sidenavRef = ref<HTMLElement | null>(null);
+let sidebarPreviouslyFocused: HTMLElement | null = null;
+
+function closeSidebar() {
+  sidebarOpen.value = false;
+  sidebarPreviouslyFocused?.focus();
+  sidebarPreviouslyFocused = null;
+}
+
+async function openSidebar() {
+  sidebarPreviouslyFocused = document.activeElement as HTMLElement | null;
+  sidebarOpen.value = true;
+  await nextTick();
+  sidenavRef.value?.querySelector<HTMLElement>('a')?.focus();
+}
+
+function onSidebarKeydown(event: KeyboardEvent) {
+  if (!sidebarOpen.value) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeSidebar();
+    return;
+  }
+  if (event.key === 'Tab') {
+    const focusable = sidenavRef.value ? Array.from(sidenavRef.value.querySelectorAll<HTMLElement>('a')) : [];
+    if (focusable.length === 0) return;
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+}
 
 const isTeacher = computed(() => auth.role === 'TEACHER');
 const isAdmin = computed(() => ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'].includes(auth.role ?? ''));
@@ -23,6 +78,10 @@ const canManagePeople = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role
 // user clicking either link used to silently bounce back to /admin with no explanation.
 const canManageCirculars = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManageTimetable = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
+const canManageHolidays = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
+const canManageReportCards = computed(
+  () => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN',
+);
 
 const avatarInitials = computed(() => roleInitials(auth.role));
 const roleLabel = computed(() => {
@@ -244,8 +303,20 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
 
 <template>
   <div class="shell">
+    <a href="#main-content" class="skip-link" data-testid="skip-link">{{ t('shell.skipToContent') }}</a>
     <header class="topbar">
-      <span class="brand">School OS Staff Console</span>
+      <button
+        type="button"
+        class="hamburger-toggle"
+        data-testid="hamburger-toggle"
+        aria-label="Open navigation menu"
+        aria-haspopup="true"
+        :aria-expanded="sidebarOpen"
+        @click="openSidebar"
+      >
+        <Icon name="grid" :size="18" />
+      </button>
+      <span class="brand">{{ t('shell.brand') }}</span>
       <nav class="crumbs" aria-label="Page title" data-testid="breadcrumb">
         <b>{{ breadcrumbTitle }}</b>
       </nav>
@@ -269,12 +340,24 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
       >
         <Icon :name="isDarkActive ? 'sun' : 'moon'" :size="18" />
       </button>
+      <select
+        data-testid="language-switcher"
+        class="language-switcher"
+        :aria-label="t('shell.language')"
+        v-model="currentLocale"
+        @change="onLocaleChange"
+      >
+        <option value="en">English</option>
+        <option value="ur">اردو</option>
+      </select>
       <div class="topbar-actions">
         <div class="notif-wrapper">
           <button
             data-testid="notifications"
             class="icon-button"
-            aria-label="Notifications"
+            :aria-label="t('shell.notifications')"
+            aria-haspopup="true"
+            :aria-expanded="isNotifOpen"
             @click="isNotifOpen = !isNotifOpen"
           >
             <Icon name="bell" :size="18" />
@@ -322,64 +405,86 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
     </header>
 
     <div class="body">
-      <nav class="sidenav" aria-label="Main">
+      <div
+        v-if="sidebarOpen"
+        class="sidenav-backdrop"
+        data-testid="sidenav-backdrop"
+        @click="closeSidebar"
+      ></div>
+      <nav
+        ref="sidenavRef"
+        class="sidenav"
+        :class="{ open: sidebarOpen }"
+        aria-label="Main"
+        @keydown="onSidebarKeydown"
+        @click="(e) => { if ((e.target as HTMLElement).closest('a')) closeSidebar(); }"
+      >
         <template v-if="isTeacher">
-          <RouterLink data-testid="nav-attendance" to="/teacher"><Icon name="calendar" />Attendance</RouterLink>
-          <RouterLink data-testid="nav-diary" to="/teacher/diary"><Icon name="notebook" />Diary</RouterLink>
-          <RouterLink data-testid="nav-messages" to="/teacher/messages"><Icon name="chat" />Messages</RouterLink>
+          <RouterLink data-testid="nav-attendance" to="/teacher"><Icon name="calendar" />{{ t('nav.attendance') }}</RouterLink>
+          <RouterLink data-testid="nav-diary" to="/teacher/diary"><Icon name="notebook" />{{ t('nav.diary') }}</RouterLink>
+          <RouterLink data-testid="nav-timetable" to="/teacher/timetable"><Icon name="grid" />{{ t('nav.timetable') }}</RouterLink>
+          <RouterLink data-testid="nav-messages" to="/teacher/messages"><Icon name="chat" />{{ t('nav.messages') }}</RouterLink>
+          <RouterLink data-testid="nav-complaints" to="/teacher/complaints"><Icon name="chat" />{{ t('nav.complaints') }}</RouterLink>
         </template>
         <template v-else-if="isAdmin">
           <div class="nav-group">
             <div class="nav-group-label">Overview</div>
-            <RouterLink data-testid="nav-dashboard" to="/admin"><Icon name="home" />Dashboard</RouterLink>
+            <RouterLink data-testid="nav-dashboard" to="/admin"><Icon name="home" />{{ t('nav.dashboard') }}</RouterLink>
           </div>
 
           <div v-if="canManagePeople" class="nav-group">
             <div class="nav-group-label">People</div>
-            <RouterLink data-testid="nav-students" to="/admin/students"><Icon name="users" />Students</RouterLink>
+            <RouterLink data-testid="nav-students" to="/admin/students"><Icon name="users" />{{ t('nav.students') }}</RouterLink>
             <RouterLink data-testid="nav-parents" to="/admin/parents"
-              ><Icon name="user-circle" />Parents</RouterLink
+              ><Icon name="user-circle" />{{ t('nav.parents') }}</RouterLink
             >
             <RouterLink data-testid="nav-teachers" to="/admin/teachers"
-              ><Icon name="chalkboard" />Teachers</RouterLink
+              ><Icon name="chalkboard" />{{ t('nav.teachers') }}</RouterLink
             >
           </div>
 
           <div v-if="canManageOrgStructure" class="nav-group">
             <div class="nav-group-label">Org Structure</div>
             <RouterLink data-testid="nav-schools" to="/admin/schools"
-              ><Icon name="chalkboard" />Schools</RouterLink
+              ><Icon name="chalkboard" />{{ t('nav.schools') }}</RouterLink
             >
-            <RouterLink data-testid="nav-campuses" to="/admin/campuses"><Icon name="grid" />Campuses</RouterLink>
+            <RouterLink data-testid="nav-campuses" to="/admin/campuses"><Icon name="grid" />{{ t('nav.campuses') }}</RouterLink>
             <RouterLink data-testid="nav-academic-sessions" to="/admin/academic-sessions"
-              ><Icon name="calendar" />Academic Sessions</RouterLink
+              ><Icon name="calendar" />{{ t('nav.academicSessions') }}</RouterLink
             >
-            <RouterLink data-testid="nav-classes" to="/admin/classes"><Icon name="grid" />Classes</RouterLink>
-            <RouterLink data-testid="nav-sections" to="/admin/sections"><Icon name="grid" />Sections</RouterLink>
+            <RouterLink data-testid="nav-classes" to="/admin/classes"><Icon name="grid" />{{ t('nav.classes') }}</RouterLink>
+            <RouterLink data-testid="nav-sections" to="/admin/sections"><Icon name="grid" />{{ t('nav.sections') }}</RouterLink>
           </div>
 
           <div class="nav-group">
             <div class="nav-group-label">Operations</div>
             <RouterLink v-if="canManageTimetable" data-testid="nav-timetable" to="/admin/timetable"
-              ><Icon name="clock" />Timetable</RouterLink
+              ><Icon name="clock" />{{ t('nav.timetable') }}</RouterLink
             >
-            <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />Fees</RouterLink>
+            <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />{{ t('nav.fees') }}</RouterLink>
             <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"
-              ><Icon name="calendar" />Leave</RouterLink
+              ><Icon name="calendar" />{{ t('nav.leave') }}</RouterLink
+            >
+            <RouterLink v-if="canManageHolidays" data-testid="nav-holidays" to="/admin/holidays"
+              ><Icon name="calendar" />{{ t('nav.holidays') }}</RouterLink
+            >
+            <RouterLink v-if="canManageReportCards" data-testid="nav-report-cards" to="/admin/report-cards"
+              ><Icon name="grid" />{{ t('nav.reportCards') }}</RouterLink
             >
           </div>
 
           <div class="nav-group">
             <div class="nav-group-label">Communication</div>
             <RouterLink v-if="canManageCirculars" data-testid="nav-circulars" to="/admin/circulars"
-              ><Icon name="megaphone" />Circulars</RouterLink
+              ><Icon name="megaphone" />{{ t('nav.circulars') }}</RouterLink
             >
-            <RouterLink data-testid="nav-messages" to="/admin/messages"><Icon name="chat" />Messages</RouterLink>
+            <RouterLink data-testid="nav-messages" to="/admin/messages"><Icon name="chat" />{{ t('nav.messages') }}</RouterLink>
+            <RouterLink data-testid="nav-complaints" to="/admin/complaints"><Icon name="chat" />{{ t('nav.complaints') }}</RouterLink>
           </div>
         </template>
       </nav>
 
-      <main class="content">
+      <main id="main-content" class="content">
         <slot />
       </main>
     </div>
@@ -400,6 +505,29 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--space-3);
+  z-index: 200;
+  padding: 0.5rem 1rem;
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-sm);
+  transition: top var(--transition-fast, 0.15s);
+}
+.skip-link:focus {
+  top: var(--space-2);
+}
+.language-switcher {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
 }
 
 .topbar {
@@ -540,6 +668,45 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
   overflow-y: auto;
+}
+
+.hamburger-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+/* Below this breakpoint the sidebar becomes an off-canvas overlay; above it, behavior is
+   unchanged from the original static-flex-child layout (no new classes/attributes apply). */
+@media (max-width: 768px) {
+  .hamburger-toggle {
+    display: inline-flex;
+  }
+  .sidenav {
+    position: fixed;
+    inset: 0 25% 0 0;
+    z-index: 150;
+    transform: translateX(-100%);
+    transition: transform var(--transition-fast, 0.15s);
+    box-shadow: 0 0 0 transparent;
+  }
+  .sidenav.open {
+    transform: translateX(0);
+    box-shadow: 20px 0 40px -20px rgba(15, 23, 42, 0.35);
+  }
+  .sidenav-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 12, 0.5);
+    z-index: 140;
+  }
 }
 
 .nav-group {

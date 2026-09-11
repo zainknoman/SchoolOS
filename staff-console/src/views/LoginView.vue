@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 
+const { t } = useI18n();
 const identifier = ref('');
 const password = ref('');
 const errorMessage = ref<string | null>(null);
@@ -33,11 +35,11 @@ async function onSubmit() {
 <template>
   <div class="login-page">
     <form class="login-card" @submit.prevent="onSubmit">
-      <h1 class="brand">School OS Staff Console</h1>
-      <p class="subtitle">Sign in with your school account</p>
+      <h1 class="brand">{{ t('login.title') }}</h1>
+      <p class="subtitle">{{ t('login.subtitle') }}</p>
 
       <label class="field">
-        <span>Email or GR number</span>
+        <span>{{ t('login.identifier') }}</span>
         <input
           name="identifier"
           type="text"
@@ -48,7 +50,7 @@ async function onSubmit() {
       </label>
 
       <label class="field">
-        <span>Password</span>
+        <span>{{ t('login.password') }}</span>
         <input
           name="password"
           type="password"
@@ -61,8 +63,12 @@ async function onSubmit() {
       <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
       <button type="submit" :disabled="isSubmitting">
-        {{ isSubmitting ? 'Signing in…' : 'Sign in' }}
+        {{ isSubmitting ? t('login.submitting') : t('login.submit') }}
       </button>
+
+      <RouterLink data-testid="forgot-password-link" class="forgot-link" :to="{ name: 'forgot-password' }">
+        {{ t('login.forgotPassword') }}
+      </RouterLink>
     </form>
   </div>
 </template>
@@ -140,5 +146,10 @@ button:disabled {
   margin: 0;
   color: var(--color-destructive);
   font-size: var(--font-size-sm);
+}
+.forgot-link {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
 }
 </style>

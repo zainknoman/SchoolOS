@@ -10,6 +10,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { ACCESS_TOKEN_TTL } from './auth.constants';
 import { resolveAccessTokenSecret } from './jwt-secret';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // Exported so its secret-resolution can be unit-tested without booting the whole Nest DI
 // container. Takes a ConfigService (populated from .env by ConfigModule.forRoot() before any
@@ -25,6 +26,7 @@ export function jwtModuleFactory(config: ConfigService) {
 @Module({
   imports: [
     PassportModule,
+    NotificationsModule,
     // registerAsync (not register()) is required: AppModule imports AuthModule before it calls
     // ConfigModule.forRoot(), so a plain `JwtModule.register({ secret: process.env.X })` would
     // evaluate `process.env.X` at import time — before .env is loaded — while JwtStrategy (a

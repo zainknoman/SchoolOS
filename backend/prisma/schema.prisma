@@ -50,45 +50,49 @@ enum NotificationChannel {
 // --- Identity -----------------------------------------------------------
 
 model User {
-  id           String   @id @default(uuid())
+  id                  String              @id @default(uuid())
   // Either an email or a GR (registration) number — the login screen accepts either;
   // the auth service decides which format was typed, this column just stores whichever
   // the account was created with, uniquely.
-  identifier   String   @unique
-  passwordHash String
-  role         Role
-  isLocked     Boolean  @default(false)
-  isPrincipal  Boolean  @default(false)
-  lockedUntil  DateTime?
-  failedLoginCount Int  @default(0)
+  identifier          String              @unique
+  passwordHash        String
+  role                Role
+  isLocked            Boolean             @default(false)
+  isPrincipal         Boolean             @default(false)
+  lockedUntil         DateTime?
+  failedLoginCount    Int                 @default(0)
   notificationChannel NotificationChannel @default(PUSH)
   digestEnabled       Boolean             @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
-  parentProfile ParentProfile?
-  teacher       Teacher?
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]
-  deviceTokens  DeviceToken[]
-  circularsCreated Circular[]        @relation("CircularAuthor")
-  circularRecipients CircularRecipient[]
-  diaryEntriesAuthored DiaryEntry[]
-  conversationsAsParent Conversation[] @relation("ConversationParent")
-  conversationsAsStaff  Conversation[] @relation("ConversationStaff")
-  messagesSent          Message[]      @relation("MessageSender")
+  parentProfile         ParentProfile?
+  teacher               Teacher?
+  refreshTokens         RefreshToken[]
+  auditLogs             AuditLog[]
+  deviceTokens          DeviceToken[]
+  circularsCreated      Circular[]           @relation("CircularAuthor")
+  circularRecipients    CircularRecipient[]
+  diaryEntriesAuthored  DiaryEntry[]
+  conversationsAsParent Conversation[]       @relation("ConversationParent")
+  conversationsAsStaff  Conversation[]       @relation("ConversationStaff")
+  messagesSent          Message[]            @relation("MessageSender")
+  passwordResetTokens   PasswordResetToken[]
+  complaintsRaised      Complaint[]
+  reportCardsUploaded   ReportCard[]
+  draftSuggestions      DraftSuggestion[]
 
   @@index([role])
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String   @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId])
 }
@@ -96,123 +100,128 @@ model RefreshToken {
 // --- School structure -----------------------------------------------------
 
 model School {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
   campuses  Campus[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Campus {
-  id        String   @id @default(uuid())
-  schoolId  String
-  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  name      String
+  id          String       @id @default(uuid())
+  schoolId    String
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String
   classes     Class[]
   enrollments Enrollment[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  holidays    Holiday[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([schoolId])
 }
 
 model AcademicSession {
-  id         String   @id @default(uuid())
-  label      String   // e.g. "2026-2027"
-  startDate  DateTime
-  endDate    DateTime
-  isActive   Boolean  @default(false)
-  classes      Class[]
-  feeVouchers  FeeVoucher[]
-  enrollments  Enrollment[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String       @id @default(uuid())
+  label       String // e.g. "2026-2027"
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean      @default(false)
+  classes     Class[]
+  feeVouchers FeeVoucher[]
+  enrollments Enrollment[]
+  reportCards ReportCard[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model Class {
-  id                String   @id @default(uuid())
+  id                String          @id @default(uuid())
   campusId          String
-  campus            Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  campus            Campus          @relation(fields: [campusId], references: [id], onDelete: Cascade)
   academicSessionId String
   academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
-  name              String   // e.g. "Grade 3"
+  name              String // e.g. "Grade 3"
   sections          Section[]
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@index([campusId])
   @@index([academicSessionId])
 }
 
 model Section {
-  id        String   @id @default(uuid())
-  classId   String
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  name      String   // e.g. "3A"
-  enrollments  Enrollment[]
-  timetables   Timetable[]
+  id             String       @id @default(uuid())
+  classId        String
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  name           String // e.g. "3A"
+  enrollments    Enrollment[]
+  timetables     Timetable[]
   classTeacherId String?
   classTeacher   Teacher?     @relation(fields: [classTeacherId], references: [id], onDelete: SetNull)
-  diaryEntries DiaryEntry[]
-  circulars    Circular[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  diaryEntries   DiaryEntry[]
+  circulars      Circular[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([classId])
 }
 
 model Subject {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  timetables Timetable[]
+  id           String       @id @default(uuid())
+  name         String       @unique
+  timetables   Timetable[]
   diaryEntries DiaryEntry[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }
 
 model Teacher {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  timetables    Timetable[]
+  id                     String       @id @default(uuid())
+  userId                 String       @unique
+  user                   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                   String
+  timetables             Timetable[]
   classTeacherOfSections Section[]
-  attendanceMarks Attendance[] @relation("AttendanceMarkedBy")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  attendanceMarks        Attendance[] @relation("AttendanceMarkedBy")
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 }
 
 // --- Students & parents -----------------------------------------------------
 
 model Student {
-  id         String   @id @default(uuid())
-  grNumber   String   @unique
-  name       String
-  parents         StudentParent[]
-  enrollments     Enrollment[]
-  attendance      Attendance[]
-  feeVouchers     FeeVoucher[]
-  leaveRequests   LeaveRequest[]
-  conversations   Conversation[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                 String              @id @default(uuid())
+  grNumber           String              @unique
+  name               String
+  parents            StudentParent[]
+  enrollments        Enrollment[]
+  attendance         Attendance[]
+  feeVouchers        FeeVoucher[]
+  leaveRequests      LeaveRequest[]
+  conversations      Conversation[]
+  complaints         Complaint[]
+  reportCards        ReportCard[]
+  attendanceRiskFlag AttendanceRiskFlag?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 }
 
 model Enrollment {
-  id                String            @id @default(uuid())
+  id                String           @id @default(uuid())
   studentId         String
-  student           Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student           Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   campusId          String
-  campus            Campus            @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  campus            Campus           @relation(fields: [campusId], references: [id], onDelete: Restrict)
   sectionId         String
-  section           Section           @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  section           Section          @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   academicSessionId String
-  academicSession   AcademicSession   @relation(fields: [academicSessionId], references: [id], onDelete: Restrict)
+  academicSession   AcademicSession  @relation(fields: [academicSessionId], references: [id], onDelete: Restrict)
   startDate         DateTime
   endDate           DateTime?
-  status            EnrollmentStatus  @default(ACTIVE)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  status            EnrollmentStatus @default(ACTIVE)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([studentId])
   @@index([sectionId])
@@ -220,14 +229,14 @@ model Enrollment {
 }
 
 model ParentProfile {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String          @id @default(uuid())
+  userId    String          @unique
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   phone     String?
   children  StudentParent[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 }
 
 // Join table — a parent may be linked to many students, a student may have many parents/guardians.
@@ -256,10 +265,10 @@ model Timetable {
   subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   teacherId String?
   teacher   Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  dayOfWeek Int      // 0=Sunday..6=Saturday
+  dayOfWeek Int // 0=Sunday..6=Saturday
   period    Int
-  startTime String   // "08:00"
-  endTime   String   // "08:40"
+  startTime String // "08:00"
+  endTime   String // "08:40"
   room      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -268,15 +277,15 @@ model Timetable {
 }
 
 model Attendance {
-  id           String           @id @default(uuid())
-  studentId    String
-  student      Student          @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  date         DateTime
-  status       AttendanceStatus
-  markedById   String
-  markedBy     Teacher          @relation("AttendanceMarkedBy", fields: [markedById], references: [id])
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id         String           @id @default(uuid())
+  studentId  String
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  date       DateTime
+  status     AttendanceStatus
+  markedById String
+  markedBy   Teacher          @relation("AttendanceMarkedBy", fields: [markedById], references: [id])
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   @@unique([studentId, date])
   @@index([studentId])
@@ -314,7 +323,7 @@ model Circular {
   id          String               @id @default(uuid())
   title       String
   description String
-  scope       String               // "school" | "section"
+  scope       String // "school" | "section"
   sectionId   String?
   section     Section?             @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   priority    String               @default("normal")
@@ -402,23 +411,23 @@ model Notification {
 model FeeStructure {
   id        String   @id @default(uuid())
   name      String
-  amount    Int      // in smallest currency unit (paisa) — never a float
+  amount    Int // in smallest currency unit (paisa) — never a float
   createdAt DateTime @default(now())
 }
 
 model FeeVoucher {
-  id                String   @id @default(uuid())
+  id                String                 @id @default(uuid())
   studentId         String
-  student           Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  student           Student                @relation(fields: [studentId], references: [id], onDelete: Restrict)
   academicSessionId String
-  academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
-  month             String   // "2026-09"
+  academicSession   AcademicSession        @relation(fields: [academicSessionId], references: [id])
+  month             String // "2026-09"
   issueDate         DateTime
   dueDate           DateTime
-  items       FeeItem[]
-  allocations FeePaymentAllocation[]
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  items             FeeItem[]
+  allocations       FeePaymentAllocation[]
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
 
   @@index([studentId])
 }
@@ -428,18 +437,18 @@ model FeeItem {
   feeVoucherId String
   feeVoucher   FeeVoucher @relation(fields: [feeVoucherId], references: [id], onDelete: Cascade)
   label        String
-  amount       Int        // paisa
+  amount       Int // paisa
 }
 
 model FeePayment {
-  id          String     @id @default(uuid())
-  amount      Int        // paisa
-  method      String     // "jazzcash" | "easypaisa" | "manual"
-  status      String     // "pending" | "completed" | "failed"
-  reference   String?    @unique // gateway transaction id — lets a retried webhook be a no-op instead of a duplicate payment
+  id          String                 @id @default(uuid())
+  amount      Int // paisa
+  method      String // "jazzcash" | "easypaisa" | "manual"
+  status      String // "pending" | "completed" | "failed"
+  reference   String?                @unique // gateway transaction id — lets a retried webhook be a no-op instead of a duplicate payment
   allocations FeePaymentAllocation[]
   receipt     Receipt?
-  createdAt   DateTime   @default(now())
+  createdAt   DateTime               @default(now())
 }
 
 model FeePaymentAllocation {
@@ -448,7 +457,7 @@ model FeePaymentAllocation {
   feePayment   FeePayment @relation(fields: [feePaymentId], references: [id], onDelete: Restrict)
   feeVoucherId String
   feeVoucher   FeeVoucher @relation(fields: [feeVoucherId], references: [id], onDelete: Restrict)
-  amount       Int        // paisa — this payment's contribution to this voucher; sum per voucher = amount paid toward it
+  amount       Int // paisa — this payment's contribution to this voucher; sum per voucher = amount paid toward it
   createdAt    DateTime   @default(now())
 
   @@unique([feePaymentId, feeVoucherId])
@@ -456,11 +465,11 @@ model FeePaymentAllocation {
 }
 
 model Receipt {
-  id           String     @id @default(uuid())
-  feePaymentId String     @unique
-  feePayment   FeePayment @relation(fields: [feePaymentId], references: [id], onDelete: Restrict)
-  receiptNumber String    @unique
-  createdAt    DateTime   @default(now())
+  id            String     @id @default(uuid())
+  feePaymentId  String     @unique
+  feePayment    FeePayment @relation(fields: [feePaymentId], references: [id], onDelete: Restrict)
+  receiptNumber String     @unique
+  createdAt     DateTime   @default(now())
 }
 
 model LeaveRequest {
@@ -476,24 +485,25 @@ model LeaveRequest {
 }
 
 model File {
-  id           String   @id @default(uuid())
-  storageKey   String   @unique // randomized name in the S3-compatible bucket, not the original filename
-  originalName String
-  mimeType     String
-  sizeBytes    Int
+  id                  String               @id @default(uuid())
+  storageKey          String               @unique // randomized name in the S3-compatible bucket, not the original filename
+  originalName        String
+  mimeType            String
+  sizeBytes           Int
   diaryAttachments    DiaryAttachment[]
   circularAttachments CircularAttachment[]
-  createdAt    DateTime @default(now())
+  reportCard          ReportCard?
+  createdAt           DateTime             @default(now())
 }
 
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action    String   // "login" | "attendance.update" | "circular.publish" | ...
+  action    String // "login" | "attendance.update" | "circular.publish" | ...
   entity    String
   entityId  String?
-  metadata  String?  // JSON-encoded, never passwords/tokens
+  metadata  String? // JSON-encoded, never passwords/tokens
   ip        String?
   createdAt DateTime @default(now())
 
@@ -501,12 +511,90 @@ model AuditLog {
   @@index([entity, entityId])
 }
 
+model Holiday {
+  id        String   @id @default(uuid())
+  title     String
+  startDate DateTime
+  endDate   DateTime
+  campusId  String?
+  campus    Campus?  @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([campusId])
+  @@index([startDate, endDate])
+}
+
+model Complaint {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  raisedById  String
+  raisedBy    User     @relation(fields: [raisedById], references: [id])
+  subject     String
+  description String
+  status      String   @default("open") // "open" | "in_progress" | "resolved"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([studentId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model ReportCard {
+  id                String          @id @default(uuid())
+  studentId         String
+  student           Student         @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  academicSessionId String
+  academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id], onDelete: Restrict)
+  fileId            String          @unique
+  file              File            @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  uploadedById      String
+  uploadedBy        User            @relation(fields: [uploadedById], references: [id])
+  createdAt         DateTime        @default(now())
+
+  @@unique([studentId, academicSessionId])
+}
+
+model DraftSuggestion {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  targetType String // "circular" | "diary"
+  prompt     String
+  suggestion String
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AttendanceRiskFlag {
+  id          String   @id @default(uuid())
+  studentId   String   @unique
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  absenceRate Float
+  flagged     Boolean
+  windowStart DateTime
+  windowEnd   DateTime
+  updatedAt   DateTime @updatedAt
+}
+
 model DeviceToken {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
-  platform  String   // "android" | "ios"
+  platform  String // "android" | "ios"
   createdAt DateTime @default(now())
 
   @@index([userId])

@@ -15,3 +15,10 @@ export function detectDirection(text: string): TextDirection {
   }
   return 'ltr';
 }
+
+// Pairs with detectDirection so every `:dir` binding gets a matching `:lang` — content marked
+// RTL but never marked as Urdu-language content is a screen-reader pronunciation bug, not just
+// a cosmetic gap.
+export function detectLang(text: string): 'ur' | 'en' {
+  return detectDirection(text) === 'rtl' ? 'ur' : 'en';
+}

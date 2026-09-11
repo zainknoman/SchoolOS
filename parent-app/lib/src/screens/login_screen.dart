@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../api/api_client.dart';
 import '../auth/auth_state.dart';
+import 'forgot_password_screen.dart';
+import '../../l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -54,24 +56,27 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('School OS', style: Theme.of(context).textTheme.headlineMedium),
+                Text(
+                  AppLocalizations.of(context)!.appTitle,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
                 const SizedBox(height: 4),
                 Text(
-                  'Sign in to see your child\'s day',
+                  AppLocalizations.of(context)!.loginSubtitle,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 24),
                 TextField(
                   key: const Key('identifierField'),
                   controller: _identifierController,
-                  decoration: const InputDecoration(labelText: 'Email or GR number'),
+                  decoration: InputDecoration(labelText: AppLocalizations.of(context)!.loginIdentifier),
                   autofillHints: const [AutofillHints.username],
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   key: const Key('passwordField'),
                   controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  decoration: InputDecoration(labelText: AppLocalizations.of(context)!.loginPassword),
                   obscureText: true,
                   autofillHints: const [AutofillHints.password],
                 ),
@@ -86,7 +91,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 ElevatedButton(
                   key: const Key('submitButton'),
                   onPressed: _isSubmitting ? null : _onSubmit,
-                  child: Text(_isSubmitting ? 'Signing in…' : 'Sign in'),
+                  child: Text(
+                    _isSubmitting
+                        ? AppLocalizations.of(context)!.loginSubmitting
+                        : AppLocalizations.of(context)!.loginSubmit,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  key: const Key('forgotPasswordLink'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ForgotPasswordScreen(api: context.read<ApiClient>()),
+                    ),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.loginForgotPassword),
                 ),
               ],
             ),

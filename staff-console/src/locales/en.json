@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "attendance": "Attendance",
+    "diary": "Diary",
+    "timetable": "Timetable",
+    "messages": "Messages",
+    "complaints": "Complaints",
+    "dashboard": "Dashboard",
+    "students": "Students",
+    "parents": "Parents",
+    "teachers": "Teachers",
+    "schools": "Schools",
+    "campuses": "Campuses",
+    "academicSessions": "Academic Sessions",
+    "classes": "Classes",
+    "sections": "Sections",
+    "fees": "Fees",
+    "leave": "Leave",
+    "holidays": "Holidays",
+    "reportCards": "Report Cards",
+    "circulars": "Circulars"
+  },
+  "shell": {
+    "brand": "School OS Staff Console",
+    "skipToContent": "Skip to content",
+    "notifications": "Notifications",
+    "search": "Jump to a screen or run an action…",
+    "commandPalette": "Command palette",
+    "theme": "Theme",
+    "language": "Language"
+  },
+  "confirm": {
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+  "login": {
+    "title": "School OS Staff Console",
+    "subtitle": "Sign in with your school account",
+    "identifier": "Email or GR number",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "forgotPassword": "Forgot password?"
+  }
+}

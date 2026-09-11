@@ -4,11 +4,12 @@ import AppShell from '../components/AppShell.vue';
 import Icon from '../components/AppIcon.vue';
 import TrendsSparkline from '../components/TrendsSparkline.vue';
 import { useAuthStore } from '../stores/auth';
-import { api, type DashboardSummary } from '../lib/api';
+import { api, type DashboardSummary, type AttendanceRiskSummary } from '../lib/api';
 import { formatPkrShort, formatPkrFull } from '../lib/format';
 
 const auth = useAuthStore();
 const summary = ref<DashboardSummary | null>(null);
+const flaggedStudents = ref<AttendanceRiskSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
 function formatTimeAgo(iso: string): string {
@@ -27,6 +28,11 @@ onMounted(async () => {
     summary.value = await api.dashboardSummary(auth.accessToken);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load dashboard data.';
+  }
+  try {
+    flaggedStudents.value = await api.getFlaggedStudents(auth.accessToken);
+  } catch {
+    // Non-critical — the rest of the dashboard still renders without the early-warning panel.
   }
 });
 
@@ -107,6 +113,18 @@ const trendSeries = computed(() => [
             </li>
           </ul>
         </div>
+      </div>
+
+      <div v-if="flaggedStudents.length" class="risk-panel" data-testid="attendance-risk-panel">
+        <h2>Attendance Risk <span class="muted">(≥25% absence, last 30 days)</span></h2>
+        <ul class="risk-list">
+          <li v-for="s in flaggedStudents" :key="s.studentId">
+            <RouterLink to="/admin/students" :data-testid="`risk-student-${s.studentId}`">
+              {{ s.studentName }}
+            </RouterLink>
+            <span class="risk-rate">{{ Math.round(s.absenceRate * 100) }}% absent</span>
+          </li>
+        </ul>
       </div>
     </div>
   </AppShell>
@@ -264,6 +282,39 @@ const trendSeries = computed(() => [
 .alert-time {
   color: var(--color-muted);
   font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.risk-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+.risk-panel h2 {
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-4);
+}
+.risk-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.risk-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+.risk-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.risk-rate {
+  color: var(--color-destructive);
+  font-weight: 600;
   white-space: nowrap;
 }
 </style>

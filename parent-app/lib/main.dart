@@ -11,6 +11,8 @@ import 'src/notifications/push_token_provider.dart';
 import 'src/router/app_router.dart';
 import 'src/theme/app_theme.dart';
 import 'src/theme/theme_controller.dart';
+import 'src/theme/locale_controller.dart';
+import 'l10n/app_localizations.dart';
 
 // Override at build/run time with --dart-define=API_BASE_URL=http://10.0.2.2:3000 for the Android
 // emulator (which can't reach the host's localhost directly), or the LAN IP for a physical device.
@@ -41,6 +43,7 @@ class _ParentAppState extends State<ParentApp> {
     tokenProvider: FirebaseMessagingTokenProvider(),
   );
   late final ThemeController _themeController = ThemeController();
+  late final LocaleController _localeController = LocaleController();
   late final GoRouter _router = buildAppRouter(_auth);
 
   @override
@@ -50,6 +53,7 @@ class _ParentAppState extends State<ParentApp> {
     // refreshListenable, so a restored session reroutes away from /login automatically.
     _auth.restoreSession();
     _themeController.restore();
+    _localeController.restore();
   }
 
   @override
@@ -60,13 +64,17 @@ class _ParentAppState extends State<ParentApp> {
         ChangeNotifierProvider<AuthState>.value(value: _auth),
         Provider<DeviceTokenRegistrar>.value(value: _deviceTokenRegistrar),
         ChangeNotifierProvider<ThemeController>.value(value: _themeController),
+        ChangeNotifierProvider<LocaleController>.value(value: _localeController),
       ],
-      child: Consumer<ThemeController>(
-        builder: (context, themeController, _) => MaterialApp.router(
-          title: 'School OS',
+      child: Consumer2<ThemeController, LocaleController>(
+        builder: (context, themeController, localeController, _) => MaterialApp.router(
+          onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
           theme: buildAppTheme(),
           darkTheme: buildDarkAppTheme(),
           themeMode: themeController.mode,
+          locale: localeController.locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           routerConfig: _router,
         ),
       ),

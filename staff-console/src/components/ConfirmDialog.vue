@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useConfirmQueue } from '../lib/useConfirm';
 
+const { t } = useI18n();
 const { queue, resolveActive } = useConfirmQueue();
 const active = computed(() => queue.value[0] ?? null);
 
@@ -47,7 +49,7 @@ function onKeydown(event: KeyboardEvent) {
       <p>{{ active.message }}</p>
       <div class="confirm-actions">
         <button ref="cancelRef" type="button" class="cancel" data-testid="confirm-cancel" @click="onCancel">
-          Cancel
+          {{ t('confirm.cancel') }}
         </button>
         <button
           type="button"
@@ -56,7 +58,7 @@ function onKeydown(event: KeyboardEvent) {
           data-testid="confirm-accept"
           @click="onConfirm"
         >
-          {{ active.confirmLabel ?? 'Confirm' }}
+          {{ active.confirmLabel ?? t('confirm.confirm') }}
         </button>
       </div>
     </div>

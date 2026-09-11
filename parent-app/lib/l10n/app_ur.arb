@@ -1,0 +1,22 @@
+{
+  "@@locale": "ur",
+  "appTitle": "اسکول او ایس",
+  "navHome": "ہوم",
+  "navCalendar": "کیلنڈر",
+  "navCirculars": "سرکلر",
+  "navMessages": "پیغامات",
+  "navFees": "فیس",
+  "navMore": "مزید",
+  "loginSubtitle": "اپنے بچے کا دن دیکھنے کے لیے سائن ان کریں",
+  "loginIdentifier": "ای میل یا جی آر نمبر",
+  "loginPassword": "پاس ورڈ",
+  "loginSubmit": "سائن ان کریں",
+  "loginSubmitting": "سائن ان ہو رہا ہے…",
+  "loginForgotPassword": "پاس ورڈ بھول گئے؟",
+  "moreLeaveApplications": "چھٹی کی درخواستیں",
+  "moreComplaints": "شکایات",
+  "moreReportCards": "رپورٹ کارڈ",
+  "moreAppearance": "ظاہری شکل",
+  "moreNotificationChannel": "اطلاعی ذریعہ",
+  "moreLanguage": "زبان"
+}
