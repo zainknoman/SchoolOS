@@ -40,6 +40,7 @@ describe('ParentManagementView', () => {
     expect(wrapper.text()).toContain('parent-x@seeds.edu.pk');
     expect(wrapper.text()).toContain('2');
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-identifier"]').setValue('new-parent@seeds.edu.pk');
     await wrapper.find('[data-testid="add-password"]').setValue('ChangeMe123!');
     await wrapper.find('[data-testid="add-name"]').setValue('New Parent');
@@ -58,6 +59,7 @@ describe('ParentManagementView', () => {
     const wrapper = mount(ParentManagementView);
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-identifier"]').setValue('new-parent@seeds.edu.pk');
     await wrapper.find('[data-testid="add-password"]').setValue('ChangeMe123!');
     await wrapper.find('[data-testid="add-name"]').setValue('New Parent');
@@ -111,6 +113,7 @@ describe('ParentManagementView', () => {
     const wrapper = mount(ParentManagementView);
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-identifier"]').setValue('dupe@seeds.edu.pk');
     await wrapper.find('[data-testid="add-password"]').setValue('ChangeMe123!');
     await wrapper.find('[data-testid="add-name"]').setValue('Dupe');

@@ -41,6 +41,7 @@ describe('CampusManagementView', () => {
     expect(wrapper.text()).toContain('Gulistan-e-Jauhar');
     expect(wrapper.text()).toContain('The Seeds School');
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-school"]').setValue('s1');
     await wrapper.find('[data-testid="add-name"]').setValue('Gulshan-e-Iqbal');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');

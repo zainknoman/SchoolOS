@@ -6,6 +6,7 @@ import { api, type ClassSummary, type CampusSummary, type AcademicSessionSummary
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import Modal from '../components/Modal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -16,6 +17,7 @@ const academicSessions = ref<AcademicSessionSummary[]>([]);
 const classes = ref<ClassSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
+const showAddForm = ref(false);
 const newCampusId = ref('');
 const newAcademicSessionId = ref('');
 const newName = ref('');
@@ -49,6 +51,7 @@ async function onAdd() {
       name: newName.value.trim(),
     });
     newName.value = '';
+    showAddForm.value = false;
     await load();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this class.';
@@ -93,7 +96,10 @@ async function onDelete(id: string) {
 
 <template>
   <div class="org-entity">
-    <h1>Classes</h1>
+    <div class="page-header">
+      <h1>Classes</h1>
+      <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable
@@ -124,32 +130,40 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <div class="inline-form">
-      <FormField
-        v-model="newCampusId"
-        label="Campus"
-        type="select"
-        data-testid="add-campus"
-        placeholder="Choose a campus"
-        :options="campuses.map((c) => ({ value: c.id, label: c.name }))"
-      />
-      <FormField
-        v-model="newAcademicSessionId"
-        label="Academic session"
-        type="select"
-        data-testid="add-session"
-        placeholder="Choose an academic session"
-        :options="academicSessions.map((s) => ({ value: s.id, label: s.label }))"
-      />
-      <FormField v-model="newName" label="Class name" type="text" data-testid="add-name" placeholder="e.g. Grade 4" grow />
-      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
-    </div>
+    <Modal v-model="showAddForm" title="Add Class">
+      <div class="inline-form">
+        <FormField
+          v-model="newCampusId"
+          label="Campus"
+          type="select"
+          data-testid="add-campus"
+          placeholder="Choose a campus"
+          :options="campuses.map((c) => ({ value: c.id, label: c.name }))"
+        />
+        <FormField
+          v-model="newAcademicSessionId"
+          label="Academic session"
+          type="select"
+          data-testid="add-session"
+          placeholder="Choose an academic session"
+          :options="academicSessions.map((s) => ({ value: s.id, label: s.label }))"
+        />
+        <FormField v-model="newName" label="Class name" type="text" data-testid="add-name" placeholder="e.g. Grade 4" grow />
+        <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
 .org-entity {
   max-width: 900px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);

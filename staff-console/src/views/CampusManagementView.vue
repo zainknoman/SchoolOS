@@ -5,6 +5,7 @@ import { api, type CampusSummary, type SchoolSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import Modal from '../components/Modal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -14,6 +15,7 @@ const schools = ref<SchoolSummary[]>([]);
 const campuses = ref<CampusSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
+const showAddForm = ref(false);
 const newSchoolId = ref('');
 const newName = ref('');
 const isSaving = ref(false);
@@ -41,6 +43,7 @@ async function onAdd() {
   try {
     await api.createCampus(auth.accessToken, { schoolId: newSchoolId.value, name: newName.value.trim() });
     newName.value = '';
+    showAddForm.value = false;
     await load();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this campus.';
@@ -85,7 +88,10 @@ async function onDelete(id: string) {
 
 <template>
   <div class="org-entity">
-    <h1>Campuses</h1>
+    <div class="page-header">
+      <h1>Campuses</h1>
+      <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable
@@ -112,24 +118,32 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <div class="inline-form">
-      <FormField
-        v-model="newSchoolId"
-        label="School"
-        type="select"
-        data-testid="add-school"
-        placeholder="Choose a school"
-        :options="schools.map((s) => ({ value: s.id, label: s.name }))"
-      />
-      <FormField v-model="newName" label="Campus name" type="text" data-testid="add-name" placeholder="Campus name" grow />
-      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
-    </div>
+    <Modal v-model="showAddForm" title="Add Campus">
+      <div class="inline-form">
+        <FormField
+          v-model="newSchoolId"
+          label="School"
+          type="select"
+          data-testid="add-school"
+          placeholder="Choose a school"
+          :options="schools.map((s) => ({ value: s.id, label: s.name }))"
+        />
+        <FormField v-model="newName" label="Campus name" type="text" data-testid="add-name" placeholder="Campus name" grow />
+        <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
 .org-entity {
   max-width: 720px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);

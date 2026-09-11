@@ -39,6 +39,7 @@ describe('TeacherManagementView', () => {
 
     expect(wrapper.text()).toContain('teacher-x@seeds.edu.pk');
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-identifier"]').setValue('new-teacher@seeds.edu.pk');
     await wrapper.find('[data-testid="add-password"]').setValue('ChangeMe123!');
     await wrapper.find('[data-testid="add-name"]').setValue('New Teacher');

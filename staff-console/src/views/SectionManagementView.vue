@@ -6,6 +6,7 @@ import { api, type SectionSummary, type ClassSummary, type TeacherSummary } from
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import Modal from '../components/Modal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -16,6 +17,7 @@ const teachers = ref<TeacherSummary[]>([]);
 const sections = ref<SectionSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
+const showAddForm = ref(false);
 const newClassId = ref('');
 const newName = ref('');
 const newTeacherId = ref('');
@@ -51,6 +53,7 @@ async function onAdd() {
     });
     newName.value = '';
     newTeacherId.value = '';
+    showAddForm.value = false;
     await load();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this section.';
@@ -99,7 +102,10 @@ async function onDelete(id: string) {
 
 <template>
   <div class="org-entity">
-    <h1>Sections</h1>
+    <div class="page-header">
+      <h1>Sections</h1>
+      <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable
@@ -138,31 +144,39 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <div class="inline-form">
-      <FormField
-        v-model="newClassId"
-        label="Class"
-        type="select"
-        data-testid="add-class"
-        placeholder="Choose a class"
-        :options="classes.map((c) => ({ value: c.id, label: `${c.name} (${c.campusName})` }))"
-      />
-      <FormField v-model="newName" label="Section name" type="text" data-testid="add-name" placeholder="e.g. 3B" grow />
-      <FormField
-        v-model="newTeacherId"
-        label="Class teacher"
-        type="select"
-        data-testid="add-teacher"
-        :options="[{ value: '', label: '— No class teacher —' }, ...teachers.map((t) => ({ value: t.id, label: t.name }))]"
-      />
-      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
-    </div>
+    <Modal v-model="showAddForm" title="Add Section">
+      <div class="inline-form">
+        <FormField
+          v-model="newClassId"
+          label="Class"
+          type="select"
+          data-testid="add-class"
+          placeholder="Choose a class"
+          :options="classes.map((c) => ({ value: c.id, label: `${c.name} (${c.campusName})` }))"
+        />
+        <FormField v-model="newName" label="Section name" type="text" data-testid="add-name" placeholder="e.g. 3B" grow />
+        <FormField
+          v-model="newTeacherId"
+          label="Class teacher"
+          type="select"
+          data-testid="add-teacher"
+          :options="[{ value: '', label: '— No class teacher —' }, ...teachers.map((t) => ({ value: t.id, label: t.name }))]"
+        />
+        <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
 .org-entity {
   max-width: 960px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);

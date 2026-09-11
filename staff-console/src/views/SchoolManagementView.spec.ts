@@ -35,13 +35,16 @@ describe('SchoolManagementView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('The Seeds School');
+    expect(wrapper.find('[data-testid="add-name"]').exists()).toBe(false);
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-name"]').setValue('Second School');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
     await flushPromises();
 
     expect(api.createSchool).toHaveBeenCalledWith('token-1', { name: 'Second School' });
     expect(api.listSchools).toHaveBeenCalledTimes(2);
+    expect(wrapper.find('[data-testid="add-name"]').exists()).toBe(false);
   });
 
   it('edits a school in place', async () => {

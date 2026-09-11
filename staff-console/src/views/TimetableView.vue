@@ -10,6 +10,7 @@ import {
   type TimetableEntryInput,
 } from '../lib/api';
 import { useConfirm } from '../lib/useConfirm';
+import Modal from '../components/Modal.vue';
 
 const DAY_OPTIONS = [
   { value: 1, label: 'Monday' },
@@ -45,6 +46,7 @@ const teachers = ref<TeacherSummary[]>([]);
 const selectedSectionId = ref('');
 const entries = ref<TimetableEntrySummary[]>([]);
 
+const showAddForm = ref(false);
 const addForm = ref<EntryForm>(blankForm());
 const editingId = ref<string | null>(null);
 const editForm = ref<EntryForm>(blankForm());
@@ -110,6 +112,7 @@ async function onAdd() {
     });
     addForm.value = blankForm();
     message.value = 'Period added.';
+    showAddForm.value = false;
     await reloadEntries();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not add this period.';
@@ -486,15 +489,14 @@ async function onSaveBulk() {
           </option>
         </select>
       </label>
-      <button
-        v-if="selectedSectionId && !isBulkMode"
-        type="button"
-        data-testid="open-bulk"
-        class="bulk-toggle"
-        @click="openBulkComposer"
-      >
-        Bulk edit (grid)
-      </button>
+      <div v-if="selectedSectionId && !isBulkMode" class="header-actions">
+        <button type="button" data-testid="open-bulk" class="bulk-toggle" @click="openBulkComposer">
+          Bulk edit (grid)
+        </button>
+        <button type="button" data-testid="open-add-form" class="add-toggle" @click="showAddForm = true">
+          + Add New
+        </button>
+      </div>
     </div>
 
     <p v-if="message" class="success" data-testid="success">{{ message }}</p>
@@ -735,8 +737,7 @@ async function onSaveBulk() {
       </table>
       <p v-else class="empty">No periods scheduled for this section yet.</p>
 
-      <div class="add-form">
-        <h2>Add a period</h2>
+      <Modal v-model="showAddForm" title="Add a period">
         <div class="add-row">
           <select v-model.number="addForm.dayOfWeek" data-testid="add-day">
             <option v-for="d in DAY_OPTIONS" :key="d.value" :value="d.value">{{ d.label }}</option>
@@ -762,7 +763,7 @@ async function onSaveBulk() {
             {{ isSaving ? 'Saving…' : 'Add' }}
           </button>
         </div>
-      </div>
+      </Modal>
     </template>
   </div>
 </template>
@@ -887,10 +888,6 @@ input {
   align-items: center;
   padding: var(--space-2) 0;
 }
-.add-form h2 {
-  font-size: var(--font-size-base);
-  margin-bottom: var(--space-2);
-}
 .add-row {
   display: flex;
   flex-wrap: wrap;
@@ -931,6 +928,11 @@ button:disabled {
   gap: var(--space-3);
   max-width: 100%;
 }
+.header-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
 .bulk-toggle {
   padding: 0.5rem 1rem;
   border: 1px solid var(--color-border);
@@ -938,7 +940,15 @@ button:disabled {
   background: var(--color-surface);
   font-weight: 600;
   cursor: pointer;
-  margin-bottom: var(--space-4);
+}
+.add-toggle {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+  font-weight: 600;
+  cursor: pointer;
 }
 .bulk-config {
   display: flex;

@@ -65,6 +65,19 @@ describe('StudentManagementView', () => {
     expect(wrapper.text()).toContain('Existing Parent');
   });
 
+  it('opens the Add Student modal automatically when deep-linked with ?focus=gr-number', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/admin/students', name: 'admin-students', component: StudentManagementView }],
+    });
+    await router.push('/admin/students?focus=gr-number');
+    await router.isReady();
+    const wrapper = mount(StudentManagementView, { global: { plugins: [router] } });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="add-gr-number"]').exists()).toBe(true);
+  });
+
   it('creates a student linked to an existing parent (the default mode)', async () => {
     vi.mocked(api.createStudent).mockResolvedValue({
       id: 's2', grNumber: 'GR-2001', name: 'New Student',
@@ -75,6 +88,7 @@ describe('StudentManagementView', () => {
     const wrapper = await mountView();
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-gr-number"]').setValue('GR-2001');
     await wrapper.find('[data-testid="add-name"]').setValue('New Student');
     await wrapper.find('[data-testid="add-section"]').setValue('sec1');
@@ -97,6 +111,7 @@ describe('StudentManagementView', () => {
     const wrapper = await mountView();
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-gr-number"]').setValue('GR-2002');
     await wrapper.find('[data-testid="add-name"]').setValue('Another Student');
     await wrapper.find('[data-testid="add-section"]').setValue('sec1');

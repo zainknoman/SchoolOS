@@ -5,6 +5,7 @@ import { api, type ComplaintSummary, type StudentAdminSummary } from '../lib/api
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import Modal from '../components/Modal.vue';
 
 const auth = useAuthStore();
 
@@ -14,6 +15,7 @@ const complaints = ref<ComplaintSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 const busyId = ref<string | null>(null);
 
+const showAddForm = ref(false);
 const newSubject = ref('');
 const newDescription = ref('');
 const isSaving = ref(false);
@@ -55,6 +57,7 @@ async function onAdd() {
     });
     newSubject.value = '';
     newDescription.value = '';
+    showAddForm.value = false;
     await loadComplaints();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not raise this complaint.';
@@ -79,7 +82,10 @@ async function onUpdateStatus(id: string, status: string) {
 
 <template>
   <div class="complaints">
-    <h1>Complaints</h1>
+    <div class="page-header">
+      <h1>Complaints</h1>
+      <Button data-testid="open-add-form" :disabled="!selectedStudentId" @click="showAddForm = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <FormField
@@ -118,24 +124,32 @@ async function onUpdateStatus(id: string, status: string) {
       </template>
     </EntityTable>
 
-    <div v-if="selectedStudentId" class="inline-form">
-      <FormField v-model="newSubject" label="Subject" type="text" data-testid="add-subject" placeholder="Subject" />
-      <FormField
-        v-model="newDescription"
-        label="Description"
-        type="text"
-        data-testid="add-description"
-        placeholder="Description"
-        grow
-      />
-      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Raise complaint</Button>
-    </div>
+    <Modal v-model="showAddForm" title="Raise Complaint">
+      <div class="inline-form">
+        <FormField v-model="newSubject" label="Subject" type="text" data-testid="add-subject" placeholder="Subject" />
+        <FormField
+          v-model="newDescription"
+          label="Description"
+          type="text"
+          data-testid="add-description"
+          placeholder="Description"
+          grow
+        />
+        <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Raise complaint</Button>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
 .complaints {
   max-width: 900px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);
@@ -145,7 +159,6 @@ async function onUpdateStatus(id: string, status: string) {
   display: flex;
   gap: var(--space-2);
   align-items: flex-end;
-  margin-top: var(--space-4);
 }
 select {
   padding: 0.4rem 0.6rem;

@@ -11,11 +11,13 @@ import {
 } from '../lib/api';
 import { formatPkrFull } from '../lib/format';
 import { useFocusTarget } from '../lib/useFocusTarget';
+import Modal from '../components/Modal.vue';
 
 const auth = useAuthStore();
 
 // --- Fee structures ---
 const structures = ref<FeeStructureSummary[]>([]);
+const showAddStructureForm = ref(false);
 const newStructureName = ref('');
 const newStructureAmount = ref('');
 const structureError = ref<string | null>(null);
@@ -40,6 +42,7 @@ async function onCreateStructure() {
     });
     newStructureName.value = '';
     newStructureAmount.value = '';
+    showAddStructureForm.value = false;
     await loadStructures();
   } catch (err) {
     structureError.value = err instanceof Error ? err.message : 'Could not create fee structure.';
@@ -181,16 +184,23 @@ async function onLoadLedger() {
     <h1>Fees</h1>
 
     <section class="card">
-      <h2>Fee Structures</h2>
+      <div class="card-header">
+        <h2>Fee Structures</h2>
+        <button type="button" data-testid="open-add-structure" class="add-toggle" @click="showAddStructureForm = true">
+          + Add New
+        </button>
+      </div>
       <p v-if="structureError" class="error" role="alert">{{ structureError }}</p>
       <ul class="structures-list">
         <li v-for="s in structures" :key="s.id">{{ s.name }} — PKR {{ formatPkrFull(s.amount / 100) }}</li>
       </ul>
-      <div class="inline-form">
-        <input data-testid="structure-name" v-model="newStructureName" type="text" placeholder="Name" />
-        <input data-testid="structure-amount" v-model="newStructureAmount" type="number" placeholder="Amount (PKR)" />
-        <button data-testid="create-structure" @click="onCreateStructure">Add</button>
-      </div>
+      <Modal v-model="showAddStructureForm" title="Add Fee Structure">
+        <div class="inline-form">
+          <input data-testid="structure-name" v-model="newStructureName" type="text" placeholder="Name" />
+          <input data-testid="structure-amount" v-model="newStructureAmount" type="number" placeholder="Amount (PKR)" />
+          <button data-testid="create-structure" @click="onCreateStructure">Add</button>
+        </div>
+      </Modal>
     </section>
 
     <section class="card">
@@ -350,6 +360,20 @@ async function onLoadLedger() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: var(--space-4);
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.add-toggle {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+  font-weight: 600;
+  cursor: pointer;
 }
 .field {
   display: flex;

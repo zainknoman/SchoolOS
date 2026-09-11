@@ -5,6 +5,7 @@ import { api, type HolidaySummary, type CampusSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import Modal from '../components/Modal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -14,6 +15,7 @@ const holidays = ref<HolidaySummary[]>([]);
 const campuses = ref<CampusSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
+const showAddForm = ref(false);
 const newTitle = ref('');
 const newStartDate = ref('');
 const newEndDate = ref('');
@@ -58,6 +60,7 @@ async function onAdd() {
     newStartDate.value = '';
     newEndDate.value = '';
     newCampusId.value = '';
+    showAddForm.value = false;
     await load();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this holiday.';
@@ -108,7 +111,10 @@ async function onDelete(id: string) {
 
 <template>
   <div class="org-entity">
-    <h1>Holidays</h1>
+    <div class="page-header">
+      <h1>Holidays</h1>
+      <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable
@@ -151,26 +157,34 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <div class="inline-form">
-      <FormField v-model="newTitle" label="Title" type="text" data-testid="add-title" placeholder="e.g. Eid break" grow />
-      <FormField v-model="newStartDate" label="Start date" type="date" data-testid="add-start-date" />
-      <FormField v-model="newEndDate" label="End date" type="date" data-testid="add-end-date" />
-      <FormField
-        v-model="newCampusId"
-        label="Campus"
-        type="select"
-        data-testid="add-campus"
-        placeholder="Every campus"
-        :options="campuses.map((c) => ({ value: c.id, label: c.name }))"
-      />
-      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
-    </div>
+    <Modal v-model="showAddForm" title="Add Holiday">
+      <div class="inline-form">
+        <FormField v-model="newTitle" label="Title" type="text" data-testid="add-title" placeholder="e.g. Eid break" grow />
+        <FormField v-model="newStartDate" label="Start date" type="date" data-testid="add-start-date" />
+        <FormField v-model="newEndDate" label="End date" type="date" data-testid="add-end-date" />
+        <FormField
+          v-model="newCampusId"
+          label="Campus"
+          type="select"
+          data-testid="add-campus"
+          placeholder="Every campus"
+          :options="campuses.map((c) => ({ value: c.id, label: c.name }))"
+        />
+        <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
 .org-entity {
   max-width: 900px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);

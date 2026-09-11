@@ -6,6 +6,7 @@ import { api, type TeacherAdminSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import Modal from '../components/Modal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -14,6 +15,7 @@ const { confirm } = useConfirm();
 const teachers = ref<TeacherAdminSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
+const showAddForm = ref(false);
 const newIdentifier = ref('');
 const newPassword = ref('');
 const newName = ref('');
@@ -46,6 +48,7 @@ async function onAdd() {
     newIdentifier.value = '';
     newPassword.value = '';
     newName.value = '';
+    showAddForm.value = false;
     await load();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this teacher.';
@@ -94,7 +97,10 @@ async function onDelete(id: string) {
 
 <template>
   <div class="org-entity">
-    <h1>Teachers</h1>
+    <div class="page-header">
+      <h1>Teachers</h1>
+      <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable
@@ -131,18 +137,26 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <div class="inline-form">
-      <FormField v-model="newIdentifier" label="Login email" type="text" data-testid="add-identifier" placeholder="Login email" grow />
-      <FormField v-model="newPassword" label="Initial password" type="password" data-testid="add-password" placeholder="Initial password" grow />
-      <FormField v-model="newName" label="Full name" type="text" data-testid="add-name" placeholder="Full name" grow />
-      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
-    </div>
+    <Modal v-model="showAddForm" title="Add Teacher">
+      <div class="inline-form">
+        <FormField v-model="newIdentifier" label="Login email" type="text" data-testid="add-identifier" placeholder="Login email" grow />
+        <FormField v-model="newPassword" label="Initial password" type="password" data-testid="add-password" placeholder="Initial password" grow />
+        <FormField v-model="newName" label="Full name" type="text" data-testid="add-name" placeholder="Full name" grow />
+        <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
 .org-entity {
   max-width: 900px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);

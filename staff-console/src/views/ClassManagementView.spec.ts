@@ -49,6 +49,7 @@ describe('ClassManagementView', () => {
     expect(wrapper.text()).toContain('Gulistan-e-Jauhar');
     expect(wrapper.text()).toContain('2026-2027');
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-campus"]').setValue('c1');
     await wrapper.find('[data-testid="add-session"]').setValue('as1');
     await wrapper.find('[data-testid="add-name"]').setValue('Grade 4');

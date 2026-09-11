@@ -5,6 +5,7 @@ import { api, type SchoolSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import Modal from '../components/Modal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -13,6 +14,7 @@ const { confirm } = useConfirm();
 const schools = ref<SchoolSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
+const showAddForm = ref(false);
 const newName = ref('');
 const isSaving = ref(false);
 
@@ -36,6 +38,7 @@ async function onAdd() {
   try {
     await api.createSchool(auth.accessToken, { name: newName.value.trim() });
     newName.value = '';
+    showAddForm.value = false;
     await load();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this school.';
@@ -80,7 +83,10 @@ async function onDelete(id: string) {
 
 <template>
   <div class="org-entity">
-    <h1>Schools</h1>
+    <div class="page-header">
+      <h1>Schools</h1>
+      <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable :items="schools" :columns="[{ key: 'name', label: 'Name' }]" row-key="id" :editing-id="editingId">
@@ -102,16 +108,24 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <div class="inline-form">
-      <FormField v-model="newName" label="School name" type="text" data-testid="add-name" placeholder="School name" grow />
-      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
-    </div>
+    <Modal v-model="showAddForm" title="Add School">
+      <div class="inline-form">
+        <FormField v-model="newName" label="School name" type="text" data-testid="add-name" placeholder="School name" grow />
+        <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
 .org-entity {
   max-width: 720px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);

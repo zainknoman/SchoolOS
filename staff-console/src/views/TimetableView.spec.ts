@@ -162,6 +162,7 @@ describe('TimetableView', () => {
     await flushPromises();
     await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
     await flushPromises();
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
 
     await wrapper.find('[data-testid="add-period"]').setValue('1');
     await wrapper.find('[data-testid="add-start"]').setValue('08:00');
@@ -192,6 +193,7 @@ describe('TimetableView', () => {
     await flushPromises();
     await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
     await flushPromises();
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
 
     expect(wrapper.find('[data-testid="add-submit"]').attributes('disabled')).toBeDefined();
 
@@ -308,6 +310,7 @@ describe('TimetableView', () => {
     await flushPromises();
     await wrapper.find('[data-testid="section-select"]').setValue('sec-1');
     await flushPromises();
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
 
     await wrapper.find('[data-testid="add-start"]').setValue('08:00');
     await wrapper.find('[data-testid="add-end"]').setValue('08:40');

@@ -54,6 +54,7 @@ describe('FeeManagementView', () => {
     const wrapper = await mountView();
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-add-structure"]').trigger('click');
     await wrapper.find('[data-testid="structure-name"]').setValue('Transport Fee');
     await wrapper.find('[data-testid="structure-amount"]').setValue('2000');
     await wrapper.find('[data-testid="create-structure"]').trigger('click');

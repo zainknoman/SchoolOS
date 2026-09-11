@@ -39,6 +39,7 @@ describe('AcademicSessionManagementView', () => {
     expect(wrapper.text()).toContain('2026-2027');
     expect(wrapper.text()).toContain('Active');
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-label"]').setValue('2027-2028');
     await wrapper.find('[data-testid="add-start"]').setValue('2027-08-01');
     await wrapper.find('[data-testid="add-end"]').setValue('2028-06-30');

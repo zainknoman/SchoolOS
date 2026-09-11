@@ -46,6 +46,7 @@ describe('SectionManagementView', () => {
     expect(wrapper.text()).toContain('3A');
     expect(wrapper.text()).toContain('Ms. Ayesha');
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-class"]').setValue('cl1');
     await wrapper.find('[data-testid="add-name"]').setValue('3B');
     await wrapper.find('[data-testid="add-teacher"]').setValue('t1');
@@ -61,6 +62,7 @@ describe('SectionManagementView', () => {
     const wrapper = mount(SectionManagementView);
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-class"]').setValue('cl1');
     await wrapper.find('[data-testid="add-name"]').setValue('3B');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');

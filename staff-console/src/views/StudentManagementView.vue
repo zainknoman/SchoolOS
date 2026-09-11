@@ -1,12 +1,14 @@
 <!-- staff-console/src/views/StudentManagementView.vue -->
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type ParentSummary, type StudentAdminSummary } from '../lib/api';
 import { useFocusTarget } from '../lib/useFocusTarget';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import Modal from '../components/Modal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -17,6 +19,8 @@ const parents = ref<ParentSummary[]>([]);
 const students = ref<StudentAdminSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
+const route = useRoute();
+const showAddForm = ref(route.query.focus === 'gr-number');
 const newGrNumber = ref('');
 const newName = ref('');
 const newSectionId = ref('');
@@ -87,6 +91,7 @@ async function onAdd() {
         : { parentProfileId: newParentProfileId.value }),
     });
     resetAddForm();
+    showAddForm.value = false;
     await load();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this student.';
@@ -135,7 +140,10 @@ async function onDelete(id: string) {
 
 <template>
   <div class="org-entity">
-    <h1>Students</h1>
+    <div class="page-header">
+      <h1>Students</h1>
+      <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable
@@ -177,55 +185,63 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <div class="add-form">
-      <div class="inline-form">
-        <FormField
-          ref="grNumberFieldRef"
-          v-model="newGrNumber"
-          label="GR number"
-          type="text"
-          data-testid="add-gr-number"
-          placeholder="GR number"
-          grow
-        />
-        <FormField v-model="newName" label="Full name" type="text" data-testid="add-name" placeholder="Full name" grow />
-        <FormField
-          v-model="newSectionId"
-          label="Section"
-          type="select"
-          data-testid="add-section"
-          placeholder="Choose a section"
-          :options="sections.map((sec) => ({ value: sec.id, label: `${sec.className} ${sec.name} (${sec.campusName})` }))"
-        />
-      </div>
+    <Modal v-model="showAddForm" title="Add Student">
+      <div class="add-form">
+        <div class="inline-form">
+          <FormField
+            ref="grNumberFieldRef"
+            v-model="newGrNumber"
+            label="GR number"
+            type="text"
+            data-testid="add-gr-number"
+            placeholder="GR number"
+            grow
+          />
+          <FormField v-model="newName" label="Full name" type="text" data-testid="add-name" placeholder="Full name" grow />
+          <FormField
+            v-model="newSectionId"
+            label="Section"
+            type="select"
+            data-testid="add-section"
+            placeholder="Choose a section"
+            :options="sections.map((sec) => ({ value: sec.id, label: `${sec.className} ${sec.name} (${sec.campusName})` }))"
+          />
+        </div>
 
-      <FormField v-model="useNewParent" label="+ New Parent (instead of picking an existing one)" type="checkbox" data-testid="toggle-new-parent" />
+        <FormField v-model="useNewParent" label="+ New Parent (instead of picking an existing one)" type="checkbox" data-testid="toggle-new-parent" />
 
-      <div v-if="!useNewParent" class="inline-form">
-        <FormField
-          v-model="newParentProfileId"
-          label="Parent"
-          type="select"
-          data-testid="add-parent-select"
-          placeholder="Choose a parent"
-          :options="parents.map((p) => ({ value: p.id, label: `${p.name} (${p.identifier})` }))"
-        />
-      </div>
-      <div v-else class="inline-form">
-        <FormField v-model="newParentIdentifier" label="Parent login email" type="text" data-testid="new-parent-identifier" placeholder="Parent login email" grow />
-        <FormField v-model="newParentPassword" label="Initial password" type="password" data-testid="new-parent-password" placeholder="Initial password" grow />
-        <FormField v-model="newParentName" label="Parent full name" type="text" data-testid="new-parent-name" placeholder="Parent full name" grow />
-        <FormField v-model="newParentPhone" label="Phone" type="text" data-testid="new-parent-phone" placeholder="Phone (optional)" grow />
-      </div>
+        <div v-if="!useNewParent" class="inline-form">
+          <FormField
+            v-model="newParentProfileId"
+            label="Parent"
+            type="select"
+            data-testid="add-parent-select"
+            placeholder="Choose a parent"
+            :options="parents.map((p) => ({ value: p.id, label: `${p.name} (${p.identifier})` }))"
+          />
+        </div>
+        <div v-else class="inline-form">
+          <FormField v-model="newParentIdentifier" label="Parent login email" type="text" data-testid="new-parent-identifier" placeholder="Parent login email" grow />
+          <FormField v-model="newParentPassword" label="Initial password" type="password" data-testid="new-parent-password" placeholder="Initial password" grow />
+          <FormField v-model="newParentName" label="Parent full name" type="text" data-testid="new-parent-name" placeholder="Parent full name" grow />
+          <FormField v-model="newParentPhone" label="Phone" type="text" data-testid="new-parent-phone" placeholder="Phone (optional)" grow />
+        </div>
 
-      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add Student</Button>
-    </div>
+        <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add Student</Button>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
 .org-entity {
   max-width: 1100px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);
@@ -235,9 +251,6 @@ async function onDelete(id: string) {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
 }
 .inline-form {
   display: flex;

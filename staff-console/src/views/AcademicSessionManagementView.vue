@@ -5,6 +5,7 @@ import { api, type AcademicSessionSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import Modal from '../components/Modal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -13,6 +14,7 @@ const { confirm } = useConfirm();
 const sessions = ref<AcademicSessionSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
+const showAddForm = ref(false);
 const newLabel = ref('');
 const newStart = ref('');
 const newEnd = ref('');
@@ -50,6 +52,7 @@ async function onAdd() {
     newStart.value = '';
     newEnd.value = '';
     newActive.value = false;
+    showAddForm.value = false;
     await load();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this academic session.';
@@ -105,7 +108,10 @@ async function onDelete(id: string) {
 
 <template>
   <div class="org-entity">
-    <h1>Academic Sessions</h1>
+    <div class="page-header">
+      <h1>Academic Sessions</h1>
+      <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable
@@ -149,19 +155,27 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <div class="inline-form">
-      <FormField v-model="newLabel" label="Session label" type="text" data-testid="add-label" placeholder="e.g. 2027-2028" />
-      <FormField v-model="newStart" label="Start date" type="date" data-testid="add-start" />
-      <FormField v-model="newEnd" label="End date" type="date" data-testid="add-end" />
-      <FormField v-model="newActive" label="Active" type="checkbox" data-testid="add-active" />
-      <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
-    </div>
+    <Modal v-model="showAddForm" title="Add Academic Session">
+      <div class="inline-form">
+        <FormField v-model="newLabel" label="Session label" type="text" data-testid="add-label" placeholder="e.g. 2027-2028" />
+        <FormField v-model="newStart" label="Start date" type="date" data-testid="add-start" />
+        <FormField v-model="newEnd" label="End date" type="date" data-testid="add-end" />
+        <FormField v-model="newActive" label="Active" type="checkbox" data-testid="add-active" />
+        <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
 .org-entity {
   max-width: 900px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);
