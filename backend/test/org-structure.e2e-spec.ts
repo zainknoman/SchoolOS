@@ -55,10 +55,18 @@ describe('Org Structure (e2e)', () => {
         role: 'SCHOOL_ADMIN',
       },
     });
+    const teacherUser = await prisma.user.create({
+      data: {
+        identifier: 'os-teacher@seeds.edu.pk',
+        passwordHash,
+        role: 'TEACHER',
+      },
+    });
 
     Object.assign(ids, {
       superAdminUser: superAdminUser.id,
       schoolAdminUser: schoolAdminUser.id,
+      teacherUser: teacherUser.id,
     });
   });
 
@@ -87,7 +95,7 @@ describe('Org Structure (e2e)', () => {
       .deleteMany({
         where: {
           identifier: {
-            in: ['os-super-admin@seeds.edu.pk', 'os-school-admin@seeds.edu.pk'],
+            in: ['os-super-admin@seeds.edu.pk', 'os-school-admin@seeds.edu.pk', 'os-teacher@seeds.edu.pk'],
           },
         },
       })
@@ -128,6 +136,26 @@ describe('Org Structure (e2e)', () => {
       .set('Authorization', `Bearer ${schoolAdminToken}`)
       .send({ classId: 'x', name: 'Blocked Section' })
       .expect(403);
+  });
+
+  it('a SCHOOL_ADMIN can read the academic sessions list (write routes stay blocked)', async () => {
+    const schoolAdminToken = await loginAs('os-school-admin@seeds.edu.pk');
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/academic-sessions')
+      .set('Authorization', `Bearer ${schoolAdminToken}`)
+      .expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it('a TEACHER can read the academic sessions list (needed to pick a session for report card uploads)', async () => {
+    const teacherToken = await loginAs('os-teacher@seeds.edu.pk');
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/academic-sessions')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
   });
 
   it('a SUPER_ADMIN can create the full School -> Campus -> AcademicSession/Class -> Section chain', async () => {

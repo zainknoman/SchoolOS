@@ -78,6 +78,10 @@ describe('AppShell (role-gated nav)', () => {
     // to point to href="#" with no route, and Sprint D removed it as dead).
     expect(wrapper.find('[data-testid="nav-timetable"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-timetable"]').attributes('href')).toBe('/teacher/timetable');
+    // Teacher can raise complaints and upload report cards (backend already permits both), so both
+    // need a nav entry, not just admin.
+    expect(wrapper.find('[data-testid="nav-complaints"]').attributes('href')).toBe('/teacher/complaints');
+    expect(wrapper.find('[data-testid="nav-report-cards"]').attributes('href')).toBe('/teacher/report-cards');
 
     // Not CSS-hidden — absent from the DOM entirely.
     expect(wrapper.text()).not.toContain('Students');

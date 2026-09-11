@@ -12,10 +12,10 @@ export interface JwtPayload {
 
 // The ?access_token= fallback exists only so a plain download link — which can't set an
 // Authorization header — still authenticates. That applies to the generic file download route
-// (GET /api/v1/files/:id) as well as the fee voucher and fee receipt PDF routes
-// (GET /api/v1/fee-vouchers/:id/pdf and GET /api/v1/fee-payments/:id/receipt.pdf), all of which
-// are opened directly via <a href> or a system browser/PDF viewer rather than through an API
-// client that can set headers.
+// (GET /api/v1/files/:id), the fee voucher and fee receipt PDF routes
+// (GET /api/v1/fee-vouchers/:id/pdf and GET /api/v1/fee-payments/:id/receipt.pdf), and the
+// report card PDF route (GET /api/v1/report-cards/:id/pdf), all of which are opened directly via
+// <a href> or a system browser/PDF viewer rather than through an API client that can set headers.
 //
 // Matched by exact route shape, not by resource-path prefix: /api/v1/fee-vouchers/ and
 // /api/v1/fee-payments/ also carry POST mutation endpoints (:id/pay, :id/confirm) that are
@@ -27,6 +27,7 @@ const DOWNLOAD_ROUTE_PATTERNS = [
   /^\/api\/v1\/files\/[^/]+$/,
   /^\/api\/v1\/fee-vouchers\/[^/]+\/pdf$/,
   /^\/api\/v1\/fee-payments\/[^/]+\/receipt\.pdf$/,
+  /^\/api\/v1\/report-cards\/[^/]+\/pdf$/,
 ];
 
 export function extractAccessTokenForDownloadRoutes(

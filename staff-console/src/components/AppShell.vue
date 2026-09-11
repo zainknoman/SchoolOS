@@ -425,6 +425,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
           <RouterLink data-testid="nav-timetable" to="/teacher/timetable"><Icon name="grid" />{{ t('nav.timetable') }}</RouterLink>
           <RouterLink data-testid="nav-messages" to="/teacher/messages"><Icon name="chat" />{{ t('nav.messages') }}</RouterLink>
           <RouterLink data-testid="nav-complaints" to="/teacher/complaints"><Icon name="chat" />{{ t('nav.complaints') }}</RouterLink>
+          <RouterLink data-testid="nav-report-cards" to="/teacher/report-cards"><Icon name="grid" />{{ t('nav.reportCards') }}</RouterLink>
         </template>
         <template v-else-if="isAdmin">
           <div class="nav-group">

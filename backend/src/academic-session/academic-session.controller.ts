@@ -11,25 +11,31 @@ interface AuthenticatedRequest extends Request {
 }
 
 @Controller('api/v1')
-@Roles('SUPER_ADMIN')
 export class AcademicSessionController {
   constructor(private readonly academicSessionService: AcademicSessionService) {}
 
+  @Roles('SUPER_ADMIN')
   @Post('academic-sessions')
   create(@Body() dto: CreateAcademicSessionDto, @Req() req: AuthenticatedRequest) {
     return this.academicSessionService.create(dto, req.user.id);
   }
 
+  // Read-only: school admins and teachers need this to pick a session when uploading report cards
+  // and other school-level operations, even though the write routes below stay SUPER_ADMIN-only
+  // (session definitions are structural, like Schools/Campuses/Classes).
+  @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Get('academic-sessions')
   list() {
     return this.academicSessionService.list();
   }
 
+  @Roles('SUPER_ADMIN')
   @Patch('academic-sessions/:id')
   update(@Param('id') id: string, @Body() dto: UpdateAcademicSessionDto, @Req() req: AuthenticatedRequest) {
     return this.academicSessionService.update(id, dto, req.user.id);
   }
 
+  @Roles('SUPER_ADMIN')
   @Delete('academic-sessions/:id')
   async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     await this.academicSessionService.delete(id, req.user.id);

@@ -57,8 +57,14 @@ const router = createRouter({
     {
       path: '/teacher/complaints',
       name: 'teacher-complaints',
-      component: () => import('../views/ComplaintsPageView.vue'),
+      component: () => import('../views/TeacherComplaintsPageView.vue'),
       meta: { requiresRole: ['TEACHER'], title: 'Complaints' },
+    },
+    {
+      path: '/teacher/report-cards',
+      name: 'teacher-report-cards',
+      component: () => import('../views/TeacherReportCardsPageView.vue'),
+      meta: { requiresRole: ['TEACHER'], title: 'Report Cards' },
     },
     {
       path: '/admin',
