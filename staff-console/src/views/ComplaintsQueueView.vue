@@ -5,7 +5,7 @@ import { api, type ComplaintSummary, type StudentAdminSummary } from '../lib/api
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
-import Modal from '../components/Modal.vue';
+import AppModal from '../components/AppModal.vue';
 
 const auth = useAuthStore();
 
@@ -124,7 +124,7 @@ async function onUpdateStatus(id: string, status: string) {
       </template>
     </EntityTable>
 
-    <Modal v-model="showAddForm" title="Raise Complaint">
+    <AppModal v-model="showAddForm" title="Raise Complaint">
       <div class="inline-form">
         <FormField v-model="newSubject" label="Subject" type="text" data-testid="add-subject" placeholder="Subject" />
         <FormField
@@ -137,7 +137,7 @@ async function onUpdateStatus(id: string, status: string) {
         />
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Raise complaint</Button>
       </div>
-    </Modal>
+    </AppModal>
   </div>
 </template>
 

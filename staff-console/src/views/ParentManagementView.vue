@@ -6,7 +6,7 @@ import { api, type ParentSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
-import Modal from '../components/Modal.vue';
+import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -148,7 +148,7 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <Modal v-model="showAddForm" title="Add Parent">
+    <AppModal v-model="showAddForm" title="Add Parent">
       <div class="inline-form">
         <FormField v-model="newIdentifier" label="Login email" type="text" data-testid="add-identifier" placeholder="Login email" grow />
         <FormField v-model="newPassword" label="Initial password" type="password" data-testid="add-password" placeholder="Initial password" grow />
@@ -156,7 +156,7 @@ async function onDelete(id: string) {
         <FormField v-model="newPhone" label="Phone" type="text" data-testid="add-phone" placeholder="Phone (optional)" grow />
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
-    </Modal>
+    </AppModal>
   </div>
 </template>
 

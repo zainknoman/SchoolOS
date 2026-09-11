@@ -5,7 +5,7 @@ import { api, type AcademicSessionSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
-import Modal from '../components/Modal.vue';
+import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -155,7 +155,7 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <Modal v-model="showAddForm" title="Add Academic Session">
+    <AppModal v-model="showAddForm" title="Add Academic Session">
       <div class="inline-form">
         <FormField v-model="newLabel" label="Session label" type="text" data-testid="add-label" placeholder="e.g. 2027-2028" />
         <FormField v-model="newStart" label="Start date" type="date" data-testid="add-start" />
@@ -163,7 +163,7 @@ async function onDelete(id: string) {
         <FormField v-model="newActive" label="Active" type="checkbox" data-testid="add-active" />
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
-    </Modal>
+    </AppModal>
   </div>
 </template>
 

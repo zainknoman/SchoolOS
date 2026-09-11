@@ -11,7 +11,7 @@ import {
 } from '../lib/api';
 import { formatPkrFull } from '../lib/format';
 import { useFocusTarget } from '../lib/useFocusTarget';
-import Modal from '../components/Modal.vue';
+import AppModal from '../components/AppModal.vue';
 
 const auth = useAuthStore();
 
@@ -194,13 +194,13 @@ async function onLoadLedger() {
       <ul class="structures-list">
         <li v-for="s in structures" :key="s.id">{{ s.name }} — PKR {{ formatPkrFull(s.amount / 100) }}</li>
       </ul>
-      <Modal v-model="showAddStructureForm" title="Add Fee Structure">
+      <AppModal v-model="showAddStructureForm" title="Add Fee Structure">
         <div class="inline-form">
           <input data-testid="structure-name" v-model="newStructureName" type="text" placeholder="Name" />
           <input data-testid="structure-amount" v-model="newStructureAmount" type="number" placeholder="Amount (PKR)" />
           <button data-testid="create-structure" @click="onCreateStructure">Add</button>
         </div>
-      </Modal>
+      </AppModal>
     </section>
 
     <section class="card">

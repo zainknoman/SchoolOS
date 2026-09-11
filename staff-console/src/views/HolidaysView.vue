@@ -5,7 +5,7 @@ import { api, type HolidaySummary, type CampusSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
-import Modal from '../components/Modal.vue';
+import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -157,7 +157,7 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <Modal v-model="showAddForm" title="Add Holiday">
+    <AppModal v-model="showAddForm" title="Add Holiday">
       <div class="inline-form">
         <FormField v-model="newTitle" label="Title" type="text" data-testid="add-title" placeholder="e.g. Eid break" grow />
         <FormField v-model="newStartDate" label="Start date" type="date" data-testid="add-start-date" />
@@ -172,7 +172,7 @@ async function onDelete(id: string) {
         />
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
-    </Modal>
+    </AppModal>
   </div>
 </template>
 

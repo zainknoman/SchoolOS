@@ -6,7 +6,7 @@ import { api, type SectionSummary, type ClassSummary, type TeacherSummary } from
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
-import Modal from '../components/Modal.vue';
+import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -144,7 +144,7 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <Modal v-model="showAddForm" title="Add Section">
+    <AppModal v-model="showAddForm" title="Add Section">
       <div class="inline-form">
         <FormField
           v-model="newClassId"
@@ -164,7 +164,7 @@ async function onDelete(id: string) {
         />
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
-    </Modal>
+    </AppModal>
   </div>
 </template>
 

@@ -5,7 +5,7 @@ import { api, type CampusSummary, type SchoolSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
-import Modal from '../components/Modal.vue';
+import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -118,7 +118,7 @@ async function onDelete(id: string) {
       </template>
     </EntityTable>
 
-    <Modal v-model="showAddForm" title="Add Campus">
+    <AppModal v-model="showAddForm" title="Add Campus">
       <div class="inline-form">
         <FormField
           v-model="newSchoolId"
@@ -131,7 +131,7 @@ async function onDelete(id: string) {
         <FormField v-model="newName" label="Campus name" type="text" data-testid="add-name" placeholder="Campus name" grow />
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
-    </Modal>
+    </AppModal>
   </div>
 </template>
 

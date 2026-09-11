@@ -10,7 +10,7 @@ import {
   type TimetableEntryInput,
 } from '../lib/api';
 import { useConfirm } from '../lib/useConfirm';
-import Modal from '../components/Modal.vue';
+import AppModal from '../components/AppModal.vue';
 
 const DAY_OPTIONS = [
   { value: 1, label: 'Monday' },
@@ -737,7 +737,7 @@ async function onSaveBulk() {
       </table>
       <p v-else class="empty">No periods scheduled for this section yet.</p>
 
-      <Modal v-model="showAddForm" title="Add a period">
+      <AppModal v-model="showAddForm" title="Add a period">
         <div class="add-row">
           <select v-model.number="addForm.dayOfWeek" data-testid="add-day">
             <option v-for="d in DAY_OPTIONS" :key="d.value" :value="d.value">{{ d.label }}</option>
@@ -763,7 +763,7 @@ async function onSaveBulk() {
             {{ isSaving ? 'Saving…' : 'Add' }}
           </button>
         </div>
-      </Modal>
+      </AppModal>
     </template>
   </div>
 </template>
