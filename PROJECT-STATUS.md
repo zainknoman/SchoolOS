@@ -1080,6 +1080,19 @@ plan file now carries).
   as a follow-up, not blocking: the existing 623-test suite (308+227+88) staying green is a real
   regression guard for everything it touches, it just doesn't yet touch this sprint's new surface
   area.
+- **Follow-up closed 2026-09-11 (`ba0df6f..4c33451`):** Sprint I's own scope line for report cards
+  said "upload for staff, read for parent," but only the Admin-facing `ReportCardsView` had ever
+  shipped — there was no Teacher-facing upload screen, and the Teacher nav's Complaints link still
+  pointed at the generic admin `ComplaintsPageView` (cross-student queue) instead of a
+  section/student-scoped view. Added `TeacherReportCardsView`/`TeacherReportCardsPageView` and
+  `TeacherComplaintsView`/`TeacherComplaintsPageView` (each with its own spec file — closing part of
+  this section's "no dedicated tests" gap for the new surface it covers), re-pointed the Teacher nav,
+  and extended `GET /academic-sessions` read access to TEACHER/SCHOOL_ADMIN (was SUPER_ADMIN-only) so
+  a teacher can pick a session when uploading. Separately, all CRUD list screens' inline "Add" forms
+  moved behind a shared `Modal.vue` + top-right "+ Add New" button (previously rendered open below
+  the table on every screen). Verified: backend unit 309/309, backend e2e 79/79 (2 new
+  `org-structure.e2e-spec.ts` cases), staff-console 238/238, `vue-tsc` clean, live-smoke-tested in
+  the browser (Students/Timetable/Fees).
 
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
