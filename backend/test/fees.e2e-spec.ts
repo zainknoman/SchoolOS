@@ -136,7 +136,7 @@ describe('Fees (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/v1/fee-vouchers')
       .set('Authorization', `Bearer ${teacherToken}`)
-      .send({ studentIds: [ids.childA], month: '2026-09', dueDate: '2026-09-10', feeStructureIds: [ids.structure] })
+      .send({ studentIds: [ids.childA], month: '2026-09', dueDate: '2026-09-25', feeStructureIds: [ids.structure] })
       .expect(403);
   });
 
@@ -146,14 +146,14 @@ describe('Fees (e2e)', () => {
     const issued = await request(app.getHttpServer())
       .post('/api/v1/fee-vouchers')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ studentIds: [ids.childA], month: '2026-09', dueDate: '2026-09-10', feeStructureIds: [ids.structure] })
+      .send({ studentIds: [ids.childA], month: '2026-09', dueDate: '2026-09-25', feeStructureIds: [ids.structure] })
       .expect(201);
     ids.voucher = issued.body[0].id;
 
     await request(app.getHttpServer())
       .post('/api/v1/fee-vouchers')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ studentIds: [ids.childA], month: '2026-09', dueDate: '2026-09-10', feeStructureIds: [ids.structure] })
+      .send({ studentIds: [ids.childA], month: '2026-09', dueDate: '2026-09-25', feeStructureIds: [ids.structure] })
       .expect(400);
 
     const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');

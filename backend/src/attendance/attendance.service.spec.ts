@@ -3,6 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
+import { HolidaysService } from '../holidays/holidays.service';
 
 describe('AttendanceService', () => {
   let service: AttendanceService;
@@ -13,6 +14,7 @@ describe('AttendanceService', () => {
     auditLog: { create: jest.Mock };
   };
   let enrollmentService: { getCurrentEnrollment: jest.Mock };
+  let holidaysService: { isHoliday: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -22,11 +24,13 @@ describe('AttendanceService', () => {
       auditLog: { create: jest.fn() },
     };
     enrollmentService = { getCurrentEnrollment: jest.fn() };
+    holidaysService = { isHoliday: jest.fn().mockResolvedValue(false) };
     const moduleRef = await Test.createTestingModule({
       providers: [
         AttendanceService,
         { provide: PrismaService, useValue: prisma },
         { provide: EnrollmentService, useValue: enrollmentService },
+        { provide: HolidaysService, useValue: holidaysService },
       ],
     }).compile();
     service = moduleRef.get(AttendanceService);
@@ -35,6 +39,7 @@ describe('AttendanceService', () => {
   it('marks attendance (upsert on studentId+date) and writes an audit log entry', async () => {
     prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-1' });
     prisma.attendance.upsert.mockResolvedValue({ id: 'att-1' });
+    enrollmentService.getCurrentEnrollment.mockResolvedValue({ campusId: 'campus-1' });
 
     await service.markAttendance(
       { studentId: 's1', date: '2026-08-27', status: 'ABSENT' },
@@ -122,6 +127,7 @@ describe('AttendanceService', () => {
       late: 1,
       holiday: 1,
       leave: 0,
+      calendarHolidayCount: 0,
       attendancePercentage: 50,
     });
     expect(result.days).toHaveLength(5);

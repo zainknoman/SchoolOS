@@ -1,9 +1,11 @@
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { MAIL_ADAPTER } from '../notifications/mail-adapter';
 import {
   MAX_FAILED_ATTEMPTS,
   GENERIC_AUTH_ERROR,
@@ -21,8 +23,15 @@ describe('AuthService', () => {
       create: jest.Mock;
       findUnique: jest.Mock;
       update: jest.Mock;
+      updateMany: jest.Mock;
+    };
+    passwordResetToken: {
+      create: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
     };
   };
+  let mailAdapter: { send: jest.Mock };
 
   const baseUser = {
     id: 'user-1',
@@ -40,8 +49,15 @@ describe('AuthService', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      passwordResetToken: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
       },
     };
+    mailAdapter = { send: jest.fn() };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -54,6 +70,8 @@ describe('AuthService', () => {
             verify: jest.fn(),
           },
         },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: MAIL_ADAPTER, useValue: mailAdapter },
       ],
     }).compile();
 

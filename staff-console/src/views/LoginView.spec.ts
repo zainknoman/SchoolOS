@@ -12,6 +12,7 @@ function makeRouter() {
       { path: '/login', name: 'login', component: LoginView },
       { path: '/teacher', name: 'teacher-home', component: { template: '<div>teacher</div>' } },
       { path: '/admin', name: 'admin-home', component: { template: '<div>admin</div>' } },
+      { path: '/forgot-password', name: 'forgot-password', component: { template: '<div>forgot</div>' } },
     ],
   });
 }

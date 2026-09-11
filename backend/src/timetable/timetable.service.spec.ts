@@ -9,6 +9,7 @@ describe('TimetableService', () => {
   let prisma: {
     timetable: {
       findMany: jest.Mock;
+      findFirst: jest.Mock;
       create: jest.Mock;
       findUnique: jest.Mock;
       update: jest.Mock;
@@ -25,6 +26,7 @@ describe('TimetableService', () => {
     prisma = {
       timetable: {
         findMany: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue(null),
         create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),

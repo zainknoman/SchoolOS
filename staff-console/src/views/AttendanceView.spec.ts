@@ -10,7 +10,7 @@ vi.mock('../lib/api', () => ({
     listSections: vi.fn(),
     sectionStudents: vi.fn(),
     sectionAttendance: vi.fn(),
-    markAttendance: vi.fn(),
+    markAttendanceBulk: vi.fn(),
   },
 }));
 
@@ -22,7 +22,7 @@ describe('AttendanceView', () => {
     vi.mocked(api.listSections).mockReset();
     vi.mocked(api.sectionStudents).mockReset();
     vi.mocked(api.sectionAttendance).mockReset().mockResolvedValue({});
-    vi.mocked(api.markAttendance).mockReset();
+    vi.mocked(api.markAttendanceBulk).mockReset();
   });
 
   it('loads sections, then students once a section is picked, and marks attendance on save', async () => {
@@ -32,7 +32,7 @@ describe('AttendanceView', () => {
     vi.mocked(api.sectionStudents).mockResolvedValue([
       { id: 's1', name: 'Eshaal', grNumber: 'GR-1001' },
     ]);
-    vi.mocked(api.markAttendance).mockResolvedValue(undefined);
+    vi.mocked(api.markAttendanceBulk).mockResolvedValue(undefined);
 
     const wrapper = mount(AttendanceView);
     await flushPromises();
@@ -49,9 +49,11 @@ describe('AttendanceView', () => {
     await wrapper.find('[data-testid="save-attendance"]').trigger('click');
     await flushPromises();
 
-    expect(api.markAttendance).toHaveBeenCalledWith(
+    expect(api.markAttendanceBulk).toHaveBeenCalledWith(
       'token-1',
-      expect.objectContaining({ studentId: 's1', status: 'PRESENT' }),
+      expect.objectContaining({
+        marks: expect.arrayContaining([expect.objectContaining({ studentId: 's1', status: 'PRESENT' })]),
+      }),
     );
     expect(wrapper.text()).toContain('Saved');
   });
@@ -101,7 +103,7 @@ describe('AttendanceView', () => {
     vi.mocked(api.sectionStudents).mockResolvedValue([
       { id: 's1', name: 'Eshaal', grNumber: 'GR-1001' },
     ]);
-    vi.mocked(api.markAttendance).mockRejectedValue(
+    vi.mocked(api.markAttendanceBulk).mockRejectedValue(
       new Error('Something went wrong. Please try again.'),
     );
 
@@ -177,9 +179,11 @@ describe('AttendanceView', () => {
     await wrapper.find('[data-testid="save-attendance"]').trigger('click');
     await flushPromises();
 
-    expect(api.markAttendance).toHaveBeenCalledWith(
+    expect(api.markAttendanceBulk).toHaveBeenCalledWith(
       'token-1',
-      expect.objectContaining({ studentId: 's1', status: 'LEAVE' }),
+      expect.objectContaining({
+        marks: expect.arrayContaining([expect.objectContaining({ studentId: 's1', status: 'LEAVE' })]),
+      }),
     );
   });
 });
