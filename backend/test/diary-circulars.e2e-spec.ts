@@ -86,6 +86,17 @@ describe('Diary + Circulars (e2e)', () => {
     const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'DC Teacher', campusId: campus.id },
     });
+    const campusB = await prisma.campus.create({
+      data: { schoolId: school.id, name: 'DC Campus B' },
+    });
+    const teacherBUser = await prisma.user.create({
+      data: { identifier: 'dc-teacher-b@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+    });
+    const teacherB = await prisma.teacher.create({
+      data: { userId: teacherBUser.id, name: 'DC Teacher B', campusId: campusB.id },
+    });
+    ids.campusB = campusB.id;
+    ids.teacherB = teacherB.id;
     const adminUser = await prisma.user.create({
       data: { identifier: 'dc-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
     });
@@ -158,6 +169,7 @@ describe('Diary + Circulars (e2e)', () => {
           identifier: {
             in: [
               'dc-teacher@seeds.edu.pk',
+              'dc-teacher-b@seeds.edu.pk',
               'dc-admin@seeds.edu.pk',
               'dc-parent-a@seeds.edu.pk',
               'dc-parent-b@seeds.edu.pk',
@@ -280,6 +292,24 @@ describe('Diary + Circulars (e2e)', () => {
         text: 'x',
       })
       .expect(403);
+  });
+
+  it('denies a teacher creating a diary entry for a section outside their campus', async () => {
+    const token = await loginAs('dc-teacher-b@seeds.edu.pk');
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/diary')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ sectionId: ids.sectionA, subjectId: ids.subject, date: '2026-09-12', text: 'Test entry' });
+    expect(res.status).toBe(403);
+  });
+
+  it("denies a teacher reading another campus section's diary", async () => {
+    const token = await loginAs('dc-teacher-b@seeds.edu.pk');
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/sections/${ids.sectionA}/diary`)
+      .query({ month: '2026-09' })
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(403);
   });
 
   it('an admin publishes a school-wide circular; both parents get it, and stats show delivered/read counts', async () => {

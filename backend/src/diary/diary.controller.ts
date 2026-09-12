@@ -21,7 +21,8 @@ export class DiaryController {
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('diary')
-  createEntry(@Body() dto: CreateDiaryEntryDto, @Req() req: AuthenticatedRequest) {
+  async createEntry(@Body() dto: CreateDiaryEntryDto, @Req() req: AuthenticatedRequest) {
+    await this.studentAccess.assertCanAccessSection(req.user, dto.sectionId);
     return this.diaryService.createEntry(dto, req.user.id);
   }
 
@@ -45,7 +46,12 @@ export class DiaryController {
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
   @Get('sections/:id/diary')
-  getForSection(@Param('id') sectionId: string, @Query('month') month: string) {
+  async getForSection(
+    @Param('id') sectionId: string,
+    @Query('month') month: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    await this.studentAccess.assertCanAccessSection(req.user, sectionId);
     const targetMonth = month ?? new Date().toISOString().slice(0, 7);
     return this.diaryService.getForSection(sectionId, targetMonth);
   }
