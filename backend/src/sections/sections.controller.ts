@@ -4,7 +4,7 @@ import { SectionsService } from './sections.service';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
-import type { RequestUser } from '../common/student-access.service';
+import { StudentAccessService, type RequestUser } from '../common/student-access.service';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -12,7 +12,10 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('api/v1/sections')
 export class SectionsController {
-  constructor(private readonly sectionsService: SectionsService) {}
+  constructor(
+    private readonly sectionsService: SectionsService,
+    private readonly studentAccess: StudentAccessService,
+  ) {}
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
   @Get()
@@ -22,7 +25,8 @@ export class SectionsController {
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
   @Get(':id/students')
-  getStudents(@Param('id') sectionId: string) {
+  async getStudents(@Param('id') sectionId: string, @Req() req: AuthenticatedRequest) {
+    await this.studentAccess.assertCanAccessSection(req.user, sectionId);
     return this.sectionsService.getStudents(sectionId);
   }
 
