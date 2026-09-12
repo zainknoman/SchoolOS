@@ -13,6 +13,7 @@ vi.mock('../lib/api', () => ({
     createTeacher: vi.fn(),
     updateTeacher: vi.fn(),
     deleteTeacher: vi.fn(),
+    listCampuses: vi.fn(),
   },
 }));
 vi.mock('../lib/useConfirm', () => ({
@@ -27,6 +28,10 @@ describe('TeacherManagementView', () => {
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listAdminTeachers).mockResolvedValue([
       { id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'Existing Teacher' },
+    ]);
+    vi.mocked(api.listCampuses).mockResolvedValue([
+      { id: 'campus-1', name: 'Gulistan-e-Jauhar', schoolId: 'school-1', schoolName: 'Test School' },
+      { id: 'campus-2', name: 'Gulshan-e-Iqbal', schoolId: 'school-1', schoolName: 'Test School' },
     ]);
     vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
@@ -43,11 +48,12 @@ describe('TeacherManagementView', () => {
     await wrapper.find('[data-testid="add-identifier"]').setValue('new-teacher@seeds.edu.pk');
     await wrapper.find('[data-testid="add-password"]').setValue('ChangeMe123!');
     await wrapper.find('[data-testid="add-name"]').setValue('New Teacher');
+    await wrapper.find('[data-testid="add-campus"]').setValue('campus-1');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
     await flushPromises();
 
     expect(api.createTeacher).toHaveBeenCalledWith('token-1', {
-      identifier: 'new-teacher@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher',
+      identifier: 'new-teacher@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-1',
     });
   });
 
@@ -114,5 +120,27 @@ describe('TeacherManagementView', () => {
     await flushPromises();
 
     expect(wrapper.find('[role="alert"]').text()).toContain('Cannot delete this Teacher');
+  });
+
+  it('requires a campus selection and sends campusId when creating a teacher', async () => {
+    vi.mocked(api.createTeacher).mockResolvedValue(undefined);
+
+    const wrapper = mount(TeacherManagementView);
+    await flushPromises();
+
+    await wrapper.get('[data-testid="open-add-form"]').trigger('click');
+    await wrapper.get('[data-testid="add-identifier"]').setValue('new-teacher@seeds.edu.pk');
+    await wrapper.get('[data-testid="add-password"]').setValue('ChangeMe123!');
+    await wrapper.get('[data-testid="add-name"]').setValue('New Teacher');
+    await wrapper.get('[data-testid="add-campus"]').setValue('campus-1');
+    await wrapper.get('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+
+    expect(api.createTeacher).toHaveBeenCalledWith('token-1', {
+      identifier: 'new-teacher@seeds.edu.pk',
+      password: 'ChangeMe123!',
+      name: 'New Teacher',
+      campusId: 'campus-1',
+    });
   });
 });

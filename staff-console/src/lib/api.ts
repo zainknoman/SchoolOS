@@ -910,7 +910,7 @@ export const api = {
 
   async createTeacher(
     accessToken: string,
-    payload: { identifier: string; password: string; name: string },
+    payload: { identifier: string; password: string; name: string; campusId: string },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/teachers`, {
       method: 'POST',

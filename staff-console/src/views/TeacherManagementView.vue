@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { api, type TeacherAdminSummary } from '../lib/api';
+import { api, type TeacherAdminSummary, type CampusSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
@@ -13,12 +13,14 @@ const auth = useAuthStore();
 const { confirm } = useConfirm();
 
 const teachers = ref<TeacherAdminSummary[]>([]);
+const campuses = ref<CampusSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
 const showAddForm = ref(false);
 const newIdentifier = ref('');
 const newPassword = ref('');
 const newName = ref('');
+const newCampusId = ref('');
 const isSaving = ref(false);
 
 const editingId = ref<string | null>(null);
@@ -28,7 +30,10 @@ const editPassword = ref('');
 async function load() {
   if (!auth.accessToken) return;
   try {
-    teachers.value = await api.listAdminTeachers(auth.accessToken);
+    [teachers.value, campuses.value] = await Promise.all([
+      api.listAdminTeachers(auth.accessToken),
+      api.listCampuses(auth.accessToken),
+    ]);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load teachers.';
   }
@@ -36,7 +41,7 @@ async function load() {
 load();
 
 async function onAdd() {
-  if (!auth.accessToken || !newIdentifier.value.trim() || !newPassword.value || !newName.value.trim()) return;
+  if (!auth.accessToken || !newIdentifier.value.trim() || !newPassword.value || !newName.value.trim() || !newCampusId.value) return;
   errorMessage.value = null;
   isSaving.value = true;
   try {
@@ -44,10 +49,12 @@ async function onAdd() {
       identifier: newIdentifier.value.trim(),
       password: newPassword.value,
       name: newName.value.trim(),
+      campusId: newCampusId.value,
     });
     newIdentifier.value = '';
     newPassword.value = '';
     newName.value = '';
+    newCampusId.value = '';
     showAddForm.value = false;
     await load();
   } catch (err) {
@@ -142,6 +149,14 @@ async function onDelete(id: string) {
         <FormField v-model="newIdentifier" label="Login email" type="text" data-testid="add-identifier" placeholder="Login email" grow />
         <FormField v-model="newPassword" label="Initial password" type="password" data-testid="add-password" placeholder="Initial password" grow />
         <FormField v-model="newName" label="Full name" type="text" data-testid="add-name" placeholder="Full name" grow />
+        <FormField
+          v-model="newCampusId"
+          label="Campus"
+          type="select"
+          data-testid="add-campus"
+          placeholder="Select a campus"
+          :options="campuses.map((c) => ({ value: c.id, label: c.name }))"
+        />
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
     </AppModal>
