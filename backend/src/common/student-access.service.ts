@@ -25,49 +25,72 @@ export class StudentAccessService {
   ) {}
 
   async assertCanAccessStudent(user: RequestUser, studentId: string): Promise<void> {
-    if (user.role === 'SUPER_ADMIN') {
-      return;
-    }
-    if (user.role === 'SCHOOL_ADMIN' || user.role === 'ACCOUNTS' || user.role === 'TEACHER') {
-      const scope = await this.resolveStudentScope(studentId);
-      await this.assertCanAccessScope(user, scope);
-      return;
-    }
-    // PARENT (or any other non-staff role): must have a StudentParent link — independent of the
-    // student's current enrollment status, so a parent keeps access to a withdrawn/graduated
-    // child's historical records (report cards, fee receipts, etc.), matching the pre-Sprint-L
-    // behavior this check has always had.
-    const link = await this.prisma.studentParent.findFirst({
-      where: { studentId, parentProfile: { userId: user.id } },
-    });
-    if (!link) {
-      throw new ForbiddenException('You do not have access to this student');
+    switch (user.role) {
+      case 'SUPER_ADMIN':
+        return;
+      case 'SCHOOL_ADMIN':
+      case 'ACCOUNTS':
+      case 'TEACHER': {
+        const scope = await this.resolveStudentScope(studentId);
+        await this.assertCanAccessScope(user, scope);
+        return;
+      }
+      default: {
+        // PARENT (or any other unrecognized role): must have a StudentParent link —
+        // independent of the student's current enrollment status, so a parent keeps access to
+        // a withdrawn/graduated child's historical records, matching the pre-Sprint-L behavior.
+        const link = await this.prisma.studentParent.findFirst({
+          where: { studentId, parentProfile: { userId: user.id } },
+        });
+        if (!link) {
+          throw new ForbiddenException('You do not have access to this student');
+        }
+      }
     }
   }
 
   async assertCanAccessSection(user: RequestUser, sectionId: string): Promise<void> {
-    if (user.role === 'SUPER_ADMIN') {
-      return;
+    switch (user.role) {
+      case 'SUPER_ADMIN':
+        return;
+      case 'SCHOOL_ADMIN':
+      case 'ACCOUNTS':
+      case 'TEACHER': {
+        const scope = await this.resolveSectionScope(sectionId);
+        await this.assertCanAccessScope(user, scope);
+        return;
+      }
+      default:
+        // No PARENT-accessible caller reaches this method; any other role is denied outright.
+        throw new ForbiddenException('You do not have access to this resource');
     }
-    const scope = await this.resolveSectionScope(sectionId);
-    await this.assertCanAccessScope(user, scope);
   }
 
   private async assertCanAccessScope(user: RequestUser, scope: AccessScope | null): Promise<void> {
     if (!scope) {
       throw new ForbiddenException('You do not have access to this resource');
     }
-    if (user.role === 'SCHOOL_ADMIN' || user.role === 'ACCOUNTS') {
-      const admin = await this.prisma.user.findUnique({ where: { id: user.id } });
-      if (!admin?.schoolId || admin.schoolId !== scope.schoolId) {
-        throw new ForbiddenException('You do not have access to this resource');
+    switch (user.role) {
+      case 'SCHOOL_ADMIN':
+      case 'ACCOUNTS': {
+        const admin = await this.prisma.user.findUnique({ where: { id: user.id } });
+        if (!admin?.schoolId || admin.schoolId !== scope.schoolId) {
+          throw new ForbiddenException('You do not have access to this resource');
+        }
+        return;
       }
-      return;
-    }
-    // TEACHER (the only remaining caller of this helper)
-    const teacher = await this.prisma.teacher.findUnique({ where: { userId: user.id } });
-    if (!teacher || teacher.campusId !== scope.campusId) {
-      throw new ForbiddenException('You do not have access to this resource');
+      case 'TEACHER': {
+        const teacher = await this.prisma.teacher.findUnique({ where: { userId: user.id } });
+        if (!teacher || teacher.campusId !== scope.campusId) {
+          throw new ForbiddenException('You do not have access to this resource');
+        }
+        return;
+      }
+      default:
+        // Unreachable in practice — this is only ever called for SCHOOL_ADMIN/ACCOUNTS/TEACHER
+        // (see the switches above) — but fail closed rather than silently allow if that
+        // invariant is ever broken.
+        throw new ForbiddenException('You do not have access to this resource');
     }
   }
 
