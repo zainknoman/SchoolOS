@@ -12,6 +12,7 @@ describe('AttendanceService', () => {
     section: { findUnique: jest.Mock };
     attendance: { upsert: jest.Mock; findMany: jest.Mock };
     auditLog: { create: jest.Mock };
+    $transaction: jest.Mock;
   };
   let enrollmentService: { getCurrentEnrollment: jest.Mock };
   let holidaysService: { isHoliday: jest.Mock };
@@ -22,6 +23,7 @@ describe('AttendanceService', () => {
       section: { findUnique: jest.fn() },
       attendance: { upsert: jest.fn(), findMany: jest.fn() },
       auditLog: { create: jest.fn() },
+      $transaction: jest.fn().mockImplementation((cb: (tx: typeof prisma) => Promise<unknown>) => cb(prisma)),
     };
     enrollmentService = { getCurrentEnrollment: jest.fn() };
     holidaysService = { isHoliday: jest.fn().mockResolvedValue(false) };
@@ -157,5 +159,85 @@ describe('AttendanceService', () => {
     const result = await service.getForSection('sec-1', '2026-08-27');
 
     expect(result).toEqual({});
+  });
+
+  describe('markBulk', () => {
+    it('throws BadRequestException when marks is empty', async () => {
+      await expect(
+        service.markBulk({ date: '2026-09-01', marks: [] }, 'teacher-user-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects marking on a declared holiday, before writing anything', async () => {
+      enrollmentService.getCurrentEnrollment.mockResolvedValue({ campusId: 'campus-1' });
+      holidaysService.isHoliday.mockResolvedValue(true);
+
+      await expect(
+        service.markBulk(
+          { date: '2026-09-01', marks: [{ studentId: 's1', status: 'PRESENT' }] },
+          'teacher-user-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.attendance.upsert).not.toHaveBeenCalled();
+    });
+
+    it('upserts every mark in one transaction, attributed to the marking teacher, and writes one bulk audit log entry', async () => {
+      enrollmentService.getCurrentEnrollment.mockResolvedValue({ campusId: 'campus-1', sectionId: 'sec-1' });
+      holidaysService.isHoliday.mockResolvedValue(false);
+      prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-1' });
+      prisma.attendance.upsert.mockResolvedValue({ id: 'att-1' });
+
+      await service.markBulk(
+        {
+          date: '2026-09-01',
+          marks: [
+            { studentId: 's1', status: 'PRESENT' },
+            { studentId: 's2', status: 'ABSENT' },
+          ],
+        },
+        'teacher-user-1',
+      );
+
+      expect(prisma.attendance.upsert).toHaveBeenCalledTimes(2);
+      expect(prisma.attendance.upsert).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          where: { studentId_date: { studentId: 's1', date: new Date('2026-09-01') } },
+          create: expect.objectContaining({ studentId: 's1', status: 'PRESENT', markedById: 'teacher-1' }),
+        }),
+      );
+      expect(prisma.attendance.upsert).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          create: expect.objectContaining({ studentId: 's2', status: 'ABSENT', markedById: 'teacher-1' }),
+        }),
+      );
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: 'teacher-user-1',
+            action: 'attendance.mark-bulk',
+            entity: 'Attendance',
+          }),
+        }),
+      );
+    });
+
+    it('falls back to the section class-teacher when the marking user has no Teacher profile (Admin marking)', async () => {
+      enrollmentService.getCurrentEnrollment.mockResolvedValue({ campusId: 'campus-1', sectionId: 'sec-1' });
+      holidaysService.isHoliday.mockResolvedValue(false);
+      prisma.teacher.findUnique.mockResolvedValue(null);
+      prisma.section.findUnique.mockResolvedValue({ id: 'sec-1', classTeacherId: 'teacher-9' });
+      prisma.attendance.upsert.mockResolvedValue({ id: 'att-1' });
+
+      await service.markBulk(
+        { date: '2026-09-01', marks: [{ studentId: 's1', status: 'PRESENT' }] },
+        'admin-user-1',
+      );
+
+      expect(prisma.attendance.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ create: expect.objectContaining({ markedById: 'teacher-9' }) }),
+      );
+    });
   });
 });
