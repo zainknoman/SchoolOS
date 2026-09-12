@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { TeacherService } from './teacher.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,7 +11,8 @@ describe('TeacherService', () => {
   let tx: { user: { create: jest.Mock; delete: jest.Mock }; teacher: { create: jest.Mock; delete: jest.Mock } };
   let prisma: {
     teacher: { findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock };
-    user: { update: jest.Mock; delete: jest.Mock };
+    user: { findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock };
+    campus: { findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
@@ -20,10 +21,16 @@ describe('TeacherService', () => {
     tx = { user: { create: jest.fn(), delete: jest.fn() }, teacher: { create: jest.fn(), delete: jest.fn() } };
     prisma = {
       teacher: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
-      user: { update: jest.fn(), delete: jest.fn() },
+      user: { findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
+      campus: { findUnique: jest.fn() },
       auditLog: { create: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(tx)),
     };
+    // Default: acting SCHOOL_ADMIN and the target campus share the same school, so existing
+    // tests (written before the cross-tenant check existed) keep passing unless a test
+    // overrides this to prove the mismatch case.
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
+    prisma.campus.findUnique.mockResolvedValue({ id: 'campus-1', schoolId: 'school-1' });
     const moduleRef = await Test.createTestingModule({
       providers: [TeacherService, { provide: PrismaService, useValue: prisma }],
     }).compile();
@@ -36,7 +43,7 @@ describe('TeacherService', () => {
 
     const result = await service.create(
       { identifier: 'teacher-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-1' },
-      'admin-1',
+      { id: 'admin-1', role: 'SCHOOL_ADMIN' },
     );
 
     expect(result).toEqual({ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' });
@@ -57,8 +64,38 @@ describe('TeacherService', () => {
     );
 
     await expect(
-      service.create({ identifier: 'dupe@seeds.edu.pk', password: 'ChangeMe123!', name: 'X' }, 'admin-1'),
+      service.create(
+        { identifier: 'dupe@seeds.edu.pk', password: 'ChangeMe123!', name: 'X', campusId: 'campus-1' },
+        { id: 'admin-1', role: 'SCHOOL_ADMIN' },
+      ),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it("rejects a SCHOOL_ADMIN creating a teacher in a campus belonging to a different school, and never enters the transaction", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
+    prisma.campus.findUnique.mockResolvedValue({ id: 'campus-2', schoolId: 'school-2' });
+
+    await expect(
+      service.create(
+        { identifier: 'teacher-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-2' },
+        { id: 'admin-1', role: 'SCHOOL_ADMIN' },
+      ),
+    ).rejects.toThrow(ForbiddenException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('allows a SUPER_ADMIN to create a teacher in any campus without any school lookup', async () => {
+    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'teacher-x@seeds.edu.pk' });
+    tx.teacher.create.mockResolvedValue({ id: 't1', name: 'New Teacher' });
+
+    const result = await service.create(
+      { identifier: 'teacher-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-2' },
+      { id: 'super-1', role: 'SUPER_ADMIN' },
+    );
+
+    expect(result).toEqual({ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' });
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(prisma.campus.findUnique).not.toHaveBeenCalled();
   });
 
   it('lists teachers with their login identifier', async () => {

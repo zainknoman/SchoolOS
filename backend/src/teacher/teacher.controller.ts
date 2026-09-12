@@ -17,7 +17,7 @@ export class TeacherController {
 
   @Post()
   create(@Body() dto: CreateTeacherDto, @Req() req: AuthenticatedRequest) {
-    return this.teacherService.create(dto, req.user.id);
+    return this.teacherService.create(dto, req.user);
   }
 
   @Get()

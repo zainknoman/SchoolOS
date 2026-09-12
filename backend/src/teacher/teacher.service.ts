@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
+import type { RequestUser } from '../common/student-access.service';
 
 export interface TeacherAdminSummary {
   id: string;
@@ -22,7 +23,16 @@ export class TeacherService {
     return { id: record.id, identifier: record.user.identifier, name: record.name };
   }
 
-  async create(dto: CreateTeacherDto, actingUserId: string): Promise<TeacherAdminSummary> {
+  async create(dto: CreateTeacherDto, actingUser: RequestUser): Promise<TeacherAdminSummary> {
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const [admin, campus] = await Promise.all([
+        this.prisma.user.findUnique({ where: { id: actingUser.id } }),
+        this.prisma.campus.findUnique({ where: { id: dto.campusId } }),
+      ]);
+      if (!admin?.schoolId || !campus || admin.schoolId !== campus.schoolId) {
+        throw new ForbiddenException('You do not have access to this campus');
+      }
+    }
     let created: { id: string; name: string; identifier: string };
     try {
       created = await this.prisma.$transaction(async (tx) => {
@@ -40,7 +50,7 @@ export class TeacherService {
     }
     await this.prisma.auditLog.create({
       data: {
-        userId: actingUserId,
+        userId: actingUser.id,
         action: 'teacher.create',
         entity: 'Teacher',
         entityId: created.id,
