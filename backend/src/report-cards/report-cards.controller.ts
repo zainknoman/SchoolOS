@@ -37,7 +37,7 @@ export class ReportCardsController {
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post()
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES } }))
-  upload(
+  async upload(
     @UploadedFile() file: Express.Multer.File,
     @Req() req: AuthenticatedRequest,
   ) {
@@ -46,6 +46,7 @@ export class ReportCardsController {
     if (!studentId || !academicSessionId) {
       throw new BadRequestException('studentId and academicSessionId are required');
     }
+    await this.studentAccess.assertCanAccessStudent(req.user, studentId);
     return this.reportCardsService.upload(studentId, academicSessionId, file, req.user.id);
   }
 

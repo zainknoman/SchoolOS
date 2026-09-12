@@ -382,5 +382,16 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         .attach('file', Buffer.from('%PDF-1.4 x'), 'x.pdf')
         .expect(403);
     });
+
+    it('denies a teacher uploading a report card for a student outside their campus', async () => {
+      const token = await loginAs('hcr-teacher-b@seeds.edu.pk');
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/report-cards')
+        .set('Authorization', `Bearer ${token}`)
+        .field('studentId', ids.childA)
+        .field('academicSessionId', ids.session)
+        .attach('file', Buffer.from('%PDF-1.4'), 'report.pdf');
+      expect(res.status).toBe(403);
+    });
   });
 });
