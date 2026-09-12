@@ -4,6 +4,7 @@ import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertValidReferences } from '../common/prisma-create-guard';
 import { CreateCampusDto } from './dto/create-campus.dto';
 import { UpdateCampusDto } from './dto/update-campus.dto';
+import type { RequestUser } from '../common/student-access.service';
 
 export interface CampusSummary {
   id: string;
@@ -56,8 +57,18 @@ export class CampusService {
     return this.toSummary(record);
   }
 
-  async list(): Promise<CampusSummary[]> {
+  async list(actingUser: RequestUser): Promise<CampusSummary[]> {
+    let schoolId: string | undefined;
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId) {
+        // Fail closed: a non-SUPER_ADMIN caller with no schoolId sees no campuses at all.
+        return [];
+      }
+      schoolId = admin.schoolId;
+    }
     const records = await this.prisma.campus.findMany({
+      where: schoolId ? { schoolId } : undefined,
       include: WITH_SCHOOL,
       orderBy: { name: 'asc' },
     });

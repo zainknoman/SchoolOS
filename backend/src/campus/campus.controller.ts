@@ -20,9 +20,10 @@ export class CampusController {
     return this.campusService.create(dto, req.user.id);
   }
 
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Get('campuses')
-  list() {
-    return this.campusService.list();
+  list(@Req() req: AuthenticatedRequest) {
+    return this.campusService.list(req.user);
   }
 
   @Patch('campuses/:id')

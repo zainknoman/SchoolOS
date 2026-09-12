@@ -14,6 +14,7 @@ describe('CampusService', () => {
       update: jest.Mock;
       delete: jest.Mock;
     };
+    user: { findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
   };
 
@@ -28,6 +29,7 @@ describe('CampusService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      user: { findUnique: jest.fn() },
       auditLog: { create: jest.fn() },
     };
     const moduleRef = await Test.createTestingModule({
@@ -84,7 +86,7 @@ describe('CampusService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('lists campuses with their school name', async () => {
+  it('lists every campus for a SUPER_ADMIN without a schoolId lookup', async () => {
     prisma.campus.findMany.mockResolvedValue([
       {
         id: 'c1',
@@ -94,7 +96,9 @@ describe('CampusService', () => {
       },
     ]);
 
-    expect(await service.list()).toEqual([
+    const result = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
+
+    expect(result).toEqual([
       {
         id: 'c1',
         name: 'Gulistan-e-Jauhar',
@@ -102,6 +106,45 @@ describe('CampusService', () => {
         schoolName: 'The Seeds School',
       },
     ]);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(prisma.campus.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: undefined }),
+    );
+  });
+
+  it("scopes a SCHOOL_ADMIN's campus list to their own school", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 's1' });
+    prisma.campus.findMany.mockResolvedValue([
+      {
+        id: 'c1',
+        name: 'Gulistan-e-Jauhar',
+        schoolId: 's1',
+        school: { name: 'The Seeds School' },
+      },
+    ]);
+
+    const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(result).toEqual([
+      {
+        id: 'c1',
+        name: 'Gulistan-e-Jauhar',
+        schoolId: 's1',
+        schoolName: 'The Seeds School',
+      },
+    ]);
+    expect(prisma.campus.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { schoolId: 's1' } }),
+    );
+  });
+
+  it('fails closed (returns an empty list) for a non-SUPER_ADMIN caller with no schoolId', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+
+    const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(result).toEqual([]);
+    expect(prisma.campus.findMany).not.toHaveBeenCalled();
   });
 
   it('updates only the name (schoolId is not editable)', async () => {
