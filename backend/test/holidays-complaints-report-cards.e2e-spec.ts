@@ -102,6 +102,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         identifier: 'hcr-admin@seeds.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
+        schoolId: school.id,
       },
     });
 
