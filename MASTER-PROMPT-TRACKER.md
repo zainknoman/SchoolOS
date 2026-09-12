@@ -18,6 +18,33 @@ just flip a checkbox — note the commit/date/evidence).
 
 ---
 
+## Sequenced Implementation Plan (added 2026-09-12)
+
+Every gap below is tracked as its own numbered sprint in
+`docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s living Implementation Checklist
+(Sprints L–Q), in priority order. None have a spec yet — per this repo's own workflow
+([[project-dev-workflow]]) and the `writing-plans` skill's scope-check rule, each is an independent
+subsystem and gets its own brainstorm → spec → plan cycle before any bite-sized TDD implementation
+plan is written. This section is the sequencing/priority layer; the roadmap doc carries the detail;
+update both when a sprint starts or ships.
+
+| Priority | Sprint | Scope | Why this order |
+|---|---|---|---|
+| 1 | **Sprint L** | Fix `StudentAccessService` cross-campus/cross-role access gap | Confirmed live security hole, not a missing feature — highest priority per master prompt §7 |
+| 2 | **Sprint M** | Staff-console + parent-app UI test coverage for the 5 Sprint I/J/K modules | Closes an already-tracked, lower-risk, smaller-scope gap; can run in parallel with Sprint L once both are spec'd |
+| 3 | **Sprint N** | Structured gradebook (weighted assessment categories, calculated grades) | Core academic correctness gap per master prompt §10; report cards currently a static upload, not calculated data |
+| 4 | **Sprint O** | Admissions/enrollment pipeline (applicant → application → review → approval → student) | Extends the existing narrow `EnrollmentService`; was already the roadmap's own unscoped "Phase 8 remainder" item |
+| 5 | **Sprint P** | Bulk import/export (Students/Parents/Teachers via CSV/Excel) | No existing foundation to extend; validation/duplicate-detection/audit-logging needs real design |
+| 6 | **Sprint Q** | `StatusPill.vue` + remaining accessibility audits | UI polish/consistency — lowest urgency relative to security and data-correctness gaps above |
+| — | **Blocked, not schedulable** | JazzCash/EasyPaisa/FCM/WhatsApp/SMS live sandbox verification | Needs external credentials (merchant account, Firebase project, gateway credentials) this environment doesn't have — re-check when available, don't fabricate verification |
+
+**Next action:** brainstorm + spec Sprint L (the security fix) first, since it's both highest-priority
+and already well-understood in scope (one chokepoint service, extend to check campus/section
+membership for staff roles). Sprints M–Q can be spec'd afterward in the order above, or reordered on
+request.
+
+---
+
 ## 0. Repository Audit (Master Prompt Section 2)
 
 | Item | Status | Evidence |
@@ -25,7 +52,7 @@ just flip a checkbox — note the commit/date/evidence).
 | Locate actual app repo | Done | `build/` is the real SchoolPortal repo (NestJS backend, Vue staff-console, Flutter parent-app); the parent `D:\Personal\Projects\SchoolApp` is an unrelated agentic-suite scaffold — see [[project-dev-workflow]] memory |
 | Git state at audit start | Done | `main`, clean, up to date with origin @ `b726199` (2026-09-12) |
 | Latest completed sprint | Done | Sprint I/J/K (remaining feature gaps, accessibility/localization, AI drafting + predictive analytics), plus follow-ups: Report Cards teacher upload, Teacher Complaints section-scoping, `Modal.vue`→`AppModal.vue` rename |
-| Full roadmap-checklist cross-check (§ of the roadmap doc still open) | **Pending audit** | Not yet re-read this session line-by-line; `PROJECT-STATUS.md:1272` says the roadmap's last spec'd sprint is done and **Phase 8 remainder (fee installments, admissions/lottery) is not yet spec'd** |
+| Full roadmap-checklist cross-check (§ of the roadmap doc still open) | Done | Read in full; Sprints A–K are all shipped and verified. The old unscoped "Phase 8 remainder" line has been replaced with fully-scoped Sprints L–Q (see Sequenced Implementation Plan above) |
 | `.worktrees/` cleanliness | Done | Only one worktree existed transiently (`p0-test-coverage-backfill`, created and merged/cleaned in this session's task below) |
 
 ---
@@ -52,9 +79,9 @@ just flip a checkbox — note the commit/date/evidence).
 |---|---|---|
 | Backend unit + e2e tests for holidays, complaints, report-cards, ai-drafting, attendance-risk, forgot/reset-password, bulk attendance, timetable-conflict detection | **✅ Completed 2026-09-12** | Plan: `docs/superpowers/plans/2026-09-12-p0-test-coverage-backfill.md`; merge commit `67aa03b`. Backend unit **360/360** passing (up from 309), e2e **97/97** passing (up from 79), `npm run build` clean, lint clean on every touched/new file. **Independently re-verified in this session** (not just trusted from the implementing agent's self-report) by re-running `npm run test`, `npm run test:e2e`, `npm run build`, and `npx eslint` against only the new/changed files. |
 | RBAC test coverage | Pending audit | Not specifically re-verified this session beyond what the new e2e specs cover (role-gating asserted for the 5 newly-tested modules) |
-| Multi-campus boundary test coverage | **Gap confirmed, not yet fixed** | `backend/src/common/student-access.service.ts:24-26` — any `TEACHER`/`SCHOOL_ADMIN`/`ACCOUNTS`/`SUPER_ADMIN` bypasses all checks with **no campus scoping anywhere in the call chain** (confirmed via `attendance.service.ts`, where `campusId` is only used for holiday-calendar lookups, never access control). Affects every module built on `StudentAccessService`: Timetable, Attendance, Diary, Circulars, Fees, Report Cards, Complaints. Documented in `PROJECT-STATUS.md`'s 2026-09-12 entry; **not fixed** — needs its own spec/plan per the repo's brainstorm→spec→plan workflow before implementation (it's an architecture-wide change, not a quick patch). |
-| Staff-console UI test coverage (same 5 modules) | Not implemented | Explicitly named as still-open in `PROJECT-STATUS.md`'s 2026-09-12 entry |
-| Parent-app UI test coverage (`complaints_screen.dart`, `report_cards_screen.dart`) | Not implemented | Same entry |
+| Multi-campus boundary test coverage | **Gap confirmed, not yet fixed** — sequenced as **Sprint L** | `backend/src/common/student-access.service.ts:24-26` — any `TEACHER`/`SCHOOL_ADMIN`/`ACCOUNTS`/`SUPER_ADMIN` bypasses all checks with **no campus scoping anywhere in the call chain** (confirmed via `attendance.service.ts`, where `campusId` is only used for holiday-calendar lookups, never access control). Affects every module built on `StudentAccessService`: Timetable, Attendance, Diary, Circulars, Fees, Report Cards, Complaints. Documented in `PROJECT-STATUS.md`'s 2026-09-12 entry; **not fixed** — needs its own spec/plan per the repo's brainstorm→spec→plan workflow before implementation (it's an architecture-wide change, not a quick patch). |
+| Staff-console UI test coverage (same 5 modules) | Not implemented — sequenced as **Sprint M** | Explicitly named as still-open in `PROJECT-STATUS.md`'s 2026-09-12 entry |
+| Parent-app UI test coverage (`complaints_screen.dart`, `report_cards_screen.dart`) | Not implemented — sequenced as **Sprint M** | Same entry |
 
 ---
 
@@ -65,7 +92,7 @@ just flip a checkbox — note the commit/date/evidence).
 | Report cards: structured DB data vs. uploaded document | **Uploaded file, not structured** | `backend/src/report-cards/report-cards.service.ts:36-51` — `upload()` stores a `fileId` reference to an uploaded PDF; no marks/grades/weights modeled anywhere in the report-cards module |
 | Weighted assessment-category gradebook (assignments/quizzes/midterm/final %) | **Not implemented** | No `gradebook`/`assessment categor*`/`weighted categor*` hits anywhere in `PROJECT-STATUS.md` or backend source |
 
-**Conclusion:** This is a real, confirmed gap matching the master prompt's Section 10 concern exactly. Not started — would need its own spec.
+**Conclusion:** This is a real, confirmed gap matching the master prompt's Section 10 concern exactly. Not started — sequenced as **Sprint N**, needs its own spec.
 
 ---
 
@@ -76,7 +103,7 @@ just flip a checkbox — note the commit/date/evidence).
 | Existing "Enrollment" concept | Implemented, narrow scope | `backend/src/enrollment/enrollment.service.ts` only has `getCurrentEnrollment()` / `getEnrollmentForDate()` — i.e. "which class/section is this already-created student enrolled in," not an admissions pipeline |
 | Applicant → application → review → approval/rejection → student creation pipeline | **Not implemented** | `PROJECT-STATUS.md:1272` — "admissions/lottery — is not yet spec'd" |
 
-**Conclusion:** A foundation exists to extend (the enrollment data model), but the actual admissions workflow the master prompt describes does not exist yet.
+**Conclusion:** A foundation exists to extend (the enrollment data model), but the actual admissions workflow the master prompt describes does not exist yet. Sequenced as **Sprint O**.
 
 ---
 
@@ -84,7 +111,7 @@ just flip a checkbox — note the commit/date/evidence).
 
 | Item | Status | Evidence |
 |---|---|---|
-| Students/Parents/Teachers bulk import via Excel/CSV | **Not implemented** | No `csv`/`xlsx`/bulk-import hits anywhere in `backend/src` |
+| Students/Parents/Teachers bulk import via Excel/CSV | **Not implemented** — sequenced as **Sprint P** | No `csv`/`xlsx`/bulk-import hits anywhere in `backend/src` |
 
 ---
 
@@ -93,9 +120,9 @@ just flip a checkbox — note the commit/date/evidence).
 | Item | Status | Evidence |
 |---|---|---|
 | Command Palette component | Implemented | `staff-console/src/components/CommandPalette.vue` + its own spec file exist |
-| `StatusPill` shared component | **Not implemented** | `PROJECT-STATUS.md:1230,1279` — explicitly named as a scoped-but-not-started follow-up ("spec/plan not yet written") from the Staff Console Shell Redesign |
-| Attendance segmented-control keyboard/focus/screen-reader audit | Pending audit | Not reviewed this session |
-| Dashboard chart accessible names | Pending audit | Not reviewed this session |
+| `StatusPill` shared component | **Not implemented** — sequenced as **Sprint Q** | `PROJECT-STATUS.md:1230,1279` — explicitly named as a scoped-but-not-started follow-up ("spec/plan not yet written") from the Staff Console Shell Redesign |
+| Attendance segmented-control keyboard/focus/screen-reader audit | Pending audit — sequenced as **Sprint Q** | Not reviewed this session |
+| Dashboard chart accessible names | Pending audit — sequenced as **Sprint Q** | Not reviewed this session |
 
 ---
 
@@ -113,6 +140,12 @@ repo or an explicit ask changes this.
 - **2026-09-12** — Repo audit performed (see Section 0). P0 backend test-coverage backfill (holidays,
   complaints, report-cards, ai-drafting, attendance-risk, forgot/reset-password, bulk attendance,
   timetable-conflict) completed, independently re-verified (360/360 unit, 97/97 e2e, build+lint clean),
-  and merged to local `main` (16 commits, `67aa03b`). Confirmed real cross-campus/cross-role access gap
-  in `StudentAccessService` — documented, not fixed (needs its own spec). Confirmed gradebook, admissions
-  pipeline, bulk import, and `StatusPill` are all genuinely not implemented (not just undocumented).
+  and merged to local `main` (16 commits, `67aa03b`), then pushed to `origin/main` (`89b917f`). Confirmed
+  real cross-campus/cross-role access gap in `StudentAccessService` — documented, not fixed (needs its
+  own spec). Confirmed gradebook, admissions pipeline, bulk import, and `StatusPill` are all genuinely
+  not implemented (not just undocumented).
+- **2026-09-12 (cont'd)** — Added a **Sequenced Implementation Plan** (see section above) covering every
+  gap found in this audit, and mirrored it into
+  `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s living Implementation Checklist as
+  Sprints L (security fix), M (UI test coverage), N (gradebook), O (admissions), P (bulk import), Q
+  (StatusPill/accessibility) — none spec'd yet, priority order set, ready to brainstorm one at a time.
