@@ -59,6 +59,8 @@ model User {
   role                Role
   isLocked            Boolean             @default(false)
   isPrincipal         Boolean             @default(false)
+  schoolId            String?
+  school              School?             @relation(fields: [schoolId], references: [id], onDelete: Restrict)
   lockedUntil         DateTime?
   failedLoginCount    Int                 @default(0)
   notificationChannel NotificationChannel @default(PUSH)
@@ -83,6 +85,7 @@ model User {
   draftSuggestions      DraftSuggestion[]
 
   @@index([role])
+  @@index([schoolId])
 }
 
 model RefreshToken {
@@ -103,6 +106,7 @@ model School {
   id        String   @id @default(uuid())
   name      String
   campuses  Campus[]
+  users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -115,6 +119,7 @@ model Campus {
   classes     Class[]
   enrollments Enrollment[]
   holidays    Holiday[]
+  teachers    Teacher[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -181,11 +186,15 @@ model Teacher {
   userId                 String       @unique
   user                   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   name                   String
+  campusId               String
+  campus                 Campus       @relation(fields: [campusId], references: [id], onDelete: Restrict)
   timetables             Timetable[]
   classTeacherOfSections Section[]
   attendanceMarks        Attendance[] @relation("AttendanceMarkedBy")
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
+
+  @@index([campusId])
 }
 
 // --- Students & parents -----------------------------------------------------

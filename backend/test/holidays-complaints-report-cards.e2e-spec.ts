@@ -95,7 +95,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
       },
     });
     await prisma.teacher.create({
-      data: { userId: teacherUser.id, name: 'HCR Teacher' },
+      data: { userId: teacherUser.id, name: 'HCR Teacher', campusId: campus.id },
     });
     await prisma.user.create({
       data: {

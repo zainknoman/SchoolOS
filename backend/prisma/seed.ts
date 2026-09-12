@@ -32,7 +32,9 @@ async function main() {
       role: 'TEACHER',
     },
   });
-  const teacher = await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'Ms. Sample Teacher' } });
+  const teacher = await prisma.teacher.create({
+    data: { userId: teacherUser.id, name: 'Ms. Sample Teacher', campusId: gulistan.id },
+  });
   await prisma.section.update({
     where: { id: section3A.id },
     data: { classTeacherId: teacher.id },
@@ -52,7 +54,9 @@ async function main() {
       role: 'TEACHER',
     },
   });
-  const teacher2 = await prisma.teacher.create({ data: { userId: teacher2User.id, name: 'Mr. Second Teacher' } });
+  const teacher2 = await prisma.teacher.create({
+    data: { userId: teacher2User.id, name: 'Mr. Second Teacher', campusId: gulistan.id },
+  });
   await prisma.section.update({ where: { id: section4B.id }, data: { classTeacherId: teacher2.id } });
 
   const grade5 = await prisma.class.create({
@@ -66,7 +70,9 @@ async function main() {
       role: 'TEACHER',
     },
   });
-  const teacher3 = await prisma.teacher.create({ data: { userId: teacher3User.id, name: 'Ms. Third Teacher' } });
+  const teacher3 = await prisma.teacher.create({
+    data: { userId: teacher3User.id, name: 'Ms. Third Teacher', campusId: gulshan.id },
+  });
   await prisma.section.update({ where: { id: section5C.id }, data: { classTeacherId: teacher3.id } });
 
   // Admin has no domain profile row (no Teacher/ParentProfile) — the role on User is enough for the
@@ -77,6 +83,7 @@ async function main() {
       identifier: 'admin@seeds.edu.pk',
       passwordHash: await argon2.hash('ChangeMe123!'),
       role: 'SCHOOL_ADMIN',
+      schoolId: school.id,
     },
   });
 
@@ -85,6 +92,7 @@ async function main() {
       identifier: 'accounts@seeds.edu.pk',
       passwordHash: await argon2.hash('ChangeMe123!'),
       role: 'ACCOUNTS',
+      schoolId: school.id,
     },
   });
 
@@ -107,6 +115,7 @@ async function main() {
       passwordHash: await argon2.hash('ChangeMe123!'),
       role: 'SCHOOL_ADMIN',
       isPrincipal: true,
+      schoolId: school.id,
     },
   });
 

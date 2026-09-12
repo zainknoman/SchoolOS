@@ -66,7 +66,7 @@ describe('Messages + Notifications (e2e)', () => {
       data: { identifier: 'mn-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
     });
     const teacher = await prisma.teacher.create({
-      data: { userId: teacherUser.id, name: 'MN Teacher' },
+      data: { userId: teacherUser.id, name: 'MN Teacher', campusId: campus.id },
     });
     await prisma.section.update({ where: { id: section.id }, data: { classTeacherId: teacher.id } });
     ids.teacherUserId = teacherUser.id;

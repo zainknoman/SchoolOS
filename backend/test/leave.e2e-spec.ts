@@ -57,7 +57,7 @@ describe('Leave applications (e2e)', () => {
     const teacherUser = await prisma.user.create({
       data: { identifier: 'lv-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
     });
-    const teacher = await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'LV Teacher' } });
+    const teacher = await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'LV Teacher', campusId: campus.id } });
 
     const section = await prisma.section.create({
       data: { classId: klass.id, name: 'LV-A', classTeacherId: teacher.id },

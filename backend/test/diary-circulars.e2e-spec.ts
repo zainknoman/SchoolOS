@@ -84,7 +84,7 @@ describe('Diary + Circulars (e2e)', () => {
       data: { identifier: 'dc-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
     });
     const teacher = await prisma.teacher.create({
-      data: { userId: teacherUser.id, name: 'DC Teacher' },
+      data: { userId: teacherUser.id, name: 'DC Teacher', campusId: campus.id },
     });
     const adminUser = await prisma.user.create({
       data: { identifier: 'dc-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },

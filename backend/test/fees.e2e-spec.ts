@@ -68,7 +68,7 @@ describe('Fees (e2e)', () => {
     const teacherUser = await prisma.user.create({
       data: { identifier: 'fee-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
     });
-    await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'FEE Teacher' } });
+    await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'FEE Teacher', campusId: campus.id } });
 
     const parentAUser = await prisma.user.create({
       data: { identifier: 'fee-parent-a@seeds.edu.pk', passwordHash, role: 'PARENT' },

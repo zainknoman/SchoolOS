@@ -109,7 +109,7 @@ describe('Timetable + Attendance (e2e)', () => {
       },
     });
     const teacher = await prisma.teacher.create({
-      data: { userId: teacherUser.id, name: 'TTA Teacher' },
+      data: { userId: teacherUser.id, name: 'TTA Teacher', campusId: campus.id },
     });
 
     await prisma.user.create({

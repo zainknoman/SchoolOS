@@ -53,7 +53,7 @@ describe('Historical-record delete restrictions (e2e)', () => {
       data: { identifier: 'cdr-teacher@seeds.edu.pk', passwordHash: 'x', role: 'TEACHER' },
     });
     const teacher = await prisma.teacher.create({
-      data: { userId: teacherUser.id, name: 'CDR Teacher' },
+      data: { userId: teacherUser.id, name: 'CDR Teacher', campusId: campus.id },
     });
     const student = await prisma.student.create({ data: { grNumber: 'CDR-1', name: 'CDR Student' } });
     studentId = student.id;
