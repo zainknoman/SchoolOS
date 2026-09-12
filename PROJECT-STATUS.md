@@ -1080,6 +1080,33 @@ plan file now carries).
   as a follow-up, not blocking: the existing 623-test suite (308+227+88) staying green is a real
   regression guard for everything it touches, it just doesn't yet touch this sprint's new surface
   area.
+- **Backend half of the above Known gap closed 2026-09-12** (plan:
+  `docs/superpowers/plans/2026-09-12-p0-test-coverage-backfill.md`, branch
+  `p0-test-coverage-backfill`, 12 commits, no product code changed — pure test backfill). Added
+  `holidays.service.spec.ts` (11 tests), `complaints.service.spec.ts` (4), `report-cards.service.spec.ts`
+  (5), `ai-drafting.service.spec.ts` (2), `attendance-risk.service.spec.ts` (10) +
+  `attendance-risk.job.spec.ts` (2) — the five previously-untested modules — plus unit coverage
+  appended to the existing `auth.service.spec.ts` (`forgotPassword`/`resetPassword`, 7 tests),
+  `attendance.service.spec.ts` (`markBulk`, 4 tests), and `timetable.service.spec.ts` (scheduling-
+  conflict detection, 6 tests). Two new e2e files close the RBAC/parent-isolation half:
+  `holidays-complaints-report-cards.e2e-spec.ts` (10 tests) and `auth-password-reset.e2e-spec.ts`
+  (3 tests, including a full reset round trip that revokes prior sessions); `timetable-attendance
+  .e2e-spec.ts` gained 6 more cases covering bulk attendance, a real timetable double-booking 409,
+  and attendance-risk parent-isolation/Teacher-section-scoping. Verified: backend unit **360/360**
+  (62 suites, up from 309/56), e2e **97/97** (15 suites, up from 79/13), `npm run build` clean,
+  `npm run lint` clean on every file this pass touched (repo-wide error count actually *dropped*,
+  932→852, since the new files are Prettier-clean; the remaining 852 are the pre-existing CRLF
+  backlog Sprint A already flagged as non-blocking, untouched by this pass). **Deliberately out of
+  scope, not fixed here:** `StudentAccessService`'s "any staff role may access any student" rule
+  (used by every module built on it, including the five above) has no campus/section boundary —
+  confirmed still true by the e2e tests added here, which verify parent-isolation and role-gating
+  (both enforced) but not cross-campus staff boundaries (not enforced anywhere yet, single-school
+  system, same pre-existing limitation the Diary/Circulars section above already named). **Still
+  open:** the UI-side half of the original gap — staff-console views (`HolidaysView`,
+  `ComplaintsPageView`/`ComplaintsQueueView`, `ReportCardsView`/`ReportCardsPageView`) and the
+  parent-app's `complaints_screen.dart`/`report_cards_screen.dart` still have no dedicated spec
+  cases, and the AI-drafting "Suggest draft" button / attendance-risk dashboard panel remain
+  UI-untested — this pass was backend-only.
 - **Follow-up closed 2026-09-11 (`ba0df6f..4c33451`):** Sprint I's own scope line for report cards
   said "upload for staff, read for parent," but only the Admin-facing `ReportCardsView` had ever
   shipped — there was no Teacher-facing upload screen, and the Teacher nav's Complaints link still
@@ -1243,9 +1270,11 @@ above), and CI is confirmed green on GitHub Actions against `main` (2026-09-10 �
 Follow-up above). What's left from Sprint A is not code: turning on branch protection requiring the
 CI workflow before merge needs the repo owner's action. This was the roadmap's last spec'd sprint
 (**Phase 8 remainder** — EMI-style fee installments, admissions/lottery — is not yet spec'd). The
-biggest open item across Sprints I/J/K is not code either: none of their five new backend modules or
-new UI screens have their own dedicated test coverage yet (see that section's Known gap) — worth
-closing before this surface area gets built on further. Separately, the Staff Console Shell Redesign
+backend half of Sprints I/J/K's test-coverage gap is now closed (2026-09-12, see above) — 51 new
+backend unit tests and 19 new e2e tests across the five previously-untested modules plus
+forgotPassword/resetPassword, bulk attendance, and timetable-conflict detection. Still open: the
+matching UI-side coverage (staff-console and parent-app views for the same five modules have no
+dedicated spec cases yet). Separately, the Staff Console Shell Redesign
 is done (see above); its own spec scoped a follow-up per-screen pass (empty/loading/error state
 machine + a shared `StatusPill.vue` across all 14 admin/teacher views) that has not been started —
 spec/plan not yet written. **Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's
