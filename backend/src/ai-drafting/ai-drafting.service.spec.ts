@@ -22,10 +22,16 @@ describe('AiDraftingService', () => {
   });
 
   it('asks the injected provider for a suggestion, persists it, and returns it', async () => {
-    provider.suggestDraft.mockResolvedValue('Dear parents, the PTM is on Sept 20th.');
+    provider.suggestDraft.mockResolvedValue(
+      'Dear parents, the PTM is on Sept 20th.',
+    );
     prisma.draftSuggestion.create.mockResolvedValue({});
 
-    const result = await service.suggestDraft('user-1', 'circular', 'PTM on Sept 20th');
+    const result = await service.suggestDraft(
+      'user-1',
+      'circular',
+      'PTM on Sept 20th',
+    );
 
     expect(provider.suggestDraft).toHaveBeenCalledWith({
       context: 'PTM on Sept 20th',
@@ -39,14 +45,20 @@ describe('AiDraftingService', () => {
         suggestion: 'Dear parents, the PTM is on Sept 20th.',
       },
     });
-    expect(result).toEqual({ suggestion: 'Dear parents, the PTM is on Sept 20th.' });
+    expect(result).toEqual({
+      suggestion: 'Dear parents, the PTM is on Sept 20th.',
+    });
   });
 
   it('works for the "diary" targetType the same way', async () => {
     provider.suggestDraft.mockResolvedValue('Homework: read chapter 3.');
     prisma.draftSuggestion.create.mockResolvedValue({});
 
-    const result = await service.suggestDraft('user-2', 'diary', 'chapter 3 reading');
+    const result = await service.suggestDraft(
+      'user-2',
+      'diary',
+      'chapter 3 reading',
+    );
 
     expect(provider.suggestDraft).toHaveBeenCalledWith({
       context: 'chapter 3 reading',

@@ -58,7 +58,9 @@ describe('AuthService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
-      $transaction: jest.fn().mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops)),
+      $transaction: jest
+        .fn()
+        .mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops)),
     };
     mailAdapter = { send: jest.fn() };
 
@@ -285,7 +287,9 @@ describe('AuthService', () => {
     it('silently no-ops for an unknown identifier — never reveals whether an account exists', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.forgotPassword('nobody@seeds.edu.pk')).resolves.toBeUndefined();
+      await expect(
+        service.forgotPassword('nobody@seeds.edu.pk'),
+      ).resolves.toBeUndefined();
 
       expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
       expect(mailAdapter.send).not.toHaveBeenCalled();
@@ -296,7 +300,9 @@ describe('AuthService', () => {
       prisma.passwordResetToken.create.mockResolvedValue({});
       mailAdapter.send.mockRejectedValue(new Error('smtp down'));
 
-      await expect(service.forgotPassword('parent@seeds.edu.pk')).resolves.toBeUndefined();
+      await expect(
+        service.forgotPassword('parent@seeds.edu.pk'),
+      ).resolves.toBeUndefined();
     });
   });
 
@@ -333,9 +339,9 @@ describe('AuthService', () => {
     it('rejects an unknown token with the generic reset error', async () => {
       prisma.passwordResetToken.findUnique.mockResolvedValue(null);
 
-      await expect(service.resetPassword('garbage', 'NewPass9!')).rejects.toThrow(
-        RESET_PASSWORD_GENERIC_ERROR,
-      );
+      await expect(
+        service.resetPassword('garbage', 'NewPass9!'),
+      ).rejects.toThrow(RESET_PASSWORD_GENERIC_ERROR);
     });
 
     it('rejects an expired token', async () => {
@@ -344,9 +350,9 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() - 1000),
       });
 
-      await expect(service.resetPassword('expired', 'NewPass9!')).rejects.toThrow(
-        RESET_PASSWORD_GENERIC_ERROR,
-      );
+      await expect(
+        service.resetPassword('expired', 'NewPass9!'),
+      ).rejects.toThrow(RESET_PASSWORD_GENERIC_ERROR);
     });
 
     it('rejects an already-used token (rejects replay)', async () => {

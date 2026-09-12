@@ -7,7 +7,11 @@ import { FilesService } from '../files/files.service';
 describe('ReportCardsService', () => {
   let service: ReportCardsService;
   let prisma: {
-    reportCard: { findUnique: jest.Mock; create: jest.Mock; findMany: jest.Mock };
+    reportCard: {
+      findUnique: jest.Mock;
+      create: jest.Mock;
+      findMany: jest.Mock;
+    };
   };
   let filesService: { upload: jest.Mock };
 
@@ -15,7 +19,11 @@ describe('ReportCardsService', () => {
 
   beforeEach(async () => {
     prisma = {
-      reportCard: { findUnique: jest.fn(), create: jest.fn(), findMany: jest.fn() },
+      reportCard: {
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        findMany: jest.fn(),
+      },
     };
     filesService = { upload: jest.fn() };
     const moduleRef = await Test.createTestingModule({
@@ -31,9 +39,9 @@ describe('ReportCardsService', () => {
   it('throws ConflictException when a report card already exists for this student+session', async () => {
     prisma.reportCard.findUnique.mockResolvedValue({ id: 'existing' });
 
-    await expect(service.upload('s1', 'session-1', fakeFile, 'teacher-1')).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(
+      service.upload('s1', 'session-1', fakeFile, 'teacher-1'),
+    ).rejects.toThrow(ConflictException);
     expect(filesService.upload).not.toHaveBeenCalled();
     expect(prisma.reportCard.create).not.toHaveBeenCalled();
   });
@@ -49,11 +57,21 @@ describe('ReportCardsService', () => {
       createdAt: new Date('2026-09-01T00:00:00.000Z'),
     });
 
-    const result = await service.upload('s1', 'session-1', fakeFile, 'teacher-1');
+    const result = await service.upload(
+      's1',
+      'session-1',
+      fakeFile,
+      'teacher-1',
+    );
 
     expect(filesService.upload).toHaveBeenCalledWith(fakeFile, 'teacher-1');
     expect(prisma.reportCard.create).toHaveBeenCalledWith({
-      data: { studentId: 's1', academicSessionId: 'session-1', fileId: 'file-1', uploadedById: 'teacher-1' },
+      data: {
+        studentId: 's1',
+        academicSessionId: 'session-1',
+        fileId: 'file-1',
+        uploadedById: 'teacher-1',
+      },
     });
     expect(result.fileId).toBe('file-1');
   });

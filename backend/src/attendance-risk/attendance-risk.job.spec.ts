@@ -26,7 +26,9 @@ describe('AttendanceRiskJob', () => {
   });
 
   it('catches a recompute failure and does not let it propagate (nightly job must not crash the process)', async () => {
-    attendanceRiskService.recomputeAll.mockRejectedValue(new Error('db unreachable'));
+    attendanceRiskService.recomputeAll.mockRejectedValue(
+      new Error('db unreachable'),
+    );
 
     await expect(job.run()).resolves.toBeUndefined();
   });

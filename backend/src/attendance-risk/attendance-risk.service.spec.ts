@@ -11,7 +11,11 @@ describe('AttendanceRiskService', () => {
   let prisma: {
     enrollment: { findMany: jest.Mock };
     attendance: { findMany: jest.Mock };
-    attendanceRiskFlag: { findUnique: jest.Mock; upsert: jest.Mock; findMany: jest.Mock };
+    attendanceRiskFlag: {
+      findUnique: jest.Mock;
+      upsert: jest.Mock;
+      findMany: jest.Mock;
+    };
     section: { findUnique: jest.Mock };
     teacher: { findUnique: jest.Mock };
     student: { findUnique: jest.Mock };
@@ -23,7 +27,11 @@ describe('AttendanceRiskService', () => {
     prisma = {
       enrollment: { findMany: jest.fn() },
       attendance: { findMany: jest.fn() },
-      attendanceRiskFlag: { findUnique: jest.fn(), upsert: jest.fn(), findMany: jest.fn() },
+      attendanceRiskFlag: {
+        findUnique: jest.fn(),
+        upsert: jest.fn(),
+        findMany: jest.fn(),
+      },
       section: { findUnique: jest.fn() },
       teacher: { findUnique: jest.fn() },
       student: { findUnique: jest.fn() },
@@ -59,7 +67,9 @@ describe('AttendanceRiskService', () => {
     ]);
     prisma.attendanceRiskFlag.findUnique.mockResolvedValue(null); // wasFlagged = false
     prisma.attendanceRiskFlag.upsert.mockResolvedValue({});
-    prisma.section.findUnique.mockResolvedValue({ classTeacherId: 'teacher-1' });
+    prisma.section.findUnique.mockResolvedValue({
+      classTeacherId: 'teacher-1',
+    });
     prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-user-1' });
     prisma.student.findUnique.mockResolvedValue({ name: 'Ali' });
 
@@ -68,7 +78,11 @@ describe('AttendanceRiskService', () => {
     expect(prisma.attendanceRiskFlag.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { studentId: 's1' },
-        create: expect.objectContaining({ studentId: 's1', absenceRate: 0.25, flagged: true }),
+        create: expect.objectContaining({
+          studentId: 's1',
+          absenceRate: 0.25,
+          flagged: true,
+        }),
         update: expect.objectContaining({ absenceRate: 0.25, flagged: true }),
       }),
     );
@@ -83,7 +97,9 @@ describe('AttendanceRiskService', () => {
       ...daysOfStatus(2, 'ABSENT'),
     ]);
     prisma.attendanceRiskFlag.upsert.mockResolvedValue({});
-    prisma.section.findUnique.mockResolvedValue({ classTeacherId: 'teacher-1' });
+    prisma.section.findUnique.mockResolvedValue({
+      classTeacherId: 'teacher-1',
+    });
     prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-user-1' });
     prisma.student.findUnique.mockResolvedValue({ name: 'Ali' });
 
@@ -92,12 +108,17 @@ describe('AttendanceRiskService', () => {
     await service.recomputeAll();
     expect(notificationsService.notify).toHaveBeenCalledTimes(1);
     expect(notificationsService.notify).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'teacher-user-1', type: 'attendance-risk' }),
+      expect.objectContaining({
+        userId: 'teacher-user-1',
+        type: 'attendance-risk',
+      }),
     );
 
     // Case B: already flagged -> no duplicate notify
     notificationsService.notify.mockClear();
-    prisma.attendanceRiskFlag.findUnique.mockResolvedValueOnce({ flagged: true });
+    prisma.attendanceRiskFlag.findUnique.mockResolvedValueOnce({
+      flagged: true,
+    });
     await service.recomputeAll();
     expect(notificationsService.notify).not.toHaveBeenCalled();
   });
@@ -106,11 +127,18 @@ describe('AttendanceRiskService', () => {
     prisma.enrollment.findMany.mockResolvedValue([
       { studentId: 's1', campusId: 'campus-1', sectionId: 'sec-1' },
     ]);
-    const records = [...daysOfStatus(5, 'PRESENT', 1), ...daysOfStatus(2, 'ABSENT', 10)];
+    const records = [
+      ...daysOfStatus(5, 'PRESENT', 1),
+      ...daysOfStatus(2, 'ABSENT', 10),
+    ];
     prisma.attendance.findMany.mockResolvedValue(records);
     // Mark every ABSENT day as a holiday — should be excluded entirely, not counted as absent
-    holidaysService.isHoliday.mockImplementation(async (date: Date) =>
-      records.some((r) => r.date.getTime() === date.getTime() && r.status === 'ABSENT'),
+    holidaysService.isHoliday.mockImplementation((date: Date) =>
+      Promise.resolve(
+        records.some(
+          (r) => r.date.getTime() === date.getTime() && r.status === 'ABSENT',
+        ),
+      ),
     );
     prisma.attendanceRiskFlag.findUnique.mockResolvedValue(null);
     prisma.attendanceRiskFlag.upsert.mockResolvedValue({});
@@ -119,7 +147,9 @@ describe('AttendanceRiskService', () => {
 
     // 5 tracked (the PRESENT days, meeting RISK_MIN_TRACKED_DAYS), 0 absent => 0% => not flagged, no notify
     expect(prisma.attendanceRiskFlag.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ create: expect.objectContaining({ absenceRate: 0, flagged: false }) }),
+      expect.objectContaining({
+        create: expect.objectContaining({ absenceRate: 0, flagged: false }),
+      }),
     );
     expect(notificationsService.notify).not.toHaveBeenCalled();
   });
@@ -128,7 +158,9 @@ describe('AttendanceRiskService', () => {
     prisma.enrollment.findMany.mockResolvedValue([
       { studentId: 's1', campusId: 'campus-1', sectionId: 'sec-1' },
     ]);
-    prisma.attendance.findMany.mockResolvedValue(daysOfStatus(RISK_MIN_TRACKED_DAYS - 1, 'ABSENT'));
+    prisma.attendance.findMany.mockResolvedValue(
+      daysOfStatus(RISK_MIN_TRACKED_DAYS - 1, 'ABSENT'),
+    );
 
     await service.recomputeAll();
 
@@ -151,7 +183,9 @@ describe('AttendanceRiskService', () => {
     await service.recomputeAll();
 
     expect(prisma.attendanceRiskFlag.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ create: expect.objectContaining({ flagged: false }) }),
+      expect.objectContaining({
+        create: expect.objectContaining({ flagged: false }),
+      }),
     );
     expect(notificationsService.notify).not.toHaveBeenCalled();
   });
@@ -159,7 +193,9 @@ describe('AttendanceRiskService', () => {
   it('getForStudent throws NotFoundException when no risk row exists yet', async () => {
     prisma.attendanceRiskFlag.findUnique.mockResolvedValue(null);
 
-    await expect(service.getForStudent('s1')).rejects.toThrow(NotFoundException);
+    await expect(service.getForStudent('s1')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('getForStudent returns the mapped summary for an existing row', async () => {
@@ -196,7 +232,7 @@ describe('AttendanceRiskService', () => {
     });
   });
 
-  it('getFlagged with sectionIds scopes the query to those sections (a Teacher\'s own classes)', async () => {
+  it("getFlagged with sectionIds scopes the query to those sections (a Teacher's own classes)", async () => {
     prisma.attendanceRiskFlag.findMany.mockResolvedValue([]);
 
     await service.getFlagged(['sec-1', 'sec-2']);
@@ -204,7 +240,11 @@ describe('AttendanceRiskService', () => {
     expect(prisma.attendanceRiskFlag.findMany).toHaveBeenCalledWith({
       where: {
         flagged: true,
-        student: { enrollments: { some: { sectionId: { in: ['sec-1', 'sec-2'] }, status: 'ACTIVE' } } },
+        student: {
+          enrollments: {
+            some: { sectionId: { in: ['sec-1', 'sec-2'] }, status: 'ACTIVE' },
+          },
+        },
       },
       include: { student: { select: { name: true } } },
       orderBy: { absenceRate: 'desc' },
@@ -219,7 +259,9 @@ describe('AttendanceRiskService', () => {
     expect(prisma.attendanceRiskFlag.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          student: { enrollments: { some: { sectionId: { in: [] }, status: 'ACTIVE' } } },
+          student: {
+            enrollments: { some: { sectionId: { in: [] }, status: 'ACTIVE' } },
+          },
         }),
       }),
     );

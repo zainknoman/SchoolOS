@@ -28,7 +28,10 @@ describe('HolidaysService', () => {
       },
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [HolidaysService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        HolidaysService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = moduleRef.get(HolidaysService);
   });
@@ -82,7 +85,9 @@ describe('HolidaysService', () => {
     });
 
     expect(prisma.holiday.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ campusId: 'campus-1' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ campusId: 'campus-1' }),
+      }),
     );
   });
 
@@ -125,7 +130,9 @@ describe('HolidaysService', () => {
   it('update throws NotFoundException for an unknown holiday', async () => {
     prisma.holiday.findUnique.mockResolvedValue(null);
 
-    await expect(service.update('missing', { title: 'X' })).rejects.toThrow(NotFoundException);
+    await expect(service.update('missing', { title: 'X' })).rejects.toThrow(
+      NotFoundException,
+    );
     expect(prisma.holiday.update).not.toHaveBeenCalled();
   });
 
@@ -182,6 +189,8 @@ describe('HolidaysService', () => {
   it('isHoliday returns false when no row covers the date', async () => {
     prisma.holiday.findFirst.mockResolvedValue(null);
 
-    expect(await service.isHoliday(new Date('2026-04-01'), 'campus-1')).toBe(false);
+    expect(await service.isHoliday(new Date('2026-04-01'), 'campus-1')).toBe(
+      false,
+    );
   });
 });

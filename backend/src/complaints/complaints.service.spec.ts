@@ -35,7 +35,10 @@ describe('ComplaintsService', () => {
       },
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [ComplaintsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        ComplaintsService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = moduleRef.get(ComplaintsService);
   });
@@ -44,7 +47,11 @@ describe('ComplaintsService', () => {
     prisma.complaint.create.mockResolvedValue(record);
 
     const result = await service.create(
-      { studentId: 's1', subject: 'Bullying concern', description: 'Details here' },
+      {
+        studentId: 's1',
+        subject: 'Bullying concern',
+        description: 'Details here',
+      },
       'teacher-1',
     );
 
@@ -75,13 +82,18 @@ describe('ComplaintsService', () => {
   it('updateStatus throws NotFoundException for an unknown complaint', async () => {
     prisma.complaint.findUnique.mockResolvedValue(null);
 
-    await expect(service.updateStatus('missing', 'resolved')).rejects.toThrow(NotFoundException);
+    await expect(service.updateStatus('missing', 'resolved')).rejects.toThrow(
+      NotFoundException,
+    );
     expect(prisma.complaint.update).not.toHaveBeenCalled();
   });
 
-  it('updateStatus updates an existing complaint\'s status', async () => {
+  it("updateStatus updates an existing complaint's status", async () => {
     prisma.complaint.findUnique.mockResolvedValue(record);
-    prisma.complaint.update.mockResolvedValue({ ...record, status: 'resolved' });
+    prisma.complaint.update.mockResolvedValue({
+      ...record,
+      status: 'resolved',
+    });
 
     const result = await service.updateStatus('c1', 'resolved');
 
