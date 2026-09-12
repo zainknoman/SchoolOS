@@ -39,7 +39,9 @@ describe('Timetable + Attendance (e2e)', () => {
       where: { grNumber: { startsWith: 'TTA-' } },
     });
     for (const s of staleStudents) {
-      await prisma.attendance.deleteMany({ where: { studentId: s.id } }).catch(() => undefined);
+      await prisma.attendance
+        .deleteMany({ where: { studentId: s.id } })
+        .catch(() => undefined);
     }
     await prisma.student
       .deleteMany({ where: { grNumber: { startsWith: 'TTA-' } } })
@@ -56,7 +58,9 @@ describe('Timetable + Attendance (e2e)', () => {
         select: { id: true },
       });
       await prisma.timetable
-        .deleteMany({ where: { sectionId: { in: staleSections.map((sec) => sec.id) } } })
+        .deleteMany({
+          where: { sectionId: { in: staleSections.map((sec) => sec.id) } },
+        })
         .catch(() => undefined);
       await prisma.school
         .delete({ where: { id: s.id } })
@@ -196,6 +200,9 @@ describe('Timetable + Attendance (e2e)', () => {
     // and the timetable entry created in beforeAll each leave a row that must be cleared before
     // the student / school can be deleted — otherwise this whole cleanup silently no-ops (every
     // call below is wrapped in .catch), and the next run's beforeAll self-heal has to do it.
+    await prisma.attendanceRiskFlag
+      .deleteMany({ where: { studentId: { in: [ids.childA, ids.childB] } } })
+      .catch(() => undefined);
     await prisma.attendance
       .deleteMany({ where: { studentId: { in: [ids.childA, ids.childB] } } })
       .catch(() => undefined);
@@ -349,5 +356,132 @@ describe('Timetable + Attendance (e2e)', () => {
       .set('Authorization', `Bearer ${parentToken}`)
       .send({ studentId: ids.childA, date: today, status: 'ABSENT' })
       .expect(403);
+  });
+
+  it('a Teacher can bulk-mark attendance for a whole section in one call', async () => {
+    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+    const today = new Date().toISOString().slice(0, 10);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/attendance/bulk')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        date: today,
+        marks: [
+          { studentId: ids.childA, status: 'PRESENT' },
+          { studentId: ids.childB, status: 'ABSENT' },
+        ],
+      })
+      .expect(201);
+
+    const parentAToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const month = today.slice(0, 7);
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/students/${ids.childA}/attendance?month=${month}`)
+      .set('Authorization', `Bearer ${parentAToken}`)
+      .expect(200);
+
+    expect(res.body.days).toEqual(
+      expect.arrayContaining([{ date: today, status: 'PRESENT' }]),
+    );
+  });
+
+  it('a PARENT cannot bulk-mark attendance', async () => {
+    const parentToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const today = new Date().toISOString().slice(0, 10);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/attendance/bulk')
+      .set('Authorization', `Bearer ${parentToken}`)
+      .send({
+        date: today,
+        marks: [{ studentId: ids.childA, status: 'PRESENT' }],
+      })
+      .expect(403);
+  });
+
+  it('creating a second timetable entry for the same teacher+day+period is rejected as a scheduling conflict', async () => {
+    const adminToken = await loginAs('tta-admin@seeds.edu.pk');
+    const subject = await prisma.subject.findFirst({
+      where: { name: 'TTA English' },
+    });
+
+    // ids.teacher already has a Mon/period-1 slot from beforeAll (day 1, period 1).
+    await request(app.getHttpServer())
+      .post('/api/v1/timetable')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        sectionId: ids.section,
+        subjectId: subject!.id,
+        teacherId: ids.teacher,
+        dayOfWeek: 1,
+        period: 1,
+        startTime: '09:00',
+        endTime: '09:40',
+      })
+      .expect(409);
+  });
+
+  it("a parent sees their own child's attendance-risk status, and cannot see another parent's child's", async () => {
+    await prisma.attendanceRiskFlag.upsert({
+      where: { studentId: ids.childA },
+      create: {
+        studentId: ids.childA,
+        absenceRate: 0.4,
+        flagged: true,
+        windowStart: new Date('2026-08-01'),
+        windowEnd: new Date('2026-08-31'),
+      },
+      update: { absenceRate: 0.4, flagged: true },
+    });
+
+    const parentAToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/students/${ids.childA}/attendance-risk`)
+      .set('Authorization', `Bearer ${parentAToken}`)
+      .expect(200);
+    expect(res.body.flagged).toBe(true);
+
+    const parentBToken = await loginAs('tta-parent-b@seeds.edu.pk');
+    await request(app.getHttpServer())
+      .get(`/api/v1/students/${ids.childA}/attendance-risk`)
+      .set('Authorization', `Bearer ${parentBToken}`)
+      .expect(403);
+
+    await prisma.attendanceRiskFlag.deleteMany({
+      where: { studentId: ids.childA },
+    });
+  });
+
+  it('a TEACHER sees only their own class-teacher sections in the flagged-students list', async () => {
+    await prisma.section.update({
+      where: { id: ids.section },
+      data: { classTeacherId: ids.teacher },
+    });
+    await prisma.attendanceRiskFlag.upsert({
+      where: { studentId: ids.childA },
+      create: {
+        studentId: ids.childA,
+        absenceRate: 0.5,
+        flagged: true,
+        windowStart: new Date('2026-08-01'),
+        windowEnd: new Date('2026-08-31'),
+      },
+      update: { absenceRate: 0.5, flagged: true },
+    });
+
+    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/attendance-risk')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+
+    expect(res.body.map((r: { studentId: string }) => r.studentId)).toContain(
+      ids.childA,
+    );
+
+    await prisma.attendanceRiskFlag.deleteMany({
+      where: { studentId: ids.childA },
+    });
   });
 });
