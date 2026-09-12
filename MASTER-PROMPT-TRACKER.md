@@ -30,7 +30,7 @@ update both when a sprint starts or ships.
 
 | Priority | Sprint | Scope | Why this order |
 |---|---|---|---|
-| 1 | **Sprint L** | Fix `StudentAccessService` cross-campus/cross-role access gap | Confirmed live security hole, not a missing feature — highest priority per master prompt §7 |
+| 1 | **Sprint L ✅ DONE** | Fix `StudentAccessService` cross-campus/cross-role access gap (scope grew to include tenant/`schoolId` scoping, per explicit direction) | Confirmed live security hole, not a missing feature — highest priority per master prompt §7 |
 | 2 | **Sprint M** | Staff-console + parent-app UI test coverage for the 5 Sprint I/J/K modules | Closes an already-tracked, lower-risk, smaller-scope gap; can run in parallel with Sprint L once both are spec'd |
 | 3 | **Sprint N** | Structured gradebook (weighted assessment categories, calculated grades) | Core academic correctness gap per master prompt §10; report cards currently a static upload, not calculated data |
 | 4 | **Sprint O** | Admissions/enrollment pipeline (applicant → application → review → approval → student) | Extends the existing narrow `EnrollmentService`; was already the roadmap's own unscoped "Phase 8 remainder" item |
@@ -79,7 +79,7 @@ request.
 |---|---|---|
 | Backend unit + e2e tests for holidays, complaints, report-cards, ai-drafting, attendance-risk, forgot/reset-password, bulk attendance, timetable-conflict detection | **✅ Completed 2026-09-12** | Plan: `docs/superpowers/plans/2026-09-12-p0-test-coverage-backfill.md`; merge commit `67aa03b`. Backend unit **360/360** passing (up from 309), e2e **97/97** passing (up from 79), `npm run build` clean, lint clean on every touched/new file. **Independently re-verified in this session** (not just trusted from the implementing agent's self-report) by re-running `npm run test`, `npm run test:e2e`, `npm run build`, and `npx eslint` against only the new/changed files. |
 | RBAC test coverage | Pending audit | Not specifically re-verified this session beyond what the new e2e specs cover (role-gating asserted for the 5 newly-tested modules) |
-| Multi-campus boundary test coverage | **Gap confirmed, not yet fixed** — sequenced as **Sprint L** | `backend/src/common/student-access.service.ts:24-26` — any `TEACHER`/`SCHOOL_ADMIN`/`ACCOUNTS`/`SUPER_ADMIN` bypasses all checks with **no campus scoping anywhere in the call chain** (confirmed via `attendance.service.ts`, where `campusId` is only used for holiday-calendar lookups, never access control). Affects every module built on `StudentAccessService`: Timetable, Attendance, Diary, Circulars, Fees, Report Cards, Complaints. Documented in `PROJECT-STATUS.md`'s 2026-09-12 entry; **not fixed** — needs its own spec/plan per the repo's brainstorm→spec→plan workflow before implementation (it's an architecture-wide change, not a quick patch). |
+| Multi-campus/cross-tenant boundary | **✅ Fixed 2026-09-12 — Sprint L** | `StudentAccessService.assertCanAccessStudent`/new `assertCanAccessSection` rewritten with per-role branches (`SUPER_ADMIN` unrestricted, `SCHOOL_ADMIN`/`ACCOUNTS` scoped to `User.schoolId`, `TEACHER` scoped to `Teacher.campusId`, `PARENT` unchanged link-check). 8 previously-unguarded routes across 5 controllers wired (4 were write paths with zero check at all — mark attendance, diary entry, complaint, report-card upload). Plan: `docs/superpowers/plans/2026-09-12-cross-tenant-access-control.md`. Verified: backend unit 369/369, e2e 105/105, staff-console 239/239, all clean, independently reviewed per-task (10 tasks) via subagent-driven-development. |
 | Staff-console UI test coverage (same 5 modules) | Not implemented — sequenced as **Sprint M** | Explicitly named as still-open in `PROJECT-STATUS.md`'s 2026-09-12 entry |
 | Parent-app UI test coverage (`complaints_screen.dart`, `report_cards_screen.dart`) | Not implemented — sequenced as **Sprint M** | Same entry |
 
@@ -149,3 +149,17 @@ repo or an explicit ask changes this.
   `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s living Implementation Checklist as
   Sprints L (security fix), M (UI test coverage), N (gradebook), O (admissions), P (bulk import), Q
   (StatusPill/accessibility) — none spec'd yet, priority order set, ready to brainstorm one at a time.
+- **2026-09-12 (cont'd)** — Sprint L brainstormed, spec'd, planned, and implemented in a git worktree
+  via subagent-driven-development (10 tasks, each independently reviewed; one fix-round on the core
+  `StudentAccessService` task closed a role-branching maintainability finding before it could matter).
+  Scope grew mid-brainstorm at the user's explicit direction to include tenant (`schoolId`) scoping
+  alongside campus scoping, since the product will be multi-tenant SaaS in the future. Two real
+  regressions were caught and fixed during implementation before merge, not shipped: (1) an early
+  draft made parent access depend on enrollment status, breaking a real pre-existing guarantee that a
+  parent can see a withdrawn child's historical records; (2) two separate e2e-fixture audit gaps
+  (missing `campusId` on an HTTP test payload, missing `schoolId` on several `SCHOOL_ADMIN` fixtures)
+  surfaced and were fixed proactively rather than one at a time. Result: 8 previously-unguarded routes
+  across 5 controllers fixed, 4 of which had zero ownership check at all (not just campus-blind).
+  Verified: backend unit 369/369 (up from 360), e2e 105/105 (up from 97), staff-console 239/239 (up
+  from 238), build clean, staff-console lint/type-check clean. Full detail:
+  `build/PROJECT-STATUS.md`'s Sprint L entry.

@@ -1121,6 +1121,58 @@ plan file now carries).
   `org-structure.e2e-spec.ts` cases), staff-console 238/238, `vue-tsc` clean, live-smoke-tested in
   the browser (Students/Timetable/Fees).
 
+## Sprint L — Cross-Tenant/Cross-Campus Access Control (Security) ✅ DONE
+
+- [x] **Fixed the confirmed `StudentAccessService` gap** — every staff role (`TEACHER`/
+      `SCHOOL_ADMIN`/`ACCOUNTS`/`SUPER_ADMIN`) previously bypassed all access checks unconditionally.
+      The audit that found this also found the gap was worse than first documented: 8 routes across 5
+      controllers (`attendance`, `diary`, `complaints`, `report-cards`, `sections`) had no ownership
+      check at all — 4 of them write paths (mark attendance, diary entry, complaint, report-card
+      upload), not merely campus-blind reads.
+- [x] **Tenant (`schoolId`) + campus (`campusId`) scoping, decided mid-brainstorm** — the product will
+      be operated as multi-tenant SaaS in the future, so tenant scoping was folded into this sprint
+      alongside the campus fix rather than building it twice. `Teacher.campusId` (required) and
+      `User.schoolId` (nullable, required in practice for `SCHOOL_ADMIN`/`ACCOUNTS`) added to the
+      schema. `StudentAccessService.assertCanAccessStudent`/new sibling `assertCanAccessSection`
+      rewritten with one branch per role: `SUPER_ADMIN` unrestricted (cross-tenant platform ops),
+      `SCHOOL_ADMIN`/`ACCOUNTS` scoped to their own school (tenant-wide across campuses), `TEACHER`
+      scoped to their own campus, `PARENT` unchanged (`StudentParent` link check, deliberately
+      independent of enrollment status — see below).
+- [x] **A real regression caught and fixed during implementation, not shipped:** the first draft of
+      the rewrite made every role's access depend on the student having an `ACTIVE` enrollment. This
+      broke a real, pre-existing guarantee — a parent can see a withdrawn/unenrolled child's
+      historical records (an existing `fees.e2e-spec.ts` case explicitly tests this: "parent B *can*
+      see their own (empty) list" for a child with no enrollment row at all). Fixed by restructuring
+      so `PARENT` access checks the link directly, bypassing enrollment resolution entirely — restores
+      exact pre-Sprint-L parent behavior while keeping the staff campus/tenant fix.
+- [x] **Two additional gaps found and closed mid-implementation, not in the original spec:** (1) the
+      initial schema-migration audit only searched for direct `prisma.teacher.create()`/
+      `tx.teacher.create()` calls when enumerating what needed the new required `Teacher.campusId` —
+      it missed `POST /api/v1/admin/teachers` HTTP test payloads in `people-crud.e2e-spec.ts`, caught
+      when its e2e tests failed. (2) Similarly, `SCHOOL_ADMIN`/`ACCOUNTS` e2e fixtures across the
+      codebase had never needed a `schoolId` before this sprint — several were missing it, causing
+      cascading e2e failures as each route got wired; fixed proactively across the affected files
+      rather than one at a time.
+  - Plan: `docs/superpowers/plans/2026-09-12-cross-tenant-access-control.md`. Spec:
+    `docs/superpowers/specs/2026-09-12-cross-tenant-access-control-design.md`. Executed via
+    subagent-driven-development, 10 tasks, each independently reviewed (one task — the core
+    `StudentAccessService` rewrite — went through a security-focused review pass plus a follow-up
+    fix round consolidating role-branching into exhaustive fail-closed `switch` statements, closing a
+    maintainability risk the reviewer flagged before it could matter).
+  - Verified: backend unit **369/369** (up from 360), backend e2e **105/105** (up from 97),
+    staff-console **239/239** (up from 238), `vue-tsc` clean, staff-console lint clean, backend build
+    clean. Backend lint sits at the same pre-existing repo-wide CRLF/Prettier backlog documented since
+    Sprint A (non-blocking) — this sprint's new/modified files added to that count (Windows checkout
+    line-ending behavior, not real lint issues; not cleaned up here, same as every prior sprint).
+  - `staff-console/src/views/TeacherManagementView.vue` gained a required campus picker when creating
+    a teacher, matching the backend's new required `campusId`.
+  - **Explicit non-goals, not silently dropped:** `GET /sections` (list-all) stays unfiltered by
+    campus/tenant — section names alone aren't sensitive, filtering it is a UI nicety not a security
+    requirement. No runtime `SCHOOL_ADMIN`/`ACCOUNTS` account-creation endpoint was built (none exists
+    today — only `prisma/seed.ts` creates these roles). No JWT/`RequestUser` shape change, no new
+    NestJS guard/decorator infrastructure, no Prisma-level middleware — extends the existing
+    explicit-service-call convention only.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
@@ -1264,17 +1316,18 @@ own implementer + task review, plus this manual verification task.
 
 ---
 
-**Next step:** **Sprints A through K** are all done (Sprint I/J/K — remaining feature gaps,
-accessibility/localization, AI drafting + predictive analytics — committed to `main` 2026-09-11, see
-above), and CI is confirmed green on GitHub Actions against `main` (2026-09-10 — see Sprint A's
-Follow-up above). What's left from Sprint A is not code: turning on branch protection requiring the
-CI workflow before merge needs the repo owner's action. This was the roadmap's last spec'd sprint
-(**Phase 8 remainder** — EMI-style fee installments, admissions/lottery — is not yet spec'd). The
-backend half of Sprints I/J/K's test-coverage gap is now closed (2026-09-12, see above) — 51 new
-backend unit tests and 19 new e2e tests across the five previously-untested modules plus
-forgotPassword/resetPassword, bulk attendance, and timetable-conflict detection. Still open: the
-matching UI-side coverage (staff-console and parent-app views for the same five modules have no
-dedicated spec cases yet). Separately, the Staff Console Shell Redesign
+**Next step:** **Sprints A through L** are all done (Sprint L — cross-tenant/cross-campus access
+control, committed 2026-09-12, see above), and CI is confirmed green on GitHub Actions against `main`
+(2026-09-10 — see Sprint A's Follow-up above). What's left from Sprint A is not code: turning on
+branch protection requiring the CI workflow before merge needs the repo owner's action. Sprints M
+(UI test coverage for the Sprint I/J/K modules), N (structured gradebook), O (admissions/enrollment
+pipeline), P (bulk import/export), and Q (StatusPill + remaining accessibility) are sequenced in
+`docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s Implementation Checklist and
+`build/MASTER-PROMPT-TRACKER.md`, none spec'd yet. The backend half of Sprints I/J/K's test-coverage
+gap is closed (2026-09-12) — 51 new backend unit tests and 19 new e2e tests across the five
+previously-untested modules plus forgotPassword/resetPassword, bulk attendance, and
+timetable-conflict detection. Still open (Sprint M): the matching UI-side coverage (staff-console and
+parent-app views for the same five modules have no dedicated spec cases yet). Separately, the Staff Console Shell Redesign
 is done (see above); its own spec scoped a follow-up per-screen pass (empty/loading/error state
 machine + a shared `StatusPill.vue` across all 14 admin/teacher views) that has not been started —
 spec/plan not yet written. **Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's
