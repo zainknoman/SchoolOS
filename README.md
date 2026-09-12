@@ -173,8 +173,11 @@ real browser render caught.
 
 ## Deployment readiness
 
-This is a single-school platform (not multi-tenant SaaS) currently running on SQLite for local
-development. Before any staging/production deployment or pilot rollout, see the "Sprint 11-12 —
-Hardening + Pilot" and "Environment / one-time setup" sections of `PROJECT-STATUS.md` for the
-concrete remaining checklist (PostgreSQL migration, real secrets, S3-compatible storage, a Firebase
-project for push notifications, and a scoped pilot before full cutover).
+Sprint L (2026-09-12) added tenant-scoping (`User.schoolId`) to the access-control layer, so the
+authorization model is no longer single-tenant-only. The product is still *operated* as a single
+school today, though: self-service tenant provisioning, billing, and per-tenant admin creation are
+all still out of scope and were not part of that sprint. The backend has run on PostgreSQL (not
+SQLite) since Sprint B. Before any staging/production deployment or pilot rollout, see the "Sprint
+11-12 — Hardening + Pilot" and "Environment / one-time setup" sections of `PROJECT-STATUS.md` for
+the concrete remaining checklist (real secrets, S3-compatible storage, a Firebase project for push
+notifications, and a scoped pilot before full cutover).
