@@ -11,6 +11,7 @@ describe('StudentAccessService', () => {
     user: { findUnique: jest.Mock };
     teacher: { findUnique: jest.Mock };
     campus: { findUniqueOrThrow: jest.Mock };
+    section: { findUnique: jest.Mock };
   };
   let enrollmentService: { getCurrentEnrollment: jest.Mock };
 
@@ -20,6 +21,7 @@ describe('StudentAccessService', () => {
       user: { findUnique: jest.fn() },
       teacher: { findUnique: jest.fn() },
       campus: { findUniqueOrThrow: jest.fn() },
+      section: { findUnique: jest.fn() },
     };
     enrollmentService = { getCurrentEnrollment: jest.fn() };
     const moduleRef = await Test.createTestingModule({
@@ -129,5 +131,38 @@ describe('StudentAccessService', () => {
       service.assertCanAccessStudent({ id: 'parent-user-1', role: 'PARENT' }, 'withdrawn-child'),
     ).resolves.toBeUndefined();
     expect(prisma.campus.findUniqueOrThrow).not.toHaveBeenCalled();
+  });
+
+  describe('assertCanAccessSection', () => {
+    it('allows SUPER_ADMIN without any lookup', async () => {
+      await expect(
+        service.assertCanAccessSection({ id: 'u1', role: 'SUPER_ADMIN' }, 'section-1'),
+      ).resolves.toBeUndefined();
+      expect(prisma.section.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('denies access when the section does not exist', async () => {
+      prisma.section.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.assertCanAccessSection({ id: 'admin-1', role: 'SCHOOL_ADMIN' }, 'missing-section'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows a TEACHER to access a section in their own campus, denies a different campus', async () => {
+      prisma.section.findUnique.mockResolvedValue({
+        class: { campusId: 'campus-1', campus: { schoolId: 'school-1' } },
+      });
+      prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-1', campusId: 'campus-1' });
+
+      await expect(
+        service.assertCanAccessSection({ id: 'teacher-1', role: 'TEACHER' }, 'section-1'),
+      ).resolves.toBeUndefined();
+
+      prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-2', campusId: 'campus-2' });
+      await expect(
+        service.assertCanAccessSection({ id: 'teacher-2', role: 'TEACHER' }, 'section-1'),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 });
