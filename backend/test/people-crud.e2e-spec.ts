@@ -71,7 +71,7 @@ describe('People CRUD (e2e)', () => {
     });
     const section = await prisma.section.create({ data: { classId: klass.id, name: 'PC-A' } });
 
-    Object.assign(ids, { school: school.id, section: section.id, schoolAdmin: schoolAdminUser.id, parent: parentUser.id });
+    Object.assign(ids, { school: school.id, campus: campus.id, section: section.id, schoolAdmin: schoolAdminUser.id, parent: parentUser.id });
   });
 
   afterAll(async () => {
@@ -114,7 +114,7 @@ describe('People CRUD (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-teacher@seeds.edu.pk', password: 'BrandNewPass1!', name: 'PC Teacher' })
+      .send({ identifier: 'pc-new-teacher@seeds.edu.pk', password: 'BrandNewPass1!', name: 'PC Teacher', campusId: ids.campus })
       .expect(201);
     ids.teacher = res.body.id;
     expect(res.body).toEqual({ id: ids.teacher, identifier: 'pc-new-teacher@seeds.edu.pk', name: 'PC Teacher' });
@@ -128,7 +128,7 @@ describe('People CRUD (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-teacher@seeds.edu.pk', password: 'AnotherPass1!', name: 'Duplicate' })
+      .send({ identifier: 'pc-new-teacher@seeds.edu.pk', password: 'AnotherPass1!', name: 'Duplicate', campusId: ids.campus })
       .expect(400);
   });
 
