@@ -31,30 +31,37 @@ export class AttendanceController {
     return this.attendanceService.getForStudent(studentId, targetMonth);
   }
 
-  // Staff-only (no StudentAccessService involved) — the roster-marking screen's pre-fill, not a
-  // parent-facing read. Defaults to today so the common case ("what did I already mark today?")
-  // needs no query param.
+  // Staff-only (no StudentAccessService involved for PARENT, since @Roles already excludes that
+  // role) — the roster-marking screen's pre-fill, now campus/tenant-scoped like every other
+  // section-level route.
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Get('sections/:id/attendance')
-  getForSection(@Param('id') sectionId: string, @Query('date') date?: string) {
+  async getForSection(
+    @Param('id') sectionId: string,
+    @Query('date') date: string | undefined,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    await this.studentAccess.assertCanAccessSection(req.user, sectionId);
     const targetDate = date ?? new Date().toISOString().slice(0, 10);
     return this.attendanceService.getForSection(sectionId, targetDate);
   }
 
-  // Deliberately NOT guarded by StudentAccessService's parent-allow path — @Roles restricts this
-  // to staff outright, so a PARENT token is rejected before ever reaching the service.
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('attendance')
-  markAttendance(
+  async markAttendance(
     @Body() dto: MarkAttendanceDto,
     @Req() req: AuthenticatedRequest,
   ) {
+    await this.studentAccess.assertCanAccessStudent(req.user, dto.studentId);
     return this.attendanceService.markAttendance(dto, req.user.id);
   }
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('attendance/bulk')
-  markBulk(@Body() dto: BulkMarkAttendanceDto, @Req() req: AuthenticatedRequest) {
+  async markBulk(@Body() dto: BulkMarkAttendanceDto, @Req() req: AuthenticatedRequest) {
+    for (const mark of dto.marks) {
+      await this.studentAccess.assertCanAccessStudent(req.user, mark.studentId);
+    }
     return this.attendanceService.markBulk(dto, req.user.id);
   }
 }

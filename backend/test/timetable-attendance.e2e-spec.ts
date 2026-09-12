@@ -112,11 +112,26 @@ describe('Timetable + Attendance (e2e)', () => {
       data: { userId: teacherUser.id, name: 'TTA Teacher', campusId: campus.id },
     });
 
+    const campusB = await prisma.campus.create({
+      data: { schoolId: school.id, name: 'TTA Campus B' },
+    });
+    const teacherBUser = await prisma.user.create({
+      data: {
+        identifier: 'tta-teacher-b@seeds.edu.pk',
+        passwordHash,
+        role: 'TEACHER',
+      },
+    });
+    const teacherB = await prisma.teacher.create({
+      data: { userId: teacherBUser.id, name: 'TTA Teacher B', campusId: campusB.id },
+    });
+
     await prisma.user.create({
       data: {
         identifier: 'tta-admin@seeds.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
+        schoolId: school.id,
       },
     });
 
@@ -192,6 +207,8 @@ describe('Timetable + Attendance (e2e)', () => {
       childB: childB.id,
       section: section.id,
       teacher: teacher.id,
+      campusB: campusB.id,
+      teacherB: teacherB.id,
     });
   });
 
@@ -221,6 +238,7 @@ describe('Timetable + Attendance (e2e)', () => {
           identifier: {
             in: [
               'tta-teacher@seeds.edu.pk',
+              'tta-teacher-b@seeds.edu.pk',
               'tta-admin@seeds.edu.pk',
               'tta-parent-a@seeds.edu.pk',
               'tta-parent-b@seeds.edu.pk',
@@ -483,5 +501,31 @@ describe('Timetable + Attendance (e2e)', () => {
     await prisma.attendanceRiskFlag.deleteMany({
       where: { studentId: ids.childA },
     });
+  });
+
+  it('denies a teacher reading another campus section\'s attendance roster', async () => {
+    const token = await loginAs('tta-teacher-b@seeds.edu.pk');
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/sections/${ids.section}/attendance`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('denies a teacher marking attendance for a student outside their campus', async () => {
+    const token = await loginAs('tta-teacher-b@seeds.edu.pk');
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/attendance')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ studentId: ids.childA, date: '2026-09-12', status: 'PRESENT' });
+    expect(res.status).toBe(403);
+  });
+
+  it('denies a bulk-attendance call when any mark targets a student outside the caller\'s campus', async () => {
+    const token = await loginAs('tta-teacher-b@seeds.edu.pk');
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/attendance/bulk')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ date: '2026-09-12', marks: [{ studentId: ids.childA, status: 'PRESENT' }] });
+    expect(res.status).toBe(403);
   });
 });
