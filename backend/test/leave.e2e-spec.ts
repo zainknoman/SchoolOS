@@ -69,7 +69,7 @@ describe('Leave applications (e2e)', () => {
     });
 
     const adminUser = await prisma.user.create({
-      data: { identifier: 'lv-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
+      data: { identifier: 'lv-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
     });
 
     const parentAUser = await prisma.user.create({

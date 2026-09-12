@@ -84,6 +84,7 @@ describe('Messages + Notifications (e2e)', () => {
         identifier: 'mn-admin@seeds.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
+        schoolId: school.id,
         isPrincipal: true,
         createdAt: new Date(0),
       },

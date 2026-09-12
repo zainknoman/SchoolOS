@@ -167,6 +167,13 @@ describe('Org Structure (e2e)', () => {
       .send({ name: 'OS E2E School' })
       .expect(201);
     ids.school = school.body.id;
+    // This file's SCHOOL_ADMIN fixture is created in beforeAll, before any School exists (this
+    // very test is what creates one) — set its schoolId now, one-line ahead of upcoming route
+    // wiring, same intent as the other e2e fixtures (see commit 3352755).
+    await prisma.user.update({
+      where: { id: ids.schoolAdminUser },
+      data: { schoolId: ids.school },
+    });
 
     const campus = await request(app.getHttpServer())
       .post('/api/v1/campuses')

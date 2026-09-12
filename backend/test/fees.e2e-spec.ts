@@ -63,7 +63,7 @@ describe('Fees (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const adminUser = await prisma.user.create({
-      data: { identifier: 'fee-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
+      data: { identifier: 'fee-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
     });
     const teacherUser = await prisma.user.create({
       data: { identifier: 'fee-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },

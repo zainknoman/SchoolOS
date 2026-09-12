@@ -54,14 +54,14 @@ describe('People CRUD (e2e)', () => {
     }
 
     const passwordHash = await argon2.hash(password);
+    const school = await prisma.school.create({ data: { name: 'PC E2E School' } });
     const schoolAdminUser = await prisma.user.create({
-      data: { identifier: 'pc-school-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
+      data: { identifier: 'pc-school-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
     });
     const parentUser = await prisma.user.create({
       data: { identifier: 'pc-non-admin-parent@seeds.edu.pk', passwordHash, role: 'PARENT' },
     });
 
-    const school = await prisma.school.create({ data: { name: 'PC E2E School' } });
     const campus = await prisma.campus.create({ data: { schoolId: school.id, name: 'Main' } });
     const session = await prisma.academicSession.create({
       data: { label: 'PC', startDate: new Date(), endDate: new Date(), isActive: true },
