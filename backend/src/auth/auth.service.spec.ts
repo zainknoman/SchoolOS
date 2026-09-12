@@ -10,6 +10,7 @@ import {
   MAX_FAILED_ATTEMPTS,
   GENERIC_AUTH_ERROR,
   ACCOUNT_LOCKED_ERROR,
+  RESET_PASSWORD_GENERIC_ERROR,
 } from './auth.constants';
 
 describe('AuthService', () => {
@@ -30,6 +31,7 @@ describe('AuthService', () => {
       findUnique: jest.Mock;
       update: jest.Mock;
     };
+    $transaction: jest.Mock;
   };
   let mailAdapter: { send: jest.Mock };
 
@@ -56,6 +58,7 @@ describe('AuthService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      $transaction: jest.fn().mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops)),
     };
     mailAdapter = { send: jest.fn() };
 
@@ -252,6 +255,110 @@ describe('AuthService', () => {
         GENERIC_AUTH_ERROR,
       );
       expect(prisma.refreshToken.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('creates a reset token and emails a reset link for a known identifier', async () => {
+      prisma.user.findUnique.mockResolvedValue({ ...baseUser });
+      prisma.passwordResetToken.create.mockResolvedValue({});
+      mailAdapter.send.mockResolvedValue(undefined);
+
+      await service.forgotPassword('parent@seeds.edu.pk');
+
+      expect(prisma.passwordResetToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: 'user-1',
+            tokenHash: expect.any(String),
+            expiresAt: expect.any(Date),
+          }),
+        }),
+      );
+      expect(mailAdapter.send).toHaveBeenCalledWith(
+        'parent@seeds.edu.pk',
+        expect.stringContaining('Reset your'),
+        expect.stringContaining('reset-password?token='),
+      );
+    });
+
+    it('silently no-ops for an unknown identifier — never reveals whether an account exists', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.forgotPassword('nobody@seeds.edu.pk')).resolves.toBeUndefined();
+
+      expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
+      expect(mailAdapter.send).not.toHaveBeenCalled();
+    });
+
+    it('swallows a mail-delivery failure — the caller must never see it (same generic response either way)', async () => {
+      prisma.user.findUnique.mockResolvedValue({ ...baseUser });
+      prisma.passwordResetToken.create.mockResolvedValue({});
+      mailAdapter.send.mockRejectedValue(new Error('smtp down'));
+
+      await expect(service.forgotPassword('parent@seeds.edu.pk')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('resetPassword', () => {
+    const storedResetToken = {
+      id: 'prt-1',
+      userId: 'user-1',
+      tokenHash: expect.any(String),
+      expiresAt: new Date(Date.now() + 60 * 60_000),
+      usedAt: null as Date | null,
+    };
+
+    it('resets the password, marks the token used, and revokes every active session in one transaction', async () => {
+      prisma.passwordResetToken.findUnique.mockResolvedValue(storedResetToken);
+      prisma.user.update.mockResolvedValue({});
+      prisma.passwordResetToken.update.mockResolvedValue({});
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 2 });
+
+      await service.resetPassword('raw-token', 'NewCorrectHorse9!');
+
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'user-1' } }),
+      );
+      expect(prisma.passwordResetToken.update).toHaveBeenCalledWith({
+        where: { id: 'prt-1' },
+        data: { usedAt: expect.any(Date) },
+      });
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('rejects an unknown token with the generic reset error', async () => {
+      prisma.passwordResetToken.findUnique.mockResolvedValue(null);
+
+      await expect(service.resetPassword('garbage', 'NewPass9!')).rejects.toThrow(
+        RESET_PASSWORD_GENERIC_ERROR,
+      );
+    });
+
+    it('rejects an expired token', async () => {
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        ...storedResetToken,
+        expiresAt: new Date(Date.now() - 1000),
+      });
+
+      await expect(service.resetPassword('expired', 'NewPass9!')).rejects.toThrow(
+        RESET_PASSWORD_GENERIC_ERROR,
+      );
+    });
+
+    it('rejects an already-used token (rejects replay)', async () => {
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        ...storedResetToken,
+        usedAt: new Date(),
+      });
+
+      await expect(service.resetPassword('used', 'NewPass9!')).rejects.toThrow(
+        RESET_PASSWORD_GENERIC_ERROR,
+      );
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
   });
 });
