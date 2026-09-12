@@ -97,6 +97,15 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'HCR Teacher', campusId: campus.id },
     });
+    const campusB = await prisma.campus.create({
+      data: { schoolId: school.id, name: 'HCR Campus B' },
+    });
+    const teacherBUser = await prisma.user.create({
+      data: { identifier: 'hcr-teacher-b@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+    });
+    await prisma.teacher.create({
+      data: { userId: teacherBUser.id, name: 'HCR Teacher B', campusId: campusB.id },
+    });
     await prisma.user.create({
       data: {
         identifier: 'hcr-admin@seeds.edu.pk',
@@ -175,6 +184,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
           identifier: {
             in: [
               'hcr-teacher@seeds.edu.pk',
+              'hcr-teacher-b@seeds.edu.pk',
               'hcr-admin@seeds.edu.pk',
               'hcr-parent-a@seeds.edu.pk',
               'hcr-parent-b@seeds.edu.pk',
@@ -300,6 +310,15 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         .expect(200);
 
       expect(res.body.status).toBe('resolved');
+    });
+
+    it('denies a teacher raising a complaint about a student outside their campus', async () => {
+      const token = await loginAs('hcr-teacher-b@seeds.edu.pk');
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/complaints')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ studentId: ids.childA, subject: 'Test', description: 'Test' });
+      expect(res.status).toBe(403);
     });
   });
 

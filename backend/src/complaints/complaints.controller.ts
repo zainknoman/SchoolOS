@@ -19,7 +19,8 @@ export class ComplaintsController {
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
   @Post()
-  create(@Body() dto: CreateComplaintDto, @Req() req: AuthenticatedRequest) {
+  async create(@Body() dto: CreateComplaintDto, @Req() req: AuthenticatedRequest) {
+    await this.studentAccess.assertCanAccessStudent(req.user, dto.studentId);
     return this.complaintsService.create(dto, req.user.id);
   }
 
