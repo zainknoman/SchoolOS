@@ -39,7 +39,7 @@ describe('StudentAccessService', () => {
     expect(enrollmentService.getCurrentEnrollment).not.toHaveBeenCalled();
   });
 
-  it('denies every non-SUPER_ADMIN role when the student has no active enrollment', async () => {
+  it('denies staff roles (SCHOOL_ADMIN/ACCOUNTS/TEACHER) when the student has no active enrollment', async () => {
     enrollmentService.getCurrentEnrollment.mockRejectedValue(new Error('not found'));
 
     await expect(
@@ -119,5 +119,15 @@ describe('StudentAccessService', () => {
     await expect(
       service.assertCanAccessStudent({ id: 'parent-user-1', role: 'PARENT' }, 'someone-elses-child'),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('allows a PARENT linked to a student with no active enrollment — parent access survives a lapsed/withdrawn enrollment', async () => {
+    enrollmentService.getCurrentEnrollment.mockRejectedValue(new Error('not found'));
+    prisma.studentParent.findFirst.mockResolvedValue({ id: 'link-1' });
+
+    await expect(
+      service.assertCanAccessStudent({ id: 'parent-user-1', role: 'PARENT' }, 'withdrawn-child'),
+    ).resolves.toBeUndefined();
+    expect(prisma.campus.findUniqueOrThrow).not.toHaveBeenCalled();
   });
 });

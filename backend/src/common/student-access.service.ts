@@ -10,7 +10,6 @@ export interface RequestUser {
 interface AccessScope {
   campusId: string;
   schoolId: string;
-  studentId?: string;
 }
 
 /**
@@ -29,8 +28,21 @@ export class StudentAccessService {
     if (user.role === 'SUPER_ADMIN') {
       return;
     }
-    const scope = await this.resolveStudentScope(studentId);
-    await this.assertCanAccessScope(user, scope);
+    if (user.role === 'SCHOOL_ADMIN' || user.role === 'ACCOUNTS' || user.role === 'TEACHER') {
+      const scope = await this.resolveStudentScope(studentId);
+      await this.assertCanAccessScope(user, scope);
+      return;
+    }
+    // PARENT (or any other non-staff role): must have a StudentParent link — independent of the
+    // student's current enrollment status, so a parent keeps access to a withdrawn/graduated
+    // child's historical records (report cards, fee receipts, etc.), matching the pre-Sprint-L
+    // behavior this check has always had.
+    const link = await this.prisma.studentParent.findFirst({
+      where: { studentId, parentProfile: { userId: user.id } },
+    });
+    if (!link) {
+      throw new ForbiddenException('You do not have access to this student');
+    }
   }
 
   async assertCanAccessSection(user: RequestUser, sectionId: string): Promise<void> {
@@ -52,21 +64,10 @@ export class StudentAccessService {
       }
       return;
     }
-    if (user.role === 'TEACHER') {
-      const teacher = await this.prisma.teacher.findUnique({ where: { userId: user.id } });
-      if (!teacher || teacher.campusId !== scope.campusId) {
-        throw new ForbiddenException('You do not have access to this resource');
-      }
-      return;
-    }
-    // PARENT (or any other role): must have a StudentParent link, never a broader query the
-    // caller could widen. Only reachable via assertCanAccessStudent — assertCanAccessSection has
-    // no PARENT-accessible caller, so scope.studentId is always set on this branch.
-    const link = await this.prisma.studentParent.findFirst({
-      where: { studentId: scope.studentId, parentProfile: { userId: user.id } },
-    });
-    if (!link) {
-      throw new ForbiddenException('You do not have access to this student');
+    // TEACHER (the only remaining caller of this helper)
+    const teacher = await this.prisma.teacher.findUnique({ where: { userId: user.id } });
+    if (!teacher || teacher.campusId !== scope.campusId) {
+      throw new ForbiddenException('You do not have access to this resource');
     }
   }
 
@@ -81,7 +82,7 @@ export class StudentAccessService {
       where: { id: enrollment.campusId },
       select: { schoolId: true },
     });
-    return { campusId: enrollment.campusId, schoolId: campus.schoolId, studentId };
+    return { campusId: enrollment.campusId, schoolId: campus.schoolId };
   }
 
   private async resolveSectionScope(sectionId: string): Promise<AccessScope | null> {
