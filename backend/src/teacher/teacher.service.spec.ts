@@ -30,12 +30,12 @@ describe('TeacherService', () => {
     service = moduleRef.get(TeacherService);
   });
 
-  it('creates a Teacher (User + Teacher) and audit-logs it without leaking the password', async () => {
+  it('creates a Teacher (User + Teacher) with a campus assignment, audit-logged without leaking the password', async () => {
     tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'teacher-x@seeds.edu.pk' });
     tx.teacher.create.mockResolvedValue({ id: 't1', name: 'New Teacher' });
 
     const result = await service.create(
-      { identifier: 'teacher-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher' },
+      { identifier: 'teacher-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-1' },
       'admin-1',
     );
 
@@ -43,7 +43,9 @@ describe('TeacherService', () => {
     expect(tx.user.create).toHaveBeenCalledWith({
       data: { identifier: 'teacher-x@seeds.edu.pk', passwordHash: 'hashed-password', role: 'TEACHER' },
     });
-    expect(tx.teacher.create).toHaveBeenCalledWith({ data: { userId: 'u1', name: 'New Teacher' } });
+    expect(tx.teacher.create).toHaveBeenCalledWith({
+      data: { userId: 'u1', name: 'New Teacher', campusId: 'campus-1' },
+    });
     const auditCall = prisma.auditLog.create.mock.calls[0][0];
     expect(auditCall.data.action).toBe('teacher.create');
     expect(JSON.stringify(auditCall.data)).not.toContain('ChangeMe123!');

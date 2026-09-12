@@ -30,7 +30,9 @@ export class TeacherService {
         const user = await tx.user.create({
           data: { identifier: dto.identifier, passwordHash, role: 'TEACHER' },
         });
-        const teacher = await tx.teacher.create({ data: { userId: user.id, name: dto.name } });
+        const teacher = await tx.teacher.create({
+          data: { userId: user.id, name: dto.name, campusId: dto.campusId },
+        });
         return { id: teacher.id, name: teacher.name, identifier: user.identifier };
       });
     } catch (error) {
