@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { TimetableService } from './timetable.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
@@ -132,7 +132,11 @@ describe('TimetableService', () => {
       }),
     );
     expect(result[0]).toEqual(
-      expect.objectContaining({ subject: 'English', teacher: 'Mr. Second Teacher', room: '4B' }),
+      expect.objectContaining({
+        subject: 'English',
+        teacher: 'Mr. Second Teacher',
+        room: '4B',
+      }),
     );
   });
 
@@ -148,7 +152,11 @@ describe('TimetableService', () => {
     });
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ userId: 'admin-1', action: 'timetable.update', entityId: 't1' }),
+        data: expect.objectContaining({
+          userId: 'admin-1',
+          action: 'timetable.update',
+          entityId: 't1',
+        }),
       }),
     );
     expect(result).toEqual({ id: 't1', room: '4C' });
@@ -157,9 +165,9 @@ describe('TimetableService', () => {
   it('updateEntry throws NotFoundException for an unknown entry', async () => {
     prisma.timetable.findUnique.mockResolvedValue(null);
 
-    await expect(service.updateEntry('missing', { room: '4C' }, 'admin-1')).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      service.updateEntry('missing', { room: '4C' }, 'admin-1'),
+    ).rejects.toThrow(NotFoundException);
     expect(prisma.timetable.update).not.toHaveBeenCalled();
   });
 
@@ -168,10 +176,16 @@ describe('TimetableService', () => {
 
     await service.deleteEntry('t1', 'admin-1');
 
-    expect(prisma.timetable.delete).toHaveBeenCalledWith({ where: { id: 't1' } });
+    expect(prisma.timetable.delete).toHaveBeenCalledWith({
+      where: { id: 't1' },
+    });
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ userId: 'admin-1', action: 'timetable.delete', entityId: 't1' }),
+        data: expect.objectContaining({
+          userId: 'admin-1',
+          action: 'timetable.delete',
+          entityId: 't1',
+        }),
       }),
     );
   });
@@ -179,20 +193,36 @@ describe('TimetableService', () => {
   it('deleteEntry throws NotFoundException for an unknown entry', async () => {
     prisma.timetable.findUnique.mockResolvedValue(null);
 
-    await expect(service.deleteEntry('missing', 'admin-1')).rejects.toThrow(NotFoundException);
+    await expect(service.deleteEntry('missing', 'admin-1')).rejects.toThrow(
+      NotFoundException,
+    );
     expect(prisma.timetable.delete).not.toHaveBeenCalled();
   });
 
-  it('replaceForSection deletes the section\'s existing rows and creates the new set in one transaction', async () => {
+  it("replaceForSection deletes the section's existing rows and creates the new set in one transaction", async () => {
     const entries = [
-      { subjectId: 'sub-1', dayOfWeek: 1, period: 1, startTime: '08:00', endTime: '08:40' },
-      { subjectId: 'sub-2', dayOfWeek: 1, period: 2, startTime: '08:40', endTime: '09:20' },
+      {
+        subjectId: 'sub-1',
+        dayOfWeek: 1,
+        period: 1,
+        startTime: '08:00',
+        endTime: '08:40',
+      },
+      {
+        subjectId: 'sub-2',
+        dayOfWeek: 1,
+        period: 2,
+        startTime: '08:40',
+        endTime: '09:20',
+      },
     ];
     prisma.timetable.findMany.mockResolvedValue([]);
 
     await service.replaceForSection('sec-1', entries, 'admin-1');
 
-    expect(prisma.timetable.deleteMany).toHaveBeenCalledWith({ where: { sectionId: 'sec-1' } });
+    expect(prisma.timetable.deleteMany).toHaveBeenCalledWith({
+      where: { sectionId: 'sec-1' },
+    });
     expect(prisma.timetable.createMany).toHaveBeenCalledWith({
       data: entries.map((e) => ({ ...e, sectionId: 'sec-1' })),
     });
@@ -221,10 +251,115 @@ describe('TimetableService', () => {
 
     await service.replaceForSection('sec-1', [], 'admin-1');
 
-    expect(prisma.timetable.deleteMany).toHaveBeenCalledWith({ where: { sectionId: 'sec-1' } });
+    expect(prisma.timetable.deleteMany).toHaveBeenCalledWith({
+      where: { sectionId: 'sec-1' },
+    });
     expect(prisma.timetable.createMany).not.toHaveBeenCalled();
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ action: 'timetable.replace' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'timetable.replace' }),
+      }),
     );
+  });
+
+  describe('scheduling-conflict detection', () => {
+    const dto = {
+      sectionId: 'sec-1',
+      subjectId: 'sub-1',
+      teacherId: 'teacher-1',
+      dayOfWeek: 2,
+      period: 1,
+      startTime: '08:00',
+      endTime: '08:40',
+      room: 'Room-3A',
+    };
+
+    it('createEntry rejects a double-booked teacher in the same day+period', async () => {
+      prisma.timetable.findFirst.mockResolvedValue({
+        id: 'existing',
+        teacherId: 'teacher-1',
+        room: null,
+      });
+
+      await expect(service.createEntry(dto, 'admin-1')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(prisma.timetable.create).not.toHaveBeenCalled();
+    });
+
+    it('createEntry rejects a double-booked room in the same day+period', async () => {
+      prisma.timetable.findFirst.mockResolvedValue({
+        id: 'existing',
+        teacherId: null,
+        room: 'Room-3A',
+      });
+
+      await expect(service.createEntry(dto, 'admin-1')).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('createEntry allows two entries with neither teacherId nor room set — never flagged as conflicting', async () => {
+      prisma.timetable.findFirst.mockResolvedValue(null);
+      prisma.timetable.create.mockResolvedValue({ id: 't1' });
+
+      const bareDto = { ...dto, teacherId: undefined, room: undefined };
+      delete (bareDto as { teacherId?: string }).teacherId;
+      delete (bareDto as { room?: string }).room;
+
+      await service.createEntry(bareDto, 'admin-1');
+
+      expect(prisma.timetable.findFirst).not.toHaveBeenCalled();
+      expect(prisma.timetable.create).toHaveBeenCalled();
+    });
+
+    it('createEntry succeeds when no conflicting row exists', async () => {
+      prisma.timetable.findFirst.mockResolvedValue(null);
+      prisma.timetable.create.mockResolvedValue({ id: 't1' });
+
+      await service.createEntry(dto, 'admin-1');
+
+      expect(prisma.timetable.create).toHaveBeenCalledWith({ data: dto });
+    });
+
+    it('updateEntry rejects a conflict against a DIFFERENT entry', async () => {
+      prisma.timetable.findUnique.mockResolvedValue({
+        id: 't1',
+        dayOfWeek: 2,
+        period: 1,
+        teacherId: 'teacher-1',
+        room: null,
+      });
+      prisma.timetable.findFirst.mockResolvedValue({
+        id: 'other-entry',
+        teacherId: 'teacher-1',
+        room: null,
+      });
+
+      await expect(
+        service.updateEntry('t1', { period: 2 }, 'admin-1'),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it("updateEntry excludes itself from the conflict check (editing an entry's own unrelated field is not a self-conflict)", async () => {
+      prisma.timetable.findUnique.mockResolvedValue({
+        id: 't1',
+        dayOfWeek: 2,
+        period: 1,
+        teacherId: 'teacher-1',
+        room: null,
+      });
+      prisma.timetable.findFirst.mockResolvedValue(null);
+      prisma.timetable.update.mockResolvedValue({ id: 't1' });
+
+      await service.updateEntry('t1', { startTime: '08:05' }, 'admin-1');
+
+      expect(prisma.timetable.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: { not: 't1' } }),
+        }),
+      );
+      expect(prisma.timetable.update).toHaveBeenCalled();
+    });
   });
 });
