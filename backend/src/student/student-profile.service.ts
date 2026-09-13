@@ -159,9 +159,11 @@ export class StudentProfileService {
         where: { studentId },
         data: {
           ...scalarData,
-          ...(dto.address
-            ? { address: existing.addressId ? { update: dto.address } : { create: dto.address } }
-            : {}),
+          address: dto.address
+            ? existing.addressId
+              ? { update: dto.address }
+              : { create: dto.address }
+            : undefined,
         },
         include: { address: true },
       });
@@ -170,8 +172,8 @@ export class StudentProfileService {
         data: {
           studentId,
           ...scalarData,
-          ...(dto.address ? { address: { create: dto.address } } : {}),
-        },
+          address: dto.address ? { create: dto.address } : undefined,
+        } as Prisma.StudentPreviousSchoolUncheckedCreateInput,
         include: { address: true },
       });
     }
@@ -229,8 +231,8 @@ export class StudentProfileService {
         email: dto.email,
         priority: dto.priority ?? 1,
         isPrimary: dto.isPrimary ?? false,
-        ...(dto.address ? { address: { create: dto.address } } : {}),
-      },
+        address: dto.address ? { create: dto.address } : undefined,
+      } as Prisma.StudentEmergencyContactUncheckedCreateInput,
       include: { address: true },
     });
     await this.prisma.auditLog.create({
@@ -266,9 +268,11 @@ export class StudentProfileService {
         ...(dto.email !== undefined ? { email: dto.email } : {}),
         ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
         ...(dto.isPrimary !== undefined ? { isPrimary: dto.isPrimary } : {}),
-        ...(dto.address
-          ? { address: existing.addressId ? { update: dto.address } : { create: dto.address } }
-          : {}),
+        address: dto.address
+          ? existing.addressId
+            ? { update: dto.address }
+            : { create: dto.address }
+          : undefined,
       },
       include: { address: true },
     });
