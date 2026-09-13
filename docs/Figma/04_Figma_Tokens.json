@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "product": "School OS",
+    "revision": "Internal Rev 1.0",
+    "date": "Aug 2026"
+  },
+  "breakpoints": {
+    "mobile": 390,
+    "mobile_min": 320,
+    "desktop": 1440,
+    "desktop_min": 1024
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 40,
+    "4xl": 48
+  },
+  "radius": {
+    "sm": 6,
+    "md": 10,
+    "lg": 14,
+    "xl": 18,
+    "pill": 999
+  },
+  "colors": {
+    "brand_900": "#064E3B",
+    "brand_500": "#10B981",
+    "background": "#F8FAFC",
+    "surface": "#FFFFFF",
+    "border": "#E2E8F0",
+    "text_900": "#0F172A",
+    "text_600": "#475569",
+    "text_400": "#94A3B8",
+    "success": "#16A34A",
+    "error": "#DC2626",
+    "warning": "#D97706",
+    "info": "#2563EB",
+    "jazzcash": "#CB040A",
+    "easypaisa": "#00A859",
+    "1link": "#00529B"
+  },
+  "typography": {
+    "font_primary": "Inter",
+    "font_rtl": "Noto Sans Arabic",
+    "H1": {
+      "size": 24,
+      "line_height": 32,
+      "weight": 700
+    },
+    "H2": {
+      "size": 18,
+      "line_height": 24,
+      "weight": 600
+    },
+    "H3": {
+      "size": 16,
+      "line_height": 24,
+      "weight": 600
+    },
+    "Subhead": {
+      "size": 14,
+      "line_height": 20,
+      "weight": 500
+    },
+    "Body": {
+      "size": 14,
+      "line_height": 20,
+      "weight": 400
+    },
+    "Caption": {
+      "size": 12,
+      "line_height": 16,
+      "weight": 400
+    },
+    "KPI": {
+      "size": 28,
+      "line_height": 34,
+      "weight": 700
+    }
+  },
+  "mobile": {
+    "canvas_width": 390,
+    "canvas_height": 844,
+    "padding": 16,
+    "content_width": 358,
+    "min_touch_target": 48
+  },
+  "desktop": {
+    "canvas_width": 1440,
+    "grid_columns": 12,
+    "gutter": 24,
+    "margin": 80,
+    "header_height": 64
+  }
+}

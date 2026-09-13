@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Parent App - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- FontAwesome for icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style data-purpose="custom-utilities">
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background-color: #f3f4f6;
+    }
+    /* Hide scrollbar for clean mobile look */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 flex justify-center min-h-screen">
+<!-- BEGIN: Mobile Container -->
+<div class="w-full max-w-md bg-white shadow-xl relative min-h-screen flex flex-col" data-purpose="mobile-mockup">
+<!-- BEGIN: iOS Status Bar -->
+<div class="h-12 w-full flex justify-between items-center px-5 pt-2 text-xs font-semibold z-10 bg-white" data-purpose="status-bar">
+<span>9:15</span>
+<div class="flex space-x-2 items-center">
+<i class="fas fa-signal"></i>
+<i class="fas fa-wifi"></i>
+<i class="fas fa-battery-full"></i>
+</div>
+</div>
+<!-- END: iOS Status Bar -->
+<!-- BEGIN: Main Header -->
+<header class="px-4 pb-4 pt-2 bg-white sticky top-12 z-10" data-purpose="app-header">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="text-xs text-gray-500 mb-1">Assalam-o-Alaikum</p>
+<h1 class="text-xl font-bold text-gray-900">Mr. Ahmed</h1>
+</div>
+<button class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 relative">
+<i class="far fa-bell text-lg"></i>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+</button>
+</div>
+<!-- Child Selector -->
+<div class="border rounded-xl p-3 flex items-center justify-between bg-white shadow-sm" data-purpose="child-selector">
+<div class="flex items-center space-x-3">
+<div class="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+<!-- Placeholder for child avatar -->
+<svg class="w-full h-full text-gray-400" fill="currentColor" viewbox="0 0 24 24"><path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+</div>
+<div>
+<h2 class="font-bold text-gray-900 text-lg">Zara Ahmed</h2>
+<p class="text-sm text-gray-500">Class 8A</p>
+</div>
+</div>
+<i class="fas fa-chevron-down text-gray-400"></i>
+</div>
+</header>
+<!-- END: Main Header -->
+<!-- BEGIN: Main Content Area -->
+<main class="flex-1 px-4 pb-24 overflow-y-auto" data-purpose="dashboard-content">
+<!-- Core KPIs Row -->
+<section class="grid grid-cols-2 gap-3 mb-4" data-purpose="core-kpis">
+<!-- Attendance Card -->
+<div class="bg-white border rounded-xl p-4 shadow-sm flex flex-col justify-between">
+<div class="text-sm text-gray-500 font-medium mb-2">Attendance</div>
+<div>
+<div class="text-2xl font-bold text-gray-900">93%</div>
+<div class="text-xs text-gray-500 mt-1">This Month</div>
+</div>
+</div>
+<!-- Fees Card -->
+<div class="bg-white border rounded-xl p-4 shadow-sm flex flex-col justify-between">
+<div class="text-sm text-gray-500 font-medium mb-2">Fees</div>
+<div>
+<div class="text-xl font-bold text-red-600">PKR 22,450</div>
+<div class="text-xs text-gray-500 mt-1">Outstanding</div>
+</div>
+</div>
+</section>
+<!-- Secondary Actions Grid -->
+<section class="grid grid-cols-2 gap-3 mb-6" data-purpose="quick-links">
+<button class="bg-white border rounded-xl p-4 shadow-sm text-left flex flex-col justify-center">
+<div class="font-semibold text-gray-900 text-sm mb-1">Results</div>
+<div class="text-xs text-gray-500">View latest results</div>
+</button>
+<button class="bg-white border rounded-xl p-4 shadow-sm text-left flex flex-col justify-center">
+<div class="font-semibold text-gray-900 text-sm mb-1">Timetable</div>
+<div class="text-xs text-gray-500">View timetable</div>
+</button>
+<button class="bg-white border rounded-xl p-4 shadow-sm text-left flex flex-col justify-center">
+<div class="font-semibold text-gray-900 text-sm mb-1">Announcements</div>
+<div class="text-xs text-gray-500">3 new</div>
+</button>
+<button class="bg-white border rounded-xl p-4 shadow-sm text-left flex flex-col justify-center">
+<div class="font-semibold text-gray-900 text-sm mb-1">Profile</div>
+<div class="text-xs text-gray-500">Update details</div>
+</button>
+</section>
+<!-- Recent Announcements -->
+<section data-purpose="announcements">
+<div class="flex justify-between items-center mb-3">
+<h3 class="font-bold text-gray-900">Recent Announcements</h3>
+<a class="text-sm text-blue-600 font-medium" href="#">See All</a>
+</div>
+<div class="bg-white border rounded-xl p-4 shadow-sm mb-3">
+<h4 class="font-bold text-gray-900 text-sm mb-1">Independence Day Holiday</h4>
+<p class="text-sm text-gray-600 mb-2">School will remain closed on 14-Aug-2026.</p>
+<p class="text-xs text-gray-400">2 days ago</p>
+</div>
+</section>
+</main>
+<!-- END: Main Content Area -->
+<!-- BEGIN: Bottom Navigation -->
+<nav class="absolute bottom-0 w-full bg-white border-t border-gray-200 pb-safe pt-2 px-2 flex justify-around items-center" data-purpose="bottom-nav">
+<a class="flex flex-col items-center justify-center p-2 text-gray-900 w-1/5" href="#">
+<i class="fas fa-home text-xl mb-1"></i>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 text-gray-400 w-1/5" href="#">
+<i class="far fa-user-circle text-xl mb-1"></i>
+<span class="text-[10px] font-medium">Attendance</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 text-gray-400 w-1/5" href="#">
+<i class="fas fa-wallet text-xl mb-1"></i>
+<span class="text-[10px] font-medium">Fees</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 text-gray-400 w-1/5" href="#">
+<i class="far fa-chart-bar text-xl mb-1"></i>
+<span class="text-[10px] font-medium">Results</span>
+</a>
+<a class="flex flex-col items-center justify-center p-2 text-gray-400 w-1/5" href="#">
+<i class="fas fa-ellipsis-h text-xl mb-1"></i>
+<span class="text-[10px] font-medium">More</span>
+</a>
+</nav>
+<!-- END: Bottom Navigation -->
+</div>
+<!-- END: Mobile Container -->
+</body></html>
