@@ -135,4 +135,29 @@ describe('DiaryView', () => {
 
     expect(wrapper.text()).toContain('Something went wrong');
   });
+
+  it('generates a draft suggestion and inserts it into the entry text, without publishing', async () => {
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+    vi.mocked(api.listSubjects).mockResolvedValue([{ id: 'sub-1', name: 'Urdu' }]);
+    vi.mocked(api.listSectionDiary).mockResolvedValue([]);
+    vi.mocked(api.suggestDiaryDraft).mockResolvedValue({
+      suggestion: 'Please complete chapter 4 exercises by Monday.',
+    });
+
+    const wrapper = mount(DiaryView);
+    await flushPromises();
+
+    await wrapper.find('[data-testid="suggest-draft-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="draft-context-input"]').setValue('Homework reminder for chapter 4');
+    await wrapper.find('[data-testid="draft-context-submit"]').trigger('click');
+    await flushPromises();
+
+    expect(api.suggestDiaryDraft).toHaveBeenCalledWith('token-1', 'Homework reminder for chapter 4');
+    expect((wrapper.find('[data-testid="entry-text"]').element as HTMLTextAreaElement).value).toBe(
+      'Please complete chapter 4 exercises by Monday.',
+    );
+    expect(api.createDiaryEntry).not.toHaveBeenCalled();
+  });
 });
