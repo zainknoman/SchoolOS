@@ -158,6 +158,26 @@ describe('Org Structure (e2e)', () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
+  it('a SCHOOL_ADMIN can read the classes list (needed by the gradebook class picker; write routes stay blocked)', async () => {
+    const schoolAdminToken = await loginAs('os-school-admin@seeds.edu.pk');
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/classes')
+      .set('Authorization', `Bearer ${schoolAdminToken}`)
+      .expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it('a TEACHER can read the classes list (needed by the marks-entry class picker)', async () => {
+    const teacherToken = await loginAs('os-teacher@seeds.edu.pk');
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/classes')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
   it('a SUPER_ADMIN can create the full School -> Campus -> AcademicSession/Class -> Section chain', async () => {
     const token = await loginAs('os-super-admin@seeds.edu.pk');
 

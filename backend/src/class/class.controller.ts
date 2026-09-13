@@ -20,6 +20,7 @@ export class ClassController {
     return this.classService.create(dto, req.user.id);
   }
 
+  @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
   @Get('classes')
   list() {
     return this.classService.list();
