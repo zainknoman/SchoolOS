@@ -208,6 +208,12 @@ const router = createRouter({
       component: () => import('../views/ApplicationDetailPageView.vue'),
       meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'], title: 'Application' },
     },
+    {
+      path: '/admin/bulk-import',
+      name: 'admin-bulk-import',
+      component: () => import('../views/BulkImportPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Bulk Import' },
+    },
     { path: '/', redirect: '/login' },
   ],
 });

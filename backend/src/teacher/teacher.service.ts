@@ -6,6 +6,7 @@ import { assertCreatable } from '../common/prisma-create-guard';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
 import type { RequestUser } from '../common/student-access.service';
+import { createTeacherWithUser, type CreatedTeacher } from './create-teacher-with-user';
 
 export interface TeacherAdminSummary {
   id: string;
@@ -33,18 +34,9 @@ export class TeacherService {
         throw new ForbiddenException('You do not have access to this campus');
       }
     }
-    let created: { id: string; name: string; identifier: string };
+    let created: CreatedTeacher;
     try {
-      created = await this.prisma.$transaction(async (tx) => {
-        const passwordHash = await argon2.hash(dto.password);
-        const user = await tx.user.create({
-          data: { identifier: dto.identifier, passwordHash, role: 'TEACHER' },
-        });
-        const teacher = await tx.teacher.create({
-          data: { userId: user.id, name: dto.name, campusId: dto.campusId },
-        });
-        return { id: teacher.id, name: teacher.name, identifier: user.identifier };
-      });
+      created = await this.prisma.$transaction((tx) => createTeacherWithUser(tx, dto));
     } catch (error) {
       assertCreatable(error, 'This identifier is already in use.');
     }

@@ -22,7 +22,8 @@
     "terms": "Terms",
     "assessmentCategories": "Assessment Categories",
     "gradebook": "Gradebook",
-    "admissions": "Admissions"
+    "admissions": "Admissions",
+    "bulkImport": "Bulk Import"
   },
   "shell": {
     "brand": "School OS Staff Console",

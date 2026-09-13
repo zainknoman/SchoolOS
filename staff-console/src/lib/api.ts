@@ -358,6 +358,20 @@ export interface ApplicationSummary {
   createdStudentId: string | null;
 }
 
+export interface BulkImportRowOutcome {
+  line: number;
+  data: Record<string, string>;
+  errors: string[];
+}
+
+export interface BulkImportPreviewResult {
+  rows: BulkImportRowOutcome[];
+  validCount: number;
+  errorCount: number;
+}
+
+export type BulkImportEntity = 'students' | 'parents' | 'teachers';
+
 function authHeaders(accessToken: string) {
   return { Authorization: `Bearer ${accessToken}` };
 }
@@ -1477,5 +1491,31 @@ export const api = {
       body: JSON.stringify(payload),
     });
     return asJson(res);
+  },
+
+  async previewBulkImport(accessToken: string, entity: BulkImportEntity, file: File): Promise<BulkImportPreviewResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE_URL}/api/v1/bulk-import/${entity}/preview`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+      body: formData,
+    });
+    return asJson(res);
+  },
+
+  async commitBulkImport(accessToken: string, entity: BulkImportEntity, file: File): Promise<{ createdCount: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE_URL}/api/v1/bulk-import/${entity}/commit`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new ApiError(body?.message ?? 'Import failed.', res.status);
+    }
+    return res.json();
   },
 };

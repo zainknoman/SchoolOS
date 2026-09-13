@@ -86,6 +86,7 @@ const canManageReportCards = computed(
 const canManageAdmissions = computed(
   () => auth.role === 'SCHOOL_ADMIN' || auth.role === 'ACCOUNTS' || auth.role === 'SUPER_ADMIN',
 );
+const canManageBulkImport = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 
 const avatarInitials = computed(() => roleInitials(auth.role));
 const roleLabel = computed(() => {
@@ -488,6 +489,9 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
             >
             <RouterLink v-if="canManageAdmissions" data-testid="nav-admissions" to="/admin/admissions"
               ><Icon name="users" />{{ t('nav.admissions') }}</RouterLink
+            >
+            <RouterLink v-if="canManageBulkImport" data-testid="nav-bulk-import" to="/admin/bulk-import"
+              ><Icon name="grid" />{{ t('nav.bulkImport') }}</RouterLink
             >
           </div>
 
