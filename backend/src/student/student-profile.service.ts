@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { UpdateStudentProfileDto } from './dto/update-student-profile.dto';
 import { UpdateCurrentEnrollmentDto } from './dto/update-current-enrollment.dto';
+import { UpdateStudentPreviousSchoolDto } from './dto/update-student-previous-school.dto';
 
 export const PROFILE_INCLUDE = {
   currentAddress: true,
@@ -123,6 +124,60 @@ export class StudentProfileService {
         action: 'student.enrollment.update',
         entity: 'Enrollment',
         entityId: active.id,
+        metadata: JSON.stringify(dto),
+      },
+    });
+
+    return record;
+  }
+
+  async upsertPreviousSchool(studentId: string, dto: UpdateStudentPreviousSchoolDto, actingUserId: string) {
+    await this.requireStudent(studentId);
+
+    const scalarData = {
+      schoolName: dto.schoolName,
+      contactNumber: dto.contactNumber,
+      email: dto.email,
+      lastClassAttended: dto.lastClassAttended,
+      admissionDate: dto.admissionDate ? new Date(dto.admissionDate) : undefined,
+      leavingDate: dto.leavingDate ? new Date(dto.leavingDate) : undefined,
+      leavingCertificateNumber: dto.leavingCertificateNumber,
+      leavingCertificateDate: dto.leavingCertificateDate ? new Date(dto.leavingCertificateDate) : undefined,
+      reasonForLeaving: dto.reasonForLeaving,
+      academicRemarks: dto.academicRemarks,
+    };
+
+    const existing = await this.prisma.studentPreviousSchool.findUnique({ where: { studentId } });
+
+    let record;
+    if (existing) {
+      record = await this.prisma.studentPreviousSchool.update({
+        where: { studentId },
+        data: {
+          ...scalarData,
+          ...(dto.address
+            ? { address: existing.addressId ? { update: dto.address } : { create: dto.address } }
+            : {}),
+        },
+        include: { address: true },
+      });
+    } else {
+      record = await this.prisma.studentPreviousSchool.create({
+        data: {
+          studentId,
+          ...scalarData,
+          ...(dto.address ? { address: { create: dto.address } } : {}),
+        },
+        include: { address: true },
+      });
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'student.previousSchool.upsert',
+        entity: 'StudentPreviousSchool',
+        entityId: record.id,
         metadata: JSON.stringify(dto),
       },
     });

@@ -11,6 +11,7 @@ describe('StudentProfileService', () => {
     enrollment: { findFirst: jest.Mock; update: jest.Mock };
     file: { findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
+    studentPreviousSchool: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
   };
 
   beforeEach(async () => {
@@ -19,6 +20,7 @@ describe('StudentProfileService', () => {
       enrollment: { findFirst: jest.fn(), update: jest.fn() },
       file: { findUnique: jest.fn() },
       auditLog: { create: jest.fn() },
+      studentPreviousSchool: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
     };
     const moduleRef = await Test.createTestingModule({
       providers: [StudentProfileService, { provide: PrismaService, useValue: prisma }],
@@ -152,6 +154,51 @@ describe('StudentProfileService', () => {
         where: { id: 'enr-1' },
         data: { rollNumber: '12' },
       });
+    });
+  });
+
+  describe('upsertPreviousSchool', () => {
+    it('creates a new previous-school record when none exists yet', async () => {
+      prisma.student.findUnique.mockResolvedValue({ id: 's1' });
+      prisma.studentPreviousSchool.findUnique.mockResolvedValue(null);
+      prisma.studentPreviousSchool.create.mockResolvedValue({ id: 'ps1', schoolName: 'Old School' });
+
+      await service.upsertPreviousSchool('s1', { schoolName: 'Old School' }, 'admin-1');
+
+      expect(prisma.studentPreviousSchool.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ studentId: 's1', schoolName: 'Old School' }) }),
+      );
+    });
+
+    it('updates the existing previous-school record in place', async () => {
+      prisma.student.findUnique.mockResolvedValue({ id: 's1' });
+      prisma.studentPreviousSchool.findUnique.mockResolvedValue({ id: 'ps1', addressId: null });
+      prisma.studentPreviousSchool.update.mockResolvedValue({ id: 'ps1', schoolName: 'Renamed' });
+
+      await service.upsertPreviousSchool('s1', { schoolName: 'Renamed' }, 'admin-1');
+
+      expect(prisma.studentPreviousSchool.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { studentId: 's1' } }),
+      );
+      expect(prisma.studentPreviousSchool.create).not.toHaveBeenCalled();
+    });
+
+    it('creates a nested address when one is provided and none exists yet', async () => {
+      prisma.student.findUnique.mockResolvedValue({ id: 's1' });
+      prisma.studentPreviousSchool.findUnique.mockResolvedValue(null);
+      prisma.studentPreviousSchool.create.mockResolvedValue({ id: 'ps1' });
+
+      await service.upsertPreviousSchool(
+        's1',
+        { schoolName: 'Old School', address: { line1: 'Old address line' } },
+        'admin-1',
+      );
+
+      expect(prisma.studentPreviousSchool.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ address: { create: { line1: 'Old address line' } } }),
+        }),
+      );
     });
   });
 });
