@@ -31,7 +31,7 @@ update both when a sprint starts or ships.
 | Priority | Sprint | Scope | Why this order |
 |---|---|---|---|
 | 1 | **Sprint L ✅ DONE** | Fix `StudentAccessService` cross-campus/cross-role access gap (scope grew to include tenant/`schoolId` scoping, per explicit direction) | Confirmed live security hole, not a missing feature — highest priority per master prompt §7 |
-| 2 | **Sprint M** | Staff-console + parent-app UI test coverage for the 5 Sprint I/J/K modules | Closes an already-tracked, lower-risk, smaller-scope gap; can run in parallel with Sprint L once both are spec'd |
+| 2 | **Sprint M ✅ DONE** | Staff-console + parent-app UI test coverage for the 5 Sprint I/J/K modules | Closes an already-tracked, lower-risk, smaller-scope gap; can run in parallel with Sprint L once both are spec'd |
 | 3 | **Sprint N** | Structured gradebook (weighted assessment categories, calculated grades) | Core academic correctness gap per master prompt §10; report cards currently a static upload, not calculated data |
 | 4 | **Sprint O** | Admissions/enrollment pipeline (applicant → application → review → approval → student) | Extends the existing narrow `EnrollmentService`; was already the roadmap's own unscoped "Phase 8 remainder" item |
 | 5 | **Sprint P** | Bulk import/export (Students/Parents/Teachers via CSV/Excel) | No existing foundation to extend; validation/duplicate-detection/audit-logging needs real design |
@@ -81,8 +81,8 @@ request.
 | RBAC test coverage | Pending audit | Not specifically re-verified this session beyond what the new e2e specs cover (role-gating asserted for the 5 newly-tested modules) |
 | Multi-campus/cross-tenant boundary | **✅ Fixed 2026-09-12 — Sprint L, scoped to the plan's 8 routes** | `StudentAccessService.assertCanAccessStudent`/new `assertCanAccessSection` rewritten with per-role branches (`SUPER_ADMIN` unrestricted, `SCHOOL_ADMIN`/`ACCOUNTS` scoped to `User.schoolId`, `TEACHER` scoped to `Teacher.campusId`, `PARENT` unchanged link-check). The 8 routes enumerated in this sprint's plan (across 5 controllers, 4 of which were write paths with zero check at all — mark attendance, diary entry, complaint, report-card upload) are fixed and verified end-to-end against a real second `School` (`backend/test/cross-tenant-boundary.e2e-spec.ts`, added in this session's final-review fix wave). **Not in scope, named here as an explicit follow-up** — the same way `GET /sections` (list-all) was already documented as a non-goal in the spec: `GET /students`, `GET /teachers`, `GET /leave-requests`, `GET /fee-structures`, the non-`TEACHER` branch of `GET /attendance-risk`, `GET /dashboard-summary`, and `POST /fee-vouchers` (accepts an arbitrary `studentIds[]` with no per-student ownership/tenant check) all remain tenant-unaware admin-facing collection endpoints. Plan: `docs/superpowers/plans/2026-09-12-cross-tenant-access-control.md`. Verified: backend unit 369/369, e2e 105/105, staff-console 239/239, all clean, independently reviewed per-task (10 tasks) via subagent-driven-development, plus a final whole-branch review fix wave (see `.superpowers/sdd/2026-09-12-cross-tenant-access-control/final-review-fix-report.md`). See also the enrollment-status note below — a **Sprint O** consideration. |
 | Staff access and non-`ACTIVE` enrollment | **Latent gap, not yet actionable** | Staff access (`SCHOOL_ADMIN`/`ACCOUNTS`/`TEACHER`, via `StudentAccessService`) currently depends on a student having an `ACTIVE` enrollment to resolve their campus/school scope — the same way `PARENT` access briefly and incorrectly did during Sprint L before being fixed to use a `StudentParent` link check independent of enrollment status. The same historical-records argument (a withdrawn/transferred/graduated student's staff-visible records shouldn't vanish) likely applies to staff too, but nothing in this codebase sets any `EnrollmentStatus` other than `ACTIVE` today, so this can't be tested against real data and resolving it now would be premature. Flagged here for **Sprint O**'s (admissions/enrollment pipeline) future spec to address once transfer/withdrawal is real. |
-| Staff-console UI test coverage (same 5 modules) | Not implemented — sequenced as **Sprint M** | Explicitly named as still-open in `PROJECT-STATUS.md`'s 2026-09-12 entry |
-| Parent-app UI test coverage (`complaints_screen.dart`, `report_cards_screen.dart`) | Not implemented — sequenced as **Sprint M** | Same entry |
+| Staff-console UI test coverage (same 5 modules) | **✅ Closed 2026-09-13 — Sprint M** | `HolidaysView`, `ComplaintsQueueView`, `ReportCardsView` given new spec files (4/3/4 tests); "Suggest draft" covered on `DiaryView`/`CircularsView`; attendance-risk panel covered on `AdminHomeView` (3 new tests). staff-console 255/255 (up from 239). Full detail: `build/PROJECT-STATUS.md`'s Sprint M entry. |
+| Parent-app UI test coverage (`complaints_screen.dart`, `report_cards_screen.dart`) | **✅ Closed 2026-09-13 — Sprint M** | 3 tests each, mirroring the existing `leave_screen_test.dart` template. parent-app 94/94 (up from 88). Same entry. |
 
 ---
 
@@ -164,3 +164,15 @@ repo or an explicit ask changes this.
   Verified: backend unit 369/369 (up from 360), e2e 105/105 (up from 97), staff-console 239/239 (up
   from 238), build clean, staff-console lint/type-check clean. Full detail:
   `build/PROJECT-STATUS.md`'s Sprint L entry.
+- **2026-09-13** — Sprint M (P0 test coverage, UI half) implemented task-by-task against its plan and
+  merged to local `main` (`b6092b8..eb6671d`, 9 commits). Staff-console spec coverage added for
+  `HolidaysView`, `ComplaintsQueueView`, `ReportCardsView`, the "Suggest draft" button on
+  `DiaryView`/`CircularsView`, and the attendance-risk panel on `AdminHomeView`; parent-app spec
+  coverage added for `complaints_screen.dart`/`report_cards_screen.dart`. Caught during the plan's own
+  Task 9 full-suite re-verification (not during that task's individual verification step): the
+  `DiaryView.spec.ts` commit had shipped with only the `suggestDiaryDraft` mock plumbing, missing the
+  actual test case the plan specified — found by re-checking the file's test count against the plan
+  rather than trusting the commit message, fixed in a follow-up commit. Verified: backend unit
+  373/373, e2e 111/111 (unaffected, no backend files touched), staff-console 255/255 (up from 239,
+  +16 new tests), `vue-tsc` clean, parent-app `flutter analyze` clean, parent-app 94/94 (up from 88,
+  +6 new tests). Full detail: `build/PROJECT-STATUS.md`'s Sprint M entry.

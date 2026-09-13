@@ -1173,6 +1173,44 @@ plan file now carries).
     NestJS guard/decorator infrastructure, no Prisma-level middleware — extends the existing
     explicit-service-call convention only.
 
+## Sprint M — P0 Test Coverage, UI Half ✅ DONE
+
+- [x] **Staff-console spec coverage** for the five Sprint I/J/K modules that shipped without
+      dedicated UI tests: `HolidaysView.spec.ts` (4 tests — list/scope-to-campus create, edit, delete
+      with confirm/decline, error state), `ComplaintsQueueView.spec.ts` (3 tests — per-student load,
+      status transition + reload, error state), `ReportCardsView.spec.ts` (4 tests — list once a
+      student is selected, empty state, upload, backend duplicate-upload error surfaced verbatim),
+      the "Suggest draft" button on both `DiaryView.spec.ts` and `CircularsView.spec.ts` (1 new test
+      each — generates a suggestion, inserts it into the compose field, does not auto-publish), and
+      the attendance-risk early-warning panel on `AdminHomeView.spec.ts` (3 new tests — multi-row
+      render with per-student absence rate, panel absent when nothing is flagged, rest of the
+      dashboard still renders if the risk fetch itself fails — that failure is swallowed by design,
+      not surfaced as an alert).
+- [x] **Parent-app spec coverage** for `complaints_screen.dart` and `report_cards_screen.dart` (3
+      tests each — loading→populated state, empty state, defaults to the actively-selected child and
+      reloads on switch), mirroring the existing `leave_screen_test.dart` template.
+- **Explicitly out of scope, per the plan's own Global Constraints:** no test files for any
+  `*PageView.vue` wrapper (`HolidaysPageView`, `ComplaintsPageView`, `ReportCardsPageView`,
+  `TeacherComplaintsPageView`, `TeacherReportCardsPageView`) — confirmed zero-logic wrappers,
+  untested everywhere else in this codebase by consistent convention. No production-code behavior
+  changes — this sprint is additive test coverage only against already-correct code.
+- **Caught during Task 9's full-suite re-verification, not during the individual task's own
+  verification step:** the `DiaryView.spec.ts` "Suggest draft" task had been committed with only the
+  `suggestDiaryDraft` mock plumbing (the `vi.fn()` declaration and its `mockReset()`) — the actual
+  test case the plan specified was missing from that commit entirely, so nothing failed, it simply
+  wasn't exercising the feature it was meant to cover. Found by re-reading the file's test count
+  against the plan rather than trusting the commit message, fixed in a follow-up commit adding the
+  missing test (`4c03fd5`), re-verified green.
+- Plan: `docs/superpowers/plans/2026-09-13-sprint-m-test-coverage-ui.md`. Spec:
+  `docs/superpowers/specs/2026-09-13-sprint-m-test-coverage-ui-design.md`. Implemented task-by-task
+  against the plan across two sessions; each task's spec file matched the plan's own literal test
+  code almost verbatim, checked against the referenced `.vue`/`.dart` source before being trusted.
+- Verified (final, 2026-09-13): backend unit **373/373**, backend e2e **111/111** (both unaffected by
+  this sprint — no backend files touched, included here for completeness per the plan's Task 9),
+  staff-console **255/255** (up from 239 at Sprint L, +16 new tests this sprint), `vue-tsc --noEmit`
+  clean, parent-app `flutter analyze` clean (no issues), parent-app **94/94** (up from 88, +6 new
+  tests this sprint).
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
@@ -1316,18 +1354,18 @@ own implementer + task review, plus this manual verification task.
 
 ---
 
-**Next step:** **Sprints A through L** are all done (Sprint L — cross-tenant/cross-campus access
-control, committed 2026-09-12, see above), and CI is confirmed green on GitHub Actions against `main`
-(2026-09-10 — see Sprint A's Follow-up above). What's left from Sprint A is not code: turning on
-branch protection requiring the CI workflow before merge needs the repo owner's action. Sprints M
-(UI test coverage for the Sprint I/J/K modules), N (structured gradebook), O (admissions/enrollment
-pipeline), P (bulk import/export), and Q (StatusPill + remaining accessibility) are sequenced in
+**Next step:** **Sprints A through M** are all done (Sprint M — P0 test coverage, UI half, merged
+2026-09-13, see above), and CI is confirmed green on GitHub Actions against `main` (2026-09-10 — see
+Sprint A's Follow-up above). What's left from Sprint A is not code: turning on branch protection
+requiring the CI workflow before merge needs the repo owner's action. Sprints N (structured
+gradebook), O (admissions/enrollment pipeline), P (bulk import/export), and Q (StatusPill + remaining
+accessibility) are sequenced in
 `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s Implementation Checklist and
-`build/MASTER-PROMPT-TRACKER.md`, none spec'd yet. The backend half of Sprints I/J/K's test-coverage
-gap is closed (2026-09-12) — 51 new backend unit tests and 19 new e2e tests across the five
-previously-untested modules plus forgotPassword/resetPassword, bulk attendance, and
-timetable-conflict detection. Still open (Sprint M): the matching UI-side coverage (staff-console and
-parent-app views for the same five modules have no dedicated spec cases yet). Separately, the Staff Console Shell Redesign
+`build/MASTER-PROMPT-TRACKER.md`, none spec'd yet. The Sprint I/J/K test-coverage gap (both backend
+and UI halves) is now fully closed: backend closed 2026-09-12 (51 new backend unit tests, 19 new e2e
+tests across the five previously-untested modules plus forgotPassword/resetPassword, bulk attendance,
+timetable-conflict detection), UI half closed 2026-09-13 as Sprint M (staff-console + parent-app
+spec coverage for the same five modules — see Sprint M above). Separately, the Staff Console Shell Redesign
 is done (see above); its own spec scoped a follow-up per-screen pass (empty/loading/error state
 machine + a shared `StatusPill.vue` across all 14 admin/teacher views) that has not been started —
 spec/plan not yet written. **Sprint 11-12 — Hardening + Pilot** remains open — FEAT-014's
