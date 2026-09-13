@@ -22,13 +22,13 @@ describe('ComplaintsQueueView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listAdminStudents).mockResolvedValue([
-      { id: 's1', grNumber: 'GR-1001', name: 'Eshaal Sample', sectionName: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+      { id: 's1', grNumber: 'GR-1001', name: 'Eshaal Sample', sectionName: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar', parentNames: ['Sample Parent'] },
     ]);
   });
 
   it('loads a student\'s complaints once selected, and raises a new one', async () => {
     vi.mocked(api.listComplaints).mockResolvedValue([
-      { id: 'cm1', studentId: 's1', raisedById: 'u1', subject: 'Late pickup', description: 'Repeated late pickup', status: 'open' },
+      { id: 'cm1', studentId: 's1', raisedById: 'u1', subject: 'Late pickup', description: 'Repeated late pickup', status: 'open', createdAt: '2026-06-01T00:00:00.000Z', updatedAt: '2026-06-01T00:00:00.000Z' },
     ]);
     vi.mocked(api.createComplaint).mockResolvedValue(undefined);
 
@@ -57,7 +57,7 @@ describe('ComplaintsQueueView', () => {
 
   it('transitions a complaint\'s status and reloads the list', async () => {
     vi.mocked(api.listComplaints).mockResolvedValue([
-      { id: 'cm1', studentId: 's1', raisedById: 'u1', subject: 'Late pickup', description: 'Repeated late pickup', status: 'open' },
+      { id: 'cm1', studentId: 's1', raisedById: 'u1', subject: 'Late pickup', description: 'Repeated late pickup', status: 'open', createdAt: '2026-06-01T00:00:00.000Z', updatedAt: '2026-06-01T00:00:00.000Z' },
     ]);
     vi.mocked(api.updateComplaintStatus).mockResolvedValue(undefined);
 

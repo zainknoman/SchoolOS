@@ -103,8 +103,8 @@ describe('AdminHomeView (Dashboard)', () => {
   it('renders one row per flagged student in the attendance-risk panel', async () => {
     vi.mocked(api.dashboardSummary).mockResolvedValue(fixture);
     vi.mocked(api.getFlaggedStudents).mockResolvedValue([
-      { studentId: 's1', studentName: 'Eshaal Sample', absenceRate: 0.32, flagged: true },
-      { studentId: 's2', studentName: 'Ahmed Sample', absenceRate: 0.41, flagged: true },
+      { studentId: 's1', studentName: 'Eshaal Sample', absenceRate: 0.32, flagged: true, windowStart: '2026-08-01', windowEnd: '2026-08-31' },
+      { studentId: 's2', studentName: 'Ahmed Sample', absenceRate: 0.41, flagged: true, windowStart: '2026-08-01', windowEnd: '2026-08-31' },
     ]);
 
     const wrapper = await mountView();

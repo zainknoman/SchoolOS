@@ -30,7 +30,7 @@ describe('ReportCardsView', () => {
     vi.mocked(api.listTerms).mockReset();
     vi.mocked(api.getStudentGrades).mockReset();
     vi.mocked(api.listAdminStudents).mockResolvedValue([
-      { id: 's1', grNumber: 'GR-1001', name: 'Eshaal Sample', sectionName: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+      { id: 's1', grNumber: 'GR-1001', name: 'Eshaal Sample', sectionName: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar', parentNames: ['Sample Parent'] },
     ]);
     vi.mocked(api.listAcademicSessions).mockResolvedValue([
       { id: 'sess-1', label: '2026-2027', startDate: '2026-08-01', endDate: '2027-06-30', isActive: true },
