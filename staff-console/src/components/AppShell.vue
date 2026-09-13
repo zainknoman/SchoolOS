@@ -83,6 +83,9 @@ const canManageGradebook = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.r
 const canManageReportCards = computed(
   () => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN',
 );
+const canManageAdmissions = computed(
+  () => auth.role === 'SCHOOL_ADMIN' || auth.role === 'ACCOUNTS' || auth.role === 'SUPER_ADMIN',
+);
 
 const avatarInitials = computed(() => roleInitials(auth.role));
 const roleLabel = computed(() => {
@@ -482,6 +485,9 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
               data-testid="nav-assessment-categories"
               to="/admin/assessment-categories"
               ><Icon name="grid" />{{ t('nav.assessmentCategories') }}</RouterLink
+            >
+            <RouterLink v-if="canManageAdmissions" data-testid="nav-admissions" to="/admin/admissions"
+              ><Icon name="users" />{{ t('nav.admissions') }}</RouterLink
             >
           </div>
 

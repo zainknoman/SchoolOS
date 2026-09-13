@@ -190,6 +190,24 @@ const router = createRouter({
       component: () => import('../views/MarksEntryPageView.vue'),
       meta: { requiresRole: ['TEACHER'], title: 'Gradebook' },
     },
+    {
+      path: '/admin/admissions',
+      name: 'admin-admissions',
+      component: () => import('../views/AdmissionsQueuePageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'], title: 'Admissions' },
+    },
+    {
+      path: '/admin/admissions/new',
+      name: 'admin-admissions-new',
+      component: () => import('../views/ApplicantIntakePageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'], title: 'New Applicant' },
+    },
+    {
+      path: '/admin/admissions/:id',
+      name: 'admin-admission-detail',
+      component: () => import('../views/ApplicationDetailPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'], title: 'Application' },
+    },
     { path: '/', redirect: '/login' },
   ],
 });

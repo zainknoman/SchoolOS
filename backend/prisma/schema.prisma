@@ -84,6 +84,7 @@ model User {
   reportCardsUploaded   ReportCard[]
   draftSuggestions      DraftSuggestion[]
   marksEntered          Mark[]
+  reviewedApplications  Application[]
 
   @@index([role])
   @@index([schoolId])
@@ -138,6 +139,7 @@ model AcademicSession {
   enrollments Enrollment[]
   reportCards ReportCard[]
   terms       Term[]
+  applications Application[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -151,6 +153,7 @@ model Class {
   name              String // e.g. "Grade 3"
   sections          Section[]
   assessmentCategories AssessmentCategory[]
+  applications      Application[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -217,6 +220,7 @@ model Student {
   reportCards        ReportCard[]
   attendanceRiskFlag AttendanceRiskFlag?
   marks              Mark[]
+  application        Application?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -676,4 +680,38 @@ model Mark {
 
   @@unique([assessmentId, studentId])
   @@index([studentId])
+}
+
+model Applicant {
+  id             String        @id @default(uuid())
+  name           String
+  dateOfBirth    DateTime
+  guardianName   String
+  guardianPhone  String
+  applications   Application[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([guardianPhone])
+}
+
+model Application {
+  id                String          @id @default(uuid())
+  applicantId       String
+  applicant         Applicant       @relation(fields: [applicantId], references: [id], onDelete: Restrict)
+  desiredClassId    String
+  desiredClass      Class           @relation(fields: [desiredClassId], references: [id], onDelete: Restrict)
+  academicSessionId String
+  academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id], onDelete: Restrict)
+  status            String          @default("SUBMITTED")
+  decisionNotes     String?
+  reviewedById      String?
+  reviewedBy        User?           @relation(fields: [reviewedById], references: [id])
+  createdStudentId  String?         @unique
+  createdStudent    Student?        @relation(fields: [createdStudentId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([applicantId])
+  @@index([academicSessionId, status])
 }

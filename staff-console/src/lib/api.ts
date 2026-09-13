@@ -338,6 +338,26 @@ export interface StudentAdminSummary {
   parentNames: string[];
 }
 
+export interface ApplicantSummary {
+  id: string;
+  name: string;
+  dateOfBirth: string;
+  guardianName: string;
+  guardianPhone: string;
+}
+
+export interface ApplicationSummary {
+  id: string;
+  applicantId: string;
+  applicantName: string;
+  desiredClassId: string;
+  academicSessionId: string;
+  status: string;
+  decisionNotes: string | null;
+  reviewedById: string | null;
+  createdStudentId: string | null;
+}
+
 function authHeaders(accessToken: string) {
   return { Authorization: `Bearer ${accessToken}` };
 }
@@ -1368,6 +1388,94 @@ export const api = {
       `${API_BASE_URL}/api/v1/students/${studentId}/grades?termId=${encodeURIComponent(termId)}`,
       { headers: authHeaders(accessToken) },
     );
+    return asJson(res);
+  },
+
+  async createApplicant(
+    accessToken: string,
+    payload: { name: string; dateOfBirth: string; guardianName: string; guardianPhone: string },
+  ): Promise<{ applicant: ApplicantSummary; possibleDuplicate: ApplicantSummary | null }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/applicants`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async listApplicants(accessToken: string, guardianPhone: string): Promise<ApplicantSummary[]> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/applicants?guardianPhone=${encodeURIComponent(guardianPhone)}`,
+      { headers: authHeaders(accessToken) },
+    );
+    return asJson(res);
+  },
+
+  async createApplication(
+    accessToken: string,
+    payload: { applicantId: string; desiredClassId: string; academicSessionId: string },
+  ): Promise<ApplicationSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/applications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async listApplications(
+    accessToken: string,
+    params?: { academicSessionId?: string; status?: string },
+  ): Promise<ApplicationSummary[]> {
+    const query = new URLSearchParams();
+    if (params?.academicSessionId) query.set('academicSessionId', params.academicSessionId);
+    if (params?.status) query.set('status', params.status);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/applications${suffix}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async getApplication(accessToken: string, id: string): Promise<ApplicationSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/applications/${id}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async updateApplicationStatus(
+    accessToken: string,
+    id: string,
+    payload: { status?: 'UNDER_REVIEW' | 'WITHDRAWN'; decisionNotes?: string },
+  ): Promise<ApplicationSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/applications/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async rejectApplication(accessToken: string, id: string, decisionNotes: string): Promise<ApplicationSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/applications/${id}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify({ decisionNotes }),
+    });
+    return asJson(res);
+  },
+
+  async approveApplication(
+    accessToken: string,
+    id: string,
+    payload: { grNumber: string; sectionId: string; parentProfileId?: string; newParent?: NewParentInput },
+  ): Promise<ApplicationSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/applications/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
     return asJson(res);
   },
 };

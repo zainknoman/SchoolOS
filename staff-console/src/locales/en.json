@@ -21,7 +21,8 @@
     "circulars": "Circulars",
     "terms": "Terms",
     "assessmentCategories": "Assessment Categories",
-    "gradebook": "Gradebook"
+    "gradebook": "Gradebook",
+    "admissions": "Admissions"
   },
   "shell": {
     "brand": "School OS Staff Console",

@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertCreatable } from '../common/prisma-create-guard';
-import { createParentWithUser } from '../parent/create-parent-with-user';
+import { createStudentWithEnrollment } from './create-student-with-enrollment';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 
@@ -74,53 +74,21 @@ export class StudentService {
 
     let studentId: string;
     try {
-      studentId = await this.prisma.$transaction(async (tx) => {
-        const student = await tx.student.create({ data: { grNumber: dto.grNumber, name: dto.name } });
-        await tx.enrollment.create({
-          data: {
-            studentId: student.id,
-            campusId: section.class.campusId,
+      ({ studentId } = await this.prisma.$transaction((tx) =>
+        createStudentWithEnrollment(
+          tx,
+          {
+            grNumber: dto.grNumber,
+            name: dto.name,
             sectionId: section.id,
+            campusId: section.class.campusId,
             academicSessionId: activeSession.id,
-            startDate: new Date(),
-            status: 'ACTIVE',
+            parentProfileId: dto.parentProfileId,
+            newParent: dto.newParent,
           },
-        });
-        let parentProfileId: string;
-        if (hasExisting) {
-          const parent = await tx.parentProfile.findUnique({ where: { id: dto.parentProfileId! } });
-          if (!parent) {
-            throw new BadRequestException('Parent not found');
-          }
-          parentProfileId = parent.id;
-        } else {
-          const newParent = await createParentWithUser(tx, dto.newParent!);
-          parentProfileId = newParent.id;
-          // Mirrors ParentService.create()'s audit-log convention: the inline "+ New Parent"
-          // branch provisions a real Parent/User account, so it gets its own parent.create row
-          // (never the raw password), on top of the student.create row below — same transaction.
-          await tx.auditLog.create({
-            data: {
-              userId: actingUserId,
-              action: 'parent.create',
-              entity: 'ParentProfile',
-              entityId: newParent.id,
-              metadata: JSON.stringify({ identifier: dto.newParent!.identifier, name: dto.newParent!.name }),
-            },
-          });
-        }
-        await tx.studentParent.create({ data: { studentId: student.id, parentProfileId } });
-        await tx.auditLog.create({
-          data: {
-            userId: actingUserId,
-            action: 'student.create',
-            entity: 'Student',
-            entityId: student.id,
-            metadata: JSON.stringify({ grNumber: dto.grNumber, name: dto.name, sectionId: dto.sectionId }),
-          },
-        });
-        return student.id;
-      });
+          actingUserId,
+        ),
+      ));
     } catch (error) {
       assertCreatable(error, 'This GR number or parent identifier is already in use.');
     }
