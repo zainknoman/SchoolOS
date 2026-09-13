@@ -186,4 +186,47 @@ describe('AttendanceView', () => {
       }),
     );
   });
+
+  async function mountWithOneStudent() {
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+    vi.mocked(api.sectionStudents).mockResolvedValue([{ id: 's1', name: 'Eshaal', grNumber: 'GR-1001' }]);
+    // attachTo: document.body is required for document.activeElement assertions to work in jsdom —
+    // matches this codebase's existing precedent (ConfirmDialog.spec.ts, FormField.spec.ts,
+    // useFocusTarget.spec.ts all do the same for the same reason).
+    const wrapper = mount(AttendanceView, { attachTo: document.body });
+    await flushPromises();
+    await wrapper.find('select[data-testid="section-select"]').setValue('sec-1');
+    await flushPromises();
+    return wrapper;
+  }
+
+  it('exposes the segmented control as an ARIA radiogroup with the checked state reflected', async () => {
+    const wrapper = await mountWithOneStudent();
+
+    const group = wrapper.find('[data-testid="status-s1-present"]').element.closest('[role="radiogroup"]');
+    expect(group).not.toBeNull();
+    expect(group?.getAttribute('aria-label')).toContain('Eshaal');
+
+    const presentBtn = wrapper.find('[data-testid="status-s1-present"]');
+    expect(presentBtn.attributes('role')).toBe('radio');
+    expect(presentBtn.attributes('aria-checked')).toBe('false');
+
+    await presentBtn.trigger('click');
+    expect(wrapper.find('[data-testid="status-s1-present"]').attributes('aria-checked')).toBe('true');
+    expect(wrapper.find('[data-testid="status-s1-absent"]').attributes('aria-checked')).toBe('false');
+    wrapper.unmount();
+  });
+
+  it('moves focus to the adjacent segment on ArrowRight', async () => {
+    const wrapper = await mountWithOneStudent();
+
+    await wrapper.find('[data-testid="status-s1-present"]').trigger('click');
+    await wrapper.find('[data-testid="status-s1-present"]').trigger('keydown', { key: 'ArrowRight' });
+    await flushPromises();
+
+    expect(document.activeElement?.getAttribute('data-testid')).toBe('status-s1-absent');
+    wrapper.unmount();
+  });
 });

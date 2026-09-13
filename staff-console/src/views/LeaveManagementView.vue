@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type LeaveRequestSummary } from '../lib/api';
 import { useConfirm } from '../lib/useConfirm';
+import StatusPill from '../components/StatusPill.vue';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
@@ -49,6 +50,13 @@ async function onReject(id: string) {
     busyId.value = null;
   }
 }
+
+function leaveTone(status: string): 'success' | 'warning' | 'critical' | 'neutral' {
+  if (status === 'approved') return 'success';
+  if (status === 'rejected') return 'critical';
+  if (status === 'pending') return 'warning';
+  return 'neutral';
+}
 </script>
 
 <template>
@@ -76,7 +84,7 @@ async function onReject(id: string) {
           <span class="reason">{{ r.reason }}</span>
         </div>
         <div class="request-actions">
-          <span class="badge" :class="`badge-${r.status}`">{{ r.status }}</span>
+          <StatusPill :tone="leaveTone(r.status)" :label="r.status" />
           <template v-if="r.status === 'pending'">
             <button
               :data-testid="`approve-${r.id}`"
@@ -149,25 +157,6 @@ select {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-}
-.badge {
-  padding: 0.15rem 0.6rem;
-  border-radius: 999px;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  text-transform: capitalize;
-}
-.badge-pending {
-  background: color-mix(in srgb, var(--color-accent) 15%, white);
-  color: var(--color-accent);
-}
-.badge-approved {
-  background: color-mix(in srgb, var(--color-present) 15%, white);
-  color: var(--color-present);
-}
-.badge-rejected {
-  background: color-mix(in srgb, var(--color-destructive) 15%, white);
-  color: var(--color-destructive);
 }
 button {
   padding: 0.4rem 0.8rem;

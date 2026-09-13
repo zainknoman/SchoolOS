@@ -44,12 +44,14 @@ const trendSeries = computed(() => [
   {
     label: 'Attendance %',
     color: 'var(--color-primary)',
+    unit: '%',
     values: summary.value?.weeklyTrend.map((d) => d.attendancePercent) ?? [],
   },
   {
     label: 'Fees Collected (PKR)',
     color: 'var(--color-muted)',
     dashed: true,
+    unit: ' PKR',
     values: summary.value?.weeklyTrend.map((d) => (d.feesCollectedPkr / maxFees.value) * 100) ?? [],
   },
 ]);

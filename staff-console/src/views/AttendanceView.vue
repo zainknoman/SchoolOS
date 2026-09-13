@@ -53,6 +53,15 @@ function setStatus(studentId: string, status: AttendanceStatus) {
   openOverflowFor.value = null;
 }
 
+function focusAdjacentSegment(studentId: string, currentStatus: 'PRESENT' | 'ABSENT' | 'LATE', direction: 1 | -1) {
+  const order: ('PRESENT' | 'ABSENT' | 'LATE')[] = ['PRESENT', 'ABSENT', 'LATE'];
+  const nextIndex = (order.indexOf(currentStatus) + direction + order.length) % order.length;
+  const next = order[nextIndex]!;
+  setStatus(studentId, next);
+  const selector = `[data-testid="status-${studentId}-${next.toLowerCase()}"]`;
+  (document.querySelector(selector) as HTMLElement | null)?.focus();
+}
+
 function toggleOverflow(studentId: string) {
   openOverflowFor.value = openOverflowFor.value === studentId ? null : studentId;
 }
@@ -130,31 +139,46 @@ async function onSave() {
         </div>
 
         <div class="status-group">
-          <div class="segmented">
+          <div class="segmented" role="radiogroup" :aria-label="`Attendance for ${student.name}`">
             <button
               type="button"
+              role="radio"
+              :aria-checked="statuses[student.id] === 'PRESENT'"
+              :tabindex="statuses[student.id] === 'PRESENT' || !statuses[student.id] ? 0 : -1"
               :data-testid="`status-${student.id}-present`"
               class="segment segment-present"
               :class="{ active: statuses[student.id] === 'PRESENT' }"
               @click="setStatus(student.id, 'PRESENT')"
+              @keydown.right.prevent="focusAdjacentSegment(student.id, 'PRESENT', 1)"
+              @keydown.left.prevent="focusAdjacentSegment(student.id, 'PRESENT', -1)"
             >
               P
             </button>
             <button
               type="button"
+              role="radio"
+              :aria-checked="statuses[student.id] === 'ABSENT'"
+              :tabindex="statuses[student.id] === 'ABSENT' ? 0 : -1"
               :data-testid="`status-${student.id}-absent`"
               class="segment segment-absent"
               :class="{ active: statuses[student.id] === 'ABSENT' }"
               @click="setStatus(student.id, 'ABSENT')"
+              @keydown.right.prevent="focusAdjacentSegment(student.id, 'ABSENT', 1)"
+              @keydown.left.prevent="focusAdjacentSegment(student.id, 'ABSENT', -1)"
             >
               A
             </button>
             <button
               type="button"
+              role="radio"
+              :aria-checked="statuses[student.id] === 'LATE'"
+              :tabindex="statuses[student.id] === 'LATE' ? 0 : -1"
               :data-testid="`status-${student.id}-late`"
               class="segment segment-late"
               :class="{ active: statuses[student.id] === 'LATE' }"
               @click="setStatus(student.id, 'LATE')"
+              @keydown.right.prevent="focusAdjacentSegment(student.id, 'LATE', 1)"
+              @keydown.left.prevent="focusAdjacentSegment(student.id, 'LATE', -1)"
             >
               L
             </button>

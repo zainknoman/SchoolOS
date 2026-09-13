@@ -12,6 +12,7 @@ import {
 import { formatPkrFull } from '../lib/format';
 import { useFocusTarget } from '../lib/useFocusTarget';
 import AppModal from '../components/AppModal.vue';
+import StatusPill from '../components/StatusPill.vue';
 
 const auth = useAuthStore();
 
@@ -177,6 +178,13 @@ async function onLoadLedger() {
     ledgerError.value = err instanceof Error ? err.message : "Could not load this student's fee ledger.";
   }
 }
+
+function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neutral' {
+  if (status === 'paid') return 'success';
+  if (status === 'overdue') return 'critical';
+  if (status === 'partial') return 'warning';
+  return 'neutral'; // 'unpaid'
+}
 </script>
 
 <template>
@@ -295,7 +303,7 @@ async function onLoadLedger() {
             <td class="num">{{ formatPkrFull(v.totalAmount / 100) }}</td>
             <td class="num">{{ formatPkrFull(v.amountPaid / 100) }}</td>
             <td class="num">{{ formatPkrFull(v.amountDue / 100) }}</td>
-            <td>{{ v.status }}</td>
+            <td><StatusPill :tone="voucherTone(v.status)" :label="v.status" /></td>
             <td>
               <button
                 v-if="v.amountDue > 0"

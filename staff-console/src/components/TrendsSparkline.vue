@@ -6,6 +6,7 @@ interface SparklineSeries {
   color: string;
   values: number[];
   dashed?: boolean;
+  unit?: string;
 }
 
 const props = defineProps<{
@@ -15,7 +16,11 @@ const props = defineProps<{
 
 const accessibleLabel = computed(() =>
   props.series
-    .map((s) => `${s.label}: ${s.values.join(', ')}`)
+    .map(
+      (s) =>
+        `${s.label} by day: ` +
+        s.values.map((v, i) => `${props.labels[i] ?? ''} ${v}${s.unit ?? ''}`).join(', '),
+    )
     .join('. '),
 );
 

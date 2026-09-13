@@ -109,4 +109,20 @@ describe('AcademicSessionManagementView', () => {
 
     expect(wrapper.find('[role="alert"]').text()).toContain('Cannot delete this Academic session');
   });
+
+  it('shows an active and an inactive session with the right StatusPill tone each', async () => {
+    vi.mocked(api.listAcademicSessions).mockResolvedValue([
+      { id: 'as1', label: '2026-2027', startDate: '2026-08-01', endDate: '2027-06-30', isActive: true },
+      { id: 'as2', label: '2027-2028', startDate: '2027-08-01', endDate: '2028-06-30', isActive: false },
+    ]);
+
+    const wrapper = mount(AcademicSessionManagementView);
+    await flushPromises();
+
+    const pills = wrapper.findAll('[data-testid="status-pill"]');
+    const activePill = pills.find((p) => p.text() === 'Active');
+    const inactivePill = pills.find((p) => p.text() === 'Inactive');
+    expect(activePill?.classes()).toContain('tone-success');
+    expect(inactivePill?.classes()).toContain('tone-neutral');
+  });
 });

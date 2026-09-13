@@ -100,4 +100,17 @@ describe('LeaveManagementView', () => {
 
     expect(wrapper.find('[role="alert"]').text()).toContain('Network down');
   });
+
+  it('renders each leave-request status through StatusPill with the right tone', async () => {
+    vi.mocked(api.listLeaveRequests).mockResolvedValue([
+      { id: 'lr1', studentId: 's1', studentName: 'Eshaal', startDate: '2026-09-01', endDate: '2026-09-02', reason: 'Trip', status: 'pending', createdAt: '2026-08-30T00:00:00.000Z' },
+    ]);
+
+    const wrapper = mount(LeaveManagementView);
+    await flushPromises();
+
+    const pill = wrapper.find('[data-testid="status-pill"]');
+    expect(pill.classes()).toContain('tone-warning');
+    expect(pill.text()).toBe('pending');
+  });
 });

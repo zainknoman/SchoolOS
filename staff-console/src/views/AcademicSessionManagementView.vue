@@ -6,6 +6,7 @@ import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
+import StatusPill from '../components/StatusPill.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -139,7 +140,7 @@ async function onDelete(id: string) {
       </template>
       <template #cell-isActive="{ item, editing }">
         <input v-if="editing" :data-testid="`edit-active-${item.id}`" v-model="editActive" type="checkbox" />
-        <span v-else>{{ item.isActive ? 'Active' : '—' }}</span>
+        <StatusPill v-else :tone="item.isActive ? 'success' : 'neutral'" :label="item.isActive ? 'Active' : 'Inactive'" />
       </template>
       <template #actions="{ item, editing }">
         <template v-if="editing">

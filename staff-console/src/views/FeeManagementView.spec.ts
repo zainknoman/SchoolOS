@@ -134,6 +134,10 @@ describe('FeeManagementView', () => {
     // (500000 / 100 = 5000 -> formatPkrFull -> "5,000"), not the raw paisa figure.
     expect(wrapper.text()).toContain('5,000');
     expect(wrapper.text()).not.toContain('500,000');
+
+    const pill = wrapper.find('[data-testid="status-pill"]');
+    expect(pill.classes()).toContain('tone-neutral');
+    expect(pill.text()).toBe('unpaid');
   });
 
   it("shows a student's payment history with the receipt amount converted to PKR and a receipt link", async () => {

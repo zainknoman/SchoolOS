@@ -29,4 +29,18 @@ describe('TrendsSparkline', () => {
     expect(wrapper.text()).toContain('Fees Collected (PKR)');
     expect(wrapper.findAll('.sparkline-x-label').map((n) => n.text())).toEqual(['Mon', 'Tue', 'Wed']);
   });
+
+  it('includes the day label and unit in the accessible label, not just bare numbers', () => {
+    const wrapper = mount(TrendsSparkline, {
+      props: {
+        labels: ['Mon', 'Tue'],
+        series: [{ label: 'Attendance %', color: '#0f172a', values: [88, 95], unit: '%' }],
+      },
+    });
+
+    const label = wrapper.find('svg').attributes('aria-label');
+    expect(label).toContain('Attendance % by day');
+    expect(label).toContain('Mon 88%');
+    expect(label).toContain('Tue 95%');
+  });
 });
