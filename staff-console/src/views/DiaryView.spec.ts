@@ -12,10 +12,12 @@ vi.mock('../lib/api', () => ({
     listSectionDiary: vi.fn(),
     uploadFile: vi.fn(),
     createDiaryEntry: vi.fn(),
+    suggestDiaryDraft: vi.fn(),
   },
 }));
 
 describe('DiaryView', () => {
+  
   beforeEach(() => {
     setActivePinia(createPinia());
     const auth = useAuthStore();
@@ -25,6 +27,7 @@ describe('DiaryView', () => {
     vi.mocked(api.listSectionDiary).mockReset();
     vi.mocked(api.uploadFile).mockReset();
     vi.mocked(api.createDiaryEntry).mockReset();
+    vi.mocked(api.suggestDiaryDraft).mockReset()
   });
 
   it('loads sections/subjects, posts an entry, and refreshes the list', async () => {
