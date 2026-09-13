@@ -14,6 +14,7 @@ describe('StudentProfileService', () => {
     studentPreviousSchool: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
     studentEmergencyContact: { findMany: jest.Mock; findUnique: jest.Mock; create: jest.Mock; update: jest.Mock; delete: jest.Mock };
     studentMedicalInfo: { upsert: jest.Mock };
+    studentDocument: { findMany: jest.Mock; findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
   };
 
   beforeEach(async () => {
@@ -25,6 +26,7 @@ describe('StudentProfileService', () => {
       studentPreviousSchool: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
       studentEmergencyContact: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
       studentMedicalInfo: { upsert: jest.fn() },
+      studentDocument: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
     };
     const moduleRef = await Test.createTestingModule({
       providers: [StudentProfileService, { provide: PrismaService, useValue: prisma }],
@@ -288,6 +290,74 @@ describe('StudentProfileService', () => {
       });
       expect(prisma.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ action: 'student.medicalInfo.upsert' }) }),
+      );
+    });
+  });
+
+  describe('documents', () => {
+    it('lists documents newest-first', async () => {
+      prisma.student.findUnique.mockResolvedValue({ id: 's1' });
+      prisma.studentDocument.findMany.mockResolvedValue([{ id: 'd1' }]);
+
+      const result = await service.listDocuments('s1');
+
+      expect(result).toEqual([{ id: 'd1' }]);
+      expect(prisma.studentDocument.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { studentId: 's1' }, orderBy: { createdAt: 'desc' } }),
+      );
+    });
+
+    it('rejects adding a document whose fileId was never uploaded', async () => {
+      prisma.student.findUnique.mockResolvedValue({ id: 's1' });
+      prisma.file.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.addDocument('s1', { documentType: 'BIRTH_CERTIFICATE', fileId: 'missing-file' }, 'admin-1'),
+      ).rejects.toThrow('Upload the file first via POST /api/v1/files, then link it here.');
+    });
+
+    it('links an already-uploaded file as a document', async () => {
+      prisma.student.findUnique.mockResolvedValue({ id: 's1' });
+      prisma.file.findUnique.mockResolvedValue({ id: 'f1' });
+      prisma.studentDocument.create.mockResolvedValue({ id: 'd1', documentType: 'BIRTH_CERTIFICATE' });
+
+      await service.addDocument('s1', { documentType: 'BIRTH_CERTIFICATE', fileId: 'f1' }, 'admin-1');
+
+      expect(prisma.studentDocument.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ studentId: 's1', documentType: 'BIRTH_CERTIFICATE', fileId: 'f1' }),
+        }),
+      );
+    });
+
+    it('throws NotFoundException verifying a document that does not belong to this student', async () => {
+      prisma.studentDocument.findUnique.mockResolvedValue({ id: 'd1', studentId: 'other-student' });
+
+      await expect(service.verifyDocument('s1', 'd1', true, 'admin-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('marks a document VERIFIED, stamping verifiedById/verifiedAt', async () => {
+      prisma.studentDocument.findUnique.mockResolvedValue({ id: 'd1', studentId: 's1' });
+      prisma.studentDocument.update.mockResolvedValue({ id: 'd1', verificationStatus: 'VERIFIED' });
+
+      await service.verifyDocument('s1', 'd1', true, 'admin-1');
+
+      expect(prisma.studentDocument.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'd1' },
+          data: expect.objectContaining({ verificationStatus: 'VERIFIED', verifiedById: 'admin-1' }),
+        }),
+      );
+    });
+
+    it('marks a document REJECTED when verified is false', async () => {
+      prisma.studentDocument.findUnique.mockResolvedValue({ id: 'd1', studentId: 's1' });
+      prisma.studentDocument.update.mockResolvedValue({ id: 'd1', verificationStatus: 'REJECTED' });
+
+      await service.verifyDocument('s1', 'd1', false, 'admin-1');
+
+      expect(prisma.studentDocument.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ verificationStatus: 'REJECTED' }) }),
       );
     });
   });

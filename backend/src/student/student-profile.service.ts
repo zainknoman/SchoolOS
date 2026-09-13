@@ -8,6 +8,7 @@ import { UpdateStudentPreviousSchoolDto } from './dto/update-student-previous-sc
 import { CreateStudentEmergencyContactDto } from './dto/create-student-emergency-contact.dto';
 import { UpdateStudentEmergencyContactDto } from './dto/update-student-emergency-contact.dto';
 import { UpdateStudentMedicalInfoDto } from './dto/update-student-medical-info.dto';
+import { CreateStudentDocumentDto } from './dto/create-student-document.dto';
 
 export const PROFILE_INCLUDE = {
   currentAddress: true,
@@ -298,5 +299,68 @@ export class StudentProfileService {
         entityId: contactId,
       },
     });
+  }
+
+  async listDocuments(studentId: string) {
+    await this.requireStudent(studentId);
+    return this.prisma.studentDocument.findMany({
+      where: { studentId },
+      include: { file: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async addDocument(studentId: string, dto: CreateStudentDocumentDto, actingUserId: string) {
+    await this.requireStudent(studentId);
+    const file = await this.prisma.file.findUnique({ where: { id: dto.fileId } });
+    if (!file) {
+      throw new BadRequestException('Upload the file first via POST /api/v1/files, then link it here.');
+    }
+    const record = await this.prisma.studentDocument.create({
+      data: {
+        studentId,
+        documentType: dto.documentType,
+        fileId: dto.fileId,
+        expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : undefined,
+        notes: dto.notes,
+      },
+      include: { file: true },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'student.document.add',
+        entity: 'StudentDocument',
+        entityId: record.id,
+        metadata: JSON.stringify({ documentType: dto.documentType, fileId: dto.fileId }),
+      },
+    });
+    return record;
+  }
+
+  async verifyDocument(studentId: string, documentId: string, verified: boolean, actingUserId: string) {
+    const existing = await this.prisma.studentDocument.findUnique({ where: { id: documentId } });
+    if (!existing || existing.studentId !== studentId) {
+      throw new NotFoundException('Document not found');
+    }
+    const record = await this.prisma.studentDocument.update({
+      where: { id: documentId },
+      data: {
+        verificationStatus: verified ? 'VERIFIED' : 'REJECTED',
+        verifiedById: actingUserId,
+        verifiedAt: new Date(),
+      },
+      include: { file: true },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'student.document.verify',
+        entity: 'StudentDocument',
+        entityId: documentId,
+        metadata: JSON.stringify({ verified }),
+      },
+    });
+    return record;
   }
 }

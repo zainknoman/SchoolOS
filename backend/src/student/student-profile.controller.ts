@@ -7,6 +7,8 @@ import { UpdateStudentPreviousSchoolDto } from './dto/update-student-previous-sc
 import { CreateStudentEmergencyContactDto } from './dto/create-student-emergency-contact.dto';
 import { UpdateStudentEmergencyContactDto } from './dto/update-student-emergency-contact.dto';
 import { UpdateStudentMedicalInfoDto } from './dto/update-student-medical-info.dto';
+import { CreateStudentDocumentDto } from './dto/create-student-document.dto';
+import { VerifyStudentDocumentDto } from './dto/verify-student-document.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
 
@@ -91,5 +93,29 @@ export class StudentProfileController {
     @Req() req: AuthenticatedRequest,
   ) {
     await this.service.deleteEmergencyContact(studentId, contactId, req.user.id);
+  }
+
+  @Get('documents')
+  listDocuments(@Param('studentId') studentId: string) {
+    return this.service.listDocuments(studentId);
+  }
+
+  @Post('documents')
+  addDocument(
+    @Param('studentId') studentId: string,
+    @Body() dto: CreateStudentDocumentDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.addDocument(studentId, dto, req.user.id);
+  }
+
+  @Patch('documents/:documentId/verify')
+  verifyDocument(
+    @Param('studentId') studentId: string,
+    @Param('documentId') documentId: string,
+    @Body() dto: VerifyStudentDocumentDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.verifyDocument(studentId, documentId, dto.verified, req.user.id);
   }
 }
