@@ -66,6 +66,22 @@ export class StudentAccessService {
     }
   }
 
+  async assertCanAccessClass(user: RequestUser, classId: string): Promise<void> {
+    switch (user.role) {
+      case 'SUPER_ADMIN':
+        return;
+      case 'SCHOOL_ADMIN':
+      case 'ACCOUNTS':
+      case 'TEACHER': {
+        const scope = await this.resolveClassScope(classId);
+        await this.assertCanAccessScope(user, scope);
+        return;
+      }
+      default:
+        throw new ForbiddenException('You do not have access to this resource');
+    }
+  }
+
   private async assertCanAccessScope(user: RequestUser, scope: AccessScope | null): Promise<void> {
     if (!scope) {
       throw new ForbiddenException('You do not have access to this resource');
@@ -116,5 +132,13 @@ export class StudentAccessService {
     return section
       ? { campusId: section.class.campusId, schoolId: section.class.campus.schoolId }
       : null;
+  }
+
+  private async resolveClassScope(classId: string): Promise<AccessScope | null> {
+    const klass = await this.prisma.class.findUnique({
+      where: { id: classId },
+      include: { campus: { select: { schoolId: true } } },
+    });
+    return klass ? { campusId: klass.campusId, schoolId: klass.campus.schoolId } : null;
   }
 }

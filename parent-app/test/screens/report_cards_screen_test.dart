@@ -84,7 +84,9 @@ void main() {
     final api = ApiClient(
       baseUrl: 'http://test',
       client: MockClient((request) async {
-        requestedStudentId = request.url.queryParameters['studentId'];
+        if (request.url.path == '/api/v1/report-cards') {
+          requestedStudentId = request.url.queryParameters['studentId'];
+        }
         return http.Response(jsonEncode(<dynamic>[]), 200);
       }),
     );
@@ -109,5 +111,38 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(requestedStudentId, 'child-1');
+  });
+
+  testWidgets('shows a structured grade card when the gradebook has data for this child', (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        if (request.url.path == '/api/v1/report-cards') return http.Response(jsonEncode(<dynamic>[]), 200);
+        if (request.url.path.contains('/grades')) {
+          return http.Response(
+            jsonEncode([
+              {
+                'subjectId': 'sub-1',
+                'subjectName': 'Math',
+                'categories': [
+                  {'name': 'Quizzes', 'weightPercent': 30, 'obtainedPercent': 90},
+                ],
+                'finalPercent': 27,
+              },
+            ]),
+            200,
+          );
+        }
+        return http.Response('not found', 404);
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: ReportCardsScreen(accessToken: 'tok', api: api, children: const [_child])),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Math'), findsOneWidget);
+    expect(find.textContaining('27%'), findsOneWidget);
   });
 }

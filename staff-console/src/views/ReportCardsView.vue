@@ -6,6 +6,8 @@ import {
   type ReportCardSummary,
   type StudentAdminSummary,
   type AcademicSessionSummary,
+  type TermSummary,
+  type SubjectGrade,
 } from '../lib/api';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
@@ -20,6 +22,10 @@ const selectedFile = ref<File | null>(null);
 const reportCards = ref<ReportCardSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 const isUploading = ref(false);
+
+const terms = ref<TermSummary[]>([]);
+const selectedTermId = ref('');
+const grades = ref<SubjectGrade[]>([]);
 
 async function loadOptions() {
   if (!auth.accessToken) return;
@@ -43,6 +49,28 @@ async function loadReportCards() {
     reportCards.value = await api.listReportCards(auth.accessToken, selectedStudentId.value);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load report cards.';
+  }
+}
+
+async function onSessionChange() {
+  terms.value = [];
+  selectedTermId.value = '';
+  grades.value = [];
+  if (!auth.accessToken || !selectedSessionId.value) return;
+  try {
+    terms.value = await api.listTerms(auth.accessToken, selectedSessionId.value);
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load terms.';
+  }
+}
+
+async function loadGrades() {
+  grades.value = [];
+  if (!auth.accessToken || !selectedStudentId.value || !selectedTermId.value) return;
+  try {
+    grades.value = await api.getStudentGrades(auth.accessToken, selectedStudentId.value, selectedTermId.value);
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load grades.';
   }
 }
 
@@ -98,6 +126,17 @@ function downloadUrl(id: string): string {
         data-testid="select-session"
         placeholder="Choose a session"
         :options="sessions.map((s) => ({ value: s.id, label: s.label }))"
+        @update:model-value="onSessionChange"
+      />
+      <FormField
+        v-if="terms.length"
+        v-model="selectedTermId"
+        label="Term"
+        type="select"
+        data-testid="select-term"
+        placeholder="Choose a term"
+        :options="terms.map((t) => ({ value: t.id, label: t.label }))"
+        @update:model-value="loadGrades"
       />
       <label class="file-field">
         <span>File (PDF)</span>
@@ -106,7 +145,28 @@ function downloadUrl(id: string): string {
       <Button data-testid="upload-submit" :disabled="isUploading" @click="onUpload">Upload</Button>
     </div>
 
-    <ul v-if="selectedStudentId" class="report-card-list">
+    <table v-if="grades.length" class="grades-table" data-testid="grades-table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>Categories</th>
+          <th>Final %</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="grade in grades" :key="grade.subjectId">
+          <td>{{ grade.subjectName }}</td>
+          <td>
+            <span v-for="cat in grade.categories" :key="cat.name" class="category-chip">
+              {{ cat.name }}: {{ cat.weightPercent }}% wt, {{ cat.obtainedPercent }}% obtained
+            </span>
+          </td>
+          <td>{{ grade.finalPercent }}%</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ul v-else-if="selectedStudentId" class="report-card-list">
       <li v-if="!reportCards.length" class="empty">No report cards uploaded yet.</li>
       <li v-for="card in reportCards" :key="card.id" class="report-card-row">
         <span>{{ sessions.find((s) => s.id === card.academicSessionId)?.label ?? card.academicSessionId }}</span>

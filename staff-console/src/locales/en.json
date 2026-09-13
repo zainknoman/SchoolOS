@@ -18,7 +18,10 @@
     "leave": "Leave",
     "holidays": "Holidays",
     "reportCards": "Report Cards",
-    "circulars": "Circulars"
+    "circulars": "Circulars",
+    "terms": "Terms",
+    "assessmentCategories": "Assessment Categories",
+    "gradebook": "Gradebook"
   },
   "shell": {
     "brand": "School OS Staff Console",

@@ -24,11 +24,19 @@ class ReportCardsScreen extends StatefulWidget {
   State<ReportCardsScreen> createState() => _ReportCardsScreenState();
 }
 
+// The API always rounds finalPercent to at most one decimal place, but a whole-number grade
+// still arrives as e.g. 27.0 — format without a trailing ".0" so "27%" reads naturally.
+String _formatPercent(double value) {
+  if (value == value.roundToDouble()) return value.toInt().toString();
+  return value.toStringAsFixed(1);
+}
+
 class _ReportCardsScreenState extends State<ReportCardsScreen> {
   late String _selectedChildId = widget.children.any((c) => c.id == widget.initialChildId)
       ? widget.initialChildId!
       : widget.children.first.id;
   List<ReportCard>? _reportCards;
+  List<SubjectGrade> _grades = [];
   String? _error;
 
   @override
@@ -40,6 +48,7 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
   Future<void> _load() async {
     setState(() {
       _reportCards = null;
+      _grades = [];
       _error = null;
     });
     try {
@@ -47,6 +56,21 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
       if (mounted) setState(() => _reportCards = cards);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
+    }
+    await _loadGrades();
+  }
+
+  // Best-effort, same as AdminHomeView.vue's "non-critical, swallow and continue" precedent for a
+  // secondary data source — a failure loading structured grades must never block the existing PDF
+  // report-card list. NOTE: there is no term-selection UI here and no "current term" concept in
+  // the backend yet (Term has no isActive flag), so this passes an empty termId placeholder; until
+  // a term picker/resolution exists this will return an empty grades list against the real API.
+  Future<void> _loadGrades() async {
+    try {
+      final grades = await widget.api.studentGrades(widget.accessToken, _selectedChildId, '');
+      if (mounted) setState(() => _grades = grades);
+    } catch (_) {
+      // Convenience only — see comment above.
     }
   }
 
@@ -72,6 +96,16 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
               },
             ),
           const SizedBox(height: 12),
+          if (_grades.isNotEmpty)
+            for (final grade in _grades)
+              Card(
+                key: Key('subjectGrade${grade.subjectId}'),
+                child: ListTile(
+                  leading: const Icon(Icons.grade_outlined),
+                  title: Text(grade.subjectName),
+                  trailing: Text('${_formatPercent(grade.finalPercent)}%'),
+                ),
+              ),
           if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
           if (_reportCards == null && _error == null)
             const Center(child: CircularProgressIndicator())

@@ -172,6 +172,24 @@ const router = createRouter({
       component: () => import('../views/ReportCardsPageView.vue'),
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Report Cards' },
     },
+    {
+      path: '/admin/terms',
+      name: 'admin-terms',
+      component: () => import('../views/TermsManagementPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Terms' },
+    },
+    {
+      path: '/admin/assessment-categories',
+      name: 'admin-assessment-categories',
+      component: () => import('../views/AssessmentCategoriesPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Assessment Categories' },
+    },
+    {
+      path: '/teacher/gradebook',
+      name: 'teacher-gradebook',
+      component: () => import('../views/MarksEntryPageView.vue'),
+      meta: { requiresRole: ['TEACHER'], title: 'Gradebook' },
+    },
     { path: '/', redirect: '/login' },
   ],
 });

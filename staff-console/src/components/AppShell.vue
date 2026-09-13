@@ -79,6 +79,7 @@ const canManagePeople = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role
 const canManageCirculars = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManageTimetable = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManageHolidays = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
+const canManageGradebook = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManageReportCards = computed(
   () => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN',
 );
@@ -426,6 +427,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
           <RouterLink data-testid="nav-messages" to="/teacher/messages"><Icon name="chat" />{{ t('nav.messages') }}</RouterLink>
           <RouterLink data-testid="nav-complaints" to="/teacher/complaints"><Icon name="chat" />{{ t('nav.complaints') }}</RouterLink>
           <RouterLink data-testid="nav-report-cards" to="/teacher/report-cards"><Icon name="grid" />{{ t('nav.reportCards') }}</RouterLink>
+          <RouterLink data-testid="nav-gradebook" to="/teacher/gradebook"><Icon name="grid" />{{ t('nav.gradebook') }}</RouterLink>
         </template>
         <template v-else-if="isAdmin">
           <div class="nav-group">
@@ -471,6 +473,15 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
             >
             <RouterLink v-if="canManageReportCards" data-testid="nav-report-cards" to="/admin/report-cards"
               ><Icon name="grid" />{{ t('nav.reportCards') }}</RouterLink
+            >
+            <RouterLink v-if="canManageGradebook" data-testid="nav-terms" to="/admin/terms"
+              ><Icon name="calendar" />{{ t('nav.terms') }}</RouterLink
+            >
+            <RouterLink
+              v-if="canManageGradebook"
+              data-testid="nav-assessment-categories"
+              to="/admin/assessment-categories"
+              ><Icon name="grid" />{{ t('nav.assessmentCategories') }}</RouterLink
             >
           </div>
 

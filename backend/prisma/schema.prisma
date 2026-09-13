@@ -83,6 +83,7 @@ model User {
   complaintsRaised      Complaint[]
   reportCardsUploaded   ReportCard[]
   draftSuggestions      DraftSuggestion[]
+  marksEntered          Mark[]
 
   @@index([role])
   @@index([schoolId])
@@ -136,6 +137,7 @@ model AcademicSession {
   feeVouchers FeeVoucher[]
   enrollments Enrollment[]
   reportCards ReportCard[]
+  terms       Term[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -148,6 +150,7 @@ model Class {
   academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
   name              String // e.g. "Grade 3"
   sections          Section[]
+  assessmentCategories AssessmentCategory[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -177,6 +180,7 @@ model Subject {
   name         String       @unique
   timetables   Timetable[]
   diaryEntries DiaryEntry[]
+  assessments  Assessment[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
@@ -212,6 +216,7 @@ model Student {
   complaints         Complaint[]
   reportCards        ReportCard[]
   attendanceRiskFlag AttendanceRiskFlag?
+  marks              Mark[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -607,4 +612,68 @@ model DeviceToken {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model Term {
+  id                String              @id @default(uuid())
+  academicSessionId String
+  academicSession   AcademicSession     @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
+  label             String
+  order             Int
+  startDate         DateTime
+  endDate           DateTime
+  assessmentCategories AssessmentCategory[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([academicSessionId, label])
+  @@index([academicSessionId])
+}
+
+model AssessmentCategory {
+  id            String       @id @default(uuid())
+  classId       String
+  class         Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  termId        String
+  term          Term         @relation(fields: [termId], references: [id], onDelete: Cascade)
+  name          String
+  weightPercent Float
+  assessments   Assessment[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([classId, termId, name])
+  @@index([classId, termId])
+}
+
+model Assessment {
+  id                   String             @id @default(uuid())
+  assessmentCategoryId String
+  assessmentCategory   AssessmentCategory @relation(fields: [assessmentCategoryId], references: [id], onDelete: Cascade)
+  subjectId            String
+  subject              Subject            @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  label                String
+  maxMarks             Float
+  marks                Mark[]
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([assessmentCategoryId])
+  @@index([subjectId])
+}
+
+model Mark {
+  id            String     @id @default(uuid())
+  assessmentId  String
+  assessment    Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  obtainedMarks Float
+  enteredById   String
+  enteredBy     User       @relation(fields: [enteredById], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([assessmentId, studentId])
+  @@index([studentId])
 }

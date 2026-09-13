@@ -599,3 +599,40 @@ class ReportCard {
     createdAt: json['createdAt'] as String,
   );
 }
+
+class SubjectGrade {
+  const SubjectGrade({
+    required this.subjectId,
+    required this.subjectName,
+    required this.categories,
+    required this.finalPercent,
+  });
+
+  final String subjectId;
+  final String subjectName;
+  final List<GradeCategory> categories;
+  final double finalPercent;
+
+  factory SubjectGrade.fromJson(Map<String, dynamic> json) => SubjectGrade(
+    subjectId: json['subjectId'] as String,
+    subjectName: json['subjectName'] as String,
+    categories: (json['categories'] as List<dynamic>)
+        .map((e) => GradeCategory.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    finalPercent: (json['finalPercent'] as num).toDouble(),
+  );
+}
+
+class GradeCategory {
+  const GradeCategory({required this.name, required this.weightPercent, required this.obtainedPercent});
+
+  final String name;
+  final double weightPercent;
+  final double obtainedPercent;
+
+  factory GradeCategory.fromJson(Map<String, dynamic> json) => GradeCategory(
+    name: json['name'] as String,
+    weightPercent: (json['weightPercent'] as num).toDouble(),
+    obtainedPercent: (json['obtainedPercent'] as num).toDouble(),
+  );
+}

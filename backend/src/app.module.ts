@@ -31,6 +31,7 @@ import { ComplaintsModule } from './complaints/complaints.module';
 import { ReportCardsModule } from './report-cards/report-cards.module';
 import { AiDraftingModule } from './ai-drafting/ai-drafting.module';
 import { AttendanceRiskModule } from './attendance-risk/attendance-risk.module';
+import { GradebookModule } from './gradebook/gradebook.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { GENERAL_THROTTLE_LIMIT, THROTTLE_TTL_MS } from './config/throttler.config';
@@ -68,6 +69,7 @@ import { GENERAL_THROTTLE_LIMIT, THROTTLE_TTL_MS } from './config/throttler.conf
     ReportCardsModule,
     AiDraftingModule,
     AttendanceRiskModule,
+    GradebookModule,
   ],
   controllers: [AppController],
   providers: [AppService,

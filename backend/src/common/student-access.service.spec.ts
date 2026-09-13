@@ -12,6 +12,7 @@ describe('StudentAccessService', () => {
     teacher: { findUnique: jest.Mock };
     campus: { findUniqueOrThrow: jest.Mock };
     section: { findUnique: jest.Mock };
+    class: { findUnique: jest.Mock };
   };
   let enrollmentService: { getCurrentEnrollment: jest.Mock };
 
@@ -22,6 +23,7 @@ describe('StudentAccessService', () => {
       teacher: { findUnique: jest.fn() },
       campus: { findUniqueOrThrow: jest.fn() },
       section: { findUnique: jest.fn() },
+      class: { findUnique: jest.fn() },
     };
     enrollmentService = { getCurrentEnrollment: jest.fn() };
     const moduleRef = await Test.createTestingModule({
@@ -162,6 +164,57 @@ describe('StudentAccessService', () => {
       prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-2', campusId: 'campus-2' });
       await expect(
         service.assertCanAccessSection({ id: 'teacher-2', role: 'TEACHER' }, 'section-1'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('assertCanAccessClass', () => {
+    it('allows SUPER_ADMIN without any lookup', async () => {
+      await expect(
+        service.assertCanAccessClass({ id: 'u1', role: 'SUPER_ADMIN' }, 'class-1'),
+      ).resolves.toBeUndefined();
+      expect(prisma.class.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('denies access when the class does not exist', async () => {
+      prisma.class.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.assertCanAccessClass({ id: 'admin-1', role: 'SCHOOL_ADMIN' }, 'missing-class'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows a TEACHER to access a class in their own campus, denies a different campus', async () => {
+      prisma.class.findUnique.mockResolvedValue({
+        campusId: 'campus-1',
+        campus: { schoolId: 'school-1' },
+      });
+      prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-1', campusId: 'campus-1' });
+
+      await expect(
+        service.assertCanAccessClass({ id: 'teacher-1', role: 'TEACHER' }, 'class-1'),
+      ).resolves.toBeUndefined();
+
+      prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-2', campusId: 'campus-2' });
+      await expect(
+        service.assertCanAccessClass({ id: 'teacher-2', role: 'TEACHER' }, 'class-1'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows a SCHOOL_ADMIN in the same school, denies a different school', async () => {
+      prisma.class.findUnique.mockResolvedValue({
+        campusId: 'campus-1',
+        campus: { schoolId: 'school-1' },
+      });
+      prisma.user.findUnique.mockResolvedValue({ schoolId: 'school-1' });
+
+      await expect(
+        service.assertCanAccessClass({ id: 'admin-1', role: 'SCHOOL_ADMIN' }, 'class-1'),
+      ).resolves.toBeUndefined();
+
+      prisma.user.findUnique.mockResolvedValue({ schoolId: 'school-2' });
+      await expect(
+        service.assertCanAccessClass({ id: 'admin-2', role: 'SCHOOL_ADMIN' }, 'class-1'),
       ).rejects.toThrow(ForbiddenException);
     });
   });

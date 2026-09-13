@@ -165,6 +165,39 @@ export interface ReportCardSummary {
   createdAt: string;
 }
 
+export interface TermSummary {
+  id: string;
+  academicSessionId: string;
+  label: string;
+  order: number;
+  startDate: string;
+  endDate: string;
+}
+
+export interface AssessmentCategorySummary {
+  id: string;
+  classId: string;
+  termId: string;
+  name: string;
+  weightPercent: number;
+  weightTotalWarning?: string | null;
+}
+
+export interface AssessmentSummary {
+  id: string;
+  assessmentCategoryId: string;
+  subjectId: string;
+  label: string;
+  maxMarks: number;
+}
+
+export interface SubjectGrade {
+  subjectId: string;
+  subjectName: string;
+  categories: { name: string; weightPercent: number; obtainedPercent: number }[];
+  finalPercent: number;
+}
+
 export interface AttendanceRiskSummary {
   studentId: string;
   studentName: string;
@@ -1202,6 +1235,139 @@ export const api = {
     const res = await fetch(`${API_BASE_URL}/api/v1/attendance-risk`, {
       headers: authHeaders(accessToken),
     });
+    return asJson(res);
+  },
+
+  async listTerms(accessToken: string, academicSessionId: string): Promise<TermSummary[]> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/terms?academicSessionId=${encodeURIComponent(academicSessionId)}`,
+      { headers: authHeaders(accessToken) },
+    );
+    return asJson(res);
+  },
+
+  async createTerm(
+    accessToken: string,
+    payload: { academicSessionId: string; label: string; order: number; startDate: string; endDate: string },
+  ): Promise<TermSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/terms`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async updateTerm(
+    accessToken: string,
+    id: string,
+    payload: { label?: string; order?: number; startDate?: string; endDate?: string },
+  ): Promise<TermSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/terms/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async deleteTerm(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/terms/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listAssessmentCategories(
+    accessToken: string,
+    classId: string,
+    termId: string,
+  ): Promise<AssessmentCategorySummary[]> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/assessment-categories?classId=${encodeURIComponent(classId)}&termId=${encodeURIComponent(termId)}`,
+      { headers: authHeaders(accessToken) },
+    );
+    return asJson(res);
+  },
+
+  async createAssessmentCategory(
+    accessToken: string,
+    payload: { classId: string; termId: string; name: string; weightPercent: number },
+  ): Promise<AssessmentCategorySummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/assessment-categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async updateAssessmentCategory(
+    accessToken: string,
+    id: string,
+    payload: { name?: string; weightPercent?: number },
+  ): Promise<AssessmentCategorySummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/assessment-categories/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async deleteAssessmentCategory(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/assessment-categories/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listAssessments(accessToken: string, assessmentCategoryId: string): Promise<AssessmentSummary[]> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/assessments?assessmentCategoryId=${encodeURIComponent(assessmentCategoryId)}`,
+      { headers: authHeaders(accessToken) },
+    );
+    return asJson(res);
+  },
+
+  async createAssessment(
+    accessToken: string,
+    payload: { assessmentCategoryId: string; subjectId: string; label: string; maxMarks: number },
+  ): Promise<AssessmentSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/assessments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async saveMarksBulk(
+    accessToken: string,
+    assessmentId: string,
+    payload: { marks: { studentId: string; obtainedMarks: number }[] },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/assessments/${assessmentId}/marks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async getStudentGrades(accessToken: string, studentId: string, termId: string): Promise<SubjectGrade[]> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/students/${studentId}/grades?termId=${encodeURIComponent(termId)}`,
+      { headers: authHeaders(accessToken) },
+    );
     return asJson(res);
   },
 };
