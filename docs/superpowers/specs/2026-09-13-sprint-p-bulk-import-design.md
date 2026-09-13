@@ -110,12 +110,20 @@ prefixes, one generic preview/commit service pattern parameterized by entity:
   entityIds`) rather than one audit row per created record.
 
 CSV column shapes (documented in the spec so the plan doesn't have to guess a schema):
-- **Students:** `grNumber, name, sectionId, parentIdentifier?, newParentName?, newParentPhone?` —
+- **Students:** `grNumber, name, sectionId, parentIdentifier?, newParentIdentifier?, newParentName?, newParentPhone?` —
   exactly one of `parentIdentifier` (links to an existing `ParentProfile.user.identifier`) or both
-  `newParentName`+`newParentPhone` populated per row (same exactly-one-of rule as the single-create
-  endpoint).
+  `newParentIdentifier`+`newParentName` populated per row (`newParentPhone` stays optional, matching
+  `CreateParentDto`). **`newParentIdentifier` is required for a new parent, not auto-generated** —
+  the identifier is what that parent logs in with, so it must be something the school actually gives
+  the family (an email or a phone-based identifier), not a meaningless generated string. Same
+  exactly-one-of rule as the single-create endpoint.
 - **Parents:** `identifier, name, phone?`.
 - **Teachers:** `identifier, name, campusId`.
+
+Every new `User` account this sprint creates (new parents via a Student row's `newParent*` columns,
+every Teacher row) gets a **random password**, never a value from the CSV — see the Decisions
+section above ("New accounts get a random password + are told to use the existing forgot-password
+flow"). The CSV never carries a password column for any entity.
 
 ### 3. Vue (staff-console)
 
