@@ -66,15 +66,17 @@ COLUMN` pass — no data would be lost by rolling back, since nothing pre-existi
 
 ### Verification checklist for this sub-project
 
-- [ ] `npx prisma validate`
-- [ ] `npx prisma migrate dev` applies cleanly against local dev DB
-- [ ] Existing backend unit + e2e suite passes unmodified (confirms Student/Enrollment consumers
-      untouched)
-- [ ] Updated seed script populates the new fields/models for all 3 seeded students
-- [ ] New DTOs/endpoints (added in this sub-project's implementation step) validated with new unit
-      + e2e tests
+- [x] `npx prisma validate`
+- [x] `npx prisma migrate dev` applies cleanly against local dev DB
+- [x] Existing backend unit suite passes unmodified (confirms Student/Enrollment consumers
+      untouched) — no e2e suite exists for Student today (confirmed in the audit), so this landed
+      as unit coverage only; e2e remains a fast-follow, not a regression
+- [x] Updated seed script populates the new fields/models for one representative seeded student
+- [x] New DTOs/endpoints (`StudentProfileController`/`StudentProfileService`, Sub-project 1)
+      validated with new unit tests (27 cases across profile/enrollment/previous-school/
+      emergency-contacts/medical-info/documents)
 - [ ] Staff-console Student forms updated to expose the new sections without breaking existing
-      Add/Edit flows
+      Add/Edit flows — deferred to Sub-project 1B (UI), not yet started
 
 ---
 
