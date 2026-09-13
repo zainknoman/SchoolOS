@@ -47,6 +47,54 @@ enum NotificationChannel {
   SMS
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum BloodGroup {
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  AB_POS
+  AB_NEG
+  O_POS
+  O_NEG
+  UNKNOWN
+}
+
+enum StudentStatus {
+  ACTIVE
+  LEFT
+  GRADUATED
+  WITHDRAWN
+}
+
+// Shared across every document join model added for Student/Parent/Teacher/Application across
+// all four data-model sub-projects — extend this enum's members later, never fork a per-owner
+// copy of it.
+enum DocumentType {
+  BIRTH_CERTIFICATE
+  B_FORM
+  LEAVING_CERTIFICATE
+  TRANSFER_CERTIFICATE
+  PREVIOUS_REPORT_CARD
+  PHOTOGRAPH
+  MEDICAL_CERTIFICATE
+  CNIC
+  DEGREE_CERTIFICATE
+  CV
+  OTHER
+}
+
+enum DocumentVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
 // --- Identity -----------------------------------------------------------
 
 model User {
@@ -68,23 +116,24 @@ model User {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
-  parentProfile         ParentProfile?
-  teacher               Teacher?
-  refreshTokens         RefreshToken[]
-  auditLogs             AuditLog[]
-  deviceTokens          DeviceToken[]
-  circularsCreated      Circular[]           @relation("CircularAuthor")
-  circularRecipients    CircularRecipient[]
-  diaryEntriesAuthored  DiaryEntry[]
-  conversationsAsParent Conversation[]       @relation("ConversationParent")
-  conversationsAsStaff  Conversation[]       @relation("ConversationStaff")
-  messagesSent          Message[]            @relation("MessageSender")
-  passwordResetTokens   PasswordResetToken[]
-  complaintsRaised      Complaint[]
-  reportCardsUploaded   ReportCard[]
-  draftSuggestions      DraftSuggestion[]
-  marksEntered          Mark[]
-  reviewedApplications  Application[]
+  parentProfile            ParentProfile?
+  teacher                  Teacher?
+  refreshTokens            RefreshToken[]
+  auditLogs                AuditLog[]
+  deviceTokens             DeviceToken[]
+  circularsCreated         Circular[]           @relation("CircularAuthor")
+  circularRecipients       CircularRecipient[]
+  diaryEntriesAuthored     DiaryEntry[]
+  conversationsAsParent    Conversation[]       @relation("ConversationParent")
+  conversationsAsStaff     Conversation[]       @relation("ConversationStaff")
+  messagesSent             Message[]            @relation("MessageSender")
+  passwordResetTokens      PasswordResetToken[]
+  complaintsRaised         Complaint[]
+  reportCardsUploaded      ReportCard[]
+  draftSuggestions         DraftSuggestion[]
+  marksEntered             Mark[]
+  reviewedApplications     Application[]
+  verifiedStudentDocuments StudentDocument[]
 
   @@index([role])
   @@index([schoolId])
@@ -129,33 +178,33 @@ model Campus {
 }
 
 model AcademicSession {
-  id          String       @id @default(uuid())
-  label       String // e.g. "2026-2027"
-  startDate   DateTime
-  endDate     DateTime
-  isActive    Boolean      @default(false)
-  classes     Class[]
-  feeVouchers FeeVoucher[]
-  enrollments Enrollment[]
-  reportCards ReportCard[]
-  terms       Term[]
+  id           String        @id @default(uuid())
+  label        String // e.g. "2026-2027"
+  startDate    DateTime
+  endDate      DateTime
+  isActive     Boolean       @default(false)
+  classes      Class[]
+  feeVouchers  FeeVoucher[]
+  enrollments  Enrollment[]
+  reportCards  ReportCard[]
+  terms        Term[]
   applications Application[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Class {
-  id                String          @id @default(uuid())
-  campusId          String
-  campus            Campus          @relation(fields: [campusId], references: [id], onDelete: Cascade)
-  academicSessionId String
-  academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
-  name              String // e.g. "Grade 3"
-  sections          Section[]
+  id                   String               @id @default(uuid())
+  campusId             String
+  campus               Campus               @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  academicSessionId    String
+  academicSession      AcademicSession      @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
+  name                 String // e.g. "Grade 3"
+  sections             Section[]
   assessmentCategories AssessmentCategory[]
-  applications      Application[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  applications         Application[]
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   @@index([campusId])
   @@index([academicSessionId])
@@ -207,9 +256,35 @@ model Teacher {
 // --- Students & parents -----------------------------------------------------
 
 model Student {
-  id                 String              @id @default(uuid())
-  grNumber           String              @unique
+  id                 String                    @id @default(uuid())
+  grNumber           String                    @unique
   name               String
+  firstName          String?
+  middleName         String?
+  lastName           String?
+  preferredName      String?
+  gender             Gender?
+  dateOfBirth        DateTime?
+  placeOfBirth       String?
+  nationality        String?                   @default("Pakistani")
+  religion           String?
+  bFormNumber        String?                   @unique
+  profilePhotoFileId String?
+  profilePhoto       File?                     @relation(fields: [profilePhotoFileId], references: [id], onDelete: SetNull)
+  status             StudentStatus             @default(ACTIVE)
+  admissionDate      DateTime?
+  leavingDate        DateTime?
+  leavingReason      String?
+  studentMobile      String?
+  studentEmail       String?
+  currentAddressId   String?
+  currentAddress     Address?                  @relation("StudentCurrentAddress", fields: [currentAddressId], references: [id], onDelete: SetNull)
+  permanentAddressId String?
+  permanentAddress   Address?                  @relation("StudentPermanentAddress", fields: [permanentAddressId], references: [id], onDelete: SetNull)
+  previousSchool     StudentPreviousSchool?
+  emergencyContacts  StudentEmergencyContact[]
+  medicalInfo        StudentMedicalInfo?
+  documents          StudentDocument[]
   parents            StudentParent[]
   enrollments        Enrollment[]
   attendance         Attendance[]
@@ -221,8 +296,10 @@ model Student {
   attendanceRiskFlag AttendanceRiskFlag?
   marks              Mark[]
   application        Application?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  @@index([status])
 }
 
 model Enrollment {
@@ -238,6 +315,9 @@ model Enrollment {
   startDate         DateTime
   endDate           DateTime?
   status            EnrollmentStatus @default(ACTIVE)
+  rollNumber        String?
+  promotionDate     DateTime?
+  remarks           String?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
@@ -269,6 +349,100 @@ model StudentParent {
 
   @@unique([studentId, parentProfileId])
   @@index([parentProfileId])
+  @@index([studentId])
+}
+
+// --- Student profile satellite models (Sub-project 1) --------------------------------------
+
+// Reusable address value-object, referenced by plain nullable FK from whichever entity needs
+// it. Each row is owned by exactly one FK — never shared/reused across owners.
+model Address {
+  id                String                    @id @default(uuid())
+  line1             String
+  line2             String?
+  area              String?
+  city              String?
+  district          String?
+  province          String?
+  postalCode        String?
+  country           String                    @default("Pakistan")
+  studentsCurrent   Student[]                 @relation("StudentCurrentAddress")
+  studentsPermanent Student[]                 @relation("StudentPermanentAddress")
+  previousSchools   StudentPreviousSchool[]
+  emergencyContacts StudentEmergencyContact[]
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+}
+
+model StudentPreviousSchool {
+  id                       String    @id @default(uuid())
+  studentId                String    @unique
+  student                  Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolName               String
+  addressId                String?
+  address                  Address?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  contactNumber            String?
+  email                    String?
+  lastClassAttended        String?
+  admissionDate            DateTime?
+  leavingDate              DateTime?
+  leavingCertificateNumber String?
+  leavingCertificateDate   DateTime?
+  reasonForLeaving         String?
+  academicRemarks          String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+}
+
+model StudentEmergencyContact {
+  id             String   @id @default(uuid())
+  studentId      String
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  name           String
+  relationship   String
+  phone          String
+  alternatePhone String?
+  email          String?
+  addressId      String?
+  address        Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  priority       Int      @default(1)
+  isPrimary      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([studentId])
+}
+
+model StudentMedicalInfo {
+  id                      String      @id @default(uuid())
+  studentId               String      @unique
+  student                 Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  bloodGroup              BloodGroup?
+  allergies               String?
+  medicalConditions       String?
+  specialEducationalNeeds String?
+  medicationNotes         String?
+  emergencyMedicalNotes   String?
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+}
+
+model StudentDocument {
+  id                 String                     @id @default(uuid())
+  studentId          String
+  student            Student                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  documentType       DocumentType
+  fileId             String
+  file               File                       @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  expiryDate         DateTime?
+  verificationStatus DocumentVerificationStatus @default(PENDING)
+  verifiedById       String?
+  verifiedBy         User?                      @relation(fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedAt         DateTime?
+  notes              String?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
   @@index([studentId])
 }
 
@@ -503,15 +677,17 @@ model LeaveRequest {
 }
 
 model File {
-  id                  String               @id @default(uuid())
-  storageKey          String               @unique // randomized name in the S3-compatible bucket, not the original filename
-  originalName        String
-  mimeType            String
-  sizeBytes           Int
-  diaryAttachments    DiaryAttachment[]
-  circularAttachments CircularAttachment[]
-  reportCard          ReportCard?
-  createdAt           DateTime             @default(now())
+  id                   String               @id @default(uuid())
+  storageKey           String               @unique // randomized name in the S3-compatible bucket, not the original filename
+  originalName         String
+  mimeType             String
+  sizeBytes            Int
+  diaryAttachments     DiaryAttachment[]
+  circularAttachments  CircularAttachment[]
+  reportCard           ReportCard?
+  studentProfilePhotos Student[]
+  studentDocuments     StudentDocument[]
+  createdAt            DateTime             @default(now())
 }
 
 model AuditLog {
@@ -619,16 +795,16 @@ model DeviceToken {
 }
 
 model Term {
-  id                String              @id @default(uuid())
-  academicSessionId String
-  academicSession   AcademicSession     @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
-  label             String
-  order             Int
-  startDate         DateTime
-  endDate           DateTime
+  id                   String               @id @default(uuid())
+  academicSessionId    String
+  academicSession      AcademicSession      @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
+  label                String
+  order                Int
+  startDate            DateTime
+  endDate              DateTime
   assessmentCategories AssessmentCategory[]
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   @@unique([academicSessionId, label])
   @@index([academicSessionId])
@@ -683,14 +859,14 @@ model Mark {
 }
 
 model Applicant {
-  id             String        @id @default(uuid())
-  name           String
-  dateOfBirth    DateTime
-  guardianName   String
-  guardianPhone  String
-  applications   Application[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id            String        @id @default(uuid())
+  name          String
+  dateOfBirth   DateTime
+  guardianName  String
+  guardianPhone String
+  applications  Application[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([guardianPhone])
 }

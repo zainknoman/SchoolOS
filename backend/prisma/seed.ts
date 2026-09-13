@@ -184,6 +184,47 @@ async function main() {
     prisma.studentParent.create({ data: { studentId: studentHania.id, parentProfileId: parentBProfile.id, relationship: 'father' } }),
   ]);
 
+  // --- Student profile satellite data (Sub-project 1): one representative fully-populated
+  // profile on Eshaal (`student`) — Address, emergency contact, medical info — is enough for
+  // local dev/demo purposes; Ibrahim/Hania keep only the base fields already set above.
+  const studentHomeAddress = await prisma.address.create({
+    data: {
+      line1: 'House 12, Street 4, Block A',
+      area: 'Gulistan-e-Jauhar',
+      city: 'Karachi',
+      province: 'Sindh',
+      postalCode: '75290',
+    },
+  });
+
+  await prisma.student.update({
+    where: { id: student.id },
+    data: {
+      firstName: 'Eshaal',
+      lastName: 'Sample',
+      gender: 'FEMALE',
+      dateOfBirth: new Date('2016-03-14'),
+      nationality: 'Pakistani',
+      status: 'ACTIVE',
+      admissionDate: new Date('2022-08-01'),
+      currentAddressId: studentHomeAddress.id,
+    },
+  });
+
+  await prisma.studentEmergencyContact.create({
+    data: {
+      studentId: student.id,
+      name: 'Amina Sample',
+      relationship: 'Mother',
+      phone: '0300-1234567',
+      isPrimary: true,
+    },
+  });
+
+  await prisma.studentMedicalInfo.create({
+    data: { studentId: student.id, bloodGroup: 'O_POS', allergies: 'None known' },
+  });
+
   // --- Timetable/Attendance/Diary: a Mon-Fri 6-period week, 10 weekdays of attendance, and one
   // diary entry — generated per section so every seeded child (not just Eshaal in 3A) has a
   // non-blank Home/Calendar screen, each taught/marked/authored by that section's own class
