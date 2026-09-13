@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Put, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { StudentProfileService } from './student-profile.service';
 import { UpdateStudentProfileDto } from './dto/update-student-profile.dto';
 import { UpdateCurrentEnrollmentDto } from './dto/update-current-enrollment.dto';
 import { UpdateStudentPreviousSchoolDto } from './dto/update-student-previous-school.dto';
+import { CreateStudentEmergencyContactDto } from './dto/create-student-emergency-contact.dto';
+import { UpdateStudentEmergencyContactDto } from './dto/update-student-emergency-contact.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
 
@@ -46,5 +48,38 @@ export class StudentProfileController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.service.upsertPreviousSchool(studentId, dto, req.user.id);
+  }
+
+  @Get('emergency-contacts')
+  listEmergencyContacts(@Param('studentId') studentId: string) {
+    return this.service.listEmergencyContacts(studentId);
+  }
+
+  @Post('emergency-contacts')
+  createEmergencyContact(
+    @Param('studentId') studentId: string,
+    @Body() dto: CreateStudentEmergencyContactDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.createEmergencyContact(studentId, dto, req.user.id);
+  }
+
+  @Patch('emergency-contacts/:contactId')
+  updateEmergencyContact(
+    @Param('studentId') studentId: string,
+    @Param('contactId') contactId: string,
+    @Body() dto: UpdateStudentEmergencyContactDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.updateEmergencyContact(studentId, contactId, dto, req.user.id);
+  }
+
+  @Delete('emergency-contacts/:contactId')
+  async deleteEmergencyContact(
+    @Param('studentId') studentId: string,
+    @Param('contactId') contactId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    await this.service.deleteEmergencyContact(studentId, contactId, req.user.id);
   }
 }

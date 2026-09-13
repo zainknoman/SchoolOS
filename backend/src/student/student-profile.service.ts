@@ -5,6 +5,8 @@ import { assertCreatable } from '../common/prisma-create-guard';
 import { UpdateStudentProfileDto } from './dto/update-student-profile.dto';
 import { UpdateCurrentEnrollmentDto } from './dto/update-current-enrollment.dto';
 import { UpdateStudentPreviousSchoolDto } from './dto/update-student-previous-school.dto';
+import { CreateStudentEmergencyContactDto } from './dto/create-student-emergency-contact.dto';
+import { UpdateStudentEmergencyContactDto } from './dto/update-student-emergency-contact.dto';
 
 export const PROFILE_INCLUDE = {
   currentAddress: true,
@@ -183,5 +185,98 @@ export class StudentProfileService {
     });
 
     return record;
+  }
+
+  async listEmergencyContacts(studentId: string) {
+    await this.requireStudent(studentId);
+    return this.prisma.studentEmergencyContact.findMany({
+      where: { studentId },
+      include: { address: true },
+      orderBy: { priority: 'asc' },
+    });
+  }
+
+  async createEmergencyContact(studentId: string, dto: CreateStudentEmergencyContactDto, actingUserId: string) {
+    await this.requireStudent(studentId);
+    const record = await this.prisma.studentEmergencyContact.create({
+      data: {
+        studentId,
+        name: dto.name,
+        relationship: dto.relationship,
+        phone: dto.phone,
+        alternatePhone: dto.alternatePhone,
+        email: dto.email,
+        priority: dto.priority ?? 1,
+        isPrimary: dto.isPrimary ?? false,
+        ...(dto.address ? { address: { create: dto.address } } : {}),
+      },
+      include: { address: true },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'student.emergencyContact.create',
+        entity: 'StudentEmergencyContact',
+        entityId: record.id,
+        metadata: JSON.stringify(dto),
+      },
+    });
+    return record;
+  }
+
+  async updateEmergencyContact(
+    studentId: string,
+    contactId: string,
+    dto: UpdateStudentEmergencyContactDto,
+    actingUserId: string,
+  ) {
+    const existing = await this.prisma.studentEmergencyContact.findUnique({ where: { id: contactId } });
+    if (!existing || existing.studentId !== studentId) {
+      throw new NotFoundException('Emergency contact not found');
+    }
+
+    const record = await this.prisma.studentEmergencyContact.update({
+      where: { id: contactId },
+      data: {
+        ...(dto.name !== undefined ? { name: dto.name } : {}),
+        ...(dto.relationship !== undefined ? { relationship: dto.relationship } : {}),
+        ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
+        ...(dto.alternatePhone !== undefined ? { alternatePhone: dto.alternatePhone } : {}),
+        ...(dto.email !== undefined ? { email: dto.email } : {}),
+        ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
+        ...(dto.isPrimary !== undefined ? { isPrimary: dto.isPrimary } : {}),
+        ...(dto.address
+          ? { address: existing.addressId ? { update: dto.address } : { create: dto.address } }
+          : {}),
+      },
+      include: { address: true },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'student.emergencyContact.update',
+        entity: 'StudentEmergencyContact',
+        entityId: contactId,
+        metadata: JSON.stringify(dto),
+      },
+    });
+    return record;
+  }
+
+  async deleteEmergencyContact(studentId: string, contactId: string, actingUserId: string) {
+    const existing = await this.prisma.studentEmergencyContact.findUnique({ where: { id: contactId } });
+    if (!existing || existing.studentId !== studentId) {
+      throw new NotFoundException('Emergency contact not found');
+    }
+    await this.prisma.studentEmergencyContact.delete({ where: { id: contactId } });
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'student.emergencyContact.delete',
+        entity: 'StudentEmergencyContact',
+        entityId: contactId,
+      },
+    });
   }
 }

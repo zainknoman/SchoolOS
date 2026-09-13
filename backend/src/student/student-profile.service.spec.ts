@@ -12,6 +12,7 @@ describe('StudentProfileService', () => {
     file: { findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
     studentPreviousSchool: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
+    studentEmergencyContact: { findMany: jest.Mock; findUnique: jest.Mock; create: jest.Mock; update: jest.Mock; delete: jest.Mock };
   };
 
   beforeEach(async () => {
@@ -21,6 +22,7 @@ describe('StudentProfileService', () => {
       file: { findUnique: jest.fn() },
       auditLog: { create: jest.fn() },
       studentPreviousSchool: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+      studentEmergencyContact: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
     };
     const moduleRef = await Test.createTestingModule({
       providers: [StudentProfileService, { provide: PrismaService, useValue: prisma }],
@@ -198,6 +200,74 @@ describe('StudentProfileService', () => {
         expect.objectContaining({
           data: expect.objectContaining({ address: { create: { line1: 'Old address line' } } }),
         }),
+      );
+    });
+  });
+
+  describe('emergency contacts', () => {
+    it('lists contacts ordered by priority', async () => {
+      prisma.student.findUnique.mockResolvedValue({ id: 's1' });
+      prisma.studentEmergencyContact.findMany.mockResolvedValue([{ id: 'c1', priority: 1 }]);
+
+      const result = await service.listEmergencyContacts('s1');
+
+      expect(result).toEqual([{ id: 'c1', priority: 1 }]);
+      expect(prisma.studentEmergencyContact.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { studentId: 's1' }, orderBy: { priority: 'asc' } }),
+      );
+    });
+
+    it('creates a contact scoped to the student', async () => {
+      prisma.student.findUnique.mockResolvedValue({ id: 's1' });
+      prisma.studentEmergencyContact.create.mockResolvedValue({ id: 'c1' });
+
+      await service.createEmergencyContact(
+        's1',
+        { name: 'Amina', relationship: 'Mother', phone: '0300-0000000' },
+        'admin-1',
+      );
+
+      expect(prisma.studentEmergencyContact.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ studentId: 's1', name: 'Amina', priority: 1, isPrimary: false }),
+        }),
+      );
+    });
+
+    it('throws NotFoundException updating a contact that does not belong to this student', async () => {
+      prisma.studentEmergencyContact.findUnique.mockResolvedValue({ id: 'c1', studentId: 'other-student' });
+
+      await expect(
+        service.updateEmergencyContact('s1', 'c1', { name: 'Renamed' }, 'admin-1'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('updates a contact that belongs to the student', async () => {
+      prisma.studentEmergencyContact.findUnique.mockResolvedValue({ id: 'c1', studentId: 's1', addressId: null });
+      prisma.studentEmergencyContact.update.mockResolvedValue({ id: 'c1', name: 'Renamed' });
+
+      await service.updateEmergencyContact('s1', 'c1', { name: 'Renamed' }, 'admin-1');
+
+      expect(prisma.studentEmergencyContact.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'c1' }, data: expect.objectContaining({ name: 'Renamed' }) }),
+      );
+    });
+
+    it('throws NotFoundException deleting a contact that does not belong to this student', async () => {
+      prisma.studentEmergencyContact.findUnique.mockResolvedValue({ id: 'c1', studentId: 'other-student' });
+
+      await expect(service.deleteEmergencyContact('s1', 'c1', 'admin-1')).rejects.toThrow(NotFoundException);
+      expect(prisma.studentEmergencyContact.delete).not.toHaveBeenCalled();
+    });
+
+    it('deletes a contact that belongs to the student and audit-logs it', async () => {
+      prisma.studentEmergencyContact.findUnique.mockResolvedValue({ id: 'c1', studentId: 's1' });
+
+      await service.deleteEmergencyContact('s1', 'c1', 'admin-1');
+
+      expect(prisma.studentEmergencyContact.delete).toHaveBeenCalledWith({ where: { id: 'c1' } });
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ action: 'student.emergencyContact.delete' }) }),
       );
     });
   });
