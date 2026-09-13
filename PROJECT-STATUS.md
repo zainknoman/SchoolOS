@@ -1211,6 +1211,64 @@ plan file now carries).
   clean, parent-app `flutter analyze` clean (no issues), parent-app **94/94** (up from 88, +6 new
   tests this sprint).
 
+## Student Profile Foundation (2026-09-14) ✅ DONE
+
+Sub-project 1 of the Student-profile work named in `docs/database/data-model-design.md` and
+`docs/database/migration-plan.md` (full audit: `docs/database/full-data-model-audit.md`). Backend
+schema + API only — staff-console UI and e2e coverage are explicitly deferred to a follow-on plan,
+same as this sub-project's own plan scoped it.
+
+- [x] **Schema extended** (`backend/prisma/schema.prisma`, one migration) — new `Address`,
+      `StudentPreviousSchool`, `StudentEmergencyContact`, `StudentMedicalInfo`, `StudentDocument`
+      models, plus new scalar/relation fields on `Student` itself (`firstName`/`middleName`/
+      `lastName`/`preferredName`/`gender`/`dateOfBirth`/`nationality`/`religion`/`status`/
+      `admissionDate`/`currentAddressId`/`permanentAddressId`/etc.). Seed script updated with one
+      representative fully-populated profile (Eshaal/`GR-1001`) — Address, emergency contact,
+      medical info.
+- [x] **New `StudentProfileController`/`StudentProfileService`** (`backend/src/student/`),
+      `SCHOOL_ADMIN`/`SUPER_ADMIN`-only, mounted under `/api/v1/admin/students/:studentId/`:
+      `GET`/`PATCH profile`, `PATCH current-enrollment` (roll number/remarks only — no
+      re-enrollment/transfer workflow, consistent with the existing `StudentService.update()` gap),
+      `PUT previous-school`, `PUT medical-info` (upsert, one row per student), full
+      `emergency-contacts` CRUD, and `documents` add/list/verify.
+- Built task-by-task via subagent-driven-development against
+  `docs/superpowers/plans/2026-09-13-student-profile-foundation.md` (6 code tasks, each with its own
+  implementer + task review, plus this closing verification task).
+- Notable fix caught only by this closing verification task, not by any per-task review: Tasks 3/4's
+  `upsertPreviousSchool`/`createEmergencyContact` built the optional nested `address` relation via a
+  conditional trailing spread (`...(dto.address ? {address:...} : {})`), which `tsc` widens to
+  `address?: {create:...} | undefined` — a shape Prisma's generated `XOR<CreateInput,
+  UncheckedCreateInput>` data type rejects. Invisible to `npm test` (ts-jest's `isolatedModules: true`
+  plus a fully-mocked `PrismaService` never exercises the real Prisma types — same blind spot
+  documented for Sprint 9-10's `StubPaymentGatewayAdapter` arity bug), so both task reviews passed
+  clean; only surfaced when this task ran the actual `npm run build`. Fixed (commit `0002c5e`) by
+  converting every optional-relation conditional to a direct `address:` key with an explicit ternary,
+  casting the two create-call `data` literals to their `UncheckedCreateInput` type where Prisma's own
+  XOR-union type-generation gap needed it — no runtime/JS-shape change, re-verified against
+  `schema.prisma` field-by-field.
+- Verified (final, 2026-09-14): backend unit **406/406** (64 suites), `npm run build` clean, `npm run
+  lint` shows only this repo's long-documented pre-existing repo-wide Prettier/CRLF debt (no new
+  semantic ESLint errors in any file this sub-project added/touched). One `auth.service.spec.ts`
+  timeout occurred during a full-suite run under parallel workers — reproduced as the same
+  pre-existing argon2-hashing-load flake documented since Sprint A (20/20 pass in isolation;
+  `auth/` is untouched by this branch). Manually smoke-tested end to end against the shared local
+  Postgres dev DB, logged in as the seeded `SCHOOL_ADMIN` (`admin@seeds.edu.pk`): `PATCH profile` with
+  a new `permanentAddress` created and linked a new `Address` row; `POST emergency-contacts` appeared
+  in the subsequent `GET`; two consecutive `PUT medical-info` calls with different `allergies` values
+  updated the same row (same `id`/`createdAt`, only `updatedAt`/`allergies` changed) — no duplicate
+  row.
+- Follow-up (tracked, not blocking): the shared local dev Postgres DB (`schoolportal`) was never
+  reset+reseeded after this sub-project's migration landed (flagged during Task 1's own review as a
+  human-only follow-up, not a code defect) — `GET profile` on the seeded student currently returns
+  `null`/empty for `firstName`/`currentAddress`/`emergencyContacts`/`medicalInfo` instead of the
+  seed script's values, so that specific "returns the seeded data" check in this task's own brief
+  couldn't be verified against pre-existing fixture data; the write-path behavior it was meant to
+  guard (create/update/upsert all functioning, no duplicate rows) was verified directly instead, as
+  above. Re-running `npm run prisma:seed` against a reset dev DB whenever convenient will close this.
+  Staff-console admin UI for this schema (student profile edit screen, emergency-contacts/medical-info/
+  documents panels) and e2e coverage are deliberately not part of this sub-project — tracked for a
+  follow-on plan, per this sub-project's own scope.
+
 ## Sprint 11-12 — Hardening + Pilot ⏳ PENDING
 
 - [x] **FEAT-014 (offline-caching slice only)** — parent-app's Timetable/Attendance/Diary/Circulars
