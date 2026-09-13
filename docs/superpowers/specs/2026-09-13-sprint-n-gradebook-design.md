@@ -61,13 +61,19 @@ relative to the marks it's derived from, at the cost of a query doing the aggreg
 column read. Given expected per-class student counts (tens, not thousands) this is not a
 performance concern at this project's target scale.
 
-**Marks-entry authorization reuses `StudentAccessService.assertCanAccessSection` exactly as-is** —
-any `TEACHER` in the section's campus (or `SCHOOL_ADMIN`/`ACCOUNTS`/`SUPER_ADMIN` per their existing
-scope rules) can enter/edit marks for that section. This project has no existing concept of "this
-teacher is specifically assigned to teach this subject to this section" (`Timetable.teacherId` is
-the closest thing, and it's optional/nullable) — inventing a tighter rule here would be new,
-unrequested scope. If a school wants tighter enforcement later, that's a follow-up, not this
-sprint's problem to solve.
+**Marks-entry authorization adds one new sibling method, `StudentAccessService.assertCanAccessClass`,
+following the exact shape `assertCanAccessSection` already established** (Sprint L's own precedent —
+that method was itself added as a sibling to the pre-existing `assertCanAccessStudent`). `Class`
+already carries `campusId` directly (`schema.prisma:143-156`), so the new method's scope resolution
+is simpler than `assertCanAccessSection`'s (no join through `Section`→`Class` needed): resolve
+`{ campusId: class.campusId, schoolId: class.campus.schoolId }` directly from the `Class` row, then
+delegate to the same private `assertCanAccessScope` switch every other method already uses. Any
+`TEACHER` in the class's campus (or `SCHOOL_ADMIN`/`ACCOUNTS`/`SUPER_ADMIN` per their existing scope
+rules) can manage that class's terms/categories/assessments/marks. This project has no existing
+concept of "this teacher is specifically assigned to teach this subject to this class"
+(`Timetable.teacherId` is the closest thing, and it's optional/nullable) — inventing a tighter rule
+here would be new, unrequested scope. If a school wants tighter enforcement later, that's a
+follow-up, not this sprint's problem to solve.
 
 **Weight validation:** `AssessmentCategory` rows for a given `(classId, termId)` must sum to exactly
 100% before any `Assessment`/`Mark` can be created against them — enforced in the service layer
@@ -168,16 +174,20 @@ Following this codebase's one-module-per-bounded-context convention (`holidays`,
   category next).
 - `POST /api/v1/assessments`, `PATCH .../:id`, `DELETE .../:id`, `GET
   /api/v1/assessments?assessmentCategoryId=` — `@Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')`,
-  each write additionally checked via `StudentAccessService.assertCanAccessSection`-equivalent scope
-  resolved from the assessment's class (a `TEACHER` may create an assessment only for a class in
-  their own campus).
-- `POST /api/v1/assessments/:id/marks` — body `{ marks: { studentId: string; obtainedMarks: number
-  }[] }`, one round-trip for an entire section's marks on one assessment (mirrors
-  `POST /attendance/bulk`'s exact shape from Sprint I — same "one call replaces N sequential calls"
-  precedent). Rejects any `obtainedMarks > assessment.maxMarks` (400, naming the offending
-  `studentId`) and any `studentId` not currently enrolled in the assessment's class/section.
-  Upserts by `(assessmentId, studentId)`, one `$transaction`, one summarizing `AuditLog` row (not
-  one per student) — same pattern as bulk attendance.
+  each write additionally checked via the new `StudentAccessService.assertCanAccessClass(user,
+  classId)` (resolved by first reading the assessment category's `classId`) — a `TEACHER` may
+  create an assessment only for a class in their own campus.
+- `POST /api/v1/assessments/:id/marks` — `@Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')`, checked
+  via `assertCanAccessClass` against the assessment's class (same as create). Body
+  `{ marks: { studentId: string; obtainedMarks: number }[] }`, one round-trip for an entire class's
+  marks on one assessment (mirrors `POST /attendance/bulk`'s exact shape from Sprint I — same "one
+  call replaces N sequential calls" precedent). Enrolled-student validation queries
+  `prisma.enrollment.findMany({ where: { status: 'ACTIVE', section: { classId } } })` (mirroring
+  `SectionsService.getStudents`'s existing query shape, widened from one section to every section
+  under the assessment's class) to build the valid `studentId` set. Rejects any
+  `obtainedMarks > assessment.maxMarks` (400, naming the offending `studentId`) and any `studentId`
+  outside that enrolled set. Upserts by `(assessmentId, studentId)`, one `$transaction`, one
+  summarizing `AuditLog` row (not one per student) — same pattern as bulk attendance.
 - `GET /api/v1/students/:id/grades?termId=` — scoped via
   `StudentAccessService.assertCanAccessStudent` (parents get their own child, staff get their
   campus). Computes and returns, per subject: each category's weighted contribution
