@@ -25,6 +25,7 @@ vi.mock('../lib/api', () => ({
     circularStats: vi.fn(),
     uploadFile: vi.fn(),
     publishCircular: vi.fn(),
+    suggestCircularDraft: vi.fn()
   },
 }));
 
@@ -38,8 +39,34 @@ describe('CircularsView', () => {
     vi.mocked(api.circularStats).mockReset();
     vi.mocked(api.uploadFile).mockReset();
     vi.mocked(api.publishCircular).mockReset();
+    vi.mocked(api.suggestCircularDraft).mockReset();
   });
 
+  it('generates a draft suggestion and inserts it into the description, without publishing', async () => {
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+    vi.mocked(api.listCirculars).mockResolvedValue([]);
+    vi.mocked(api.circularStats).mockResolvedValue({ delivered: 0, read: 0 });
+    vi.mocked(api.suggestCircularDraft).mockResolvedValue({
+      suggestion: 'The Parent-Teacher meeting is scheduled for Friday, 9 AM.',
+    });
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="suggest-draft-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="draft-context-input"]').setValue('Parent-teacher meeting next Friday');
+    await wrapper.find('[data-testid="draft-context-submit"]').trigger('click');
+    await flushPromises();
+
+    expect(api.suggestCircularDraft).toHaveBeenCalledWith('token-1', 'Parent-teacher meeting next Friday');
+    expect((wrapper.find('[data-testid="description-input"]').element as HTMLTextAreaElement).value).toBe(
+      'The Parent-Teacher meeting is scheduled for Friday, 9 AM.',
+    );
+    expect(api.publishCircular).not.toHaveBeenCalled();
+  });
+  
   it('publishes a school-wide circular and shows delivered/read counts for existing ones', async () => {
     vi.mocked(api.listSections).mockResolvedValue([]);
     vi.mocked(api.listCirculars).mockResolvedValue([
