@@ -8,7 +8,7 @@ import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
 
 vi.mock('../lib/api', () => ({
-  api: { dashboardSummary: vi.fn() },
+  api: { dashboardSummary: vi.fn(), getFlaggedStudents: vi.fn() },
 }));
 
 function makeRouter() {
@@ -59,9 +59,11 @@ const fixture = {
 describe('AdminHomeView (Dashboard)', () => {
   beforeEach(() => {
     vi.mocked(api.dashboardSummary).mockReset();
+    vi.mocked(api.getFlaggedStudents).mockReset();
   });
 
   it('renders the primary and secondary KPI figures from the real endpoint, with at-risk/teachers-absent dropped', async () => {
+    vi.mocked(api.getFlaggedStudents).mockResolvedValue([]);
     vi.mocked(api.dashboardSummary).mockResolvedValue(fixture);
 
     const wrapper = await mountView();
@@ -77,6 +79,7 @@ describe('AdminHomeView (Dashboard)', () => {
   });
 
   it('renders the trends chart and real recent-notification alerts with a relative timestamp', async () => {
+    vi.mocked(api.getFlaggedStudents).mockResolvedValue([]);
     vi.mocked(api.dashboardSummary).mockResolvedValue(fixture);
 
     const wrapper = await mountView();
@@ -89,10 +92,48 @@ describe('AdminHomeView (Dashboard)', () => {
   });
 
   it('shows an error message when the dashboard summary fails to load', async () => {
+    vi.mocked(api.getFlaggedStudents).mockResolvedValue([]);
     vi.mocked(api.dashboardSummary).mockRejectedValue(new Error('Network down'));
 
     const wrapper = await mountView();
 
     expect(wrapper.find('[role="alert"]').text()).toContain('Network down');
+  });
+
+  it('renders one row per flagged student in the attendance-risk panel', async () => {
+    vi.mocked(api.dashboardSummary).mockResolvedValue(fixture);
+    vi.mocked(api.getFlaggedStudents).mockResolvedValue([
+      { studentId: 's1', studentName: 'Eshaal Sample', absenceRate: 0.32, flagged: true },
+      { studentId: 's2', studentName: 'Ahmed Sample', absenceRate: 0.41, flagged: true },
+    ]);
+
+    const wrapper = await mountView();
+
+    const panel = wrapper.find('[data-testid="attendance-risk-panel"]');
+    expect(panel.exists()).toBe(true);
+    expect(wrapper.find('[data-testid="risk-student-s1"]').text()).toContain('Eshaal Sample');
+    expect(panel.text()).toContain('32% absent');
+    expect(wrapper.find('[data-testid="risk-student-s2"]').text()).toContain('Ahmed Sample');
+    expect(panel.text()).toContain('41% absent');
+  });
+
+  it('shows no attendance-risk panel when no student is flagged', async () => {
+    vi.mocked(api.dashboardSummary).mockResolvedValue(fixture);
+    vi.mocked(api.getFlaggedStudents).mockResolvedValue([]);
+
+    const wrapper = await mountView();
+
+    expect(wrapper.find('[data-testid="attendance-risk-panel"]').exists()).toBe(false);
+  });
+
+  it('still renders the rest of the dashboard when the attendance-risk fetch fails', async () => {
+    vi.mocked(api.dashboardSummary).mockResolvedValue(fixture);
+    vi.mocked(api.getFlaggedStudents).mockRejectedValue(new Error('Network down'));
+
+    const wrapper = await mountView();
+
+    expect(wrapper.find('[data-testid="attendance-risk-panel"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('128'); // KPI still rendered
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false); // this failure is swallowed, not surfaced
   });
 });
