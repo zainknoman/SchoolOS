@@ -6,6 +6,7 @@ import { UpdateCurrentEnrollmentDto } from './dto/update-current-enrollment.dto'
 import { UpdateStudentPreviousSchoolDto } from './dto/update-student-previous-school.dto';
 import { CreateStudentEmergencyContactDto } from './dto/create-student-emergency-contact.dto';
 import { UpdateStudentEmergencyContactDto } from './dto/update-student-emergency-contact.dto';
+import { UpdateStudentMedicalInfoDto } from './dto/update-student-medical-info.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
 
@@ -48,6 +49,15 @@ export class StudentProfileController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.service.upsertPreviousSchool(studentId, dto, req.user.id);
+  }
+
+  @Put('medical-info')
+  upsertMedicalInfo(
+    @Param('studentId') studentId: string,
+    @Body() dto: UpdateStudentMedicalInfoDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.upsertMedicalInfo(studentId, dto, req.user.id);
   }
 
   @Get('emergency-contacts')

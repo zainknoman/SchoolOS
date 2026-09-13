@@ -7,6 +7,7 @@ import { UpdateCurrentEnrollmentDto } from './dto/update-current-enrollment.dto'
 import { UpdateStudentPreviousSchoolDto } from './dto/update-student-previous-school.dto';
 import { CreateStudentEmergencyContactDto } from './dto/create-student-emergency-contact.dto';
 import { UpdateStudentEmergencyContactDto } from './dto/update-student-emergency-contact.dto';
+import { UpdateStudentMedicalInfoDto } from './dto/update-student-medical-info.dto';
 
 export const PROFILE_INCLUDE = {
   currentAddress: true,
@@ -184,6 +185,25 @@ export class StudentProfileService {
       },
     });
 
+    return record;
+  }
+
+  async upsertMedicalInfo(studentId: string, dto: UpdateStudentMedicalInfoDto, actingUserId: string) {
+    await this.requireStudent(studentId);
+    const record = await this.prisma.studentMedicalInfo.upsert({
+      where: { studentId },
+      create: { studentId, ...dto },
+      update: { ...dto },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'student.medicalInfo.upsert',
+        entity: 'StudentMedicalInfo',
+        entityId: record.id,
+        metadata: JSON.stringify(dto),
+      },
+    });
     return record;
   }
 

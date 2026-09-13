@@ -13,6 +13,7 @@ describe('StudentProfileService', () => {
     auditLog: { create: jest.Mock };
     studentPreviousSchool: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
     studentEmergencyContact: { findMany: jest.Mock; findUnique: jest.Mock; create: jest.Mock; update: jest.Mock; delete: jest.Mock };
+    studentMedicalInfo: { upsert: jest.Mock };
   };
 
   beforeEach(async () => {
@@ -23,6 +24,7 @@ describe('StudentProfileService', () => {
       auditLog: { create: jest.fn() },
       studentPreviousSchool: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
       studentEmergencyContact: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
+      studentMedicalInfo: { upsert: jest.fn() },
     };
     const moduleRef = await Test.createTestingModule({
       providers: [StudentProfileService, { provide: PrismaService, useValue: prisma }],
@@ -268,6 +270,24 @@ describe('StudentProfileService', () => {
       expect(prisma.studentEmergencyContact.delete).toHaveBeenCalledWith({ where: { id: 'c1' } });
       expect(prisma.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ action: 'student.emergencyContact.delete' }) }),
+      );
+    });
+  });
+
+  describe('upsertMedicalInfo', () => {
+    it('upserts on studentId and audit-logs it', async () => {
+      prisma.student.findUnique.mockResolvedValue({ id: 's1' });
+      prisma.studentMedicalInfo.upsert.mockResolvedValue({ id: 'm1', bloodGroup: 'O_POS' });
+
+      await service.upsertMedicalInfo('s1', { bloodGroup: 'O_POS' }, 'admin-1');
+
+      expect(prisma.studentMedicalInfo.upsert).toHaveBeenCalledWith({
+        where: { studentId: 's1' },
+        create: { studentId: 's1', bloodGroup: 'O_POS' },
+        update: { bloodGroup: 'O_POS' },
+      });
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ action: 'student.medicalInfo.upsert' }) }),
       );
     });
   });
