@@ -23,8 +23,12 @@ export class ApplicationsController {
   }
 
   @Get()
-  list(@Query('academicSessionId') academicSessionId?: string, @Query('status') status?: string) {
-    return this.applicationsService.findMany(academicSessionId, status);
+  list(
+    @Req() req: AuthenticatedRequest,
+    @Query('academicSessionId') academicSessionId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.applicationsService.findMany(req.user, academicSessionId, status);
   }
 
   @Get(':id')

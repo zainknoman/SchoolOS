@@ -1,11 +1,13 @@
 // backend/src/admissions/applications.service.ts
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { ApproveApplicationDto } from './dto/approve-application.dto';
 import { createStudentWithEnrollment } from '../student/create-student-with-enrollment';
 import { assertCreatable } from '../common/prisma-create-guard';
+import type { RequestUser } from '../common/student-access.service';
 
 export interface ApplicationSummary {
   id: string;
@@ -68,12 +70,21 @@ export class ApplicationsService {
     return this.toSummary(existing);
   }
 
-  async findMany(academicSessionId?: string, status?: string): Promise<ApplicationSummary[]> {
+  async findMany(actingUser: RequestUser, academicSessionId?: string, status?: string): Promise<ApplicationSummary[]> {
+    let where: Prisma.ApplicationWhereInput = {
+      ...(academicSessionId ? { academicSessionId } : {}),
+      ...(status ? { status } : {}),
+    };
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId) {
+        return [];
+      }
+      // AcademicSession has no schoolId of its own — scope via the desired class's campus instead.
+      where = { ...where, desiredClass: { campus: { schoolId: admin.schoolId } } };
+    }
     const records = await this.prisma.application.findMany({
-      where: {
-        ...(academicSessionId ? { academicSessionId } : {}),
-        ...(status ? { status } : {}),
-      },
+      where,
       include: WITH_APPLICANT,
       orderBy: { createdAt: 'desc' },
     });

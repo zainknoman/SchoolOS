@@ -21,8 +21,8 @@ export class ParentController {
   }
 
   @Get()
-  list() {
-    return this.parentService.list();
+  list(@Req() req: AuthenticatedRequest) {
+    return this.parentService.list(req.user);
   }
 
   @Patch(':id')

@@ -1,6 +1,12 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { TeachersService } from './teachers.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import type { RequestUser } from '../common/student-access.service';
+
+interface AuthenticatedRequest extends Request {
+  user: RequestUser;
+}
 
 @Controller('api/v1/teachers')
 export class TeachersController {
@@ -10,7 +16,7 @@ export class TeachersController {
   // Admin/Super Admin only (matches POST /timetable's existing @Roles).
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Get()
-  listAll() {
-    return this.teachersService.listAll();
+  listAll(@Req() req: AuthenticatedRequest) {
+    return this.teachersService.listAll(req.user);
   }
 }

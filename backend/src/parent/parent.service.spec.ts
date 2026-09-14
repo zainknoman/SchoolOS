@@ -11,7 +11,7 @@ describe('ParentService', () => {
   let tx: { user: { create: jest.Mock; delete: jest.Mock }; parentProfile: { create: jest.Mock; delete: jest.Mock } };
   let prisma: {
     parentProfile: { findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock };
-    user: { update: jest.Mock; delete: jest.Mock };
+    user: { findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
@@ -23,7 +23,7 @@ describe('ParentService', () => {
     };
     prisma = {
       parentProfile: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
-      user: { update: jest.fn(), delete: jest.fn() },
+      user: { findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
       auditLog: { create: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(tx)),
     };
@@ -59,14 +59,43 @@ describe('ParentService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('lists parents with their linked-children count', async () => {
+  it('lists every parent with their linked-children count for a SUPER_ADMIN', async () => {
     prisma.parentProfile.findMany.mockResolvedValue([
       { id: 'p1', name: 'New Parent', phone: null, user: { identifier: 'parent-x@seeds.edu.pk' }, _count: { children: 2 } },
     ]);
 
-    expect(await service.list()).toEqual([
+    const result = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
+
+    expect(result).toEqual([
       { id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'New Parent', phone: null, childrenCount: 2 },
     ]);
+    expect(prisma.parentProfile.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: undefined }));
+  });
+
+  it("scopes a SCHOOL_ADMIN's parent list to parents with a child enrolled in their own school", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
+    prisma.parentProfile.findMany.mockResolvedValue([]);
+
+    await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(prisma.parentProfile.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          children: {
+            some: { student: { enrollments: { some: { section: { class: { campus: { schoolId: 'school-1' } } } } } } },
+          },
+        },
+      }),
+    );
+  });
+
+  it('fails closed (returns an empty list) for a SCHOOL_ADMIN with no schoolId', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+
+    const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(result).toEqual([]);
+    expect(prisma.parentProfile.findMany).not.toHaveBeenCalled();
   });
 
   it('updates name/phone without touching the password', async () => {

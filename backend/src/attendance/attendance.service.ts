@@ -210,11 +210,17 @@ export class AttendanceService {
     let calendarHolidayCount = 0;
     try {
       const enrollment = await this.enrollmentService.getEnrollmentForDate(studentId, start, end);
-      const holidays = await this.holidaysService.findMany({
-        campusId: enrollment.campusId,
-        from: start.toISOString().slice(0, 10),
-        to: new Date(end.getTime() - 1).toISOString().slice(0, 10),
-      });
+      // System-internal lookup for a campusId already derived from the student's own enrollment
+      // (not caller-supplied), so it bypasses HolidaysService's caller-scoping (SUPER_ADMIN skips
+      // it) rather than needing this request's actingUser threaded all the way down here.
+      const holidays = await this.holidaysService.findMany(
+        { id: 'system', role: 'SUPER_ADMIN' },
+        {
+          campusId: enrollment.campusId,
+          from: start.toISOString().slice(0, 10),
+          to: new Date(end.getTime() - 1).toISOString().slice(0, 10),
+        },
+      );
       const dayMs = 24 * 60 * 60_000;
       for (let t = start.getTime(); t < end.getTime(); t += dayMs) {
         const day = new Date(t);

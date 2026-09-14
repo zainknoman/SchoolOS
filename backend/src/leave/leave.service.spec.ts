@@ -11,6 +11,7 @@ describe('LeaveService', () => {
     section: { findUnique: jest.Mock };
     attendance: { findMany: jest.Mock; upsert: jest.Mock };
     auditLog: { create: jest.Mock };
+    user: { findUnique: jest.Mock };
     $transaction: jest.Mock;
   };
   let enrollmentService: { getCurrentEnrollment: jest.Mock };
@@ -23,6 +24,7 @@ describe('LeaveService', () => {
       section: { findUnique: jest.fn() },
       attendance: { findMany: jest.fn(), upsert: jest.fn() },
       auditLog: { create: jest.fn() },
+      user: { findUnique: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     enrollmentService = { getCurrentEnrollment: jest.fn() };
@@ -34,6 +36,42 @@ describe('LeaveService', () => {
       ],
     }).compile();
     service = moduleRef.get(LeaveService);
+  });
+
+  describe('listAll', () => {
+    it('lists every leave request for a SUPER_ADMIN, optionally filtered by status', async () => {
+      prisma.leaveRequest.findMany.mockResolvedValue([]);
+
+      await service.listAll({ id: 'super-1', role: 'SUPER_ADMIN' }, 'pending');
+
+      expect(prisma.leaveRequest.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { status: 'pending' } }),
+      );
+    });
+
+    it("scopes a SCHOOL_ADMIN's leave-request list to students enrolled in their own school", async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
+      prisma.leaveRequest.findMany.mockResolvedValue([]);
+
+      await service.listAll({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+      expect(prisma.leaveRequest.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            student: { enrollments: { some: { section: { class: { campus: { schoolId: 'school-1' } } } } } },
+          },
+        }),
+      );
+    });
+
+    it('fails closed (returns an empty list) for a SCHOOL_ADMIN with no schoolId', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+
+      const result = await service.listAll({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+      expect(result).toEqual([]);
+      expect(prisma.leaveRequest.findMany).not.toHaveBeenCalled();
+    });
   });
 
   it('rejects a request whose startDate is after its endDate, without touching the database', async () => {

@@ -98,12 +98,38 @@ describe('TeacherService', () => {
     expect(prisma.campus.findUnique).not.toHaveBeenCalled();
   });
 
-  it('lists teachers with their login identifier', async () => {
+  it('lists every teacher for a SUPER_ADMIN without a schoolId lookup', async () => {
     prisma.teacher.findMany.mockResolvedValue([
       { id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@seeds.edu.pk' } },
     ]);
 
-    expect(await service.list()).toEqual([{ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' }]);
+    const result = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
+
+    expect(result).toEqual([{ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' }]);
+    expect(prisma.teacher.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: undefined }));
+  });
+
+  it("scopes a SCHOOL_ADMIN's teacher list to their own school", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
+    prisma.teacher.findMany.mockResolvedValue([
+      { id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@seeds.edu.pk' } },
+    ]);
+
+    const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(result).toEqual([{ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' }]);
+    expect(prisma.teacher.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { campus: { schoolId: 'school-1' } } }),
+    );
+  });
+
+  it('fails closed (returns an empty list) for a SCHOOL_ADMIN with no schoolId', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+
+    const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(result).toEqual([]);
+    expect(prisma.teacher.findMany).not.toHaveBeenCalled();
   });
 
   it('updates the name without touching the password', async () => {

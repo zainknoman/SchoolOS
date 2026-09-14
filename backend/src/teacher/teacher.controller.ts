@@ -21,8 +21,8 @@ export class TeacherController {
   }
 
   @Get()
-  list() {
-    return this.teacherService.list();
+  list(@Req() req: AuthenticatedRequest) {
+    return this.teacherService.list(req.user);
   }
 
   @Patch(':id')

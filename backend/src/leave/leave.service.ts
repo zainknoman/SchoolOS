@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
+import type { RequestUser } from '../common/student-access.service';
 
 export interface LeaveRequestSummary {
   id: string;
@@ -56,9 +58,20 @@ export class LeaveService {
     return records.map((r) => this.toSummary(r));
   }
 
-  async listAll(status?: string): Promise<LeaveRequestSummary[]> {
+  async listAll(actingUser: RequestUser, status?: string): Promise<LeaveRequestSummary[]> {
+    let where: Prisma.LeaveRequestWhereInput | undefined = status ? { status } : undefined;
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId) {
+        return [];
+      }
+      where = {
+        ...where,
+        student: { enrollments: { some: { section: { class: { campus: { schoolId: admin.schoolId } } } } } },
+      };
+    }
     const records = await this.prisma.leaveRequest.findMany({
-      where: status ? { status } : undefined,
+      where,
       include: STUDENT_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });

@@ -22,8 +22,12 @@ export class HiringApplicationsController {
   }
 
   @Get()
-  list(@Query('campusId') campusId?: string, @Query('status') status?: string) {
-    return this.hiringApplicationsService.findMany(campusId, status);
+  list(
+    @Req() req: AuthenticatedRequest,
+    @Query('campusId') campusId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.hiringApplicationsService.findMany(req.user, campusId, status);
   }
 
   @Get(':id')

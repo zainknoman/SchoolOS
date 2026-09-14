@@ -5,7 +5,8 @@ import { UpdateHiringApplicationDto } from './dto/update-hiring-application.dto'
 import { ApproveHiringApplicationDto } from './dto/approve-hiring-application.dto';
 import { createStaffWithOptionalTeacher } from './create-staff-with-optional-teacher';
 import { assertCreatable } from '../common/prisma-create-guard';
-import type { EmployeeType } from '@prisma/client';
+import type { EmployeeType, Prisma } from '@prisma/client';
+import type { RequestUser } from '../common/student-access.service';
 
 export interface HiringApplicationSummary {
   id: string;
@@ -62,12 +63,20 @@ export class HiringApplicationsService {
     return this.toSummary(existing);
   }
 
-  async findMany(campusId?: string, status?: string): Promise<HiringApplicationSummary[]> {
+  async findMany(actingUser: RequestUser, campusId?: string, status?: string): Promise<HiringApplicationSummary[]> {
+    let where: Prisma.HiringApplicationWhereInput = {
+      ...(campusId ? { campusId } : {}),
+      ...(status ? { status } : {}),
+    };
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId) {
+        return [];
+      }
+      where = { ...where, campus: { schoolId: admin.schoolId } };
+    }
     const records = await this.prisma.hiringApplication.findMany({
-      where: {
-        ...(campusId ? { campusId } : {}),
-        ...(status ? { status } : {}),
-      },
+      where,
       include: WITH_CANDIDATE,
       orderBy: { createdAt: 'desc' },
     });

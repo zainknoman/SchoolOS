@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHolidayDto } from './dto/create-holiday.dto';
 import { UpdateHolidayDto } from './dto/update-holiday.dto';
+import type { RequestUser } from '../common/student-access.service';
 
 export interface HolidaySummary {
   id: string;
@@ -43,16 +45,67 @@ export class HolidaysService {
     return this.toSummary(record);
   }
 
-  async findMany(params: { campusId?: string; from?: string; to?: string }): Promise<HolidaySummary[]> {
-    const records = await this.prisma.holiday.findMany({
-      where: {
-        ...(params.campusId ? { OR: [{ campusId: params.campusId }, { campusId: null }] } : {}),
-        ...(params.from ? { endDate: { gte: new Date(params.from) } } : {}),
-        ...(params.to ? { startDate: { lte: new Date(params.to) } } : {}),
-      },
-      orderBy: { startDate: 'asc' },
-    });
+  // Holiday has no schoolId of its own (only an optional campusId — null means "applies to every
+  // campus"), and this endpoint has no @Roles restriction, so a caller-supplied campusId alone
+  // was never validated against what the caller can actually see. Resolves the caller's own
+  // reachable campus set (their school's campuses, their own campus, or their children's
+  // campuses) and ANDs it with any explicit campusId filter, rather than trusting the param.
+  async findMany(
+    actingUser: RequestUser,
+    params: { campusId?: string; from?: string; to?: string },
+  ): Promise<HolidaySummary[]> {
+    let campusScope: Prisma.HolidayWhereInput | undefined;
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const allowedCampusIds = await this.resolveAllowedCampusIds(actingUser);
+      if (allowedCampusIds === null) {
+        return [];
+      }
+      campusScope = { OR: [{ campusId: null }, { campusId: { in: allowedCampusIds } }] };
+    }
+    const requestedCampusFilter: Prisma.HolidayWhereInput | undefined = params.campusId
+      ? { OR: [{ campusId: params.campusId }, { campusId: null }] }
+      : undefined;
+
+    const where: Prisma.HolidayWhereInput = {
+      ...(params.from ? { endDate: { gte: new Date(params.from) } } : {}),
+      ...(params.to ? { startDate: { lte: new Date(params.to) } } : {}),
+      ...(campusScope && requestedCampusFilter
+        ? { AND: [campusScope, requestedCampusFilter] }
+        : (campusScope ?? requestedCampusFilter ?? {})),
+    };
+
+    const records = await this.prisma.holiday.findMany({ where, orderBy: { startDate: 'asc' } });
     return records.map((r) => this.toSummary(r));
+  }
+
+  /** null means "no access at all" (fail closed), as distinct from an empty array (access to
+   *  zero campuses but the null-campus rows still apply). */
+  private async resolveAllowedCampusIds(actingUser: RequestUser): Promise<string[] | null> {
+    if (actingUser.role === 'SCHOOL_ADMIN' || actingUser.role === 'ACCOUNTS') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId) {
+        return null;
+      }
+      const campuses = await this.prisma.campus.findMany({
+        where: { schoolId: admin.schoolId },
+        select: { id: true },
+      });
+      return campuses.map((c) => c.id);
+    }
+    if (actingUser.role === 'TEACHER') {
+      const teacher = await this.prisma.teacher.findUnique({ where: { userId: actingUser.id } });
+      if (!teacher) {
+        return null;
+      }
+      return [teacher.campusId];
+    }
+    // PARENT (or any other authenticated role) — scoped to their own children's campuses.
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { student: { parents: { some: { parentProfile: { userId: actingUser.id } } } } },
+      select: { campusId: true },
+      distinct: ['campusId'],
+    });
+    return enrollments.map((e) => e.campusId);
   }
 
   async update(id: string, dto: UpdateHolidayDto): Promise<HolidaySummary> {

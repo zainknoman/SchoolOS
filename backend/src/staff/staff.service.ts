@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { EmployeeType } from '@prisma/client';
+import { EmployeeType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import type { RequestUser } from '../common/student-access.service';
 
 export interface StaffSummary {
   id: string;
@@ -29,9 +30,17 @@ export class StaffService {
     };
   }
 
-  async list(employeeType?: EmployeeType): Promise<StaffSummary[]> {
+  async list(actingUser: RequestUser, employeeType?: EmployeeType): Promise<StaffSummary[]> {
+    let where: Prisma.StaffWhereInput | undefined = employeeType ? { employeeType } : undefined;
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId) {
+        return [];
+      }
+      where = { ...where, campus: { schoolId: admin.schoolId } };
+    }
     const records = await this.prisma.staff.findMany({
-      where: employeeType ? { employeeType } : undefined,
+      where,
       include: WITH_CAMPUS,
       orderBy: { name: 'asc' },
     });

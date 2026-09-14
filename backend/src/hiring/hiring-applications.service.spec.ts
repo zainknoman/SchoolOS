@@ -7,6 +7,7 @@ describe('HiringApplicationsService', () => {
   let service: HiringApplicationsService;
   let prisma: {
     hiringApplication: { create: jest.Mock; findUnique: jest.Mock; findMany: jest.Mock; update: jest.Mock };
+    user: { findUnique: jest.Mock };
     $transaction: jest.Mock;
   };
 
@@ -20,12 +21,47 @@ describe('HiringApplicationsService', () => {
   beforeEach(async () => {
     prisma = {
       hiringApplication: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+      user: { findUnique: jest.fn() },
       $transaction: jest.fn(),
     };
     const moduleRef = await Test.createTestingModule({
       providers: [HiringApplicationsService, { provide: PrismaService, useValue: prisma }],
     }).compile();
     service = moduleRef.get(HiringApplicationsService);
+  });
+
+  describe('findMany', () => {
+    it('lists every application for a SUPER_ADMIN, optionally filtered by campusId/status', async () => {
+      prisma.hiringApplication.findMany.mockResolvedValue([withCandidate()]);
+
+      await service.findMany({ id: 'super-1', role: 'SUPER_ADMIN' }, 'cam1', 'SUBMITTED');
+
+      expect(prisma.hiringApplication.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { campusId: 'cam1', status: 'SUBMITTED' } }),
+      );
+    });
+
+    it("scopes a SCHOOL_ADMIN's application list to their own school, ignoring a campusId from another school", async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
+      prisma.hiringApplication.findMany.mockResolvedValue([]);
+
+      await service.findMany({ id: 'admin-1', role: 'SCHOOL_ADMIN' }, 'cam-from-another-school');
+
+      expect(prisma.hiringApplication.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { campusId: 'cam-from-another-school', campus: { schoolId: 'school-1' } },
+        }),
+      );
+    });
+
+    it('fails closed (returns an empty list) for a SCHOOL_ADMIN with no schoolId', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+
+      const result = await service.findMany({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+      expect(result).toEqual([]);
+      expect(prisma.hiringApplication.findMany).not.toHaveBeenCalled();
+    });
   });
 
   it('creates an application in SUBMITTED status', async () => {

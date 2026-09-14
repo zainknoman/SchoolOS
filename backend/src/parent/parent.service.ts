@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
@@ -6,6 +7,7 @@ import { assertCreatable } from '../common/prisma-create-guard';
 import { createParentWithUser } from './create-parent-with-user';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
+import type { RequestUser } from '../common/student-access.service';
 
 export interface ParentSummary {
   id: string;
@@ -56,8 +58,21 @@ export class ParentService {
     return { id: created.id, identifier: created.identifier, name: created.name, phone: created.phone, childrenCount: 0 };
   }
 
-  async list(): Promise<ParentSummary[]> {
+  async list(actingUser: RequestUser): Promise<ParentSummary[]> {
+    let where: Prisma.ParentProfileWhereInput | undefined;
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId) {
+        return [];
+      }
+      where = {
+        children: {
+          some: { student: { enrollments: { some: { section: { class: { campus: { schoolId: admin.schoolId } } } } } } },
+        },
+      };
+    }
     const records = await this.prisma.parentProfile.findMany({
+      where,
       include: WITH_USER_AND_COUNT,
       orderBy: { name: 'asc' },
     });

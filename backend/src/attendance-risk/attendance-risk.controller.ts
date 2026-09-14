@@ -26,8 +26,19 @@ export class AttendanceRiskController {
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Get('attendance-risk')
   async getFlagged(@Req() req: AuthenticatedRequest) {
-    if (req.user.role !== 'TEACHER') {
+    if (req.user.role === 'SUPER_ADMIN') {
       return this.attendanceRiskService.getFlagged();
+    }
+    if (req.user.role === 'SCHOOL_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: req.user.id } });
+      if (!admin?.schoolId) {
+        return this.attendanceRiskService.getFlagged([]);
+      }
+      const sections = await this.prisma.section.findMany({
+        where: { class: { campus: { schoolId: admin.schoolId } } },
+        select: { id: true },
+      });
+      return this.attendanceRiskService.getFlagged(sections.map((s) => s.id));
     }
     const teacher = await this.prisma.teacher.findUnique({ where: { userId: req.user.id } });
     if (!teacher) {

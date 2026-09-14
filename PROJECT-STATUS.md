@@ -1403,7 +1403,7 @@ own implementer + task review, plus this manual verification task.
   redeclaring them structurally-identical copies (same one-source-of-truth treatment already given
   to `IconName`).
 
-## Teacher Subject/Class Assignment Scoping + List-Endpoint Tenant Leak (2026-09-14) ✅ DONE (core), ⏳ follow-up tracked
+## Teacher Subject/Class Assignment Scoping + List-Endpoint Tenant Leak (2026-09-14) ✅ DONE (16 of 20 endpoints; 4 deferred pending a schema decision)
 
 - [x] **Reported bug:** a teacher opening Attendance/Diary/Complaints/Report Cards/Marks Entry could
       see sections from every campus and school, and — deeper than the picker — could access data
@@ -1433,20 +1433,23 @@ own implementer + task review, plus this manual verification task.
     `holidays-complaints-report-cards`) needed their `TEACHER` fixtures updated to actually assign
     the teacher (via `Timetable` or `classTeacherId`) to the section under test — they'd relied on
     campus-only scoping being sufficient, which is exactly the gap this closed.
-- [ ] **Follow-up, explicitly deferred (user chose "core fix now, rest tracked" over fixing all of it
-      in one pass):** a broader audit of the same missing-scoping pattern found ~15 more endpoints,
-      not yet fixed:
-  - Unscoped list endpoints (return every row regardless of caller's school): `GET
-    /admin/teachers`, `/teachers`, `/admin/parents`, `/admin/staff` (has `campusId`, never used to
-    filter), `/fee-structures`, `/leave-requests`, `/admin/dashboard-summary`,
-    `/attendance-risk` (SCHOOL_ADMIN branch — the TEACHER branch is already correctly scoped),
-    `/academic-sessions`, `/subjects` (lower priority — `Subject`/`AcademicSession` have no
-    `schoolId` in the schema at all, a schema-level gap not just a missing filter).
-  - IDOR-style (filters only on a caller-supplied id, never validated against the caller's own
-    school): `/hiring/applications`, `/applications` (admissions), `/holidays`, `/terms` (no
-    `@Roles` at all — any authenticated user), `/assessments`, `/assessment-categories`.
-  - Next step when picked up: same pattern as this fix — scope via `actingUser`, `CampusService.list()`
-    as the reference, TDD per endpoint.
+- [x] **Follow-up pass, same day:** the ~15-endpoint audit above was fully worked through (see
+      `progress.md`) — 12 fixed (`/admin/teachers`, `/teachers`, `/admin/parents`, `/admin/staff`,
+      `/leave-requests`, `/admin/dashboard-summary`, `/attendance-risk` SCHOOL_ADMIN branch,
+      `/hiring/applications`, `/applications`, `/holidays`, `/assessments`,
+      `/assessment-categories`), same `actingUser`/`CampusService.list()` pattern, TDD per endpoint.
+      Verified: backend unit **472/472** (up from 447), e2e **139/139** unchanged (no fixture
+      updates needed this round), `tsc --noEmit` clean.
+  - **4 left deliberately deferred, not fixed:** `/academic-sessions`, `/terms`, `/subjects`,
+    `/fee-structures` — none of their models (`AcademicSession`, `Subject`, `FeeStructure`) have a
+    `schoolId`/`campusId` field at all, so scoping them needs a schema migration, not just a query
+    change. Flagged in `progress.md` rather than done without sign-off, along with a related
+    correctness question surfaced while investigating: `AcademicSession` is currently a single
+    global, platform-wide concept (only `SUPER_ADMIN` creates one), but several e2e fixtures each
+    create their own `isActive: true` session, and `StudentService.create()`'s
+    `academicSession.findFirst({ where: { isActive: true } })` would pick an arbitrary one if more
+    than one really exists — worth a decision on whether sessions should be global or per-school
+    before touching this further.
 
 ## Deferred (explicitly out of this build's scope)
 

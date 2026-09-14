@@ -33,8 +33,8 @@ export class LeaveController {
   // staff-facing list endpoints.
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Get('leave-requests')
-  listAll(@Query('status') status?: string) {
-    return this.leaveService.listAll(status);
+  listAll(@Query('status') status: string | undefined, @Req() req: AuthenticatedRequest) {
+    return this.leaveService.listAll(req.user, status);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')

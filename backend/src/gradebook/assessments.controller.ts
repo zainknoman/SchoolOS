@@ -27,7 +27,9 @@ export class AssessmentsController {
   }
 
   @Get()
-  list(@Query('assessmentCategoryId') assessmentCategoryId: string) {
+  async list(@Query('assessmentCategoryId') assessmentCategoryId: string, @Req() req: AuthenticatedRequest) {
+    const classId = await this.assessmentsService.classIdForCategory(assessmentCategoryId);
+    await this.studentAccess.assertCanAccessClass(req.user, classId);
     return this.assessmentsService.findMany(assessmentCategoryId);
   }
 

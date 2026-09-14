@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
@@ -52,8 +53,16 @@ export class TeacherService {
     return created;
   }
 
-  async list(): Promise<TeacherAdminSummary[]> {
-    const records = await this.prisma.teacher.findMany({ include: WITH_USER, orderBy: { name: 'asc' } });
+  async list(actingUser: RequestUser): Promise<TeacherAdminSummary[]> {
+    let where: Prisma.TeacherWhereInput | undefined;
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId) {
+        return [];
+      }
+      where = { campus: { schoolId: admin.schoolId } };
+    }
+    const records = await this.prisma.teacher.findMany({ where, include: WITH_USER, orderBy: { name: 'asc' } });
     return records.map((r) => this.toSummary(r));
   }
 
