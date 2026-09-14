@@ -28,6 +28,24 @@ describe('FormField', () => {
     expect(wrapper.find('input').attributes('type')).toBe('date');
   });
 
+  it('renders an email input', () => {
+    const wrapper = mount(FormField, {
+      props: { modelValue: '', label: 'Email', type: 'email' },
+    });
+    expect(wrapper.find('input').attributes('type')).toBe('email');
+  });
+
+  it('renders a textarea and emits update:modelValue on input', async () => {
+    const wrapper = mount(FormField, {
+      props: { modelValue: '', label: 'Notes', type: 'textarea', placeholder: 'Notes' },
+    });
+    const textarea = wrapper.find('textarea');
+    expect(textarea.exists()).toBe(true);
+    expect(textarea.attributes('placeholder')).toBe('Notes');
+    await textarea.setValue('Some notes');
+    expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['Some notes']);
+  });
+
   it('renders a select with a disabled placeholder option and the given options, emitting on change', async () => {
     const wrapper = mount(FormField, {
       props: {
@@ -110,6 +128,16 @@ describe('FormField', () => {
     });
     (wrapper.vm as unknown as { focus: () => void }).focus();
     expect(document.activeElement).toBe(wrapper.find('input').element);
+    wrapper.unmount();
+  });
+
+  it('exposes a focus() method that focuses a textarea control', () => {
+    const wrapper = mount(FormField, {
+      props: { modelValue: '', label: 'Notes', type: 'textarea' },
+      attachTo: document.body,
+    });
+    (wrapper.vm as unknown as { focus: () => void }).focus();
+    expect(document.activeElement).toBe(wrapper.find('textarea').element);
     wrapper.unmount();
   });
 });

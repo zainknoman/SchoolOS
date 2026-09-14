@@ -10,7 +10,7 @@ withDefaults(
   defineProps<{
     modelValue: string | boolean;
     label: string;
-    type: 'text' | 'password' | 'date' | 'select' | 'checkbox';
+    type: 'text' | 'password' | 'date' | 'email' | 'select' | 'checkbox' | 'textarea';
     options?: FieldOption[];
     placeholder?: string;
     error?: string;
@@ -21,7 +21,7 @@ withDefaults(
 defineEmits<{ 'update:modelValue': [value: string | boolean] }>();
 defineOptions({ inheritAttrs: false });
 
-const inputRef = ref<HTMLInputElement | HTMLSelectElement | null>(null);
+const inputRef = ref<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>(null);
 defineExpose({ focus: () => inputRef.value?.focus() });
 </script>
 
@@ -48,6 +48,14 @@ defineExpose({ focus: () => inputRef.value?.focus() });
       <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
       <option v-for="opt in options ?? []" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
+    <textarea
+      v-else-if="type === 'textarea'"
+      ref="inputRef"
+      v-bind="$attrs"
+      :value="modelValue as string"
+      :placeholder="placeholder"
+      @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+    />
     <input
       v-else
       ref="inputRef"
@@ -82,12 +90,17 @@ defineExpose({ focus: () => inputRef.value?.focus() });
   flex: 1;
 }
 .form-field input,
-.form-field select {
+.form-field select,
+.form-field textarea {
   width: 100%;
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font: inherit;
+}
+.form-field textarea {
+  min-height: 4.5rem;
+  resize: vertical;
 }
 .checkbox-row {
   display: flex;
