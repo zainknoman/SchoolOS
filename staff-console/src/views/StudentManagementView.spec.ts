@@ -65,6 +65,15 @@ describe('StudentManagementView', () => {
     expect(wrapper.text()).toContain('Existing Parent');
   });
 
+  it('links each row to that student\'s profile page', async () => {
+    const wrapper = await mountView();
+    await flushPromises();
+
+    const link = wrapper.find('[data-testid="view-profile-s1"]');
+    expect(link.exists()).toBe(true);
+    expect(link.attributes('href')).toBe('/admin/students/s1');
+  });
+
   it('opens the Add Student modal automatically when deep-linked with ?focus=gr-number', async () => {
     const router = createRouter({
       history: createMemoryHistory(),
