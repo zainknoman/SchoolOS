@@ -1260,6 +1260,11 @@ same as this sub-project's own plan scoped it.
   **Lesson for the next sub-project (Parent/Teacher):** a mocked `PrismaService` in unit tests cannot
   validate real Prisma argument shapes — an `as X` cast that silences a `tsc` error on a Prisma call is
   a red flag, not a fix; reshape the call instead.
+- Same review also flagged health/PII data (addresses, phone numbers, emails) being copied verbatim
+  into `AuditLog.metadata` at every write endpoint in this file. Trimmed to `{ fields: Object.keys(dto) }`
+  at all 5 sites (profile update, previous-school upsert, medical-info upsert, emergency-contact create,
+  emergency-contact update) — a second review pass on the fix commit initially caught only 3 of the 5
+  trimmed, missing the previous-school and emergency-contact-update sites; both are now fixed.
 - Verified (final, 2026-09-14): backend unit **406/406** (64 suites), `npm run build` clean, `npm run
   lint` shows only this repo's long-documented pre-existing repo-wide Prettier/CRLF debt (no new
   semantic ESLint errors in any file this sub-project added/touched). One `auth.service.spec.ts`

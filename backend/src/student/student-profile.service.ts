@@ -179,7 +179,7 @@ export class StudentProfileService {
         action: 'student.previousSchool.upsert',
         entity: 'StudentPreviousSchool',
         entityId: record.id,
-        metadata: JSON.stringify(dto),
+        metadata: JSON.stringify({ fields: Object.keys(dto) }),
       },
     });
 
@@ -274,7 +274,7 @@ export class StudentProfileService {
         action: 'student.emergencyContact.update',
         entity: 'StudentEmergencyContact',
         entityId: contactId,
-        metadata: JSON.stringify(dto),
+        metadata: JSON.stringify({ fields: Object.keys(dto) }),
       },
     });
     return record;
