@@ -72,6 +72,22 @@ enum StudentStatus {
   WITHDRAWN
 }
 
+enum EmployeeType {
+  TEACHER
+  OFFICE_STAFF
+  JANITORIAL
+  HELPER
+  GUARD
+  OTHER
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+  RESIGNED
+}
+
 // Shared across every document join model added for Student/Parent/Teacher/Application across
 // all four data-model sub-projects — extend this enum's members later, never fork a per-owner
 // copy of it.
@@ -116,24 +132,27 @@ model User {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
-  parentProfile            ParentProfile?
-  teacher                  Teacher?
-  refreshTokens            RefreshToken[]
-  auditLogs                AuditLog[]
-  deviceTokens             DeviceToken[]
-  circularsCreated         Circular[]           @relation("CircularAuthor")
-  circularRecipients       CircularRecipient[]
-  diaryEntriesAuthored     DiaryEntry[]
-  conversationsAsParent    Conversation[]       @relation("ConversationParent")
-  conversationsAsStaff     Conversation[]       @relation("ConversationStaff")
-  messagesSent             Message[]            @relation("MessageSender")
-  passwordResetTokens      PasswordResetToken[]
-  complaintsRaised         Complaint[]
-  reportCardsUploaded      ReportCard[]
-  draftSuggestions         DraftSuggestion[]
-  marksEntered             Mark[]
-  reviewedApplications     Application[]
-  verifiedStudentDocuments StudentDocument[]
+  parentProfile              ParentProfile?
+  teacher                    Teacher?
+  refreshTokens              RefreshToken[]
+  auditLogs                  AuditLog[]
+  deviceTokens               DeviceToken[]
+  circularsCreated           Circular[]           @relation("CircularAuthor")
+  circularRecipients         CircularRecipient[]
+  diaryEntriesAuthored       DiaryEntry[]
+  conversationsAsParent      Conversation[]       @relation("ConversationParent")
+  conversationsAsStaff       Conversation[]       @relation("ConversationStaff")
+  messagesSent               Message[]            @relation("MessageSender")
+  passwordResetTokens        PasswordResetToken[]
+  complaintsRaised           Complaint[]
+  reportCardsUploaded        ReportCard[]
+  draftSuggestions           DraftSuggestion[]
+  marksEntered               Mark[]
+  reviewedApplications       Application[]
+  verifiedStudentDocuments   StudentDocument[]
+  staff                      Staff?
+  verifiedStaffDocuments     StaffDocument[]
+  reviewedHiringApplications HiringApplication[]
 
   @@index([role])
   @@index([schoolId])
@@ -163,16 +182,18 @@ model School {
 }
 
 model Campus {
-  id          String       @id @default(uuid())
-  schoolId    String
-  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  name        String
-  classes     Class[]
-  enrollments Enrollment[]
-  holidays    Holiday[]
-  teachers    Teacher[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                 String              @id @default(uuid())
+  schoolId           String
+  school             School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name               String
+  classes            Class[]
+  enrollments        Enrollment[]
+  holidays           Holiday[]
+  teachers           Teacher[]
+  staff              Staff[]
+  hiringApplications HiringApplication[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@index([schoolId])
 }
@@ -247,10 +268,141 @@ model Teacher {
   timetables             Timetable[]
   classTeacherOfSections Section[]
   attendanceMarks        Attendance[] @relation("AttendanceMarkedBy")
+  staff                  Staff?
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
 
   @@index([campusId])
+}
+
+// --- Staff & Hiring ----------------------------------------------------------
+
+model Staff {
+  id                 String                  @id @default(uuid())
+  userId             String?                 @unique
+  user               User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name               String
+  firstName          String?
+  middleName         String?
+  lastName           String?
+  employeeType       EmployeeType
+  campusId           String
+  campus             Campus                  @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  gender             Gender?
+  dateOfBirth        DateTime?
+  cnic               String?                 @unique
+  mobile             String?
+  email              String?
+  profilePhotoFileId String?
+  profilePhoto       File?                   @relation(fields: [profilePhotoFileId], references: [id], onDelete: SetNull)
+  currentAddressId   String?
+  currentAddress     Address?                @relation("StaffCurrentAddress", fields: [currentAddressId], references: [id], onDelete: SetNull)
+  permanentAddressId String?
+  permanentAddress   Address?                @relation("StaffPermanentAddress", fields: [permanentAddressId], references: [id], onDelete: SetNull)
+  joiningDate        DateTime?
+  employmentStatus   EmploymentStatus        @default(ACTIVE)
+  leavingDate        DateTime?
+  leavingReason      String?
+  teacherId          String?                 @unique
+  teacher            Teacher?                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  emergencyContacts  StaffEmergencyContact[]
+  experience         StaffExperience[]
+  documents          StaffDocument[]
+  hiringApplication  HiringApplication?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@index([campusId])
+  @@index([employeeType])
+}
+
+model StaffEmergencyContact {
+  id             String   @id @default(uuid())
+  staffId        String
+  staff          Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  name           String
+  relationship   String
+  phone          String
+  alternatePhone String?
+  email          String?
+  addressId      String?
+  address        Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  priority       Int      @default(1)
+  isPrimary      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([staffId])
+}
+
+model StaffExperience {
+  id           String    @id @default(uuid())
+  staffId      String
+  staff        Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  organization String
+  role         String
+  fromDate     DateTime?
+  toDate       DateTime?
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([staffId])
+}
+
+model StaffDocument {
+  id                 String                     @id @default(uuid())
+  staffId            String
+  staff              Staff                      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  documentType       DocumentType
+  fileId             String
+  file               File                       @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  expiryDate         DateTime?
+  verificationStatus DocumentVerificationStatus @default(PENDING)
+  verifiedById       String?
+  verifiedBy         User?                      @relation(fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedAt         DateTime?
+  notes              String?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  @@index([staffId])
+}
+
+model HiringCandidate {
+  id           String              @id @default(uuid())
+  name         String
+  dateOfBirth  DateTime?
+  cnic         String?
+  contactPhone String
+  contactEmail String?
+  resumeFileId String?
+  resumeFile   File?               @relation(fields: [resumeFileId], references: [id], onDelete: SetNull)
+  applications HiringApplication[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([contactPhone])
+}
+
+model HiringApplication {
+  id             String          @id @default(uuid())
+  candidateId    String
+  candidate      HiringCandidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  employeeType   EmployeeType
+  campusId       String
+  campus         Campus          @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  status         String          @default("SUBMITTED")
+  decisionNotes  String?
+  reviewedById   String?
+  reviewedBy     User?           @relation(fields: [reviewedById], references: [id])
+  createdStaffId String?         @unique
+  createdStaff   Staff?          @relation(fields: [createdStaffId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([candidateId])
+  @@index([campusId, status])
 }
 
 // --- Students & parents -----------------------------------------------------
@@ -357,21 +509,24 @@ model StudentParent {
 // Reusable address value-object, referenced by plain nullable FK from whichever entity needs
 // it. Each row is owned by exactly one FK — never shared/reused across owners.
 model Address {
-  id                String                    @id @default(uuid())
-  line1             String
-  line2             String?
-  area              String?
-  city              String?
-  district          String?
-  province          String?
-  postalCode        String?
-  country           String                    @default("Pakistan")
-  studentsCurrent   Student[]                 @relation("StudentCurrentAddress")
-  studentsPermanent Student[]                 @relation("StudentPermanentAddress")
-  previousSchools   StudentPreviousSchool[]
-  emergencyContacts StudentEmergencyContact[]
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
+  id                     String                    @id @default(uuid())
+  line1                  String
+  line2                  String?
+  area                   String?
+  city                   String?
+  district               String?
+  province               String?
+  postalCode             String?
+  country                String                    @default("Pakistan")
+  studentsCurrent        Student[]                 @relation("StudentCurrentAddress")
+  studentsPermanent      Student[]                 @relation("StudentPermanentAddress")
+  previousSchools        StudentPreviousSchool[]
+  emergencyContacts      StudentEmergencyContact[]
+  staffCurrent           Staff[]                   @relation("StaffCurrentAddress")
+  staffPermanent         Staff[]                   @relation("StaffPermanentAddress")
+  staffEmergencyContacts StaffEmergencyContact[]
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
 }
 
 model StudentPreviousSchool {
@@ -677,17 +832,20 @@ model LeaveRequest {
 }
 
 model File {
-  id                   String               @id @default(uuid())
-  storageKey           String               @unique // randomized name in the S3-compatible bucket, not the original filename
-  originalName         String
-  mimeType             String
-  sizeBytes            Int
-  diaryAttachments     DiaryAttachment[]
-  circularAttachments  CircularAttachment[]
-  reportCard           ReportCard?
-  studentProfilePhotos Student[]
-  studentDocuments     StudentDocument[]
-  createdAt            DateTime             @default(now())
+  id                     String               @id @default(uuid())
+  storageKey             String               @unique // randomized name in the S3-compatible bucket, not the original filename
+  originalName           String
+  mimeType               String
+  sizeBytes              Int
+  diaryAttachments       DiaryAttachment[]
+  circularAttachments    CircularAttachment[]
+  reportCard             ReportCard?
+  studentProfilePhotos   Student[]
+  studentDocuments       StudentDocument[]
+  staffProfilePhotos     Staff[]
+  staffDocuments         StaffDocument[]
+  hiringCandidateResumes HiringCandidate[]
+  createdAt              DateTime             @default(now())
 }
 
 model AuditLog {

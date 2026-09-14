@@ -87,6 +87,51 @@ async function main() {
     },
   });
 
+  // One Staff row per employeeType, including one linked to an existing seeded Teacher.
+  const existingTeacher = await prisma.teacher.findFirst();
+  const staffJanitor = await prisma.staff.create({
+    data: {
+      name: 'Nazir Ahmed',
+      employeeType: 'JANITORIAL',
+      campusId: gulistan.id,
+      mobile: '0300-1112233',
+      joiningDate: new Date('2023-01-15'),
+      employmentStatus: 'ACTIVE',
+      experience: {
+        create: [
+          { organization: 'City Grammar School', role: 'Janitorial Staff', fromDate: new Date('2020-01-01'), toDate: new Date('2022-12-31') },
+        ],
+      },
+    },
+  });
+  if (existingTeacher) {
+    await prisma.staff.create({
+      data: {
+        name: existingTeacher.name,
+        employeeType: 'TEACHER',
+        campusId: existingTeacher.campusId,
+        userId: existingTeacher.userId,
+        teacherId: existingTeacher.id,
+        joiningDate: new Date('2021-08-01'),
+        employmentStatus: 'ACTIVE',
+      },
+    });
+  }
+
+  // One HiringCandidate + one HiringApplication per pipeline stage, for local dev/demo data.
+  const candidateSubmitted = await prisma.hiringCandidate.create({
+    data: { name: 'Bilal Hussain', contactPhone: '0333-4445566', contactEmail: 'bilal@example.com' },
+  });
+  await prisma.hiringApplication.create({
+    data: { candidateId: candidateSubmitted.id, employeeType: 'GUARD', campusId: gulistan.id, status: 'SUBMITTED' },
+  });
+  const candidateShortlisted = await prisma.hiringCandidate.create({
+    data: { name: 'Sana Malik', contactPhone: '0333-7778899' },
+  });
+  await prisma.hiringApplication.create({
+    data: { candidateId: candidateShortlisted.id, employeeType: 'OFFICE_STAFF', campusId: gulistan.id, status: 'SHORTLISTED' },
+  });
+
   const accountsUser = await prisma.user.create({
     data: {
       identifier: 'accounts@seeds.edu.pk',
@@ -231,7 +276,9 @@ async function main() {
   // teacher.
   const subjectNames = ['Mathematics', 'English', 'Urdu', 'Science', 'Social Studies', 'Art'];
   const subjects = await Promise.all(
-    subjectNames.map((name) => prisma.subject.create({ data: { name } })),
+    subjectNames.map((name) =>
+      prisma.subject.upsert({ where: { name }, update: {}, create: { name } }),
+    ),
   );
 
   const periodTimes: Array<[string, string]> = [

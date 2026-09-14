@@ -128,16 +128,16 @@ be lost, since nothing pre-existing was altered.
 
 ### Verification checklist for this sub-project
 
-- [ ] `npx prisma validate`
-- [ ] `npx prisma migrate dev` applies cleanly against local dev DB
-- [ ] Generated migration SQL contains zero `ALTER TABLE` statements against `Teacher`/`Campus`/
+- [x] `npx prisma validate`
+- [x] `npx prisma migrate dev` applies cleanly against local dev DB
+- [x] Generated migration SQL contains zero `ALTER TABLE` statements against `Teacher`/`Campus`/
       `File`/`User`/`Address` (see above — this is the load-bearing check for this sub-project)
-- [ ] Existing backend unit suite passes unmodified (confirms `Teacher`/`Timetable`/`Section`/
+- [x] Existing backend unit suite passes unmodified (confirms `Teacher`/`Timetable`/`Section`/
       `Attendance` consumers genuinely untouched)
-- [ ] Seed script updated to add at least one `Staff` row per `employeeType` (including one linked
+- [x] Seed script updated to add at least one `Staff` row per `employeeType` (including one linked
       to an existing seeded `Teacher` via `teacherId`, and one `HiringCandidate` +
       `HiringApplication` pair in each pipeline stage) for representative local dev data
-- [ ] New `StaffProfileController`/`StaffProfileService` and
+- [x] New `StaffProfileController`/`StaffProfileService` and
       `HiringCandidatesController`/`HiringApplicationsController` validated with new unit tests,
       matching Sub-project 1's per-endpoint coverage depth
 - [ ] Staff-console UI (Staff profile page, Hiring queue/intake/review pages) — a separate

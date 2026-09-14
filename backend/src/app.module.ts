@@ -26,6 +26,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { ParentModule } from './parent/parent.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { StudentModule } from './student/student.module';
+import { StaffModule } from './staff/staff.module';
+import { HiringModule } from './hiring/hiring.module';
 import { HolidaysModule } from './holidays/holidays.module';
 import { ComplaintsModule } from './complaints/complaints.module';
 import { ReportCardsModule } from './report-cards/report-cards.module';
@@ -66,6 +68,8 @@ import { GENERAL_THROTTLE_LIMIT, THROTTLE_TTL_MS } from './config/throttler.conf
     ParentModule,
     TeacherModule,
     StudentModule,
+    StaffModule,
+    HiringModule,
     HolidaysModule,
     ComplaintsModule,
     ReportCardsModule,
