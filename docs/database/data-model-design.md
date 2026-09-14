@@ -18,8 +18,13 @@ tested:
    StudentEmergencyContact, StudentMedicalInfo, StudentDocument, Enrollment additions.
 2. **Parent/Guardian** — ParentProfile expansion, StudentParent relationship enrichment,
    ParentDocument.
-3. **Teacher/Staff** — Teacher expansion, TeacherSubject/TeacherClass assignment models,
-   TeacherDocument.
+3. **Staff & Hiring** (this document's third section) — a new `Staff` model generalizing `Teacher`
+   to every employee type (teacher, office staff, janitorial, helper, guard, other), with
+   Address/EmergencyContact/Document/Experience satellites mirroring Student's, plus a
+   `HiringCandidate`/`HiringApplication` recruitment pipeline (mirrors Admission's
+   `Applicant`/`Application`) whose approval creates the `Staff` record (and, for teachers, the
+   linked `Teacher` row). `Teacher` itself is **not modified** — see that section's "Why `Teacher`
+   is untouched" note.
 4. **Admission** — Applicant/Application workflow expansion, ApplicationDocument, and the
    Applicant↔ParentProfile/Student boundary decision flagged in the audit.
 
@@ -268,3 +273,257 @@ optional so a document/address can be added later without blocking record creati
   since all are optional.
 - Full migration mechanics (migration file plan, apply order, rollback notes) are in
   `docs/database/migration-plan.md`.
+
+---
+
+## Sub-project 3 — Staff & Hiring
+
+> Designed out of order relative to the numbered list above: Sub-project 2 (Parent/Guardian) has
+> not been designed yet. This section stands on its own — it depends only on Sub-project 1's
+> `Address`/`File`/`DocumentType`/`DocumentVerificationStatus` primitives, not on Parent.
+
+### Design goals
+
+- Give every non-teaching employee (office staff, janitorial, helper, guard, other) a real record —
+  today only `Teacher` exists, and it's minimal (`id, userId, name, campusId`). Mirrors the
+  audit finding that motivated Sub-project 1: the fix is additive schema, not a rewrite.
+- One `employeeType` field says what kind of employee a `Staff` row is — "type of employee will
+  tell if he is teacher or not" (the brief's own framing). Every employee type shares the same
+  core HR record (identity, contact, address, employment status, documents, past experience);
+  only `TEACHER` additionally gets a linked teaching-specific record.
+- **Why `Teacher` is untouched:** 27 backend files and 20 staff-console files reference `Teacher`
+  today (`Timetable.teacherId`, `Section.classTeacherOfSections`, `Attendance` marking, the
+  `teacher`/`teachers` admin modules, bulk-import, sections DTOs, etc.). Renaming or restructuring
+  it would touch all of them for no functional gain, and would violate this document's own
+  additive-only rule (top of this file: "Nothing existing is removed, renamed, or made required").
+  Instead, `Staff` gets a new optional `teacherId` FK pointing *at* the existing `Teacher` table.
+  For an `employeeType: TEACHER` hire, the Hiring approval flow creates a `Teacher` row exactly the
+  way `TeacherService.create()` already does today (reusing `createTeacherWithUser`), then links it
+  from the new `Staff` row. Every existing Teacher-consuming file keeps working unmodified; `Staff`
+  is purely additive alongside it.
+- `Staff.name`/`campusId` duplicate the linked `Teacher.name`/`campusId` for a teacher-type hire.
+  This is the same accepted duplication Sub-project 1 used for `Student.name` alongside
+  `firstName`/`middleName`/`lastName` — intentional, not an oversight.
+- `Staff.userId` is **optional**, unlike `Teacher.userId` (required). Most non-teaching roles
+  (guard, janitorial, helper) have no reason to log into the staff console; a `Staff` row only
+  gets a `User`/login when the role needs one. `Teacher`'s own `userId` stays required exactly as
+  it is today — a `TEACHER`-type hire always gets both a `User` (required by `Teacher`) and,
+  independently, may or may not need `Staff.userId` populated (it's set to the same `User.id` so
+  the two records agree on identity).
+- Past experience (the brief's explicit ask) is modeled as `StaffExperience`, available to any
+  `employeeType` — a janitor or guard can have prior-employer history just as easily as a teacher.
+- The Hiring module is a real pipeline (`HiringCandidate` → `HiringApplication`, staged
+  `SUBMITTED → SHORTLISTED → INTERVIEWED → APPROVED/REJECTED`), structurally identical to
+  Admission's `Applicant`/`Application`/`approve()` pattern — same terminal-status guard, same
+  "approve creates the real record in a transaction" shape.
+
+### New enums
+
+```prisma
+enum EmployeeType {
+  TEACHER
+  OFFICE_STAFF
+  JANITORIAL
+  HELPER
+  GUARD
+  OTHER
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+  RESIGNED
+}
+```
+
+`HiringApplication.status` is a plain `String` with `@default("SUBMITTED")`, not an enum —
+matching `Application.status`'s existing precedent exactly (keeps intermediate-stage values
+adjustable without a migration, same rationale that model already established). Convention (not
+DB-enforced, same as `Application`): `SUBMITTED → SHORTLISTED → INTERVIEWED → APPROVED/REJECTED`,
+with `APPROVED`/`REJECTED` terminal.
+
+### New models
+
+```prisma
+model Staff {
+  id                 String                  @id @default(uuid())
+  userId             String?                 @unique
+  user               User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name               String
+  firstName          String?
+  middleName         String?
+  lastName           String?
+  employeeType       EmployeeType
+  campusId           String
+  campus             Campus                  @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  gender             Gender?
+  dateOfBirth        DateTime?
+  cnic               String?                 @unique
+  mobile             String?
+  email              String?
+  profilePhotoFileId String?
+  profilePhoto       File?                   @relation(fields: [profilePhotoFileId], references: [id], onDelete: SetNull)
+  currentAddressId   String?
+  currentAddress     Address?                @relation("StaffCurrentAddress", fields: [currentAddressId], references: [id], onDelete: SetNull)
+  permanentAddressId String?
+  permanentAddress   Address?                @relation("StaffPermanentAddress", fields: [permanentAddressId], references: [id], onDelete: SetNull)
+  joiningDate        DateTime?
+  employmentStatus   EmploymentStatus        @default(ACTIVE)
+  leavingDate        DateTime?
+  leavingReason      String?
+  // Only set for employeeType: TEACHER. Points at the existing Teacher table — see "Why Teacher
+  // is untouched" above. onDelete: SetNull, not Cascade — a Teacher row is never deleted by
+  // deleting the Staff wrapper around it (nothing in this codebase hard-deletes Teacher today).
+  teacherId          String?                 @unique
+  teacher            Teacher?                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  emergencyContacts  StaffEmergencyContact[]
+  experience         StaffExperience[]
+  documents          StaffDocument[]
+  hiringApplication  HiringApplication?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@index([campusId])
+  @@index([employeeType])
+}
+
+model StaffEmergencyContact {
+  id             String   @id @default(uuid())
+  staffId        String
+  staff          Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  name           String
+  relationship   String
+  phone          String
+  alternatePhone String?
+  email          String?
+  addressId      String?
+  address        Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  priority       Int      @default(1)
+  isPrimary      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([staffId])
+}
+
+// Past employment history — any employeeType, not just TEACHER (the brief's "extend fields for
+// teacher like student, with past experience" generalizes naturally: every employee can have had
+// a job before this one).
+model StaffExperience {
+  id           String    @id @default(uuid())
+  staffId      String
+  staff        Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  organization String
+  role         String
+  fromDate     DateTime?
+  toDate       DateTime?
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([staffId])
+}
+
+model StaffDocument {
+  id                 String                     @id @default(uuid())
+  staffId            String
+  staff              Staff                      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  documentType       DocumentType
+  fileId             String
+  file               File                       @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  expiryDate         DateTime?
+  verificationStatus DocumentVerificationStatus @default(PENDING)
+  verifiedById       String?
+  verifiedBy         User?                      @relation(fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedAt         DateTime?
+  notes              String?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  @@index([staffId])
+}
+
+model HiringCandidate {
+  id           String              @id @default(uuid())
+  name         String
+  dateOfBirth  DateTime?
+  cnic         String?
+  contactPhone String
+  contactEmail String?
+  resumeFileId String?
+  resumeFile   File?               @relation(fields: [resumeFileId], references: [id], onDelete: SetNull)
+  applications HiringApplication[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([contactPhone])
+}
+
+model HiringApplication {
+  id             String          @id @default(uuid())
+  candidateId    String
+  candidate      HiringCandidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  employeeType   EmployeeType
+  campusId       String
+  campus         Campus          @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  status         String          @default("SUBMITTED")
+  decisionNotes  String?
+  reviewedById   String?
+  reviewedBy     User?           @relation(fields: [reviewedById], references: [id])
+  createdStaffId String?         @unique
+  createdStaff   Staff?          @relation(fields: [createdStaffId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([candidateId])
+  @@index([campusId, status])
+}
+```
+
+### Changed models
+
+`Teacher` — **zero column changes.** Gains only a virtual Prisma back-relation (`staff Staff?`,
+generated from `Staff.teacherId` — no migration DDL of its own).
+
+`Campus`, `File`, `User`, `Address` — each gains only virtual back-relations for the new models
+above (`Campus.staffMembers Staff[]` / `Campus.hiringApplications HiringApplication[]`,
+`File.staffProfilePhotos Staff[]` / `File.staffDocuments StaffDocument[]` /
+`File.hiringResumes HiringCandidate[]`, `User.staffAccount Staff?` /
+`User.verifiedStaffDocuments StaffDocument[]` / `User.reviewedHiringApplications
+HiringApplication[]`, `Address.staffCurrentAddress Staff[]` / `Address.staffPermanentAddress
+Staff[]`). None of these require an `ALTER TABLE` — the FK columns all live on the new tables.
+
+### Relationships & cardinality
+
+- `Staff 0/1 — 0/1 Teacher` (optional both ways; only populated for `employeeType: TEACHER`)
+- `Staff 1 — 0..N StaffEmergencyContact`, `Staff 1 — 0..N StaffExperience`, `Staff 1 — 0..N
+  StaffDocument`
+- `HiringCandidate 1 — 0..N HiringApplication` (a candidate can (re)apply more than once, exactly
+  like `Applicant 1 — 0..N Application`)
+- `HiringApplication 0/1 — 0/1 Staff` via `createdStaffId`, set only on approval — mirrors
+  `Application.createdStudentId` exactly
+
+### Required vs optional
+
+Every `Staff` field is optional except `id`, `name`, `employeeType`, `campusId` — mirroring how
+`Student` only requires `id`/`grNumber`/`name`/`status`. `HiringCandidate` requires `name` +
+`contactPhone` only (a candidate can be entered from a phone call before a résumé exists).
+`HiringApplication` requires `candidateId`/`employeeType`/`campusId`/`status`, matching
+`Application`'s required set.
+
+### Indexes & unique constraints
+
+- `Staff.userId`, `Staff.teacherId`, `Staff.cnic` — `@unique`
+- `Staff.campusId`, `Staff.employeeType` — `@@index`
+- `StaffEmergencyContact.staffId`, `StaffExperience.staffId`, `StaffDocument.staffId` — `@@index`
+- `HiringCandidate.contactPhone` — `@@index` (mirrors `Applicant.guardianPhone`)
+- `HiringApplication.candidateId`, `HiringApplication.[campusId, status]` — `@@index`
+- `HiringApplication.createdStaffId` — `@unique`
+
+### Backward compatibility / migration strategy
+
+- Every new table is new; every FK it adds lives on that new table. `Teacher`/`Campus`/`File`/
+  `User`/`Address` gain zero `ALTER TABLE` statements — only virtual Prisma back-relations.
+- No existing DTO, controller, form, or test that touches `Teacher` changes at all.
+- Full migration mechanics are in `docs/database/migration-plan.md`'s Sub-project 3 section.

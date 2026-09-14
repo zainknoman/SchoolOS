@@ -80,5 +80,69 @@ COLUMN` pass — no data would be lost by rolling back, since nothing pre-existi
 
 ---
 
-*(Parent, Teacher, and Admission sub-project migration plans are appended here as each is
-designed.)*
+## Sub-project 3 — Staff & Hiring
+
+### Migration(s)
+
+One migration, `add_staff_and_hiring` (name finalized at generation time), containing:
+
+- `CREATE TYPE "EmployeeType" AS ENUM (...)`, `"EmploymentStatus"` — `DocumentType`/
+  `DocumentVerificationStatus` already exist from Sub-project 1 and are reused as-is.
+- `CREATE TABLE "Staff" (...)` with FK → `User` (nullable), `Campus`, `File` (nullable),
+  `Address` ×2 (nullable, named relations), `Teacher` (nullable)
+- `CREATE TABLE "StaffEmergencyContact" (...)` with FK → `Staff`, `Address`
+- `CREATE TABLE "StaffExperience" (...)` with FK → `Staff`
+- `CREATE TABLE "StaffDocument" (...)` with FK → `Staff`, `File`, `User`
+- `CREATE TABLE "HiringCandidate" (...)` with FK → `File` (nullable, résumé)
+- `CREATE TABLE "HiringApplication" (...)` with FK → `HiringCandidate`, `Campus`, `User`
+  (`reviewedById`, nullable), `Staff` (`createdStaffId`, nullable unique)
+- Unique indexes: `Staff.userId`, `Staff.teacherId`, `Staff.cnic`,
+  `HiringApplication.createdStaffId`
+
+**No `ALTER TABLE` against any existing table** — this is the key difference from Sub-project 1's
+migration. `Teacher`, `Campus`, `File`, `User`, and `Address` all gain only virtual Prisma
+back-relations, which Prisma resolves without any DDL. Confirm this by diffing the generated SQL:
+it must contain zero `ALTER TABLE "Teacher"`, `ALTER TABLE "Campus"`, `ALTER TABLE "File"`,
+`ALTER TABLE "User"`, or `ALTER TABLE "Address"` statements — if `prisma migrate dev
+--create-only` emits any of those, stop and re-check the schema for an accidentally-required
+field or a relation declared on the wrong side.
+
+No backfill script needed: every new table starts empty, and nothing existing changes shape.
+
+### Existing-data impact
+
+- 3 seeded teachers — completely unaffected; `Teacher` gains no column, so every existing
+  `Teacher` row is valid with no corresponding `Staff` row. (Whether to backfill a `Staff` wrapper
+  row per existing `Teacher` — so the staff-console's future "all staff" list shows pre-existing
+  teachers too — is a **product decision, not a migration requirement**; flagged here as an open
+  question for whoever implements this plan, not resolved by this design.)
+- No existing FK, unique constraint, or index on any pre-existing table is altered.
+- Every file in the 27-backend/20-frontend "references Teacher" set (enumerated in the design
+  doc) needs zero changes for this migration to apply cleanly.
+
+### Rollback note
+
+Same as Sub-project 1: fully additive, so rollback is `prisma migrate resolve --rolled-back` for
+this one migration plus a manual `DROP TABLE` pass for the 6 new tables — no pre-existing data can
+be lost, since nothing pre-existing was altered.
+
+### Verification checklist for this sub-project
+
+- [ ] `npx prisma validate`
+- [ ] `npx prisma migrate dev` applies cleanly against local dev DB
+- [ ] Generated migration SQL contains zero `ALTER TABLE` statements against `Teacher`/`Campus`/
+      `File`/`User`/`Address` (see above — this is the load-bearing check for this sub-project)
+- [ ] Existing backend unit suite passes unmodified (confirms `Teacher`/`Timetable`/`Section`/
+      `Attendance` consumers genuinely untouched)
+- [ ] Seed script updated to add at least one `Staff` row per `employeeType` (including one linked
+      to an existing seeded `Teacher` via `teacherId`, and one `HiringCandidate` +
+      `HiringApplication` pair in each pipeline stage) for representative local dev data
+- [ ] New `StaffProfileController`/`StaffProfileService` and
+      `HiringCandidatesController`/`HiringApplicationsController` validated with new unit tests,
+      matching Sub-project 1's per-endpoint coverage depth
+- [ ] Staff-console UI (Staff profile page, Hiring queue/intake/review pages) — a separate
+      follow-on UI implementation plan, matching how Sub-project 1B followed Sub-project 1
+
+---
+
+*(Parent, and Admission sub-project migration plans are appended here as each is designed.)*
