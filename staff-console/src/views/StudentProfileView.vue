@@ -1,6 +1,6 @@
 <!-- staff-console/src/views/StudentProfileView.vue -->
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { onBeforeUnmount, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type AddressInput, type StudentProfileDetail } from '../lib/api';
@@ -10,6 +10,7 @@ import Button from '../components/Button.vue';
 import EntityTable from '../components/EntityTable.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { useConfirm } from '../lib/useConfirm';
+import { initialsFromName } from '../lib/format';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
@@ -52,7 +53,6 @@ const profileForm = reactive({
 });
 const currentAddressForm = reactive(emptyAddress());
 const permanentAddressForm = reactive(emptyAddress());
-const profilePhotoFile = ref<File | null>(null);
 
 function startEditProfile() {
   if (!profile.value) return;
@@ -75,7 +75,6 @@ function startEditProfile() {
   profileForm.studentEmail = p.studentEmail ?? '';
   Object.assign(currentAddressForm, p.currentAddress ? { ...emptyAddress(), ...p.currentAddress } : emptyAddress());
   Object.assign(permanentAddressForm, p.permanentAddress ? { ...emptyAddress(), ...p.permanentAddress } : emptyAddress());
-  profilePhotoFile.value = null;
   profileErrorMessage.value = null;
   isEditingProfile.value = true;
 }
@@ -85,21 +84,11 @@ function cancelEditProfile() {
   profileErrorMessage.value = null;
 }
 
-function onProfilePhotoChange(event: Event) {
-  const input = event.target as HTMLInputElement;
-  profilePhotoFile.value = input.files?.[0] ?? null;
-}
-
 async function onSaveProfile() {
   if (!auth.accessToken) return;
   profileErrorMessage.value = null;
   isSavingProfile.value = true;
   try {
-    let profilePhotoFileId: string | undefined;
-    if (profilePhotoFile.value) {
-      const uploaded = await api.uploadFile(auth.accessToken, profilePhotoFile.value);
-      profilePhotoFileId = uploaded.id;
-    }
     await api.updateStudentProfile(auth.accessToken, studentId, {
       firstName: profileForm.firstName || undefined,
       middleName: profileForm.middleName || undefined,
@@ -117,7 +106,6 @@ async function onSaveProfile() {
       leavingReason: profileForm.leavingReason || undefined,
       studentMobile: profileForm.studentMobile || undefined,
       studentEmail: profileForm.studentEmail || undefined,
-      profilePhotoFileId,
       currentAddress: addressPayload(currentAddressForm),
       permanentAddress: addressPayload(permanentAddressForm),
     });
@@ -129,6 +117,42 @@ async function onSaveProfile() {
     isSavingProfile.value = false;
   }
 }
+
+// --- Profile photo (top-right avatar) ----------------------------------------------------------
+const photoInputRef = ref<HTMLInputElement | null>(null);
+const photoPreviewUrl = ref<string | null>(null);
+const photoErrorMessage = ref<string | null>(null);
+const isSavingPhoto = ref(false);
+
+function triggerPhotoInput() {
+  photoInputRef.value?.click();
+}
+
+async function onPhotoFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0] ?? null;
+  input.value = '';
+  if (!file || !auth.accessToken) return;
+
+  if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value);
+  photoPreviewUrl.value = URL.createObjectURL(file);
+
+  photoErrorMessage.value = null;
+  isSavingPhoto.value = true;
+  try {
+    const uploaded = await api.uploadFile(auth.accessToken, file);
+    await api.updateStudentProfile(auth.accessToken, studentId, { profilePhotoFileId: uploaded.id });
+    await load();
+  } catch (err) {
+    photoErrorMessage.value = err instanceof Error ? err.message : 'Could not upload this photo.';
+  } finally {
+    isSavingPhoto.value = false;
+  }
+}
+
+onBeforeUnmount(() => {
+  if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value);
+});
 
 // --- Current Enrollment section (roll number + remarks) --------------------------------------
 const isEditingEnrollment = ref(false);
@@ -422,8 +446,35 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
 
 <template>
   <div class="student-profile">
-    <h1 v-if="profile">{{ profile.name }}</h1>
-    <h1 v-else>Student Profile</h1>
+    <div class="page-header">
+      <h1 v-if="profile">{{ profile.name }}</h1>
+      <h1 v-else>Student Profile</h1>
+
+      <div v-if="profile" class="photo-widget">
+        <button
+          type="button"
+          class="photo-avatar"
+          data-testid="profile-photo-trigger"
+          :disabled="isSavingPhoto"
+          @click="triggerPhotoInput"
+        >
+          <img v-if="photoPreviewUrl" :src="photoPreviewUrl" alt="" class="photo-avatar-img" />
+          <template v-else>{{ initialsFromName(profile.name) }}</template>
+        </button>
+        <label class="sr-only" for="profile-photo-input">Student photo</label>
+        <input
+          id="profile-photo-input"
+          ref="photoInputRef"
+          type="file"
+          accept="image/*"
+          class="sr-only"
+          data-testid="profile-photo-input"
+          @change="onPhotoFileSelected"
+        />
+        <span class="photo-hint">{{ isSavingPhoto ? 'Uploading…' : (profile.profilePhotoFileId ? 'Change photo' : 'Upload photo') }}</span>
+      </div>
+    </div>
+    <p v-if="photoErrorMessage" class="error" role="alert" data-testid="profile-photo-error">{{ photoErrorMessage }}</p>
     <p v-if="pageErrorMessage" class="error" role="alert">{{ pageErrorMessage }}</p>
 
     <div v-if="profile" class="sections">
@@ -447,7 +498,6 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
           <dt>Admission date</dt><dd>{{ profile.admissionDate ? profile.admissionDate.slice(0, 10) : '—' }}</dd>
           <dt>Mobile</dt><dd>{{ profile.studentMobile ?? '—' }}</dd>
           <dt>Email</dt><dd>{{ profile.studentEmail ?? '—' }}</dd>
-          <dt>Profile photo</dt><dd>{{ profile.profilePhotoFileId ? 'On file' : 'Not uploaded' }}</dd>
           <dt>Current address</dt>
           <dd>{{ profile.currentAddress ? [profile.currentAddress.line1, profile.currentAddress.city].filter(Boolean).join(', ') : '—' }}</dd>
           <dt>Permanent address</dt>
@@ -481,11 +531,6 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
             <FormField v-model="profileForm.studentMobile" label="Mobile" type="text" data-testid="profile-studentMobile" placeholder="Mobile" grow />
             <FormField v-model="profileForm.studentEmail" label="Email" type="email" data-testid="profile-studentEmail" placeholder="Email" grow />
           </div>
-          <div class="form-field">
-            <label class="sr-only" for="profile-photo-input">Profile photo</label>
-            <input id="profile-photo-input" type="file" accept="image/*" data-testid="profile-photo-input" @change="onProfilePhotoChange" />
-          </div>
-
           <h3>Current address</h3>
           <div class="inline-form">
             <FormField v-model="currentAddressForm.line1" label="Line 1" type="text" data-testid="profile-currentAddress-line1" placeholder="Line 1" grow />
@@ -739,6 +784,48 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
 <style scoped>
 .student-profile {
   max-width: 900px;
+}
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.photo-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+.photo-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+}
+.photo-avatar:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.photo-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted, #64748b);
 }
 .error {
   color: var(--color-destructive);

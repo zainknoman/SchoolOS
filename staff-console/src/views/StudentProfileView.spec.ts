@@ -60,6 +60,13 @@ describe('StudentProfileView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
+    // jsdom has no object-URL implementation; the top-right photo avatar previews the
+    // chosen file locally before it finishes uploading.
+    vi.stubGlobal('URL', {
+      ...URL,
+      createObjectURL: vi.fn(() => 'blob:preview'),
+      revokeObjectURL: vi.fn(),
+    });
   });
 
   const activeEnrollment = {
@@ -116,6 +123,54 @@ describe('StudentProfileView', () => {
     await flushPromises();
 
     expect(wrapper.find('[role="alert"]').text()).toContain('Student not found');
+  });
+
+  it('shows an initials placeholder in the top-right photo avatar when no photo is on file', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile({ profilePhotoFileId: null }));
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    const trigger = wrapper.find('[data-testid="profile-photo-trigger"]');
+    expect(trigger.exists()).toBe(true);
+    expect(trigger.text()).toBe('ES');
+    expect(trigger.find('img').exists()).toBe(false);
+  });
+
+  it('uploads and saves a new photo chosen from the top-right avatar control', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile());
+    vi.mocked(api.uploadFile).mockResolvedValue({ id: 'f2' });
+    vi.mocked(api.updateStudentProfile).mockResolvedValue(baseProfile({ profilePhotoFileId: 'f2' }));
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    const fileInput = wrapper.find('[data-testid="profile-photo-input"]');
+    const file = new File(['data'], 'photo.png', { type: 'image/png' });
+    Object.defineProperty(fileInput.element, 'files', { value: [file] });
+    await fileInput.trigger('change');
+    await flushPromises();
+
+    expect(api.uploadFile).toHaveBeenCalledWith('token-1', file);
+    expect(api.updateStudentProfile).toHaveBeenCalledWith('token-1', 's1', { profilePhotoFileId: 'f2' });
+    expect(api.getStudentProfile).toHaveBeenCalledTimes(2);
+    expect(wrapper.find('[data-testid="profile-photo-trigger"] img').attributes('src')).toBe('blob:preview');
+  });
+
+  it('shows an error when the top-right photo upload fails', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile());
+    vi.mocked(api.uploadFile).mockRejectedValue(new Error('This file type is not allowed.'));
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    const fileInput = wrapper.find('[data-testid="profile-photo-input"]');
+    const file = new File(['data'], 'photo.exe', { type: 'application/octet-stream' });
+    Object.defineProperty(fileInput.element, 'files', { value: [file] });
+    await fileInput.trigger('change');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="profile-photo-error"]').text()).toContain('not allowed');
   });
 
   it('edits and saves profile fields', async () => {
