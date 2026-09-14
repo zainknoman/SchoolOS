@@ -47,6 +47,9 @@ vi.mock('../lib/api', () => ({
     updateStudentEmergencyContact: vi.fn(),
     deleteStudentEmergencyContact: vi.fn(),
     upsertStudentMedicalInfo: vi.fn(),
+    uploadFile: vi.fn(),
+    addStudentDocument: vi.fn(),
+    verifyStudentDocument: vi.fn(),
   },
 }));
 
@@ -300,6 +303,75 @@ describe('StudentProfileView', () => {
       bloodGroup: 'O_POS', allergies: 'None known', medicalConditions: undefined,
       specialEducationalNeeds: undefined, medicationNotes: undefined, emergencyMedicalNotes: undefined,
     });
+  });
+
+  const pendingDocument = {
+    id: 'd1', documentType: 'BIRTH_CERTIFICATE',
+    file: { id: 'f1', originalName: 'birth-cert.pdf', mimeType: 'application/pdf', sizeBytes: 1024 },
+    expiryDate: null, verificationStatus: 'PENDING' as const, verifiedById: null, verifiedAt: null,
+    notes: null, createdAt: '2026-09-14T00:00:00.000Z',
+  };
+
+  it('lists documents and uploads a new one', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile({ documents: [pendingDocument] }));
+    vi.mocked(api.uploadFile).mockResolvedValue({ id: 'f2' });
+    vi.mocked(api.addStudentDocument).mockResolvedValue({ ...pendingDocument, id: 'd2' });
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('birth-cert.pdf');
+
+    await wrapper.find('[data-testid="new-document-type"]').setValue('CNIC');
+    const fileInput = wrapper.find('[data-testid="new-document-file"]');
+    const file = new File(['data'], 'cnic.pdf', { type: 'application/pdf' });
+    Object.defineProperty(fileInput.element, 'files', { value: [file] });
+    await fileInput.trigger('change');
+    await wrapper.find('[data-testid="add-document-submit"]').trigger('click');
+    await flushPromises();
+
+    expect(api.uploadFile).toHaveBeenCalledWith('token-1', file);
+    expect(api.addStudentDocument).toHaveBeenCalledWith('token-1', 's1', {
+      documentType: 'CNIC', fileId: 'f2', expiryDate: undefined, notes: undefined,
+    });
+  });
+
+  it('verifies a pending document', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile({ documents: [pendingDocument] }));
+    vi.mocked(api.verifyStudentDocument).mockResolvedValue({ ...pendingDocument, verificationStatus: 'VERIFIED' });
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="verify-document-d1"]').trigger('click');
+    await flushPromises();
+
+    expect(api.verifyStudentDocument).toHaveBeenCalledWith('token-1', 's1', 'd1', true);
+  });
+
+  it('rejects a pending document', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile({ documents: [pendingDocument] }));
+    vi.mocked(api.verifyStudentDocument).mockResolvedValue({ ...pendingDocument, verificationStatus: 'REJECTED' });
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="reject-document-d1"]').trigger('click');
+    await flushPromises();
+
+    expect(api.verifyStudentDocument).toHaveBeenCalledWith('token-1', 's1', 'd1', false);
+  });
+
+  it('hides verify/reject actions for a document that is already decided', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile({
+      documents: [{ ...pendingDocument, verificationStatus: 'VERIFIED' }],
+    }));
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="verify-document-d1"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="reject-document-d1"]').exists()).toBe(false);
   });
 
 });

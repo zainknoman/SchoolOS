@@ -4,10 +4,11 @@ import { reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type AddressInput, type StudentProfileDetail } from '../lib/api';
-import { GENDER_OPTIONS, STUDENT_STATUS_OPTIONS, BLOOD_GROUP_OPTIONS } from '../lib/student-profile.constants';
+import { GENDER_OPTIONS, STUDENT_STATUS_OPTIONS, BLOOD_GROUP_OPTIONS, DOCUMENT_TYPE_OPTIONS } from '../lib/student-profile.constants';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import EntityTable from '../components/EntityTable.vue';
+import StatusPill from '../components/StatusPill.vue';
 import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
@@ -361,6 +362,62 @@ async function onSaveMedicalInfo() {
     isSavingMedicalInfo.value = false;
   }
 }
+
+// --- Documents section ---------------------------------------------------------------------
+const documentsErrorMessage = ref<string | null>(null);
+const isSavingDocument = ref(false);
+const newDocument = reactive({ documentType: '', expiryDate: '', notes: '' });
+const newDocumentFile = ref<File | null>(null);
+
+function onNewDocumentFileChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  newDocumentFile.value = input.files?.[0] ?? null;
+}
+
+function resetNewDocument() {
+  newDocument.documentType = '';
+  newDocument.expiryDate = '';
+  newDocument.notes = '';
+  newDocumentFile.value = null;
+}
+
+async function onAddDocument() {
+  if (!auth.accessToken || !newDocument.documentType || !newDocumentFile.value) return;
+  documentsErrorMessage.value = null;
+  isSavingDocument.value = true;
+  try {
+    const uploaded = await api.uploadFile(auth.accessToken, newDocumentFile.value);
+    await api.addStudentDocument(auth.accessToken, studentId, {
+      documentType: newDocument.documentType,
+      fileId: uploaded.id,
+      expiryDate: newDocument.expiryDate || undefined,
+      notes: newDocument.notes || undefined,
+    });
+    resetNewDocument();
+    await load();
+  } catch (err) {
+    documentsErrorMessage.value = err instanceof Error ? err.message : 'Could not add this document.';
+  } finally {
+    isSavingDocument.value = false;
+  }
+}
+
+function documentTone(status: string): 'success' | 'warning' | 'critical' {
+  if (status === 'VERIFIED') return 'success';
+  if (status === 'REJECTED') return 'critical';
+  return 'warning';
+}
+
+async function onVerifyDocument(documentId: string, verified: boolean) {
+  if (!auth.accessToken) return;
+  documentsErrorMessage.value = null;
+  try {
+    await api.verifyStudentDocument(auth.accessToken, studentId, documentId, verified);
+    await load();
+  } catch (err) {
+    documentsErrorMessage.value = err instanceof Error ? err.message : 'Could not update this document.';
+  }
+}
 </script>
 
 <template>
@@ -631,6 +688,49 @@ async function onSaveMedicalInfo() {
             <Button variant="secondary" data-testid="medical-cancel" @click="cancelEditMedicalInfo">Cancel</Button>
           </div>
         </div>
+      </section>
+
+      <section class="profile-section">
+        <h2>Documents</h2>
+        <p v-if="documentsErrorMessage" class="error" role="alert">{{ documentsErrorMessage }}</p>
+
+        <p v-if="!profile.documents.length">No documents on file.</p>
+        <EntityTable
+          v-else
+          :items="profile.documents"
+          :columns="[
+            { key: 'documentType', label: 'Type' },
+            { key: 'file', label: 'File' },
+            { key: 'verificationStatus', label: 'Status' },
+            { key: 'expiryDate', label: 'Expiry' },
+          ]"
+          row-key="id"
+          :editing-id="null"
+        >
+          <template #cell-file="{ item }">{{ item.file.originalName }}</template>
+          <template #cell-verificationStatus="{ item }">
+            <StatusPill :tone="documentTone(item.verificationStatus)" :label="item.verificationStatus" />
+          </template>
+          <template #cell-expiryDate="{ item }">{{ item.expiryDate ? item.expiryDate.slice(0, 10) : '—' }}</template>
+          <template #actions="{ item }">
+            <template v-if="item.verificationStatus === 'PENDING'">
+              <Button :data-testid="`verify-document-${item.id}`" @click="onVerifyDocument(item.id, true)">Verify</Button>
+              <Button variant="secondary" :data-testid="`reject-document-${item.id}`" @click="onVerifyDocument(item.id, false)">Reject</Button>
+            </template>
+          </template>
+        </EntityTable>
+
+        <h3>Add document</h3>
+        <div class="inline-form">
+          <FormField v-model="newDocument.documentType" label="Document type" type="select" data-testid="new-document-type" placeholder="Document type" :options="DOCUMENT_TYPE_OPTIONS" />
+          <FormField v-model="newDocument.expiryDate" label="Expiry date" type="date" data-testid="new-document-expiryDate" />
+        </div>
+        <div class="form-field">
+          <label class="sr-only" for="new-document-file-input">File</label>
+          <input id="new-document-file-input" type="file" data-testid="new-document-file" @change="onNewDocumentFileChange" />
+        </div>
+        <FormField v-model="newDocument.notes" label="Notes" type="textarea" data-testid="new-document-notes" placeholder="Notes" />
+        <Button data-testid="add-document-submit" :disabled="isSavingDocument" @click="onAddDocument">Add Document</Button>
       </section>
     </div>
   </div>
