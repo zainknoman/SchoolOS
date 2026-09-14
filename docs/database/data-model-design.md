@@ -307,9 +307,15 @@ optional so a document/address can be added later without blocking record creati
 - `Staff.userId` is **optional**, unlike `Teacher.userId` (required). Most non-teaching roles
   (guard, janitorial, helper) have no reason to log into the staff console; a `Staff` row only
   gets a `User`/login when the role needs one. `Teacher`'s own `userId` stays required exactly as
-  it is today — a `TEACHER`-type hire always gets both a `User` (required by `Teacher`) and,
-  independently, may or may not need `Staff.userId` populated (it's set to the same `User.id` so
-  the two records agree on identity).
+  it is today — a `TEACHER`-type hire always gets both a `User` (required by `Teacher`) and
+  `Staff.userId` set to that same `User.id` so the two records agree on identity.
+  **Scope cut for this sub-project:** the `User.role` enum has no value for a non-teaching
+  employee type today (`OFFICE_STAFF`/`JANITORIAL`/`HELPER`/`GUARD` aren't valid `Role`s, and no
+  permission model exists for them), so the Hiring approve flow in this plan only ever creates a
+  `User` for `employeeType: TEACHER`. Every other `employeeType` gets `Staff.userId: null` — no
+  login, by design, not by oversight. Giving non-teaching staff console logins is a real future
+  need but a separate, unscoped decision (new `Role` values + what they're allowed to do) that
+  this sub-project deliberately does not make.
 - Past experience (the brief's explicit ask) is modeled as `StaffExperience`, available to any
   `employeeType` — a janitor or guard can have prior-employer history just as easily as a teacher.
 - The Hiring module is a real pipeline (`HiringCandidate` → `HiringApplication`, staged
