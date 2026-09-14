@@ -1403,6 +1403,51 @@ own implementer + task review, plus this manual verification task.
   redeclaring them structurally-identical copies (same one-source-of-truth treatment already given
   to `IconName`).
 
+## Teacher Subject/Class Assignment Scoping + List-Endpoint Tenant Leak (2026-09-14) ✅ DONE (core), ⏳ follow-up tracked
+
+- [x] **Reported bug:** a teacher opening Attendance/Diary/Complaints/Report Cards/Marks Entry could
+      see sections from every campus and school, and — deeper than the picker — could access data
+      for any class in her own campus, not just the ones she's assigned to teach (e.g. a teacher of
+      Class 2-5 could reach Class 6-8 data as long as it was the same campus).
+- [x] **Root cause 1 — `StudentAccessService` (built in Sprint L) only ever checked campus, never
+      subject/class assignment.** Sprint L closed the cross-campus gap but a `TEACHER` role match
+      there was campus-only; nothing checked whether the teacher actually teaches the specific
+      section. Fixed by adding `AccessScope.sectionIds` (resolved per student/section/class) and a
+      new `StudentAccessService.getTeacherSectionIds(teacherId)` — the union of `Timetable`-assigned
+      sections and homeroom (`Section.classTeacherId`) sections — checked in
+      `assertCanAccessScope`'s `TEACHER` branch alongside the existing campus check. This is the
+      shared gate behind Attendance/Diary/Complaints/Report Cards/Grades/Timetable, so all of them
+      picked up the fix at once.
+- [x] **Root cause 2 — reversed Sprint L's explicit non-goal on `GET /sections`.** That call was
+      "section names alone aren't sensitive" at the time; in practice it's what populates every
+      class/section picker above, so an unfiltered list actively misleads a teacher about what she
+      can open. `SectionsService.listAll()` and `ClassService.list()` now take `actingUser` and scope
+      like `CampusService.list()` already did: `SUPER_ADMIN` unrestricted, `SCHOOL_ADMIN`/`ACCOUNTS`
+      scoped to their own school, `TEACHER` scoped to `getTeacherSectionIds()`. Found and fixed the
+      same unscoped pattern in `StudentController`/`StudentService.list()` (`SCHOOL_ADMIN` was seeing
+      every school's students, not just their own) while in this area.
+  - Plan: none written — small enough to execute directly via `superpowers:systematic-debugging` +
+    `superpowers:test-driven-development`, no separate spec doc.
+  - Verified: backend unit **447/447** (up from 437), backend e2e **139/139**, `tsc --noEmit` clean,
+    `nest build` clean. Three pre-existing e2e fixtures (`gradebook`, `diary-circulars`,
+    `holidays-complaints-report-cards`) needed their `TEACHER` fixtures updated to actually assign
+    the teacher (via `Timetable` or `classTeacherId`) to the section under test — they'd relied on
+    campus-only scoping being sufficient, which is exactly the gap this closed.
+- [ ] **Follow-up, explicitly deferred (user chose "core fix now, rest tracked" over fixing all of it
+      in one pass):** a broader audit of the same missing-scoping pattern found ~15 more endpoints,
+      not yet fixed:
+  - Unscoped list endpoints (return every row regardless of caller's school): `GET
+    /admin/teachers`, `/teachers`, `/admin/parents`, `/admin/staff` (has `campusId`, never used to
+    filter), `/fee-structures`, `/leave-requests`, `/admin/dashboard-summary`,
+    `/attendance-risk` (SCHOOL_ADMIN branch — the TEACHER branch is already correctly scoped),
+    `/academic-sessions`, `/subjects` (lower priority — `Subject`/`AcademicSession` have no
+    `schoolId` in the schema at all, a schema-level gap not just a missing filter).
+  - IDOR-style (filters only on a caller-supplied id, never validated against the caller's own
+    school): `/hiring/applications`, `/applications` (admissions), `/holidays`, `/terms` (no
+    `@Roles` at all — any authenticated user), `/assessments`, `/assessment-categories`.
+  - Next step when picked up: same pattern as this fix — scope via `actingUser`, `CampusService.list()`
+    as the reference, TDD per endpoint.
+
 ## Deferred (explicitly out of this build's scope)
 
 - [ ] Parent **web** portal (Phase 2 — same backend, zero rework, just not built alongside mobile)

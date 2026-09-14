@@ -10,6 +10,10 @@ export interface RequestUser {
 interface AccessScope {
   campusId: string;
   schoolId: string;
+  // Sections this resource belongs to. For TEACHER, access additionally requires the teacher to
+  // be assigned (via Timetable or as classTeacher) to at least one of these — campus match alone
+  // is not enough, since a campus can have many classes a given teacher doesn't teach.
+  sectionIds: string[];
 }
 
 /**
@@ -100,6 +104,11 @@ export class StudentAccessService {
         if (!teacher || teacher.campusId !== scope.campusId) {
           throw new ForbiddenException('You do not have access to this resource');
         }
+        const assignedSectionIds = await this.getTeacherSectionIds(teacher.id);
+        const isAssigned = scope.sectionIds.some((id) => assignedSectionIds.has(id));
+        if (!isAssigned) {
+          throw new ForbiddenException('You do not have access to this resource');
+        }
         return;
       }
       default:
@@ -121,7 +130,11 @@ export class StudentAccessService {
       where: { id: enrollment.campusId },
       select: { schoolId: true },
     });
-    return { campusId: enrollment.campusId, schoolId: campus.schoolId };
+    return {
+      campusId: enrollment.campusId,
+      schoolId: campus.schoolId,
+      sectionIds: [enrollment.sectionId],
+    };
   }
 
   private async resolveSectionScope(sectionId: string): Promise<AccessScope | null> {
@@ -130,15 +143,44 @@ export class StudentAccessService {
       include: { class: { include: { campus: { select: { schoolId: true } } } } },
     });
     return section
-      ? { campusId: section.class.campusId, schoolId: section.class.campus.schoolId }
+      ? {
+          campusId: section.class.campusId,
+          schoolId: section.class.campus.schoolId,
+          sectionIds: [sectionId],
+        }
       : null;
   }
 
   private async resolveClassScope(classId: string): Promise<AccessScope | null> {
     const klass = await this.prisma.class.findUnique({
       where: { id: classId },
-      include: { campus: { select: { schoolId: true } } },
+      include: {
+        campus: { select: { schoolId: true } },
+        sections: { select: { id: true } },
+      },
     });
-    return klass ? { campusId: klass.campusId, schoolId: klass.campus.schoolId } : null;
+    return klass
+      ? {
+          campusId: klass.campusId,
+          schoolId: klass.campus.schoolId,
+          sectionIds: klass.sections.map((s) => s.id),
+        }
+      : null;
+  }
+
+  /**
+   * Sections a teacher is assigned to: taught via the timetable, or homeroom ("class teacher")
+   * of — the same union used to decide list-endpoint visibility (SectionsService, ClassService)
+   * so a teacher never sees more in a picker than she'd be allowed to actually open.
+   */
+  async getTeacherSectionIds(teacherId: string): Promise<Set<string>> {
+    const [timetableRows, homeroomSections] = await Promise.all([
+      this.prisma.timetable.findMany({ where: { teacherId }, select: { sectionId: true } }),
+      this.prisma.section.findMany({ where: { classTeacherId: teacherId }, select: { id: true } }),
+    ]);
+    return new Set([
+      ...timetableRows.map((r) => r.sectionId),
+      ...homeroomSections.map((s) => s.id),
+    ]);
   }
 }

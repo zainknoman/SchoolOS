@@ -94,8 +94,15 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         role: 'TEACHER',
       },
     });
-    await prisma.teacher.create({
+    const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'HCR Teacher', campusId: campus.id },
+    });
+    // hcr-teacher must actually be assigned to section HCR-A (as its homeroom/class teacher) for
+    // the new subject/class assignment check (StudentAccessService) to allow them past
+    // campus-only scoping.
+    await prisma.section.update({
+      where: { id: section.id },
+      data: { classTeacherId: teacher.id },
     });
     const campusB = await prisma.campus.create({
       data: { schoolId: school.id, name: 'HCR Campus B' },

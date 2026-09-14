@@ -11,8 +11,9 @@ describe('StudentAccessService', () => {
     user: { findUnique: jest.Mock };
     teacher: { findUnique: jest.Mock };
     campus: { findUniqueOrThrow: jest.Mock };
-    section: { findUnique: jest.Mock };
+    section: { findUnique: jest.Mock; findMany: jest.Mock };
     class: { findUnique: jest.Mock };
+    timetable: { findMany: jest.Mock };
   };
   let enrollmentService: { getCurrentEnrollment: jest.Mock };
 
@@ -22,8 +23,9 @@ describe('StudentAccessService', () => {
       user: { findUnique: jest.fn() },
       teacher: { findUnique: jest.fn() },
       campus: { findUniqueOrThrow: jest.fn() },
-      section: { findUnique: jest.fn() },
+      section: { findUnique: jest.fn(), findMany: jest.fn() },
       class: { findUnique: jest.fn() },
+      timetable: { findMany: jest.fn() },
     };
     enrollmentService = { getCurrentEnrollment: jest.fn() };
     const moduleRef = await Test.createTestingModule({
@@ -81,24 +83,51 @@ describe('StudentAccessService', () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it('allows a TEACHER to access a student in their own campus', async () => {
-    enrollmentService.getCurrentEnrollment.mockResolvedValue({ campusId: 'campus-1' });
+  it('allows a TEACHER assigned (via timetable) to teach the student\'s section', async () => {
+    enrollmentService.getCurrentEnrollment.mockResolvedValue({ campusId: 'campus-1', sectionId: 'section-9' });
     prisma.campus.findUniqueOrThrow.mockResolvedValue({ schoolId: 'school-1' });
-    prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-1', campusId: 'campus-1' });
+    prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-row-1', userId: 'teacher-1', campusId: 'campus-1' });
+    prisma.timetable.findMany.mockResolvedValue([{ sectionId: 'section-9' }]);
+    prisma.section.findMany.mockResolvedValue([]);
 
     await expect(
       service.assertCanAccessStudent({ id: 'teacher-1', role: 'TEACHER' }, 'student-1'),
     ).resolves.toBeUndefined();
   });
 
-  it('denies a TEACHER access to a student in a different campus — the core new guarantee', async () => {
-    enrollmentService.getCurrentEnrollment.mockResolvedValue({ campusId: 'campus-2' });
+  it('allows a TEACHER who is the homeroom class teacher of the student\'s section, with no timetable row', async () => {
+    enrollmentService.getCurrentEnrollment.mockResolvedValue({ campusId: 'campus-1', sectionId: 'section-9' });
+    prisma.campus.findUniqueOrThrow.mockResolvedValue({ schoolId: 'school-1' });
+    prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-row-1', userId: 'teacher-1', campusId: 'campus-1' });
+    prisma.timetable.findMany.mockResolvedValue([]);
+    prisma.section.findMany.mockResolvedValue([{ id: 'section-9' }]);
+
+    await expect(
+      service.assertCanAccessStudent({ id: 'teacher-1', role: 'TEACHER' }, 'student-1'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('denies a TEACHER in the right campus but NOT assigned to teach the student\'s section — the core new guarantee', async () => {
+    enrollmentService.getCurrentEnrollment.mockResolvedValue({ campusId: 'campus-1', sectionId: 'section-9' });
+    prisma.campus.findUniqueOrThrow.mockResolvedValue({ schoolId: 'school-1' });
+    prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-row-1', userId: 'teacher-1', campusId: 'campus-1' });
+    prisma.timetable.findMany.mockResolvedValue([{ sectionId: 'section-4' }]);
+    prisma.section.findMany.mockResolvedValue([]);
+
+    await expect(
+      service.assertCanAccessStudent({ id: 'teacher-1', role: 'TEACHER' }, 'student-1'),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('denies a TEACHER access to a student in a different campus', async () => {
+    enrollmentService.getCurrentEnrollment.mockResolvedValue({ campusId: 'campus-2', sectionId: 'section-9' });
     prisma.campus.findUniqueOrThrow.mockResolvedValue({ schoolId: 'school-1' });
     prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-1', campusId: 'campus-1' });
 
     await expect(
       service.assertCanAccessStudent({ id: 'teacher-1', role: 'TEACHER' }, 'student-1'),
     ).rejects.toThrow(ForbiddenException);
+    expect(prisma.timetable.findMany).not.toHaveBeenCalled();
   });
 
   it('allows a PARENT linked to the student', async () => {
@@ -151,11 +180,13 @@ describe('StudentAccessService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('allows a TEACHER to access a section in their own campus, denies a different campus', async () => {
+    it('allows a TEACHER assigned to teach that section, denies a different campus', async () => {
       prisma.section.findUnique.mockResolvedValue({
         class: { campusId: 'campus-1', campus: { schoolId: 'school-1' } },
       });
-      prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-1', campusId: 'campus-1' });
+      prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-row-1', userId: 'teacher-1', campusId: 'campus-1' });
+      prisma.timetable.findMany.mockResolvedValue([{ sectionId: 'section-1' }]);
+      prisma.section.findMany.mockResolvedValue([]);
 
       await expect(
         service.assertCanAccessSection({ id: 'teacher-1', role: 'TEACHER' }, 'section-1'),
@@ -164,6 +195,19 @@ describe('StudentAccessService', () => {
       prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-2', campusId: 'campus-2' });
       await expect(
         service.assertCanAccessSection({ id: 'teacher-2', role: 'TEACHER' }, 'section-1'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('denies a TEACHER in the right campus but not assigned to teach that section', async () => {
+      prisma.section.findUnique.mockResolvedValue({
+        class: { campusId: 'campus-1', campus: { schoolId: 'school-1' } },
+      });
+      prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-row-1', userId: 'teacher-1', campusId: 'campus-1' });
+      prisma.timetable.findMany.mockResolvedValue([{ sectionId: 'some-other-section' }]);
+      prisma.section.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.assertCanAccessSection({ id: 'teacher-1', role: 'TEACHER' }, 'section-1'),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -184,12 +228,15 @@ describe('StudentAccessService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('allows a TEACHER to access a class in their own campus, denies a different campus', async () => {
+    it('allows a TEACHER assigned to teach at least one section of that class, denies a different campus', async () => {
       prisma.class.findUnique.mockResolvedValue({
         campusId: 'campus-1',
         campus: { schoolId: 'school-1' },
+        sections: [{ id: 'section-1' }, { id: 'section-2' }],
       });
-      prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-1', campusId: 'campus-1' });
+      prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-row-1', userId: 'teacher-1', campusId: 'campus-1' });
+      prisma.timetable.findMany.mockResolvedValue([{ sectionId: 'section-2' }]);
+      prisma.section.findMany.mockResolvedValue([]);
 
       await expect(
         service.assertCanAccessClass({ id: 'teacher-1', role: 'TEACHER' }, 'class-1'),
@@ -201,10 +248,26 @@ describe('StudentAccessService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
+    it('denies a TEACHER in the right campus but not assigned to teach any section of that class', async () => {
+      prisma.class.findUnique.mockResolvedValue({
+        campusId: 'campus-1',
+        campus: { schoolId: 'school-1' },
+        sections: [{ id: 'section-1' }, { id: 'section-2' }],
+      });
+      prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-row-1', userId: 'teacher-1', campusId: 'campus-1' });
+      prisma.timetable.findMany.mockResolvedValue([{ sectionId: 'some-other-section' }]);
+      prisma.section.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.assertCanAccessClass({ id: 'teacher-1', role: 'TEACHER' }, 'class-1'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
     it('allows a SCHOOL_ADMIN in the same school, denies a different school', async () => {
       prisma.class.findUnique.mockResolvedValue({
         campusId: 'campus-1',
         campus: { schoolId: 'school-1' },
+        sections: [],
       });
       prisma.user.findUnique.mockResolvedValue({ schoolId: 'school-1' });
 

@@ -45,6 +45,11 @@ describe('Gradebook (e2e)', () => {
       where: { name: 'GB E2E School' },
     });
     for (const s of stale) {
+      // Timetable->Section is onDelete: Restrict, so a leftover row from a previously-failed run
+      // would otherwise block this cascade delete.
+      await prisma.timetable
+        .deleteMany({ where: { section: { class: { campus: { schoolId: s.id } } } } })
+        .catch(() => undefined);
       await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
     }
     const staleSubject = await prisma.subject.findUnique({ where: { name: 'GB Math' } });
@@ -92,7 +97,7 @@ describe('Gradebook (e2e)', () => {
     const teacherUser = await prisma.user.create({
       data: { identifier: 'gb-teacher', passwordHash, role: 'TEACHER' },
     });
-    await prisma.teacher.create({
+    const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'GB Teacher', campusId: campus.id },
     });
     await prisma.user.create({
@@ -129,6 +134,20 @@ describe('Gradebook (e2e)', () => {
     ids.subject = subject.id;
     ids.student = student.id;
 
+    // gb-teacher must actually be assigned to teach GB-A/GB Math for the new subject/class
+    // assignment check (StudentAccessService) to allow them past campus-only scoping.
+    await prisma.timetable.create({
+      data: {
+        sectionId: section.id,
+        subjectId: subject.id,
+        teacherId: teacher.id,
+        dayOfWeek: 1,
+        period: 1,
+        startTime: '08:00',
+        endTime: '08:40',
+      },
+    });
+
     // Task 7: a parent linked to the student, and an unrelated parent/student pair for the
     // cross-tenant denial case.
     const parentUser = await prisma.user.create({
@@ -153,6 +172,9 @@ describe('Gradebook (e2e)', () => {
   });
 
   afterAll(async () => {
+    // Timetable->Section is onDelete: Restrict, so this must go before the school/campus/class
+    // cascade below or that cascade fails on the FK constraint.
+    await prisma.timetable.deleteMany({ where: { sectionId: ids.section } }).catch(() => undefined);
     await prisma.mark
       .deleteMany({ where: { studentId: { in: [ids.student, ids.otherStudent] } } })
       .catch(() => undefined);

@@ -22,8 +22,8 @@ export class ClassController {
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
   @Get('classes')
-  list() {
-    return this.classService.list();
+  list(@Req() req: AuthenticatedRequest) {
+    return this.classService.list(req.user);
   }
 
   @Patch('classes/:id')

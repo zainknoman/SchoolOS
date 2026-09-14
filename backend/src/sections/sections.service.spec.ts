@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { SectionsService } from './sections.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { StudentAccessService } from '../common/student-access.service';
 
 describe('SectionsService', () => {
   let service: SectionsService;
@@ -16,7 +17,10 @@ describe('SectionsService', () => {
     };
     enrollment: { findMany: jest.Mock };
     auditLog: { create: jest.Mock };
+    user: { findUnique: jest.Mock };
+    teacher: { findUnique: jest.Mock };
   };
+  let studentAccess: { getTeacherSectionIds: jest.Mock };
 
   const fullRecord = {
     id: 'sec1',
@@ -46,20 +50,29 @@ describe('SectionsService', () => {
       },
       enrollment: { findMany: jest.fn() },
       auditLog: { create: jest.fn() },
+      user: { findUnique: jest.fn() },
+      teacher: { findUnique: jest.fn() },
     };
+    studentAccess = { getTeacherSectionIds: jest.fn() };
     const moduleRef = await Test.createTestingModule({
       providers: [
         SectionsService,
         { provide: PrismaService, useValue: prisma },
+        { provide: StudentAccessService, useValue: studentAccess },
       ],
     }).compile();
     service = moduleRef.get(SectionsService);
   });
 
-  it('lists all sections including their class teacher', async () => {
+  it('lists every section for a SUPER_ADMIN including their class teacher', async () => {
     prisma.section.findMany.mockResolvedValue([fullRecord]);
 
-    expect(await service.listAll()).toEqual([expectedSummary]);
+    const result = await service.listAll({ id: 'super-1', role: 'SUPER_ADMIN' });
+
+    expect(result).toEqual([expectedSummary]);
+    expect(prisma.section.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: undefined }),
+    );
   });
 
   it('lists all sections when a section has no class teacher assigned', async () => {
@@ -67,9 +80,53 @@ describe('SectionsService', () => {
       { ...fullRecord, classTeacherId: null, classTeacher: null },
     ]);
 
-    const [result] = await service.listAll();
+    const [result] = await service.listAll({ id: 'super-1', role: 'SUPER_ADMIN' });
     expect(result.classTeacherId).toBeNull();
     expect(result.classTeacherName).toBeNull();
+  });
+
+  it("scopes a SCHOOL_ADMIN/ACCOUNTS's section list to their own school", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 's1' });
+    prisma.section.findMany.mockResolvedValue([fullRecord]);
+
+    const result = await service.listAll({ id: 'admin-1', role: 'ACCOUNTS' });
+
+    expect(result).toEqual([expectedSummary]);
+    expect(prisma.section.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { class: { campus: { schoolId: 's1' } } } }),
+    );
+  });
+
+  it('fails closed (returns an empty list) for a non-SUPER_ADMIN caller with no schoolId', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+
+    const result = await service.listAll({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(result).toEqual([]);
+    expect(prisma.section.findMany).not.toHaveBeenCalled();
+  });
+
+  it("scopes a TEACHER's section list to sections they're assigned to teach", async () => {
+    prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-row-1' });
+    studentAccess.getTeacherSectionIds.mockResolvedValue(new Set(['sec1', 'sec9']));
+    prisma.section.findMany.mockResolvedValue([fullRecord]);
+
+    const result = await service.listAll({ id: 'teacher-1', role: 'TEACHER' });
+
+    expect(result).toEqual([expectedSummary]);
+    expect(studentAccess.getTeacherSectionIds).toHaveBeenCalledWith('teacher-row-1');
+    expect(prisma.section.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: { in: ['sec1', 'sec9'] } } }),
+    );
+  });
+
+  it('fails closed (returns an empty list) for a TEACHER with no Teacher profile', async () => {
+    prisma.teacher.findUnique.mockResolvedValue(null);
+
+    const result = await service.listAll({ id: 'ghost-1', role: 'TEACHER' });
+
+    expect(result).toEqual([]);
+    expect(prisma.section.findMany).not.toHaveBeenCalled();
   });
 
   it('creates a section under a class, optionally with a class teacher, and audit-logs it', async () => {

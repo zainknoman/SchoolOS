@@ -86,6 +86,13 @@ describe('Diary + Circulars (e2e)', () => {
     const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'DC Teacher', campusId: campus.id },
     });
+    // dc-teacher must actually be assigned to section DC-A (as its homeroom/class teacher) for
+    // the new subject/class assignment check (StudentAccessService) to allow them past
+    // campus-only scoping.
+    await prisma.section.update({
+      where: { id: sectionA.id },
+      data: { classTeacherId: teacher.id },
+    });
     const campusB = await prisma.campus.create({
       data: { schoolId: school.id, name: 'DC Campus B' },
     });

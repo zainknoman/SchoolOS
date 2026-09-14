@@ -21,8 +21,8 @@ export class StudentController {
   }
 
   @Get()
-  list() {
-    return this.studentService.list();
+  list(@Req() req: AuthenticatedRequest) {
+    return this.studentService.list(req.user);
   }
 
   @Patch(':id')

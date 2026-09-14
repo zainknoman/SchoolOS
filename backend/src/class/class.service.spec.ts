@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ClassService } from './class.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { StudentAccessService } from '../common/student-access.service';
 
 describe('ClassService', () => {
   let service: ClassService;
@@ -14,8 +15,11 @@ describe('ClassService', () => {
       update: jest.Mock;
       delete: jest.Mock;
     };
+    user: { findUnique: jest.Mock };
+    teacher: { findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
   };
+  let studentAccess: { getTeacherSectionIds: jest.Mock };
 
   const withParents = {
     campus: { select: { name: true } },
@@ -47,10 +51,17 @@ describe('ClassService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      user: { findUnique: jest.fn() },
+      teacher: { findUnique: jest.fn() },
       auditLog: { create: jest.fn() },
     };
+    studentAccess = { getTeacherSectionIds: jest.fn() };
     const moduleRef = await Test.createTestingModule({
-      providers: [ClassService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        ClassService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: StudentAccessService, useValue: studentAccess },
+      ],
     }).compile();
     service = moduleRef.get(ClassService);
   });
@@ -88,10 +99,62 @@ describe('ClassService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('lists classes with their campus + academic session names', async () => {
+  it('lists every class for a SUPER_ADMIN without a schoolId lookup', async () => {
     prisma.class.findMany.mockResolvedValue([fullRecord]);
 
-    expect(await service.list()).toEqual([expectedSummary]);
+    const result = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
+
+    expect(result).toEqual([expectedSummary]);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(prisma.class.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: undefined }),
+    );
+  });
+
+  it("scopes a SCHOOL_ADMIN/ACCOUNTS's class list to their own school", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 's1' });
+    prisma.class.findMany.mockResolvedValue([fullRecord]);
+
+    const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(result).toEqual([expectedSummary]);
+    expect(prisma.class.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { campus: { schoolId: 's1' } } }),
+    );
+  });
+
+  it('fails closed (returns an empty list) for a non-SUPER_ADMIN caller with no schoolId', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+
+    const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(result).toEqual([]);
+    expect(prisma.class.findMany).not.toHaveBeenCalled();
+  });
+
+  it("scopes a TEACHER's class list to classes with at least one section they're assigned to teach", async () => {
+    prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-row-1' });
+    studentAccess.getTeacherSectionIds.mockResolvedValue(new Set(['sec-2', 'sec-3']));
+    prisma.class.findMany.mockResolvedValue([fullRecord]);
+
+    const result = await service.list({ id: 'teacher-1', role: 'TEACHER' });
+
+    expect(result).toEqual([expectedSummary]);
+    expect(studentAccess.getTeacherSectionIds).toHaveBeenCalledWith('teacher-row-1');
+    expect(prisma.class.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { sections: { some: { id: { in: ['sec-2', 'sec-3'] } } } },
+      }),
+    );
+  });
+
+  it('fails closed (returns an empty list) for a TEACHER with no Teacher profile', async () => {
+    prisma.teacher.findUnique.mockResolvedValue(null);
+
+    const result = await service.list({ id: 'ghost-1', role: 'TEACHER' });
+
+    expect(result).toEqual([]);
+    expect(prisma.class.findMany).not.toHaveBeenCalled();
   });
 
   it('updates only the name (campusId/academicSessionId are not editable)', async () => {

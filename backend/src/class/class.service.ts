@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertValidReferences } from '../common/prisma-create-guard';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
+import { StudentAccessService, type RequestUser } from '../common/student-access.service';
 
 export interface ClassSummary {
   id: string;
@@ -21,7 +23,10 @@ const WITH_PARENTS = {
 
 @Injectable()
 export class ClassService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly studentAccess: StudentAccessService,
+  ) {}
 
   private toSummary(record: {
     id: string;
@@ -72,8 +77,28 @@ export class ClassService {
     return this.toSummary(record);
   }
 
-  async list(): Promise<ClassSummary[]> {
+  // Scoped the same way CampusService.list() scopes campuses: SUPER_ADMIN sees everything,
+  // SCHOOL_ADMIN/ACCOUNTS see only their own school's classes, and TEACHER sees only classes
+  // with at least one section they're actually assigned to teach (via StudentAccessService's
+  // shared Timetable/classTeacher resolution) — not every class in their campus.
+  async list(actingUser: RequestUser): Promise<ClassSummary[]> {
+    let where: Prisma.ClassWhereInput | undefined;
+    if (actingUser.role === 'TEACHER') {
+      const teacher = await this.prisma.teacher.findUnique({ where: { userId: actingUser.id } });
+      if (!teacher) {
+        return [];
+      }
+      const sectionIds = await this.studentAccess.getTeacherSectionIds(teacher.id);
+      where = { sections: { some: { id: { in: [...sectionIds] } } } };
+    } else if (actingUser.role !== 'SUPER_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId) {
+        return [];
+      }
+      where = { campus: { schoolId: admin.schoolId } };
+    }
     const records = await this.prisma.class.findMany({
+      where,
       include: WITH_PARENTS,
       orderBy: { name: 'asc' },
     });

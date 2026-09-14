@@ -26,6 +26,7 @@ describe('StudentService', () => {
       update: jest.Mock;
       delete: jest.Mock;
     };
+    user: { findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
@@ -52,6 +53,7 @@ describe('StudentService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      user: { findUnique: jest.fn() },
       auditLog: { create: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(tx)),
     };
@@ -222,7 +224,7 @@ describe('StudentService', () => {
     expect(tx.studentParent.create).not.toHaveBeenCalled();
   });
 
-  it('lists students with their current section chain and linked parent names', async () => {
+  it('lists students with their current section chain and linked parent names for a SUPER_ADMIN', async () => {
     prisma.student.findMany.mockResolvedValue([
       {
         id: 's1', grNumber: 'GR-1001', name: 'Eshaal Sample',
@@ -231,13 +233,17 @@ describe('StudentService', () => {
       },
     ]);
 
-    expect(await service.list()).toEqual([
+    const result = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
+
+    expect(result).toEqual([
       {
         id: 's1', grNumber: 'GR-1001', name: 'Eshaal Sample',
         sectionName: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar',
         parentNames: ['Parent A', 'Parent B'],
       },
     ]);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(prisma.student.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: undefined }));
   });
 
   it('lists a student with no active enrollment using null section fields', async () => {
@@ -245,9 +251,31 @@ describe('StudentService', () => {
       { id: 's2', grNumber: 'GR-1002', name: 'No Section', enrollments: [], parents: [] },
     ]);
 
-    const [result] = await service.list();
+    const [result] = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
     expect(result.sectionName).toBeNull();
     expect(result.parentNames).toEqual([]);
+  });
+
+  it("scopes a SCHOOL_ADMIN's student list to students with an enrollment in their own school", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 's1' });
+    prisma.student.findMany.mockResolvedValue([]);
+
+    await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(prisma.student.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { enrollments: { some: { section: { class: { campus: { schoolId: 's1' } } } } } },
+      }),
+    );
+  });
+
+  it('fails closed (returns an empty list) for a SCHOOL_ADMIN with no schoolId', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+
+    const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(result).toEqual([]);
+    expect(prisma.student.findMany).not.toHaveBeenCalled();
   });
 
   it('updates only name/grNumber (no enrollment/parent changes)', async () => {

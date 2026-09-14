@@ -1,10 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { createStudentWithEnrollment } from './create-student-with-enrollment';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
+import type { RequestUser } from '../common/student-access.service';
 
 export interface StudentAdminSummary {
   id: string;
@@ -100,8 +102,21 @@ export class StudentService {
     return this.toSummary(created);
   }
 
-  async list(): Promise<StudentAdminSummary[]> {
+  // Scoped like CampusService.list(): SUPER_ADMIN sees every student, SCHOOL_ADMIN/ACCOUNTS see
+  // only students with an enrollment in their own school. Filters on ANY enrollment (not just the
+  // active one used for display) so a withdrawn/graduated student stays visible to the school that
+  // actually enrolled them, instead of disappearing from the roster once they leave.
+  async list(actingUser: RequestUser): Promise<StudentAdminSummary[]> {
+    let where: Prisma.StudentWhereInput | undefined;
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId) {
+        return [];
+      }
+      where = { enrollments: { some: { section: { class: { campus: { schoolId: admin.schoolId } } } } } };
+    }
     const records = await this.prisma.student.findMany({
+      where,
       include: WITH_SECTION_AND_PARENTS,
       orderBy: { name: 'asc' },
     });

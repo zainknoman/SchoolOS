@@ -19,8 +19,8 @@ export class SectionsController {
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
   @Get()
-  listAll() {
-    return this.sectionsService.listAll();
+  listAll(@Req() req: AuthenticatedRequest) {
+    return this.sectionsService.listAll(req.user);
   }
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
