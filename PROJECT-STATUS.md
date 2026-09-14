@@ -1241,11 +1241,25 @@ same as this sub-project's own plan scoped it.
   UncheckedCreateInput>` data type rejects. Invisible to `npm test` (ts-jest's `isolatedModules: true`
   plus a fully-mocked `PrismaService` never exercises the real Prisma types — same blind spot
   documented for Sprint 9-10's `StubPaymentGatewayAdapter` arity bug), so both task reviews passed
-  clean; only surfaced when this task ran the actual `npm run build`. Fixed (commit `0002c5e`) by
-  converting every optional-relation conditional to a direct `address:` key with an explicit ternary,
-  casting the two create-call `data` literals to their `UncheckedCreateInput` type where Prisma's own
-  XOR-union type-generation gap needed it — no runtime/JS-shape change, re-verified against
-  `schema.prisma` field-by-field.
+  clean; only surfaced when this task ran the actual `npm run build`. That first fix (commit `0002c5e`)
+  converted the conditional to a direct `address:` key but then cast the two create-call `data`
+  literals `as Prisma.<Model>UncheckedCreateInput` to silence the remaining `tsc` error — a whole-branch
+  review (2026-09-14) found this cast didn't fix the shape, it hid it: the corrected literal still mixed
+  a scalar FK (`studentId`) with a nested relation `create` for a *different* relation on the same
+  model, a combination neither Prisma's Checked nor Unchecked input type accepts, and a direct probe
+  against the real generated Prisma client confirmed it throws `PrismaClientValidationError` at runtime
+  in all three call sites that used this pattern (the two `create()` calls plus `updateProfile`'s
+  `update()` call, which had no cast and so was never flagged by `tsc` at all). Each field was
+  individually valid, so a field-by-field check against `schema.prisma` could not see the problem — only
+  the combination was wrong. Corrected by using `connect`/`create` nested-relation syntax throughout
+  (e.g. `student: { connect: { id: studentId } }` instead of the scalar `studentId` key) and removing
+  the type-suppressing casts entirely; the create/update address-vs-create branching was also
+  consolidated into one shared `addressWrite()` helper used at every call site. Re-verified by
+  deliberately reintroducing the old scalar-FK-plus-nested-relation shape and confirming `npm run build`
+  now fails on it for real, then reverting — `tsc` alone is sufficient once the cast is gone.
+  **Lesson for the next sub-project (Parent/Teacher):** a mocked `PrismaService` in unit tests cannot
+  validate real Prisma argument shapes — an `as X` cast that silences a `tsc` error on a Prisma call is
+  a red flag, not a fix; reshape the call instead.
 - Verified (final, 2026-09-14): backend unit **406/406** (64 suites), `npm run build` clean, `npm run
   lint` shows only this repo's long-documented pre-existing repo-wide Prettier/CRLF debt (no new
   semantic ESLint errors in any file this sub-project added/touched). One `auth.service.spec.ts`

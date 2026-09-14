@@ -110,7 +110,7 @@ describe('StudentProfileService', () => {
       await service.updateProfile('s1', { profilePhotoFileId: 'f1' }, 'admin-1');
 
       expect(prisma.student.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ profilePhotoFileId: 'f1' }) }),
+        expect.objectContaining({ data: expect.objectContaining({ profilePhoto: { connect: { id: 'f1' } } }) }),
       );
     });
 
@@ -172,7 +172,9 @@ describe('StudentProfileService', () => {
       await service.upsertPreviousSchool('s1', { schoolName: 'Old School' }, 'admin-1');
 
       expect(prisma.studentPreviousSchool.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ studentId: 's1', schoolName: 'Old School' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ student: { connect: { id: 's1' } }, schoolName: 'Old School' }),
+        }),
       );
     });
 
@@ -233,7 +235,12 @@ describe('StudentProfileService', () => {
 
       expect(prisma.studentEmergencyContact.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ studentId: 's1', name: 'Amina', priority: 1, isPrimary: false }),
+          data: expect.objectContaining({
+            student: { connect: { id: 's1' } },
+            name: 'Amina',
+            priority: 1,
+            isPrimary: false,
+          }),
         }),
       );
     });

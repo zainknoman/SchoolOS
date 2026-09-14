@@ -9,6 +9,7 @@ import { CreateStudentEmergencyContactDto } from './dto/create-student-emergency
 import { UpdateStudentEmergencyContactDto } from './dto/update-student-emergency-contact.dto';
 import { UpdateStudentMedicalInfoDto } from './dto/update-student-medical-info.dto';
 import { CreateStudentDocumentDto } from './dto/create-student-document.dto';
+import { AddressDto } from '../common/dto/address.dto';
 
 export const PROFILE_INCLUDE = {
   currentAddress: true,
@@ -28,6 +29,11 @@ export const PROFILE_INCLUDE = {
 @Injectable()
 export class StudentProfileService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private addressWrite(address: AddressDto | undefined, existingAddressId: string | null | undefined) {
+    if (!address) return undefined;
+    return existingAddressId ? { update: address } : { create: address };
+  }
 
   private async requireStudent(studentId: string) {
     const student = await this.prisma.student.findUnique({ where: { id: studentId } });
@@ -53,7 +59,8 @@ export class StudentProfileService {
     }
 
     const data: Prisma.StudentUpdateInput = {
-      ...(dto.profilePhotoFileId !== undefined ? { profilePhotoFileId: dto.profilePhotoFileId } : {}),
+      profilePhoto:
+        dto.profilePhotoFileId !== undefined ? { connect: { id: dto.profilePhotoFileId } } : undefined,
       ...(dto.firstName !== undefined ? { firstName: dto.firstName } : {}),
       ...(dto.middleName !== undefined ? { middleName: dto.middleName } : {}),
       ...(dto.lastName !== undefined ? { lastName: dto.lastName } : {}),
@@ -72,16 +79,8 @@ export class StudentProfileService {
       ...(dto.studentEmail !== undefined ? { studentEmail: dto.studentEmail } : {}),
     };
 
-    if (dto.currentAddress) {
-      data.currentAddress = existing.currentAddressId
-        ? { update: dto.currentAddress }
-        : { create: dto.currentAddress };
-    }
-    if (dto.permanentAddress) {
-      data.permanentAddress = existing.permanentAddressId
-        ? { update: dto.permanentAddress }
-        : { create: dto.permanentAddress };
-    }
+    data.currentAddress = this.addressWrite(dto.currentAddress, existing.currentAddressId);
+    data.permanentAddress = this.addressWrite(dto.permanentAddress, existing.permanentAddressId);
 
     let record;
     try {
@@ -96,7 +95,7 @@ export class StudentProfileService {
         action: 'student.profile.update',
         entity: 'Student',
         entityId: studentId,
-        metadata: JSON.stringify(dto),
+        metadata: JSON.stringify({ fields: Object.keys(dto) }),
       },
     });
 
@@ -159,21 +158,17 @@ export class StudentProfileService {
         where: { studentId },
         data: {
           ...scalarData,
-          address: dto.address
-            ? existing.addressId
-              ? { update: dto.address }
-              : { create: dto.address }
-            : undefined,
+          address: this.addressWrite(dto.address, existing.addressId),
         },
         include: { address: true },
       });
     } else {
       record = await this.prisma.studentPreviousSchool.create({
         data: {
-          studentId,
+          student: { connect: { id: studentId } },
           ...scalarData,
           address: dto.address ? { create: dto.address } : undefined,
-        } as Prisma.StudentPreviousSchoolUncheckedCreateInput,
+        },
         include: { address: true },
       });
     }
@@ -204,7 +199,7 @@ export class StudentProfileService {
         action: 'student.medicalInfo.upsert',
         entity: 'StudentMedicalInfo',
         entityId: record.id,
-        metadata: JSON.stringify(dto),
+        metadata: JSON.stringify({ fields: Object.keys(dto) }),
       },
     });
     return record;
@@ -223,7 +218,7 @@ export class StudentProfileService {
     await this.requireStudent(studentId);
     const record = await this.prisma.studentEmergencyContact.create({
       data: {
-        studentId,
+        student: { connect: { id: studentId } },
         name: dto.name,
         relationship: dto.relationship,
         phone: dto.phone,
@@ -232,7 +227,7 @@ export class StudentProfileService {
         priority: dto.priority ?? 1,
         isPrimary: dto.isPrimary ?? false,
         address: dto.address ? { create: dto.address } : undefined,
-      } as Prisma.StudentEmergencyContactUncheckedCreateInput,
+      },
       include: { address: true },
     });
     await this.prisma.auditLog.create({
@@ -241,7 +236,7 @@ export class StudentProfileService {
         action: 'student.emergencyContact.create',
         entity: 'StudentEmergencyContact',
         entityId: record.id,
-        metadata: JSON.stringify(dto),
+        metadata: JSON.stringify({ fields: Object.keys(dto) }),
       },
     });
     return record;
@@ -268,11 +263,7 @@ export class StudentProfileService {
         ...(dto.email !== undefined ? { email: dto.email } : {}),
         ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
         ...(dto.isPrimary !== undefined ? { isPrimary: dto.isPrimary } : {}),
-        address: dto.address
-          ? existing.addressId
-            ? { update: dto.address }
-            : { create: dto.address }
-          : undefined,
+        address: this.addressWrite(dto.address, existing.addressId),
       },
       include: { address: true },
     });
