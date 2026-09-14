@@ -48,6 +48,7 @@ vi.mock('../lib/api', () => ({
     deleteStudentEmergencyContact: vi.fn(),
     upsertStudentMedicalInfo: vi.fn(),
     uploadFile: vi.fn(),
+    filePreviewUrl: vi.fn(),
     addStudentDocument: vi.fn(),
     verifyStudentDocument: vi.fn(),
   },
@@ -135,6 +136,19 @@ describe('StudentProfileView', () => {
     expect(trigger.exists()).toBe(true);
     expect(trigger.text()).toBe('ES');
     expect(trigger.find('img').exists()).toBe(false);
+  });
+
+  it('shows the persisted photo in the top-right avatar on load (e.g. after a refresh)', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile({ profilePhotoFileId: 'f1' }));
+    vi.mocked(api.filePreviewUrl).mockReturnValue('https://api.example.com/api/v1/files/f1?access_token=token-1');
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(api.filePreviewUrl).toHaveBeenCalledWith('token-1', 'f1');
+    const img = wrapper.find('[data-testid="profile-photo-trigger"] img');
+    expect(img.exists()).toBe(true);
+    expect(img.attributes('src')).toBe('https://api.example.com/api/v1/files/f1?access_token=token-1');
   });
 
   it('uploads and saves a new photo chosen from the top-right avatar control', async () => {

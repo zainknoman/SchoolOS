@@ -1,6 +1,6 @@
 <!-- staff-console/src/views/StudentProfileView.vue -->
 <script setup lang="ts">
-import { onBeforeUnmount, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type AddressInput, type StudentProfileDetail } from '../lib/api';
@@ -123,6 +123,15 @@ const photoInputRef = ref<HTMLInputElement | null>(null);
 const photoPreviewUrl = ref<string | null>(null);
 const photoErrorMessage = ref<string | null>(null);
 const isSavingPhoto = ref(false);
+
+// The locally-chosen file preview (set only while this session has picked a new file) takes
+// precedence; otherwise fall back to the persisted photo already on the profile, so it survives
+// a page refresh instead of only ever showing during an in-session upload.
+const displayPhotoUrl = computed(() => {
+  if (photoPreviewUrl.value) return photoPreviewUrl.value;
+  const fileId = profile.value?.profilePhotoFileId;
+  return fileId && auth.accessToken ? api.filePreviewUrl(auth.accessToken, fileId) : null;
+});
 
 function triggerPhotoInput() {
   photoInputRef.value?.click();
@@ -458,7 +467,7 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
           :disabled="isSavingPhoto"
           @click="triggerPhotoInput"
         >
-          <img v-if="photoPreviewUrl" :src="photoPreviewUrl" alt="" class="photo-avatar-img" />
+          <img v-if="displayPhotoUrl" :src="displayPhotoUrl" alt="" class="photo-avatar-img" />
           <template v-else>{{ initialsFromName(profile.name) }}</template>
         </button>
         <label class="sr-only" for="profile-photo-input">Student photo</label>

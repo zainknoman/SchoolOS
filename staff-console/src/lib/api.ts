@@ -1162,6 +1162,10 @@ export const api = {
     return `${API_BASE_URL}/api/v1/report-cards/${reportCardId}/pdf?access_token=${encodeURIComponent(accessToken)}`;
   },
 
+  filePreviewUrl(accessToken: string, fileId: string): string {
+    return `${API_BASE_URL}/api/v1/files/${fileId}?access_token=${encodeURIComponent(accessToken)}`;
+  },
+
   async listAdminTeachers(accessToken: string): Promise<TeacherAdminSummary[]> {
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/teachers`, { headers: authHeaders(accessToken) });
     return asJson(res);
