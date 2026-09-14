@@ -338,6 +338,198 @@ export interface StudentAdminSummary {
   parentNames: string[];
 }
 
+export interface AddressDetail {
+  id: string;
+  line1: string;
+  line2: string | null;
+  area: string | null;
+  city: string | null;
+  district: string | null;
+  province: string | null;
+  postalCode: string | null;
+  country: string;
+}
+
+export interface AddressInput {
+  line1: string;
+  line2?: string;
+  area?: string;
+  city?: string;
+  district?: string;
+  province?: string;
+  postalCode?: string;
+  country?: string;
+}
+
+export interface StudentPreviousSchoolDetail {
+  id: string;
+  schoolName: string;
+  address: AddressDetail | null;
+  contactNumber: string | null;
+  email: string | null;
+  lastClassAttended: string | null;
+  admissionDate: string | null;
+  leavingDate: string | null;
+  leavingCertificateNumber: string | null;
+  leavingCertificateDate: string | null;
+  reasonForLeaving: string | null;
+  academicRemarks: string | null;
+}
+
+export interface StudentEmergencyContactDetail {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  alternatePhone: string | null;
+  email: string | null;
+  address: AddressDetail | null;
+  priority: number;
+  isPrimary: boolean;
+}
+
+export interface StudentMedicalInfoDetail {
+  id: string;
+  bloodGroup: string | null;
+  allergies: string | null;
+  medicalConditions: string | null;
+  specialEducationalNeeds: string | null;
+  medicationNotes: string | null;
+  emergencyMedicalNotes: string | null;
+}
+
+export interface StudentDocumentDetail {
+  id: string;
+  documentType: string;
+  file: { id: string; originalName: string; mimeType: string; sizeBytes: number };
+  expiryDate: string | null;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  verifiedById: string | null;
+  verifiedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface StudentCurrentEnrollmentDetail {
+  id: string;
+  rollNumber: string | null;
+  remarks: string | null;
+  section: {
+    id: string;
+    name: string;
+    class: { id: string; name: string; campus: { id: string; name: string } };
+  };
+}
+
+export interface StudentProfileDetail {
+  id: string;
+  grNumber: string;
+  name: string;
+  firstName: string | null;
+  middleName: string | null;
+  lastName: string | null;
+  preferredName: string | null;
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  dateOfBirth: string | null;
+  placeOfBirth: string | null;
+  nationality: string | null;
+  religion: string | null;
+  bFormNumber: string | null;
+  profilePhotoFileId: string | null;
+  status: 'ACTIVE' | 'LEFT' | 'GRADUATED' | 'WITHDRAWN';
+  admissionDate: string | null;
+  leavingDate: string | null;
+  leavingReason: string | null;
+  studentMobile: string | null;
+  studentEmail: string | null;
+  currentAddress: AddressDetail | null;
+  permanentAddress: AddressDetail | null;
+  previousSchool: StudentPreviousSchoolDetail | null;
+  emergencyContacts: StudentEmergencyContactDetail[];
+  medicalInfo: StudentMedicalInfoDetail | null;
+  documents: StudentDocumentDetail[];
+  // The backend's PROFILE_INCLUDE filters to the active enrollment with `take: 1` — 0 or 1 items.
+  enrollments: StudentCurrentEnrollmentDetail[];
+}
+
+export interface UpdateStudentProfilePayload {
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  preferredName?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  dateOfBirth?: string;
+  placeOfBirth?: string;
+  nationality?: string;
+  religion?: string;
+  bFormNumber?: string;
+  status?: 'ACTIVE' | 'LEFT' | 'GRADUATED' | 'WITHDRAWN';
+  admissionDate?: string;
+  leavingDate?: string;
+  leavingReason?: string;
+  studentMobile?: string;
+  studentEmail?: string;
+  profilePhotoFileId?: string;
+  currentAddress?: AddressInput;
+  permanentAddress?: AddressInput;
+}
+
+export interface UpdateCurrentEnrollmentPayload {
+  rollNumber?: string;
+  remarks?: string;
+}
+
+export interface UpdatePreviousSchoolPayload {
+  schoolName: string;
+  contactNumber?: string;
+  email?: string;
+  lastClassAttended?: string;
+  admissionDate?: string;
+  leavingDate?: string;
+  leavingCertificateNumber?: string;
+  leavingCertificateDate?: string;
+  reasonForLeaving?: string;
+  academicRemarks?: string;
+  address?: AddressInput;
+}
+
+export interface CreateEmergencyContactPayload {
+  name: string;
+  relationship: string;
+  phone: string;
+  alternatePhone?: string;
+  email?: string;
+  priority?: number;
+  isPrimary?: boolean;
+  address?: AddressInput;
+}
+
+export interface UpdateEmergencyContactPayload {
+  name?: string;
+  relationship?: string;
+  phone?: string;
+  alternatePhone?: string;
+  email?: string;
+  priority?: number;
+  isPrimary?: boolean;
+}
+
+export interface UpdateMedicalInfoPayload {
+  bloodGroup?: string;
+  allergies?: string;
+  medicalConditions?: string;
+  specialEducationalNeeds?: string;
+  medicationNotes?: string;
+  emergencyMedicalNotes?: string;
+}
+
+export interface AddDocumentPayload {
+  documentType: string;
+  fileId: string;
+  expiryDate?: string;
+  notes?: string;
+}
+
 export interface ApplicantSummary {
   id: string;
   name: string;
@@ -1095,6 +1287,135 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+  },
+
+  async getStudentProfile(accessToken: string, studentId: string): Promise<StudentProfileDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${studentId}/profile`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async updateStudentProfile(
+    accessToken: string,
+    studentId: string,
+    payload: UpdateStudentProfilePayload,
+  ): Promise<StudentProfileDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${studentId}/profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async updateStudentCurrentEnrollment(
+    accessToken: string,
+    studentId: string,
+    payload: UpdateCurrentEnrollmentPayload,
+  ): Promise<StudentCurrentEnrollmentDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${studentId}/current-enrollment`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async upsertStudentPreviousSchool(
+    accessToken: string,
+    studentId: string,
+    payload: UpdatePreviousSchoolPayload,
+  ): Promise<StudentPreviousSchoolDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${studentId}/previous-school`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async createStudentEmergencyContact(
+    accessToken: string,
+    studentId: string,
+    payload: CreateEmergencyContactPayload,
+  ): Promise<StudentEmergencyContactDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${studentId}/emergency-contacts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async updateStudentEmergencyContact(
+    accessToken: string,
+    studentId: string,
+    contactId: string,
+    payload: UpdateEmergencyContactPayload,
+  ): Promise<StudentEmergencyContactDetail> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/admin/students/${studentId}/emergency-contacts/${contactId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+        body: JSON.stringify(payload),
+      },
+    );
+    return asJson(res);
+  },
+
+  async deleteStudentEmergencyContact(accessToken: string, studentId: string, contactId: string): Promise<void> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/admin/students/${studentId}/emergency-contacts/${contactId}`,
+      { method: 'DELETE', headers: authHeaders(accessToken) },
+    );
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async upsertStudentMedicalInfo(
+    accessToken: string,
+    studentId: string,
+    payload: UpdateMedicalInfoPayload,
+  ): Promise<StudentMedicalInfoDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${studentId}/medical-info`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async addStudentDocument(
+    accessToken: string,
+    studentId: string,
+    payload: AddDocumentPayload,
+  ): Promise<StudentDocumentDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${studentId}/documents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async verifyStudentDocument(
+    accessToken: string,
+    studentId: string,
+    documentId: string,
+    verified: boolean,
+  ): Promise<StudentDocumentDetail> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/admin/students/${studentId}/documents/${documentId}/verify`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+        body: JSON.stringify({ verified }),
+      },
+    );
+    return asJson(res);
   },
 
   async forgotPassword(identifier: string): Promise<{ message: string }> {
