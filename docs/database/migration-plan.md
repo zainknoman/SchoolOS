@@ -140,7 +140,7 @@ be lost, since nothing pre-existing was altered.
 - [x] New `StaffProfileController`/`StaffProfileService` and
       `HiringCandidatesController`/`HiringApplicationsController` validated with new unit tests,
       matching Sub-project 1's per-endpoint coverage depth
-- [ ] Staff-console UI (Staff profile page, Hiring queue/intake/review pages) — a separate
+- [x] Staff-console UI (Staff profile page, Hiring queue/intake/review pages) — a separate
       follow-on UI implementation plan, matching how Sub-project 1B followed Sub-project 1
 
 ---
