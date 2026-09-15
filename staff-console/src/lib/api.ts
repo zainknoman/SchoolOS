@@ -550,6 +550,155 @@ export interface ApplicationSummary {
   createdStudentId: string | null;
 }
 
+export interface HiringCandidateSummary {
+  id: string;
+  name: string;
+  dateOfBirth: string | null;
+  cnic: string | null;
+  contactPhone: string;
+  contactEmail: string | null;
+  resumeFileId: string | null;
+}
+
+export interface HiringApplicationSummary {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  employeeType: 'TEACHER' | 'OFFICE_STAFF' | 'JANITORIAL' | 'HELPER' | 'GUARD' | 'OTHER';
+  campusId: string;
+  status: string;
+  decisionNotes: string | null;
+  reviewedById: string | null;
+  createdStaffId: string | null;
+}
+
+export interface StaffAdminSummary {
+  id: string;
+  name: string;
+  employeeType: 'TEACHER' | 'OFFICE_STAFF' | 'JANITORIAL' | 'HELPER' | 'GUARD' | 'OTHER';
+  employmentStatus: 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED' | 'RESIGNED';
+  campusName: string;
+}
+
+export interface StaffEmergencyContactDetail {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  alternatePhone: string | null;
+  email: string | null;
+  address: AddressDetail | null;
+  priority: number;
+  isPrimary: boolean;
+}
+
+export interface StaffExperienceDetail {
+  id: string;
+  organization: string;
+  role: string;
+  fromDate: string | null;
+  toDate: string | null;
+  description: string | null;
+}
+
+export interface StaffDocumentDetail {
+  id: string;
+  documentType: string;
+  file: { id: string; originalName: string; mimeType: string; sizeBytes: number };
+  expiryDate: string | null;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  verifiedById: string | null;
+  verifiedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface StaffProfileDetail {
+  id: string;
+  name: string;
+  firstName: string | null;
+  middleName: string | null;
+  lastName: string | null;
+  employeeType: 'TEACHER' | 'OFFICE_STAFF' | 'JANITORIAL' | 'HELPER' | 'GUARD' | 'OTHER';
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  dateOfBirth: string | null;
+  cnic: string | null;
+  mobile: string | null;
+  email: string | null;
+  profilePhotoFileId: string | null;
+  currentAddress: AddressDetail | null;
+  permanentAddress: AddressDetail | null;
+  joiningDate: string | null;
+  employmentStatus: 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED' | 'RESIGNED';
+  leavingDate: string | null;
+  leavingReason: string | null;
+  teacher: { id: string; name: string } | null;
+  emergencyContacts: StaffEmergencyContactDetail[];
+  experience: StaffExperienceDetail[];
+  documents: StaffDocumentDetail[];
+}
+
+export interface UpdateStaffProfilePayload {
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  dateOfBirth?: string;
+  cnic?: string;
+  mobile?: string;
+  email?: string;
+  profilePhotoFileId?: string;
+  joiningDate?: string;
+  employmentStatus?: 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED' | 'RESIGNED';
+  leavingDate?: string;
+  leavingReason?: string;
+  currentAddress?: AddressInput;
+  permanentAddress?: AddressInput;
+}
+
+export interface CreateStaffEmergencyContactPayload {
+  name: string;
+  relationship: string;
+  phone: string;
+  alternatePhone?: string;
+  email?: string;
+  priority?: number;
+  isPrimary?: boolean;
+}
+
+export interface UpdateStaffEmergencyContactPayload {
+  name?: string;
+  relationship?: string;
+  phone?: string;
+  alternatePhone?: string;
+  email?: string;
+  priority?: number;
+  isPrimary?: boolean;
+}
+
+export interface CreateStaffExperiencePayload {
+  organization: string;
+  role: string;
+  fromDate?: string;
+  toDate?: string;
+  description?: string;
+}
+
+export interface UpdateStaffExperiencePayload {
+  organization?: string;
+  role?: string;
+  fromDate?: string;
+  toDate?: string;
+  description?: string;
+}
+
+export interface AddStaffDocumentPayload {
+  documentType: string;
+  fileId: string;
+  expiryDate?: string;
+  notes?: string;
+}
+
 export interface BulkImportRowOutcome {
   line: number;
   data: Record<string, string>;
@@ -1422,6 +1571,144 @@ export const api = {
     return asJson(res);
   },
 
+  async listAdminStaff(accessToken: string, employeeType?: string): Promise<StaffAdminSummary[]> {
+    const suffix = employeeType ? `?employeeType=${encodeURIComponent(employeeType)}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff${suffix}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async getStaffProfile(accessToken: string, staffId: string): Promise<StaffProfileDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff/${staffId}/profile`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async updateStaffProfile(
+    accessToken: string,
+    staffId: string,
+    payload: UpdateStaffProfilePayload,
+  ): Promise<StaffProfileDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff/${staffId}/profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+ 
+    async createStaffEmergencyContact(
+    accessToken: string,
+    staffId: string,
+    payload: CreateStaffEmergencyContactPayload,
+  ): Promise<StaffEmergencyContactDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff/${staffId}/emergency-contacts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async updateStaffEmergencyContact(
+    accessToken: string,
+    staffId: string,
+    contactId: string,
+    payload: UpdateStaffEmergencyContactPayload,
+  ): Promise<StaffEmergencyContactDetail> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/admin/staff/${staffId}/emergency-contacts/${contactId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+        body: JSON.stringify(payload),
+      },
+    );
+    return asJson(res);
+  },
+
+  async deleteStaffEmergencyContact(accessToken: string, staffId: string, contactId: string): Promise<void> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/admin/staff/${staffId}/emergency-contacts/${contactId}`,
+      { method: 'DELETE', headers: authHeaders(accessToken) },
+    );
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async createStaffExperience(
+    accessToken: string,
+    staffId: string,
+    payload: CreateStaffExperiencePayload,
+  ): Promise<StaffExperienceDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff/${staffId}/experience`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async updateStaffExperience(
+    accessToken: string,
+    staffId: string,
+    experienceId: string,
+    payload: UpdateStaffExperiencePayload,
+  ): Promise<StaffExperienceDetail> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/admin/staff/${staffId}/experience/${experienceId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+        body: JSON.stringify(payload),
+      },
+    );
+    return asJson(res);
+  },
+
+  async deleteStaffExperience(accessToken: string, staffId: string, experienceId: string): Promise<void> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/admin/staff/${staffId}/experience/${experienceId}`,
+      { method: 'DELETE', headers: authHeaders(accessToken) },
+    );
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async addStaffDocument(
+    accessToken: string,
+    staffId: string,
+    payload: AddStaffDocumentPayload,
+  ): Promise<StaffDocumentDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff/${staffId}/documents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async verifyStaffDocument(
+    accessToken: string,
+    staffId: string,
+    documentId: string,
+    verified: boolean,
+  ): Promise<StaffDocumentDetail> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/admin/staff/${staffId}/documents/${documentId}/verify`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+        body: JSON.stringify({ verified }),
+      },
+    );
+    return asJson(res);
+  },
+
   async forgotPassword(identifier: string): Promise<{ message: string }> {
     const res = await fetch(`${API_BASE_URL}/api/v1/auth/forgot-password`, {
       method: 'POST',
@@ -1818,6 +2105,97 @@ export const api = {
     return asJson(res);
   },
 
+  async createHiringCandidate(
+    accessToken: string,
+    payload: { name: string; dateOfBirth?: string; cnic?: string; contactPhone: string; contactEmail?: string; resumeFileId?: string },
+  ): Promise<{ candidate: HiringCandidateSummary; possibleDuplicate: HiringCandidateSummary | null }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/hiring/candidates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async findHiringCandidatesByPhone(accessToken: string, contactPhone: string): Promise<HiringCandidateSummary[]> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/hiring/candidates?contactPhone=${encodeURIComponent(contactPhone)}`,
+      { headers: authHeaders(accessToken) },
+    );
+    return asJson(res);
+  },
+
+  async createHiringApplication(
+    accessToken: string,
+    payload: { candidateId: string; employeeType: string; campusId: string },
+  ): Promise<HiringApplicationSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/hiring/applications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async listHiringApplications(
+    accessToken: string,
+    params?: { campusId?: string; status?: string },
+  ): Promise<HiringApplicationSummary[]> {
+    const query = new URLSearchParams();
+    if (params?.campusId) query.set('campusId', params.campusId);
+    if (params?.status) query.set('status', params.status);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/hiring/applications${suffix}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async getHiringApplication(accessToken: string, id: string): Promise<HiringApplicationSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/hiring/applications/${id}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async updateHiringApplicationStatus(
+    accessToken: string,
+    id: string,
+    payload: { status?: 'SHORTLISTED' | 'INTERVIEWED'; decisionNotes?: string },
+  ): Promise<HiringApplicationSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/hiring/applications/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async rejectHiringApplication(accessToken: string, id: string, decisionNotes: string): Promise<HiringApplicationSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/hiring/applications/${id}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify({ decisionNotes }),
+    });
+    return asJson(res);
+  },
+
+  async approveHiringApplication(
+    accessToken: string,
+    id: string,
+    payload: {
+      dateOfBirth?: string; cnic?: string; mobile?: string; email?: string; joiningDate?: string;
+      login?: { identifier: string; password: string };
+    },
+  ): Promise<HiringApplicationSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/hiring/applications/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+  
   async previewBulkImport(accessToken: string, entity: BulkImportEntity, file: File): Promise<BulkImportPreviewResult> {
     const formData = new FormData();
     formData.append('file', file);

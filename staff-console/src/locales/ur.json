@@ -7,6 +7,7 @@
     "complaints": "شکایات",
     "dashboard": "ڈیش بورڈ",
     "students": "طلباء",
+    "staff": "عملہ",
     "parents": "والدین",
     "teachers": "اساتذہ",
     "schools": "اسکول",
@@ -23,6 +24,7 @@
     "assessmentCategories": "جانچ کے زمرے",
     "gradebook": "گریڈ بک",
     "admissions": "داخلے",
+    "hiring": "بھرتی",
     "bulkImport": "بلک امپورٹ"
   },
   "shell": {

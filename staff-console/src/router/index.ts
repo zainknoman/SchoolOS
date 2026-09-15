@@ -127,6 +127,36 @@ const router = createRouter({
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Student Profile' },
     },
     {
+      path: '/admin/staff',
+      name: 'admin-staff',
+      component: () => import('../views/StaffManagementPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Staff' },
+    },
+    {
+      path: '/admin/staff/:id',
+      name: 'admin-staff-profile',
+      component: () => import('../views/StaffProfilePageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Staff Profile' },
+    },
+    {
+      path: '/admin/hiring/new',
+      name: 'admin-hiring-new',
+      component: () => import('../views/HiringCandidateIntakePageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'New Candidate' },
+    },
+    {
+      path: '/admin/hiring',
+      name: 'admin-hiring',
+      component: () => import('../views/HiringQueuePageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Hiring' },
+    },
+    {
+      path: '/admin/hiring/:id',
+      name: 'admin-hiring-detail',
+      component: () => import('../views/HiringApplicationDetailPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Hiring Application' },
+    },
+    {
       path: '/admin/fees',
       name: 'admin-fees',
       component: () => import('../views/FeeManagementPageView.vue'),

@@ -1,5 +1,6 @@
 // staff-console/src/lib/student-profile.constants.ts
-// Mirrors backend/prisma/schema.prisma's Gender/BloodGroup/StudentStatus/DocumentType enums.
+// Mirrors backend/prisma/schema.prisma's
+// Gender/BloodGroup/StudentStatus/DocumentType/EmployeeType/EmploymentStatus enums.
 // No backend "list enum values" endpoint exists — these are small, stable, code-level constants.
 
 export interface SelectOption {
@@ -44,4 +45,20 @@ export const DOCUMENT_TYPE_OPTIONS: SelectOption[] = [
   { value: 'DEGREE_CERTIFICATE', label: 'Degree Certificate' },
   { value: 'CV', label: 'CV' },
   { value: 'OTHER', label: 'Other' },
+];
+
+export const EMPLOYEE_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'TEACHER', label: 'Teacher' },
+  { value: 'OFFICE_STAFF', label: 'Office Staff' },
+  { value: 'JANITORIAL', label: 'Janitorial' },
+  { value: 'HELPER', label: 'Helper' },
+  { value: 'GUARD', label: 'Guard' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+export const EMPLOYMENT_STATUS_OPTIONS: SelectOption[] = [
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'ON_LEAVE', label: 'On Leave' },
+  { value: 'TERMINATED', label: 'Terminated' },
+  { value: 'RESIGNED', label: 'Resigned' },
 ];

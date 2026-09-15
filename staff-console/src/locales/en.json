@@ -7,6 +7,7 @@
     "complaints": "Complaints",
     "dashboard": "Dashboard",
     "students": "Students",
+    "staff": "Staff",
     "parents": "Parents",
     "teachers": "Teachers",
     "schools": "Schools",
@@ -23,6 +24,7 @@
     "assessmentCategories": "Assessment Categories",
     "gradebook": "Gradebook",
     "admissions": "Admissions",
+    "hiring": "Hiring",
     "bulkImport": "Bulk Import"
   },
   "shell": {

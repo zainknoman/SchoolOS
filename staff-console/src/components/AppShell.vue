@@ -88,6 +88,11 @@ const canManageAdmissions = computed(
 );
 const canManageBulkImport = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 
+// Deliberately SCHOOL_ADMIN/SUPER_ADMIN only, unlike canManageAdmissions — matches
+// HiringCandidatesController/HiringApplicationsController's own @Roles (no ACCOUNTS; hiring is
+// an HR function, not a fee-adjacent one, per the backend plan's Global Constraints).
+const canManageHiring = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
+
 const avatarInitials = computed(() => roleInitials(auth.role));
 const roleLabel = computed(() => {
   switch (auth.role) {
@@ -238,9 +243,13 @@ const goToItems = computed<CmdkGoTo[]>(() => {
   if (canManagePeople.value) {
     items.push(
       { testid: 'cmdk-students', label: 'Students', icon: 'users', to: '/admin/students' },
+      { testid: 'cmdk-staff', label: 'Staff', icon: 'users', to: '/admin/staff' },
       { testid: 'cmdk-parents', label: 'Parents', icon: 'user-circle', to: '/admin/parents' },
       { testid: 'cmdk-teachers', label: 'Teachers', icon: 'chalkboard', to: '/admin/teachers' },
     );
+  }
+  if (canManageHiring.value) {
+    items.push({ testid: 'cmdk-hiring', label: 'Hiring', icon: 'users', to: '/admin/hiring' });
   }
   if (canManageTimetable.value) {
     items.push({ testid: 'cmdk-timetable', label: 'Timetable', icon: 'clock', to: '/admin/timetable' });
@@ -442,6 +451,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
           <div v-if="canManagePeople" class="nav-group">
             <div class="nav-group-label">People</div>
             <RouterLink data-testid="nav-students" to="/admin/students"><Icon name="users" />{{ t('nav.students') }}</RouterLink>
+            <RouterLink data-testid="nav-staff" to="/admin/staff"><Icon name="users" />{{ t('nav.staff') }}</RouterLink>
             <RouterLink data-testid="nav-parents" to="/admin/parents"
               ><Icon name="user-circle" />{{ t('nav.parents') }}</RouterLink
             >
@@ -489,6 +499,9 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
             >
             <RouterLink v-if="canManageAdmissions" data-testid="nav-admissions" to="/admin/admissions"
               ><Icon name="users" />{{ t('nav.admissions') }}</RouterLink
+            >
+            <RouterLink v-if="canManageHiring" data-testid="nav-hiring" to="/admin/hiring"
+              ><Icon name="users" />{{ t('nav.hiring') }}</RouterLink
             >
             <RouterLink v-if="canManageBulkImport" data-testid="nav-bulk-import" to="/admin/bulk-import"
               ><Icon name="grid" />{{ t('nav.bulkImport') }}</RouterLink

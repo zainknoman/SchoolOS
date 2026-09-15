@@ -40,6 +40,8 @@ function makeRouter() {
       { path: '/admin/teachers', name: 'admin-teachers', component: { template: '<div>teachers</div>' } },
       { path: '/admin/parents', name: 'admin-parents', component: { template: '<div>parents</div>' } },
       { path: '/admin/students', name: 'admin-students', component: { template: '<div>students</div>' } },
+      { path: '/admin/hiring', name: 'admin-hiring', component: { template: '<div>hiring</div>' } },
+      { path: '/admin/staff', name: 'admin-staff', component: { template: '<div>staff</div>' } }
     ],
   });
 }
@@ -176,6 +178,33 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.find('[data-testid="nav-parents"]').attributes('href')).toBe('/admin/parents');
     expect(wrapper.find('[data-testid="nav-students"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-students"]').attributes('href')).toBe('/admin/students');
+  });
+
+  it('shows nav-staff for SCHOOL_ADMIN/SUPER_ADMIN and hides it for ACCOUNTS/TEACHER', async () => {
+    let wrapper = await mountAsRole('SCHOOL_ADMIN');
+    expect(wrapper.find('[data-testid="nav-staff"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-staff"]').attributes('href')).toBe('/admin/staff');
+
+    wrapper = await mountAsRole('SUPER_ADMIN');
+    expect(wrapper.find('[data-testid="nav-staff"]').exists()).toBe(true);
+
+    wrapper = await mountAsRole('ACCOUNTS');
+    expect(wrapper.find('[data-testid="nav-staff"]').exists()).toBe(false);
+
+    wrapper = await mountAsRole('TEACHER');
+    expect(wrapper.find('[data-testid="nav-staff"]').exists()).toBe(false);
+  });
+
+  it('shows nav-hiring for SCHOOL_ADMIN/SUPER_ADMIN and hides it for ACCOUNTS', async () => {
+    let wrapper = await mountAsRole('SCHOOL_ADMIN');
+    expect(wrapper.find('[data-testid="nav-hiring"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-hiring"]').attributes('href')).toBe('/admin/hiring');
+
+    wrapper = await mountAsRole('SUPER_ADMIN');
+    expect(wrapper.find('[data-testid="nav-hiring"]').exists()).toBe(true);
+
+    wrapper = await mountAsRole('ACCOUNTS');
+    expect(wrapper.find('[data-testid="nav-hiring"]').exists()).toBe(false);
   });
 
   it('hides the People CRUD nav links (Teachers/Parents/Students) for an ACCOUNTS role', async () => {
