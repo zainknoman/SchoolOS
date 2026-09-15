@@ -1,526 +1,179 @@
-// Local dev seed — creates one school, two campuses, one class/section, one teacher, one student
-// with two linked parent accounts. Run with: npx tsx prisma/seed.ts (or wire into package.json).
 import 'dotenv/config';
+import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
+const PASSWORD = process.env.SEED_PASSWORD;
+if (!PASSWORD) throw new Error('SEED_PASSWORD is required when running the seed.');
+const CURRENT_START = new Date('2026-08-01');
+const CURRENT_END = new Date('2027-06-30');
+const PREVIOUS_START = new Date('2025-08-01');
+const PREVIOUS_END = new Date('2026-06-30');
+const schoolsDef = [
+  { name: 'Beacon House', branches: ['Gulshan Campus', 'PECHS Campus', 'North Nazimabad Campus'] },
+  { name: 'The City School', branches: ['PAF Chapter', 'Gulshan Campus'] },
+];
+const grades = Array.from({ length: 8 }, (_, i) => `Grade ${i + 1}`);
+const subjectsDef = ['Mathematics', 'English', 'Urdu', 'Science', 'Social Studies', 'Computer', 'Islamiyat', 'Art'];
+const statuses = ['PRESENT', 'ABSENT', 'LATE', 'LEAVE', 'HOLIDAY'] as const;
+const periods = [['08:00', '08:40'], ['08:40', '09:20'], ['09:20', '10:00'], ['10:20', '11:00'], ['11:00', '11:40'], ['11:40', '12:20']];
+const day = (offset: number) => { const x = new Date(); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() + offset); return x; };
+const schoolCode = (name: string) => name === 'Beacon House' ? 'bh' : 'tcs';
+
 async function main() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-  const prisma = new PrismaClient({ adapter });
+  const passwordHash = await argon2.hash(PASSWORD);
+  const schools: any[] = [], campuses: any[] = [], sessions: any[] = [];
 
-  const school = await prisma.school.create({ data: { name: 'The Seeds School' } });
-
-  const [gulistan, gulshan] = await Promise.all([
-    prisma.campus.create({ data: { schoolId: school.id, name: 'Gulistan-e-Jauhar' } }),
-    prisma.campus.create({ data: { schoolId: school.id, name: 'Gulshan-e-Iqbal' } }),
-  ]);
-
-  const session = await prisma.academicSession.create({
-    data: { label: '2026-2027', startDate: new Date('2026-08-01'), endDate: new Date('2027-06-30'), isActive: true },
-  });
-
-  const grade3 = await prisma.class.create({
-    data: { campusId: gulistan.id, academicSessionId: session.id, name: 'Grade 3' },
-  });
-  const section3A = await prisma.section.create({ data: { classId: grade3.id, name: '3A' } });
-
-  const teacherUser = await prisma.user.create({
-    data: {
-      identifier: 'teacher@seeds.edu.pk',
-      passwordHash: await argon2.hash('ChangeMe123!'),
-      role: 'TEACHER',
-    },
-  });
-  const teacher = await prisma.teacher.create({
-    data: { userId: teacherUser.id, name: 'Ms. Sample Teacher', campusId: gulistan.id },
-  });
-  await prisma.section.update({
-    where: { id: section3A.id },
-    data: { classTeacherId: teacher.id },
-  });
-
-  // --- Two more class/section/class-teacher trios, one per campus, so Parent B's three children
-  // (below) each have a different class teacher to message — exercises resolveStaffUserId's
-  // per-section classTeacherId lookup across more than one section/teacher.
-  const grade4 = await prisma.class.create({
-    data: { campusId: gulistan.id, academicSessionId: session.id, name: 'Grade 4' },
-  });
-  const section4B = await prisma.section.create({ data: { classId: grade4.id, name: '4B' } });
-  const teacher2User = await prisma.user.create({
-    data: {
-      identifier: 'teacher2@seeds.edu.pk',
-      passwordHash: await argon2.hash('ChangeMe123!'),
-      role: 'TEACHER',
-    },
-  });
-  const teacher2 = await prisma.teacher.create({
-    data: { userId: teacher2User.id, name: 'Mr. Second Teacher', campusId: gulistan.id },
-  });
-  await prisma.section.update({ where: { id: section4B.id }, data: { classTeacherId: teacher2.id } });
-
-  const grade5 = await prisma.class.create({
-    data: { campusId: gulshan.id, academicSessionId: session.id, name: 'Grade 5' },
-  });
-  const section5C = await prisma.section.create({ data: { classId: grade5.id, name: '5C' } });
-  const teacher3User = await prisma.user.create({
-    data: {
-      identifier: 'teacher3@seeds.edu.pk',
-      passwordHash: await argon2.hash('ChangeMe123!'),
-      role: 'TEACHER',
-    },
-  });
-  const teacher3 = await prisma.teacher.create({
-    data: { userId: teacher3User.id, name: 'Ms. Third Teacher', campusId: gulshan.id },
-  });
-  await prisma.section.update({ where: { id: section5C.id }, data: { classTeacherId: teacher3.id } });
-
-  // Admin has no domain profile row (no Teacher/ParentProfile) — the role on User is enough for the
-  // staff console's RBAC-gated nav. isPrincipal lives on a separate dedicated account (below), not
-  // on admin, so Admin and Principal are independently testable identities.
-  const adminUser = await prisma.user.create({
-    data: {
-      identifier: 'admin@seeds.edu.pk',
-      passwordHash: await argon2.hash('ChangeMe123!'),
-      role: 'SCHOOL_ADMIN',
-      schoolId: school.id,
-    },
-  });
-
-  // One Staff row per employeeType, including one linked to an existing seeded Teacher.
-  const existingTeacher = await prisma.teacher.findFirst();
-  const staffJanitor = await prisma.staff.create({
-    data: {
-      name: 'Nazir Ahmed',
-      employeeType: 'JANITORIAL',
-      campusId: gulistan.id,
-      mobile: '0300-1112233',
-      joiningDate: new Date('2023-01-15'),
-      employmentStatus: 'ACTIVE',
-      experience: {
-        create: [
-          { organization: 'City Grammar School', role: 'Janitorial Staff', fromDate: new Date('2020-01-01'), toDate: new Date('2022-12-31') },
-        ],
-      },
-    },
-  });
-  if (existingTeacher) {
-    await prisma.staff.create({
-      data: {
-        name: existingTeacher.name,
-        employeeType: 'TEACHER',
-        campusId: existingTeacher.campusId,
-        userId: existingTeacher.userId,
-        teacherId: existingTeacher.id,
-        joiningDate: new Date('2021-08-01'),
-        employmentStatus: 'ACTIVE',
-      },
-    });
+  for (const def of schoolsDef) {
+    const school = { id: randomUUID(), name: def.name };
+    schools.push(school);
+    await prisma.school.create({ data: school });
+    const branchRows = def.branches.map(name => ({ id: randomUUID(), schoolId: school.id, name: `${def.name} - ${name}` }));
+    campuses.push(...branchRows);
+    await prisma.campus.createMany({ data: branchRows });
+    const previous = { id: randomUUID(), label: '2025-2026', startDate: PREVIOUS_START, endDate: PREVIOUS_END, isActive: false };
+    const current = { id: randomUUID(), label: '2026-2027', startDate: CURRENT_START, endDate: CURRENT_END, isActive: true };
+    sessions.push({ ...previous, schoolId: school.id }, { ...current, schoolId: school.id });
+    await prisma.academicSession.createMany({ data: [previous, current] });
   }
 
-  // One HiringCandidate + one HiringApplication per pipeline stage, for local dev/demo data.
-  const candidateSubmitted = await prisma.hiringCandidate.create({
-    data: { name: 'Bilal Hussain', contactPhone: '0333-4445566', contactEmail: 'bilal@example.com' },
-  });
-  await prisma.hiringApplication.create({
-    data: { candidateId: candidateSubmitted.id, employeeType: 'GUARD', campusId: gulistan.id, status: 'SUBMITTED' },
-  });
-  const candidateShortlisted = await prisma.hiringCandidate.create({
-    data: { name: 'Sana Malik', contactPhone: '0333-7778899' },
-  });
-  await prisma.hiringApplication.create({
-    data: { candidateId: candidateShortlisted.id, employeeType: 'OFFICE_STAFF', campusId: gulistan.id, status: 'SHORTLISTED' },
-  });
+  await prisma.subject.createMany({ data: subjectsDef.map(name => ({ id: randomUUID(), name })) });
+  const subjects = await prisma.subject.findMany({ orderBy: { name: 'asc' } });
+  const users: any[] = [{ id: randomUUID(), identifier: 'superadmin@schoolportal.local', passwordHash, role: 'SUPER_ADMIN' }];
+  const classes: any[] = [], sections: any[] = [], teachers: any[] = [], staff: any[] = [];
+  const teacherBySection = new Map<string, { teacherId: string; userId: string }>();
 
-  const accountsUser = await prisma.user.create({
-    data: {
-      identifier: 'accounts@seeds.edu.pk',
-      passwordHash: await argon2.hash('ChangeMe123!'),
-      role: 'ACCOUNTS',
-      schoolId: school.id,
-    },
-  });
-
-  // SUPER_ADMIN — the Org Structure CRUD screens (School/Campus/AcademicSession/Class/Section)
-  // are gated to this role alone, so a seeded account is needed to test them at all.
-  const superAdminUser = await prisma.user.create({
-    data: {
-      identifier: 'superadmin@seeds.edu.pk',
-      passwordHash: await argon2.hash('ChangeMe123!'),
-      role: 'SUPER_ADMIN',
-    },
-  });
-
-  // Principal isn't its own Role (see the PRINCIPAL branch of resolveStaffUserId, which resolves
-  // via `isPrincipal: true` rather than a role) — it needs a real console role to log into the
-  // staff console at all, so this is a SCHOOL_ADMIN account distinct from the admin@ one above.
-  const principalUser = await prisma.user.create({
-    data: {
-      identifier: 'principal@seeds.edu.pk',
-      passwordHash: await argon2.hash('ChangeMe123!'),
-      role: 'SCHOOL_ADMIN',
-      isPrincipal: true,
-      schoolId: school.id,
-    },
-  });
-
-  const student = await prisma.student.create({
-    data: { grNumber: 'GR-1001', name: 'Eshaal Sample' },
-  });
-  await prisma.enrollment.create({
-    data: {
-      studentId: student.id,
-      campusId: gulistan.id,
-      sectionId: section3A.id,
-      academicSessionId: session.id,
-      startDate: session.startDate,
-      status: 'ACTIVE',
-    },
-  });
-
-  const parentPassword = await argon2.hash('ChangeMe123!');
-  const [parentAUser, parentBUser] = await Promise.all([
-    prisma.user.create({ data: { identifier: 'parent-a@seeds.edu.pk', passwordHash: parentPassword, role: 'PARENT' } }),
-    prisma.user.create({ data: { identifier: 'parent-b@seeds.edu.pk', passwordHash: parentPassword, role: 'PARENT' } }),
-  ]);
-
-  const [parentAProfile, parentBProfile] = await Promise.all([
-    prisma.parentProfile.create({ data: { userId: parentAUser.id, name: 'Parent A' } }),
-    prisma.parentProfile.create({ data: { userId: parentBUser.id, name: 'Parent B' } }),
-  ]);
-
-  await Promise.all([
-    prisma.studentParent.create({ data: { studentId: student.id, parentProfileId: parentAProfile.id, relationship: 'mother' } }),
-    prisma.studentParent.create({ data: { studentId: student.id, parentProfileId: parentBProfile.id, relationship: 'father' } }),
-  ]);
-
-  // --- Two more children for Parent B only (not shared with Parent A), each in a different
-  // class/section (and campus) with their own class teacher — multi-child switcher and per-child
-  // Messages/conversation testing needs more than one child, and more than one class teacher, on
-  // at least one parent.
-  const [studentIbrahim, studentHania] = await Promise.all([
-    prisma.student.create({ data: { grNumber: 'GR-1002', name: 'Ibrahim Sample' } }),
-    prisma.student.create({ data: { grNumber: 'GR-1003', name: 'Hania Sample' } }),
-  ]);
-  await Promise.all([
-    prisma.enrollment.create({
-      data: {
-        studentId: studentIbrahim.id,
-        campusId: gulistan.id,
-        sectionId: section4B.id,
-        academicSessionId: session.id,
-        startDate: session.startDate,
-        status: 'ACTIVE',
-      },
-    }),
-    prisma.enrollment.create({
-      data: {
-        studentId: studentHania.id,
-        campusId: gulshan.id,
-        sectionId: section5C.id,
-        academicSessionId: session.id,
-        startDate: session.startDate,
-        status: 'ACTIVE',
-      },
-    }),
-  ]);
-  await Promise.all([
-    prisma.studentParent.create({ data: { studentId: studentIbrahim.id, parentProfileId: parentBProfile.id, relationship: 'father' } }),
-    prisma.studentParent.create({ data: { studentId: studentHania.id, parentProfileId: parentBProfile.id, relationship: 'father' } }),
-  ]);
-
-  // --- Student profile satellite data (Sub-project 1): one representative fully-populated
-  // profile on Eshaal (`student`) — Address, emergency contact, medical info — is enough for
-  // local dev/demo purposes; Ibrahim/Hania keep only the base fields already set above.
-  const studentHomeAddress = await prisma.address.create({
-    data: {
-      line1: 'House 12, Street 4, Block A',
-      area: 'Gulistan-e-Jauhar',
-      city: 'Karachi',
-      province: 'Sindh',
-      postalCode: '75290',
-    },
-  });
-
-  await prisma.student.update({
-    where: { id: student.id },
-    data: {
-      firstName: 'Eshaal',
-      lastName: 'Sample',
-      gender: 'FEMALE',
-      dateOfBirth: new Date('2016-03-14'),
-      nationality: 'Pakistani',
-      status: 'ACTIVE',
-      admissionDate: new Date('2022-08-01'),
-      currentAddressId: studentHomeAddress.id,
-    },
-  });
-
-  await prisma.studentEmergencyContact.create({
-    data: {
-      studentId: student.id,
-      name: 'Amina Sample',
-      relationship: 'Mother',
-      phone: '0300-1234567',
-      isPrimary: true,
-    },
-  });
-
-  await prisma.studentMedicalInfo.create({
-    data: { studentId: student.id, bloodGroup: 'O_POS', allergies: 'None known' },
-  });
-
-  // --- Timetable/Attendance/Diary: a Mon-Fri 6-period week, 10 weekdays of attendance, and one
-  // diary entry — generated per section so every seeded child (not just Eshaal in 3A) has a
-  // non-blank Home/Calendar screen, each taught/marked/authored by that section's own class
-  // teacher.
-  const subjectNames = ['Mathematics', 'English', 'Urdu', 'Science', 'Social Studies', 'Art'];
-  const subjects = await Promise.all(
-    subjectNames.map((name) =>
-      prisma.subject.upsert({ where: { name }, update: {}, create: { name } }),
-    ),
-  );
-
-  const periodTimes: Array<[string, string]> = [
-    ['08:00', '08:40'],
-    ['08:40', '09:20'],
-    ['09:20', '10:00'],
-    ['10:20', '11:00'], // after a 20-minute break
-    ['11:00', '11:40'],
-    ['11:40', '12:20'],
-  ];
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  async function seedSectionSchedule(
-    section: { id: string; name: string },
-    sectionTeacher: { id: string },
-    sectionTeacherUserId: string,
-    students: Array<{ id: string }>,
-    diaryText: string,
-  ): Promise<{ timetableCount: number; attendanceCount: number }> {
-    const timetableRows: Array<{
-      sectionId: string;
-      subjectId: string;
-      teacherId: string;
-      dayOfWeek: number;
-      period: number;
-      startTime: string;
-      endTime: string;
-      room: string;
-    }> = [];
-    for (let dayOfWeek = 1; dayOfWeek <= 5; dayOfWeek++) {
-      // Monday=1 .. Friday=5
-      periodTimes.forEach(([startTime, endTime], i) => {
-        const period = i + 1;
-        const subject = subjects[(dayOfWeek + period) % subjects.length];
-        timetableRows.push({
-          sectionId: section.id,
-          subjectId: subject.id,
-          teacherId: sectionTeacher.id,
-          dayOfWeek,
-          period,
-          startTime,
-          endTime,
-          room: section.name,
-        });
-      });
-    }
-    await prisma.timetable.createMany({ data: timetableRows });
-
-    // The last 10 weekdays, mostly present with one LATE and one ABSENT sprinkled in.
-    const attendanceDates: Date[] = [];
-    for (const cursor = new Date(today); attendanceDates.length < 10; cursor.setDate(cursor.getDate() - 1)) {
-      const day = cursor.getDay();
-      if (day === 0 || day === 6) continue; // skip weekends
-      attendanceDates.push(new Date(cursor));
-    }
-    const attendanceStatuses: Array<'PRESENT' | 'ABSENT' | 'LATE'> = attendanceDates.map((_, i) => {
-      if (i === 2) return 'LATE';
-      if (i === 5) return 'ABSENT';
-      return 'PRESENT';
-    });
-
-    let attendanceCount = 0;
-    for (const s of students) {
-      await prisma.attendance.createMany({
-        data: attendanceDates.map((date, i) => ({
-          studentId: s.id,
-          date,
-          status: attendanceStatuses[i],
-          markedById: sectionTeacher.id,
-        })),
-      });
-      attendanceCount += attendanceDates.length;
-    }
-
-    await prisma.diaryEntry.create({
-      data: {
-        sectionId: section.id,
-        subjectId: subjects[0].id,
-        authorId: sectionTeacherUserId,
-        date: today,
-        text: diaryText,
-        dueDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    return { timetableCount: timetableRows.length, attendanceCount };
+  for (const school of schools) {
+    const c = schoolCode(school.name);
+    users.push(
+      { id: randomUUID(), identifier: `admin@${c}.schoolportal.local`, passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
+      { id: randomUUID(), identifier: `principal@${c}.schoolportal.local`, passwordHash, role: 'SCHOOL_ADMIN', isPrincipal: true, schoolId: school.id },
+      { id: randomUUID(), identifier: `accounts@${c}.schoolportal.local`, passwordHash, role: 'ACCOUNTS', schoolId: school.id },
+    );
   }
 
-  const [schedule3A, schedule4B, schedule5C] = [
-    await seedSectionSchedule(
-      section3A,
-      teacher,
-      teacherUser.id,
-      [student],
-      'کتاب صفحہ 12 مکمل کریں۔ کل اپنی ورک بک لائیں۔',
-    ),
-    await seedSectionSchedule(
-      section4B,
-      teacher2,
-      teacher2User.id,
-      [studentIbrahim],
-      'Complete worksheet 5, pages 10-12.',
-    ),
-    await seedSectionSchedule(
-      section5C,
-      teacher3,
-      teacher3User.id,
-      [studentHania],
-      'Read chapter 3 and prepare a one-paragraph summary.',
-    ),
-  ];
-  const timetableRowCount = schedule3A.timetableCount + schedule4B.timetableCount + schedule5C.timetableCount;
-  const attendanceRowCount = schedule3A.attendanceCount + schedule4B.attendanceCount + schedule5C.attendanceCount;
+  for (const campus of campuses) {
+    const session = sessions.find(x => x.schoolId === campus.schoolId && x.label === '2026-2027');
+    const school = schools.find(x => x.id === campus.schoolId)!;
+    for (let g = 0; g < 8; g++) {
+      const classId = randomUUID();
+      classes.push({ id: classId, campusId: campus.id, academicSessionId: session.id, name: grades[g] });
+      for (const letter of ['A', 'B']) {
+        const sectionId = randomUUID(), teacherId = randomUUID(), userId = randomUUID();
+        const name = `${letter === 'A' ? 'Ayesha' : 'Hamza'} ${g + 1} Teacher`;
+        users.push({ id: userId, identifier: `${schoolCode(school.name)}.g${g + 1}${letter.toLowerCase()}@schoolportal.local`, passwordHash, role: 'TEACHER', schoolId: school.id });
+        teachers.push({ id: teacherId, userId, name, campusId: campus.id });
+        staff.push({ id: randomUUID(), userId, name, firstName: name.split(' ')[0], lastName: 'Teacher', employeeType: 'TEACHER', campusId: campus.id, joiningDate: new Date('2022-08-01'), employmentStatus: 'ACTIVE', teacherId });
+        sections.push({ id: sectionId, classId, name: `${g + 1}${letter}`, classTeacherId: teacherId });
+        teacherBySection.set(sectionId, { teacherId, userId });
+      }
+    }
+  }
+  await prisma.user.createMany({ data: users });
+  await prisma.class.createMany({ data: classes });
+  await prisma.teacher.createMany({ data: teachers });
+  await prisma.section.createMany({ data: sections });
+  await prisma.staff.createMany({ data: staff });
 
-  // --- Circular: one school-wide sample notice, delivered to both seeded parents ---
-  const circular = await prisma.circular.create({
-    data: {
-      title: 'Parent-Teacher Meeting — September',
-      description: 'PTMs for all grades will be held on the first Saturday of September, 9am-1pm.',
-      scope: 'school',
-      priority: 'normal',
-      authorId: adminUser.id,
-    },
-  });
-  await prisma.circularRecipient.createMany({
-    data: [parentAUser.id, parentBUser.id].map((userId) => ({ circularId: circular.id, userId })),
-  });
+  const supportStaff = campuses.flatMap((c, i) => [
+    { id: randomUUID(), name: `Office Staff ${i + 1}`, employeeType: 'OFFICE_STAFF', campusId: c.id, mobile: `0300-${String(9000000 + i).slice(-7)}`, joiningDate: new Date('2023-01-15'), employmentStatus: 'ACTIVE' },
+    { id: randomUUID(), name: `Security Guard ${i + 1}`, employeeType: 'GUARD', campusId: c.id, mobile: `0311-${String(8000000 + i).slice(-7)}`, joiningDate: new Date('2023-03-01'), employmentStatus: 'ACTIVE' },
+  ]);
+  await prisma.staff.createMany({ data: supportStaff });
 
-  // --- Messages: parent A asks the class teacher a question; the teacher replies ---
-  const conversation = await prisma.conversation.create({
-    data: {
-      parentUserId: parentAUser.id,
-      staffUserId: teacherUser.id,
-      recipientType: 'CLASS_TEACHER',
-      studentId: student.id,
-      parentReadAt: new Date(),
-      messages: {
-        create: [{ senderId: parentAUser.id, body: 'Hi, can Eshaal get extra homework in Urdu?' }],
-      },
-    },
-  });
-  await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      senderId: teacherUser.id,
-      body: 'Sure, I will send some extra worksheets this week.',
-    },
-  });
-  await prisma.conversation.update({
-    where: { id: conversation.id },
-    data: { lastMessageAt: new Date(), staffReadAt: new Date() },
-  });
+  const students: any[] = [], enrollments: any[] = [], addresses: any[] = [], previousSchools: any[] = [], emergencies: any[] = [], medical: any[] = [];
+  const parentUsers: any[] = [], parentProfiles: any[] = [], studentParents: any[] = [];
+  let sequence = 0;
+  for (const section of sections) {
+    const cls = classes.find(x => x.id === section.classId)!;
+    const campus = campuses.find(x => x.id === cls.campusId)!;
+    const school = schools.find(x => x.id === campus.schoolId)!;
+    const session = sessions.find(x => x.schoolId === school.id && x.label === '2026-2027')!;
+    for (let roll = 1; roll <= 20; roll++) {
+      sequence++;
+      const studentId = randomUUID(), currentAddressId = randomUUID(), permanentAddressId = randomUUID(), previousAddressId = randomUUID();
+      const gr = `GR-${String(sequence).padStart(5, '0')}`;
+      const first = ['Ayaan', 'Eman', 'Hassan', 'Maham', 'Rayyan', 'Hiba', 'Zayan', 'Areeba'][sequence % 8];
+      const last = ['Khan', 'Ahmed', 'Malik', 'Sheikh', 'Hussain', 'Raza'][sequence % 6];
+      students.push({ id: studentId, grNumber: gr, name: `${first} ${last}`, firstName: first, lastName: last, preferredName: first, gender: sequence % 2 ? 'MALE' : 'FEMALE', dateOfBirth: new Date(`${2013 + sequence % 7}-${String(sequence % 9 + 1).padStart(2, '0')}-15`), placeOfBirth: 'Karachi', nationality: 'Pakistani', religion: 'Islam', bFormNumber: `BFORM-${String(sequence).padStart(8, '0')}`, status: 'ACTIVE', admissionDate: new Date('2022-08-01'), studentMobile: `0300-${String(1000000 + sequence).slice(-7)}`, studentEmail: `${gr.toLowerCase()}@student.schoolportal.local`, currentAddressId, permanentAddressId });
+      addresses.push(
+        { id: currentAddressId, line1: `House ${10 + sequence % 90}, Street ${1 + sequence % 8}`, area: campus.name.replace(`${school.name} - `, ''), city: 'Karachi', district: 'Karachi', province: 'Sindh', postalCode: '75000', country: 'Pakistan' },
+        { id: permanentAddressId, line1: `House ${20 + sequence % 70}, Street ${2 + sequence % 7}`, area: 'Gulshan-e-Iqbal', city: 'Karachi', district: 'Karachi', province: 'Sindh', postalCode: '75300', country: 'Pakistan' },
+        { id: previousAddressId, line1: 'Main Road, Previous School Campus', city: 'Karachi', province: 'Sindh', postalCode: '75000', country: 'Pakistan' },
+      );
+      previousSchools.push({ id: randomUUID(), studentId, schoolName: `${school.name} Junior School`, addressId: previousAddressId, contactNumber: `021-3456${String(1000 + sequence).slice(-4)}`, email: `admissions${sequence}@previous-school.local`, lastClassAttended: cls.name, admissionDate: new Date('2021-08-01'), leavingDate: new Date('2022-06-30'), leavingCertificateNumber: `LC-${gr}`, leavingCertificateDate: new Date('2022-07-15'), reasonForLeaving: 'Family relocation', academicRemarks: 'Good academic standing' });
+      emergencies.push({ id: randomUUID(), studentId, name: `Emergency Contact ${sequence}`, relationship: 'Uncle', phone: `0321-${String(2000000 + sequence).slice(-7)}`, alternatePhone: `0333-${String(3000000 + sequence).slice(-7)}`, email: `emergency${sequence}@schoolportal.local`, priority: 1, isPrimary: true });
+      medical.push({ id: randomUUID(), studentId, bloodGroup: ['A_POS', 'B_POS', 'O_POS', 'AB_POS'][sequence % 4], allergies: 'None known', emergencyMedicalNotes: 'Contact parent in case of emergency.' });
+      enrollments.push({ id: randomUUID(), studentId, campusId: campus.id, sectionId: section.id, academicSessionId: session.id, startDate: CURRENT_START, status: 'ACTIVE', rollNumber: String(roll).padStart(2, '0'), remarks: 'Seeded demo enrollment' });
+      for (const relationship of ['father', 'mother']) {
+        const userId = randomUUID(), profileId = randomUUID();
+        const prefix = relationship;
+        parentUsers.push({ id: userId, identifier: `${prefix}.${gr.toLowerCase()}@parent.schoolportal.local`, passwordHash, role: 'PARENT', schoolId: school.id });
+        parentProfiles.push({ id: profileId, userId, name: `${relationship === 'father' ? 'Father' : 'Mother'} of ${first} ${last}`, phone: `03${relationship === 'father' ? '00' : '01'}-${String((relationship === 'father' ? 4000000 : 5000000) + sequence).slice(-7)}` });
+        studentParents.push({ id: randomUUID(), studentId, parentProfileId: profileId, relationship });
+      }
+    }
+  }
+  await prisma.address.createMany({ data: addresses });
+  await prisma.student.createMany({ data: students });
+  await prisma.enrollment.createMany({ data: enrollments });
+  await prisma.studentPreviousSchool.createMany({ data: previousSchools });
+  await prisma.studentEmergencyContact.createMany({ data: emergencies });
+  await prisma.studentMedicalInfo.createMany({ data: medical });
+  await prisma.user.createMany({ data: parentUsers });
+  await prisma.parentProfile.createMany({ data: parentProfiles });
+  await prisma.studentParent.createMany({ data: studentParents });
 
-  // --- Fees: one structure, one issued (and paid) voucher for Eshaal, so a fresh dev.db has a
-  // non-empty Fees tab and payment history to look at ---
-  const tuitionFee = await prisma.feeStructure.create({ data: { name: 'Tuition Fee', amount: 500000 } });
-  const septemberVoucher = await prisma.feeVoucher.create({
-    data: {
-      studentId: student.id,
-      academicSessionId: session.id,
-      month: '2026-09',
-      issueDate: today,
-      dueDate: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000),
-      items: { create: [{ label: tuitionFee.name, amount: tuitionFee.amount }] },
-    },
-  });
-  const septemberPayment = await prisma.feePayment.create({
-    data: {
-      amount: tuitionFee.amount,
-      method: 'jazzcash',
-      status: 'completed',
-      reference: 'seed_stub_payment_1',
-      allocations: { create: [{ feeVoucherId: septemberVoucher.id, amount: tuitionFee.amount }] },
-    },
-  });
-  await prisma.receipt.create({
-    data: { feePaymentId: septemberPayment.id, receiptNumber: 'RCPT-SEED-000001' },
-  });
+  const timetable: any[] = [];
+  for (const section of sections) {
+    const teacher = teacherBySection.get(section.id)!;
+    for (let dayOfWeek = 1; dayOfWeek <= 5; dayOfWeek++) for (let p = 0; p < periods.length; p++) {
+      timetable.push({ id: randomUUID(), sectionId: section.id, subjectId: subjects[(dayOfWeek + p) % subjects.length].id, teacherId: teacher.teacherId, dayOfWeek, period: p + 1, startTime: periods[p][0], endTime: periods[p][1], room: section.name });
+    }
+  }
+  await prisma.timetable.createMany({ data: timetable });
 
-  // --- Leave: one pending request for Eshaal, so a fresh dev.db has something in the approval
-  // queue and on the parent-app's leave status list ---
-  await prisma.leaveRequest.create({
-    data: {
-      studentId: student.id,
-      startDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000),
-      endDate: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000),
-      reason: 'Family wedding out of town.',
-    },
-  });
+  const attendance: any[] = [];
+  for (let i = 0; i < students.length; i++) {
+    const teacher = teacherBySection.get(enrollments[i].sectionId)!;
+    attendance.push(
+      { id: randomUUID(), studentId: students[i].id, date: day(-2), status: statuses[i % 5], markedById: teacher.teacherId },
+      { id: randomUUID(), studentId: students[i].id, date: day(-1), status: statuses[(i + 2) % 5], markedById: teacher.teacherId },
+    );
+  }
+  await prisma.attendance.createMany({ data: attendance });
 
-  // --- Notifications: one sample per seeded role, so a fresh dev.db never looks blank ---
-  await prisma.notification.createMany({
-    data: [
-      {
-        userId: parentAUser.id,
-        type: 'message',
-        title: 'New reply from Ms. Sample Teacher',
-        body: 'Sure, I will send some extra worksheets this week.',
-        entityRef: conversation.id,
-      },
-      {
-        userId: teacherUser.id,
-        type: 'message',
-        title: 'New message from Parent A',
-        body: 'Hi, can Eshaal get extra homework in Urdu?',
-        entityRef: conversation.id,
-      },
-      {
-        userId: adminUser.id,
-        type: 'circular',
-        title: 'Circular published',
-        body: 'Parent-Teacher Meeting — September',
-        entityRef: circular.id,
-      },
-    ],
-  });
+  const diary: any[] = [];
+  for (const section of sections) {
+    const teacher = teacherBySection.get(section.id)!;
+    diary.push(
+      { id: randomUUID(), sectionId: section.id, subjectId: subjects[0].id, authorId: teacher.userId, date: day(0), text: `Homework for ${section.name}: complete Mathematics workbook pages 10-12.`, dueDate: day(2) },
+      { id: randomUUID(), sectionId: section.id, subjectId: subjects[1].id, authorId: teacher.userId, date: day(-1), text: `English activity for ${section.name}: read one story and write five new vocabulary words.`, dueDate: day(1) },
+    );
+  }
+  await prisma.diaryEntry.createMany({ data: diary });
 
-  console.log(
-    'Seeded: 1 school, 2 campuses, 3 classes/sections (3A/4B/5C, each with its own class ' +
-      'teacher), 1 admin, 1 accounts, 1 super admin, ' +
-      `1 principal (${principalUser.identifier}), ` +
-      '3 students (1 shared by both parents in 3A, 2 more linked only to Parent B — one per new ' +
-      'section/campus/class teacher), 2 linked parents, ' +
-      `${timetableRowCount} timetable periods across all 3 sections, ` +
-      `${attendanceRowCount} attendance records across all 3 sections, ` +
-      '3 diary entries (one per section), 1 circular, 1 conversation (with a reply), 3 notifications.',
-  );
-  console.log(
-    'Login as parent-a@seeds.edu.pk / ChangeMe123! (or parent-b@... / teacher@... / teacher2@... / ' +
-      'teacher3@... / admin@... / accounts@... / principal@... / superadmin@...) — dev only.',
-  );
+  const applicants: any[] = [], applications: any[] = [];
+  for (let i = 0; i < campuses.length; i++) {
+    const campus = campuses[i], school = schools.find(x => x.id === campus.schoolId)!, session = sessions.find(x => x.schoolId === school.id && x.label === '2026-2027')!;
+    const cls = classes.find(x => x.campusId === campus.id)!;
+    const applicantId = randomUUID();
+    applicants.push({ id: applicantId, name: `Admission Applicant ${i + 1}`, dateOfBirth: new Date('2017-05-20'), guardianName: `Guardian ${i + 1}`, guardianPhone: `0345-${String(6000000 + i).slice(-7)}` });
+    applications.push({ id: randomUUID(), applicantId, desiredClassId: cls.id, academicSessionId: session.id, status: ['SUBMITTED', 'UNDER_REVIEW', 'REJECTED'][i % 3], decisionNotes: i % 3 === 2 ? 'Seeded rejected demo application.' : null });
+  }
+  await prisma.applicant.createMany({ data: applicants });
+  await prisma.application.createMany({ data: applications });
 
-  console.log('Seeded: 1 fee structure, 1 paid voucher + receipt for Eshaal Sample.');
+  const candidates = campuses.map((campus, i) => ({ id: randomUUID(), name: `Hiring Candidate ${i + 1}`, dateOfBirth: new Date('1990-04-10'), contactPhone: `0355-${String(7000000 + i).slice(-7)}`, contactEmail: `candidate${i + 1}@schoolportal.local` }));
+  await prisma.hiringCandidate.createMany({ data: candidates });
+  await prisma.hiringApplication.createMany({ data: candidates.map((c, i) => ({ id: randomUUID(), candidateId: c.id, employeeType: i % 2 ? 'GUARD' : 'OFFICE_STAFF', campusId: campuses[i].id, status: i % 2 ? 'SHORTLISTED' : 'SUBMITTED' })) });
 
-  console.log('Seeded: 1 pending leave request for Eshaal Sample.');
-
-  await prisma.$disconnect();
+  console.log('Seed complete.');
+  console.log(`Schools=${schools.length}, Campuses=${campuses.length}, Sessions=${sessions.length}, Classes=${classes.length}, Sections=${sections.length}`);
+  console.log(`Teachers=${teachers.length}, Students=${students.length}, Parents=${parentUsers.length}, Enrollments=${enrollments.length}`);
+  console.log(`Attendance=${attendance.length}, Timetable=${timetable.length}, Diary=${diary.length}, Applicants=${applicants.length}, Applications=${applications.length}`);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+main().catch(error => { console.error('Seed failed:', error); process.exitCode = 1; }).finally(() => prisma.$disconnect());
