@@ -28,6 +28,7 @@ import { TeacherModule } from './teacher/teacher.module';
 import { StudentModule } from './student/student.module';
 import { StaffModule } from './staff/staff.module';
 import { HiringModule } from './hiring/hiring.module';
+import { PromotionsModule } from './promotions/promotions.module';
 import { HolidaysModule } from './holidays/holidays.module';
 import { ComplaintsModule } from './complaints/complaints.module';
 import { ReportCardsModule } from './report-cards/report-cards.module';
@@ -38,11 +39,16 @@ import { AdmissionsModule } from './admissions/admissions.module';
 import { BulkImportModule } from './bulk-import/bulk-import.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { GENERAL_THROTTLE_LIMIT, THROTTLE_TTL_MS } from './config/throttler.config';
+import {
+  GENERAL_THROTTLE_LIMIT,
+  THROTTLE_TTL_MS,
+} from './config/throttler.config';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ name: 'default', ttl: THROTTLE_TTL_MS, limit: GENERAL_THROTTLE_LIMIT }]),
+    ThrottlerModule.forRoot([
+      { name: 'default', ttl: THROTTLE_TTL_MS, limit: GENERAL_THROTTLE_LIMIT },
+    ]),
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     PrismaModule,
@@ -70,6 +76,7 @@ import { GENERAL_THROTTLE_LIMIT, THROTTLE_TTL_MS } from './config/throttler.conf
     StudentModule,
     StaffModule,
     HiringModule,
+    PromotionsModule,
     HolidaysModule,
     ComplaintsModule,
     ReportCardsModule,
@@ -80,8 +87,6 @@ import { GENERAL_THROTTLE_LIMIT, THROTTLE_TTL_MS } from './config/throttler.conf
     BulkImportModule,
   ],
   controllers: [AppController],
-  providers: [AppService,
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
-  ],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

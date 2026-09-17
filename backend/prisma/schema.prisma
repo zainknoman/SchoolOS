@@ -32,6 +32,15 @@ enum EnrollmentStatus {
   ACTIVE
   TRANSFERRED
   COMPLETED
+  WITHDRAWN
+}
+
+enum PromotionDecision {
+  PROMOTED
+  RETAINED
+  TRANSFERRED_OUT
+  GRADUATED
+  WITHDRAWN
 }
 
 enum ConversationRecipientType {
@@ -153,6 +162,7 @@ model User {
   staff                      Staff?
   verifiedStaffDocuments     StaffDocument[]
   reviewedHiringApplications HiringApplication[]
+  promotionsDecided          StudentPromotion[]
 
   @@index([role])
   @@index([schoolId])
@@ -454,6 +464,7 @@ model Student {
   attendanceRiskFlag AttendanceRiskFlag?
   marks              Mark[]
   application        Application?
+  promotions         StudentPromotion[]
   createdAt          DateTime                  @default(now())
   updatedAt          DateTime                  @updatedAt
 
@@ -476,12 +487,31 @@ model Enrollment {
   rollNumber        String?
   promotionDate     DateTime?
   remarks           String?
+  promotedFrom      StudentPromotion? @relation("PromotionFromEnrollment")
+  promotedTo        StudentPromotion? @relation("PromotionToEnrollment")
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
   @@index([studentId])
   @@index([sectionId])
   @@index([campusId])
+}
+
+model StudentPromotion {
+  id               String            @id @default(uuid())
+  studentId        String
+  student          Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fromEnrollmentId String            @unique
+  fromEnrollment   Enrollment        @relation("PromotionFromEnrollment", fields: [fromEnrollmentId], references: [id], onDelete: Restrict)
+  toEnrollmentId   String?           @unique
+  toEnrollment     Enrollment?       @relation("PromotionToEnrollment", fields: [toEnrollmentId], references: [id], onDelete: Restrict)
+  decision         PromotionDecision
+  remarks          String?
+  decidedById      String
+  decidedBy        User              @relation(fields: [decidedById], references: [id])
+  decidedAt        DateTime          @default(now())
+
+  @@index([studentId])
 }
 
 model ParentProfile {

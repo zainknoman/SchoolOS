@@ -1,6 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { StudentProfileService } from './student-profile.service';
+import { PromotionsService } from '../promotions/promotions.service';
 import { UpdateStudentProfileDto } from './dto/update-student-profile.dto';
 import { UpdateCurrentEnrollmentDto } from './dto/update-current-enrollment.dto';
 import { UpdateStudentPreviousSchoolDto } from './dto/update-student-previous-school.dto';
@@ -19,7 +30,10 @@ interface AuthenticatedRequest extends Request {
 @Controller('api/v1/admin/students/:studentId')
 @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
 export class StudentProfileController {
-  constructor(private readonly service: StudentProfileService) {}
+  constructor(
+    private readonly service: StudentProfileService,
+    private readonly promotionsService: PromotionsService,
+  ) {}
 
   @Get('profile')
   getProfile(@Param('studentId') studentId: string) {
@@ -83,7 +97,12 @@ export class StudentProfileController {
     @Body() dto: UpdateStudentEmergencyContactDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.service.updateEmergencyContact(studentId, contactId, dto, req.user.id);
+    return this.service.updateEmergencyContact(
+      studentId,
+      contactId,
+      dto,
+      req.user.id,
+    );
   }
 
   @Delete('emergency-contacts/:contactId')
@@ -92,7 +111,11 @@ export class StudentProfileController {
     @Param('contactId') contactId: string,
     @Req() req: AuthenticatedRequest,
   ) {
-    await this.service.deleteEmergencyContact(studentId, contactId, req.user.id);
+    await this.service.deleteEmergencyContact(
+      studentId,
+      contactId,
+      req.user.id,
+    );
   }
 
   @Get('documents')
@@ -116,6 +139,16 @@ export class StudentProfileController {
     @Body() dto: VerifyStudentDocumentDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.service.verifyDocument(studentId, documentId, dto.verified, req.user.id);
+    return this.service.verifyDocument(
+      studentId,
+      documentId,
+      dto.verified,
+      req.user.id,
+    );
+  }
+
+  @Get('promotion-history')
+  getPromotionHistory(@Param('studentId') studentId: string) {
+    return this.promotionsService.getPromotionHistory(studentId);
   }
 }

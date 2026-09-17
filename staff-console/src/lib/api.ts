@@ -290,6 +290,33 @@ export interface LeaveRequestSummary {
   createdAt: string;
 }
 
+export interface PromotionPreviewRow {
+  studentId: string;
+  name: string;
+  grNumber: string;
+  currentRollNumber: string | null;
+  suggestedDecision: 'PROMOTED';
+}
+
+export type PromotionDecision = 'PROMOTED' | 'RETAINED' | 'TRANSFERRED_OUT' | 'GRADUATED' | 'WITHDRAWN';
+
+export interface PromotionDecisionInput {
+  studentId: string;
+  decision: PromotionDecision;
+  targetSectionId?: string;
+  rollNumber?: string;
+  remarks?: string;
+}
+
+export interface PromotionHistoryRow {
+  id: string;
+  decision: PromotionDecision;
+  decidedAt: string;
+  remarks: string | null;
+  from: { sectionName: string; className: string; sessionLabel: string };
+  to: { sectionName: string; className: string; sessionLabel: string } | null;
+}
+
 export interface FeeStructureSummary {
   id: string;
   name: string;
@@ -1267,6 +1294,33 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+  },
+
+  async previewPromotions(accessToken: string, sourceSectionId: string): Promise<PromotionPreviewRow[]> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/promotions/preview?sourceSectionId=${encodeURIComponent(sourceSectionId)}`,
+      { headers: authHeaders(accessToken) },
+    );
+    return asJson(res);
+  },
+
+  async executePromotions(
+    accessToken: string,
+    payload: { sourceAcademicSessionId: string; targetAcademicSessionId: string; decisions: PromotionDecisionInput[] },
+  ): Promise<{ processed: number }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/promotions/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async getPromotionHistory(accessToken: string, studentId: string): Promise<PromotionHistoryRow[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${studentId}/promotion-history`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
   },
 
   async listFeeStructures(accessToken: string): Promise<FeeStructureSummary[]> {

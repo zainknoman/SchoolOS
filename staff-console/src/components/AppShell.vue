@@ -71,6 +71,7 @@ function onSidebarKeydown(event: KeyboardEvent) {
 const isTeacher = computed(() => auth.role === 'TEACHER');
 const isAdmin = computed(() => ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'].includes(auth.role ?? ''));
 const canManageLeave = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
+const canManagePromotions = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManageOrgStructure = computed(() => auth.role === 'SUPER_ADMIN');
 const canManagePeople = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 // Fixes a real pre-existing bug (PROJECT-STATUS.md): the nav used to show Circulars/Timetable to
@@ -477,6 +478,9 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
             <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />{{ t('nav.fees') }}</RouterLink>
             <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"
               ><Icon name="calendar" />{{ t('nav.leave') }}</RouterLink
+            >
+            <RouterLink v-if="canManagePromotions" data-testid="nav-promotions" to="/admin/promotions"
+              ><Icon name="calendar" />{{ t('nav.promotions') }}</RouterLink
             >
             <RouterLink v-if="canManageHolidays" data-testid="nav-holidays" to="/admin/holidays"
               ><Icon name="calendar" />{{ t('nav.holidays') }}</RouterLink

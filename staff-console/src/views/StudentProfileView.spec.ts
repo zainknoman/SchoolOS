@@ -51,6 +51,7 @@ vi.mock('../lib/api', () => ({
     filePreviewUrl: vi.fn(),
     addStudentDocument: vi.fn(),
     verifyStudentDocument: vi.fn(),
+    getPromotionHistory: vi.fn(),
   },
 }));
 
@@ -60,6 +61,9 @@ describe('StudentProfileView', () => {
     const auth = useAuthStore();
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
+    // Fetched unconditionally on mount alongside the profile itself; give it a harmless default
+    // so tests that don't care about academic history don't have to stub it individually.
+    vi.mocked(api.getPromotionHistory).mockResolvedValue([]);
     vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
     // jsdom has no object-URL implementation; the top-right photo avatar previews the
     // chosen file locally before it finishes uploading.
@@ -461,4 +465,56 @@ describe('StudentProfileView', () => {
     expect(wrapper.find('[data-testid="reject-document-d1"]').exists()).toBe(false);
   });
 
+});
+
+describe('Academic History', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    const auth = useAuthStore();
+    auth.accessToken = 'token-1';
+    Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
+  });
+
+  const promotionHistoryRow = {
+    id: 'ph1',
+    decision: 'PROMOTED' as const,
+    decidedAt: '2026-06-01T00:00:00.000Z',
+    remarks: null,
+    from: { sectionName: '3A', className: 'Grade 3', sessionLabel: '2025-2026' },
+    to: { sectionName: '4B', className: 'Grade 4', sessionLabel: '2026-2027' },
+  };
+
+  it('loads and shows the promotion history as a from/to summary with decision and date', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile());
+    vi.mocked(api.getPromotionHistory).mockResolvedValue([promotionHistoryRow]);
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(api.getPromotionHistory).toHaveBeenCalledWith('token-1', 's1');
+    expect(wrapper.text()).toContain('Grade 3 · 3A · 2025-2026 → Grade 4 · 4B · 2026-2027');
+    expect(wrapper.text()).toContain('Promoted');
+    expect(wrapper.text()).toContain('2026-06-01');
+  });
+
+  it('shows "No academic history on file" when there is none', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile());
+    vi.mocked(api.getPromotionHistory).mockResolvedValue([]);
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('No academic history on file');
+  });
+
+  it('shows an error when academic history fails to load', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile());
+    vi.mocked(api.getPromotionHistory).mockRejectedValue(new Error('Could not load academic history.'));
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="academic-history-error"]').text()).toContain('Could not load academic history.');
+  });
 });

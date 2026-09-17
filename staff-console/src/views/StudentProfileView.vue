@@ -3,7 +3,7 @@
 import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { api, type AddressInput, type StudentProfileDetail } from '../lib/api';
+import { api, type AddressInput, type StudentProfileDetail, type PromotionHistoryRow, type PromotionDecision } from '../lib/api';
 import { GENDER_OPTIONS, STUDENT_STATUS_OPTIONS, BLOOD_GROUP_OPTIONS, DOCUMENT_TYPE_OPTIONS } from '../lib/student-profile.constants';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
@@ -17,6 +17,7 @@ import { initialsFromName } from '../lib/format';
 const PROFILE_TABS = [
   { id: 'profile', label: 'Profile' },
   { id: 'enrollment', label: 'Current Enrollment' },
+  { id: 'academic-history', label: 'Academic History' },
   { id: 'previous-school', label: 'Previous School' },
   { id: 'contacts', label: 'Emergency Contacts' },
   { id: 'medical', label: 'Medical / Welfare' },
@@ -210,6 +211,43 @@ async function onSaveEnrollment() {
   } finally {
     isSavingEnrollment.value = false;
   }
+}
+
+// --- Academic History section (read-only promotion decisions) --------------------------------
+const promotionHistory = ref<PromotionHistoryRow[]>([]);
+const academicHistoryErrorMessage = ref<string | null>(null);
+
+async function loadAcademicHistory() {
+  if (!auth.accessToken) return;
+  try {
+    promotionHistory.value = await api.getPromotionHistory(auth.accessToken, studentId);
+  } catch (err) {
+    academicHistoryErrorMessage.value = err instanceof Error ? err.message : 'Could not load academic history.';
+  }
+}
+loadAcademicHistory();
+
+const DECISION_LABELS: Record<PromotionDecision, string> = {
+  PROMOTED: 'Promoted',
+  RETAINED: 'Retained',
+  TRANSFERRED_OUT: 'Transferred out',
+  GRADUATED: 'Graduated',
+  WITHDRAWN: 'Withdrawn',
+};
+
+function decisionLabel(decision: PromotionDecision): string {
+  return DECISION_LABELS[decision];
+}
+
+function decisionTone(decision: PromotionDecision): 'success' | 'warning' | 'critical' | 'info' {
+  if (decision === 'PROMOTED' || decision === 'GRADUATED') return 'success';
+  if (decision === 'RETAINED') return 'warning';
+  if (decision === 'WITHDRAWN') return 'critical';
+  return 'info';
+}
+
+function promotionLegLabel(leg: PromotionHistoryRow['from'] | PromotionHistoryRow['to']): string {
+  return leg ? `${leg.className} · ${leg.sectionName} · ${leg.sessionLabel}` : '—';
 }
 
 // --- Previous School section ------------------------------------------------------------------
@@ -624,6 +662,35 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
             </div>
           </div>
         </template>
+      </section>
+        </template>
+        <template #tab-academic-history>
+      <section class="profile-section">
+        <div class="section-header">
+          <h2>Academic History</h2>
+        </div>
+        <p v-if="academicHistoryErrorMessage" class="error" role="alert" data-testid="academic-history-error">{{ academicHistoryErrorMessage }}</p>
+
+        <p v-if="!promotionHistory.length">No academic history on file.</p>
+        <EntityTable
+          v-else
+          :items="promotionHistory"
+          :columns="[
+            { key: 'summary', label: 'Promotion' },
+            { key: 'decision', label: 'Decision' },
+            { key: 'decidedAt', label: 'Date' },
+            { key: 'remarks', label: 'Remarks' },
+          ]"
+          row-key="id"
+          :editing-id="null"
+        >
+          <template #cell-summary="{ item }">{{ promotionLegLabel(item.from) }} → {{ promotionLegLabel(item.to) }}</template>
+          <template #cell-decision="{ item }">
+            <StatusPill :tone="decisionTone(item.decision)" :label="decisionLabel(item.decision)" />
+          </template>
+          <template #cell-decidedAt="{ item }">{{ item.decidedAt.slice(0, 10) }}</template>
+          <template #cell-remarks="{ item }">{{ item.remarks ?? '—' }}</template>
+        </EntityTable>
       </section>
         </template>
         <template #tab-previous-school>
