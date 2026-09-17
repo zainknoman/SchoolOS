@@ -69,34 +69,42 @@ export class CampusService {
     dto: CreateCampusDto,
     actingUserId: string,
   ): Promise<CampusSummary> {
-    const record = await this.prisma.campus
-      .create({
+    // The Campus row and its audit-log entry are wrapped in one $transaction so a bad
+    // actingUserId (e.g. a stale/orphaned session) rolls back the Campus row too, instead of
+    // silently persisting a Campus with no audit trail while the caller sees a 500.
+    const record = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.campus
+        .create({
+          data: {
+            ...dto,
+            openingDate: dto.openingDate
+              ? new Date(dto.openingDate)
+              : undefined,
+          },
+          include: WITH_SCHOOL,
+        })
+        .catch((error: unknown) => {
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === 'P2002'
+          ) {
+            return assertCreatable(
+              error,
+              'This campus code is already in use for this school.',
+            );
+          }
+          return assertValidReferences(error, 'Invalid school reference.');
+        });
+      await tx.auditLog.create({
         data: {
-          ...dto,
-          openingDate: dto.openingDate ? new Date(dto.openingDate) : undefined,
+          userId: actingUserId,
+          action: 'campus.create',
+          entity: 'Campus',
+          entityId: created.id,
+          metadata: JSON.stringify(dto),
         },
-        include: WITH_SCHOOL,
-      })
-      .catch((error: unknown) => {
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002'
-        ) {
-          return assertCreatable(
-            error,
-            'This campus code is already in use for this school.',
-          );
-        }
-        return assertValidReferences(error, 'Invalid school reference.');
       });
-    await this.prisma.auditLog.create({
-      data: {
-        userId: actingUserId,
-        action: 'campus.create',
-        entity: 'Campus',
-        entityId: record.id,
-        metadata: JSON.stringify(dto),
-      },
+      return created;
     });
     return this.toSummary(record);
   }
@@ -131,32 +139,38 @@ export class CampusService {
       throw new NotFoundException('Campus not found');
     }
     const { openingDate, ...rest } = dto;
-    let record: Parameters<CampusService['toSummary']>[0];
-    try {
-      record = await this.prisma.campus.update({
-        where: { id },
+    // The Campus row and its audit-log entry are wrapped in one $transaction so a bad
+    // actingUserId (e.g. a stale/orphaned session) rolls back the Campus update too, instead of
+    // silently persisting the update with no audit trail while the caller sees a 500.
+    const record = await this.prisma.$transaction(async (tx) => {
+      let updated: Parameters<CampusService['toSummary']>[0];
+      try {
+        updated = await tx.campus.update({
+          where: { id },
+          data: {
+            ...rest,
+            ...(openingDate !== undefined
+              ? { openingDate: new Date(openingDate) }
+              : {}),
+          },
+          include: WITH_SCHOOL,
+        });
+      } catch (error) {
+        assertCreatable(
+          error,
+          'This campus code is already in use for this school.',
+        );
+      }
+      await tx.auditLog.create({
         data: {
-          ...rest,
-          ...(openingDate !== undefined
-            ? { openingDate: new Date(openingDate) }
-            : {}),
+          userId: actingUserId,
+          action: 'campus.update',
+          entity: 'Campus',
+          entityId: id,
+          metadata: JSON.stringify(dto),
         },
-        include: WITH_SCHOOL,
       });
-    } catch (error) {
-      assertCreatable(
-        error,
-        'This campus code is already in use for this school.',
-      );
-    }
-    await this.prisma.auditLog.create({
-      data: {
-        userId: actingUserId,
-        action: 'campus.update',
-        entity: 'Campus',
-        entityId: id,
-        metadata: JSON.stringify(dto),
-      },
+      return updated;
     });
     return this.toSummary(record);
   }
@@ -166,18 +180,23 @@ export class CampusService {
     if (!existing) {
       throw new NotFoundException('Campus not found');
     }
-    try {
-      await this.prisma.campus.delete({ where: { id } });
-    } catch (error) {
-      assertDeletable(error, 'Campus');
-    }
-    await this.prisma.auditLog.create({
-      data: {
-        userId: actingUserId,
-        action: 'campus.delete',
-        entity: 'Campus',
-        entityId: id,
-      },
+    // The delete and its audit-log entry are wrapped in one $transaction so a bad actingUserId
+    // (e.g. a stale/orphaned session) rolls back the delete too, instead of silently deleting the
+    // Campus with no audit trail while the caller sees a 500.
+    await this.prisma.$transaction(async (tx) => {
+      try {
+        await tx.campus.delete({ where: { id } });
+      } catch (error) {
+        assertDeletable(error, 'Campus');
+      }
+      await tx.auditLog.create({
+        data: {
+          userId: actingUserId,
+          action: 'campus.delete',
+          entity: 'Campus',
+          entityId: id,
+        },
+      });
     });
   }
 }

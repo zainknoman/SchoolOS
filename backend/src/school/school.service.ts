@@ -59,33 +59,39 @@ export class SchoolService {
     dto: CreateSchoolDto,
     actingUserId: string,
   ): Promise<SchoolSummary> {
-    let record: Parameters<SchoolService['withStats']>[0];
-    try {
-      record = await this.prisma.school.create({
+    // The School row and its audit-log entry are wrapped in one $transaction so a bad
+    // actingUserId (e.g. a stale/orphaned session) rolls back the School row too, instead of
+    // silently persisting a School with no audit trail while the caller sees a 500.
+    const record = await this.prisma.$transaction(async (tx) => {
+      let created: Parameters<SchoolService['withStats']>[0];
+      try {
+        created = await tx.school.create({
+          data: {
+            ...dto,
+            establishedDate: dto.establishedDate
+              ? new Date(dto.establishedDate)
+              : undefined,
+          },
+        });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          assertCreatable(error, 'This school code is already in use.');
+        }
+        assertValidReferences(error, 'Invalid logo or address reference.');
+      }
+      await tx.auditLog.create({
         data: {
-          ...dto,
-          establishedDate: dto.establishedDate
-            ? new Date(dto.establishedDate)
-            : undefined,
+          userId: actingUserId,
+          action: 'school.create',
+          entity: 'School',
+          entityId: created.id,
+          metadata: JSON.stringify(dto),
         },
       });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        assertCreatable(error, 'This school code is already in use.');
-      }
-      assertValidReferences(error, 'Invalid logo or address reference.');
-    }
-    await this.prisma.auditLog.create({
-      data: {
-        userId: actingUserId,
-        action: 'school.create',
-        entity: 'School',
-        entityId: record.id,
-        metadata: JSON.stringify(dto),
-      },
+      return created;
     });
     return this.withStats(record);
   }
@@ -107,34 +113,40 @@ export class SchoolService {
       throw new NotFoundException('School not found');
     }
     const { establishedDate, ...rest } = dto;
-    let record: Parameters<SchoolService['withStats']>[0];
-    try {
-      record = await this.prisma.school.update({
-        where: { id },
+    // The School row and its audit-log entry are wrapped in one $transaction so a bad
+    // actingUserId (e.g. a stale/orphaned session) rolls back the School update too, instead of
+    // silently persisting the update with no audit trail while the caller sees a 500.
+    const record = await this.prisma.$transaction(async (tx) => {
+      let updated: Parameters<SchoolService['withStats']>[0];
+      try {
+        updated = await tx.school.update({
+          where: { id },
+          data: {
+            ...rest,
+            ...(establishedDate !== undefined
+              ? { establishedDate: new Date(establishedDate) }
+              : {}),
+          },
+        });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          assertCreatable(error, 'This school code is already in use.');
+        }
+        assertValidReferences(error, 'Invalid logo or address reference.');
+      }
+      await tx.auditLog.create({
         data: {
-          ...rest,
-          ...(establishedDate !== undefined
-            ? { establishedDate: new Date(establishedDate) }
-            : {}),
+          userId: actingUserId,
+          action: 'school.update',
+          entity: 'School',
+          entityId: id,
+          metadata: JSON.stringify(dto),
         },
       });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        assertCreatable(error, 'This school code is already in use.');
-      }
-      assertValidReferences(error, 'Invalid logo or address reference.');
-    }
-    await this.prisma.auditLog.create({
-      data: {
-        userId: actingUserId,
-        action: 'school.update',
-        entity: 'School',
-        entityId: id,
-        metadata: JSON.stringify(dto),
-      },
+      return updated;
     });
     return this.withStats(record);
   }
@@ -144,18 +156,23 @@ export class SchoolService {
     if (!existing) {
       throw new NotFoundException('School not found');
     }
-    try {
-      await this.prisma.school.delete({ where: { id } });
-    } catch (error) {
-      assertDeletable(error, 'School');
-    }
-    await this.prisma.auditLog.create({
-      data: {
-        userId: actingUserId,
-        action: 'school.delete',
-        entity: 'School',
-        entityId: id,
-      },
+    // The delete and its audit-log entry are wrapped in one $transaction so a bad actingUserId
+    // (e.g. a stale/orphaned session) rolls back the delete too, instead of silently deleting the
+    // School with no audit trail while the caller sees a 500.
+    await this.prisma.$transaction(async (tx) => {
+      try {
+        await tx.school.delete({ where: { id } });
+      } catch (error) {
+        assertDeletable(error, 'School');
+      }
+      await tx.auditLog.create({
+        data: {
+          userId: actingUserId,
+          action: 'school.delete',
+          entity: 'School',
+          entityId: id,
+        },
+      });
     });
   }
 }

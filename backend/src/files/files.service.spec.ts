@@ -9,6 +9,7 @@ describe('FilesService', () => {
   let prisma: {
     file: { create: jest.Mock; findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
+    $transaction: jest.Mock;
   };
   let storage: { save: jest.Mock; read: jest.Mock; delete: jest.Mock };
 
@@ -16,6 +17,7 @@ describe('FilesService', () => {
     prisma = {
       file: { create: jest.fn(), findUnique: jest.fn() },
       auditLog: { create: jest.fn() },
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     storage = { save: jest.fn(), read: jest.fn(), delete: jest.fn() };
     const moduleRef = await Test.createTestingModule({

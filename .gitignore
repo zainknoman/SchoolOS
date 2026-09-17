@@ -8,6 +8,10 @@ plan/*
 
 # --- local git worktrees (scratch, not part of the repo tree) ---
 .worktrees/
+.claude/worktrees/
+
+# --- auto-generated tool hook config, not part of the repo ---
+.github/hooks/
 
 # --- subagent-driven-development scratch (ledger, briefs, review packages) ---
 .superpowers/

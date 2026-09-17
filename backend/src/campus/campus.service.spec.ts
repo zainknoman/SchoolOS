@@ -38,6 +38,7 @@ describe('CampusService', () => {
     enrollment: { count: jest.Mock };
     staff: { count: jest.Mock };
     auditLog: { create: jest.Mock };
+    $transaction: jest.Mock;
   };
 
   const withSchool = { school: { select: { name: true } } };
@@ -55,6 +56,7 @@ describe('CampusService', () => {
       enrollment: { count: jest.fn().mockResolvedValue(0) },
       staff: { count: jest.fn().mockResolvedValue(0) },
       auditLog: { create: jest.fn() },
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     const moduleRef = await Test.createTestingModule({
       providers: [CampusService, { provide: PrismaService, useValue: prisma }],

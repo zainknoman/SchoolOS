@@ -38,6 +38,7 @@ describe('SchoolService', () => {
     enrollment: { count: jest.Mock };
     staff: { count: jest.Mock };
     auditLog: { create: jest.Mock };
+    $transaction: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -53,6 +54,7 @@ describe('SchoolService', () => {
       enrollment: { count: jest.fn().mockResolvedValue(0) },
       staff: { count: jest.fn().mockResolvedValue(0) },
       auditLog: { create: jest.fn() },
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     const moduleRef = await Test.createTestingModule({
       providers: [SchoolService, { provide: PrismaService, useValue: prisma }],
