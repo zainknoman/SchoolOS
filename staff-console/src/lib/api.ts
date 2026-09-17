@@ -48,9 +48,26 @@ export interface SectionSummary {
   classTeacherName?: string | null;
 }
 
+export type OrgStatus = 'ACTIVE' | 'INACTIVE';
+
 export interface SchoolSummary {
   id: string;
   name: string;
+  code: string | null;
+  registrationNumber: string | null;
+  website: string | null;
+  logoFileId: string | null;
+  principalName: string | null;
+  principalPhone: string | null;
+  principalEmail: string | null;
+  establishedDate: string | null;
+  schoolType: string | null;
+  educationBoard: string | null;
+  status: OrgStatus;
+  timezone: string | null;
+  currency: string | null;
+  alternatePhone: string | null;
+  addressId: string | null;
   address: string | null;
   phone: string | null;
   email: string | null;
@@ -64,6 +81,20 @@ export interface CampusSummary {
   name: string;
   schoolId: string;
   schoolName: string;
+  code: string | null;
+  campusType: string | null;
+  logoFileId: string | null;
+  principalName: string | null;
+  principalPhone: string | null;
+  principalEmail: string | null;
+  openingDate: string | null;
+  capacity: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  status: OrgStatus;
+  departments: string[];
+  alternatePhone: string | null;
+  addressId: string | null;
   address: string | null;
   phone: string | null;
   email: string | null;
@@ -849,7 +880,27 @@ export const api = {
 
   async createSchool(
     accessToken: string,
-    payload: { name: string; address?: string; phone?: string; email?: string },
+    payload: {
+      name: string;
+      code?: string;
+      registrationNumber?: string;
+      website?: string;
+      logoFileId?: string;
+      principalName?: string;
+      principalPhone?: string;
+      principalEmail?: string;
+      establishedDate?: string;
+      schoolType?: string;
+      educationBoard?: string;
+      status?: OrgStatus;
+      timezone?: string;
+      currency?: string;
+      alternatePhone?: string;
+      addressId?: string;
+      address?: string;
+      phone?: string;
+      email?: string;
+    },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/schools`, {
       method: 'POST',
@@ -864,7 +915,27 @@ export const api = {
   async updateSchool(
     accessToken: string,
     id: string,
-    payload: { name?: string; address?: string; phone?: string; email?: string },
+    payload: {
+      name?: string;
+      code?: string;
+      registrationNumber?: string;
+      website?: string;
+      logoFileId?: string;
+      principalName?: string;
+      principalPhone?: string;
+      principalEmail?: string;
+      establishedDate?: string;
+      schoolType?: string;
+      educationBoard?: string;
+      status?: OrgStatus;
+      timezone?: string;
+      currency?: string;
+      alternatePhone?: string;
+      addressId?: string;
+      address?: string;
+      phone?: string;
+      email?: string;
+    },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/schools/${id}`, {
       method: 'PATCH',
@@ -893,7 +964,27 @@ export const api = {
 
   async createCampus(
     accessToken: string,
-    payload: { schoolId: string; name: string; address?: string; phone?: string; email?: string },
+    payload: {
+      schoolId: string;
+      name: string;
+      code?: string;
+      campusType?: string;
+      logoFileId?: string;
+      principalName?: string;
+      principalPhone?: string;
+      principalEmail?: string;
+      openingDate?: string;
+      capacity?: number;
+      latitude?: number;
+      longitude?: number;
+      status?: OrgStatus;
+      departments?: string[];
+      alternatePhone?: string;
+      addressId?: string;
+      address?: string;
+      phone?: string;
+      email?: string;
+    },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/campuses`, {
       method: 'POST',
@@ -908,7 +999,26 @@ export const api = {
   async updateCampus(
     accessToken: string,
     id: string,
-    payload: { name?: string; address?: string; phone?: string; email?: string },
+    payload: {
+      name?: string;
+      code?: string;
+      campusType?: string;
+      logoFileId?: string;
+      principalName?: string;
+      principalPhone?: string;
+      principalEmail?: string;
+      openingDate?: string;
+      capacity?: number;
+      latitude?: number;
+      longitude?: number;
+      status?: OrgStatus;
+      departments?: string[];
+      alternatePhone?: string;
+      addressId?: string;
+      address?: string;
+      phone?: string;
+      email?: string;
+    },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/campuses/${id}`, {
       method: 'PATCH',

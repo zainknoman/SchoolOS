@@ -15,9 +15,40 @@ const CURRENT_END = new Date('2027-06-30');
 const PREVIOUS_START = new Date('2025-08-01');
 const PREVIOUS_END = new Date('2026-06-30');
 const schoolsDef = [
-  { name: 'Beacon House', branches: ['Gulshan Campus', 'PECHS Campus', 'North Nazimabad Campus'] },
-  { name: 'The City School', branches: ['PAF Chapter', 'Gulshan Campus'] },
+  {
+    name: 'Beacon House',
+    code: 'BH',
+    registrationNumber: 'REG-BH-2010-001',
+    website: 'https://beaconhouse.example.edu.pk',
+    principalName: 'Dr. Ayesha Rahman',
+    principalPhone: '021-111-2222',
+    principalEmail: 'principal@bh.schoolportal.local',
+    establishedDate: new Date('1975-04-01'),
+    schoolType: 'PRIVATE',
+    educationBoard: 'Cambridge',
+    timezone: 'Asia/Karachi',
+    currency: 'PKR',
+    alternatePhone: '021-111-2223',
+    branches: ['Gulshan Campus', 'PECHS Campus', 'North Nazimabad Campus'],
+  },
+  {
+    name: 'The City School',
+    code: 'TCS',
+    registrationNumber: 'REG-TCS-2010-001',
+    website: 'https://thecityschool.example.edu.pk',
+    principalName: 'Mr. Bilal Chaudhry',
+    principalPhone: '021-333-4444',
+    principalEmail: 'principal@tcs.schoolportal.local',
+    establishedDate: new Date('1978-09-01'),
+    schoolType: 'PRIVATE',
+    educationBoard: 'Federal Board',
+    timezone: 'Asia/Karachi',
+    currency: 'PKR',
+    alternatePhone: '021-333-4445',
+    branches: ['PAF Chapter', 'Gulshan Campus'],
+  },
 ];
+const CAMPUS_DEPARTMENTS = ['Academics', 'Administration', 'Accounts'];
 const grades = Array.from({ length: 8 }, (_, i) => `Grade ${i + 1}`);
 const subjectsDef = ['Mathematics', 'English', 'Urdu', 'Science', 'Social Studies', 'Computer', 'Islamiyat', 'Art'];
 const statuses = ['PRESENT', 'ABSENT', 'LATE', 'LEAVE', 'HOLIDAY'] as const;
@@ -31,10 +62,40 @@ async function main() {
 
   const campusIndex = new Map<string, number>();
   for (const def of schoolsDef) {
-    const school = { id: randomUUID(), name: def.name };
+    const school = {
+      id: randomUUID(),
+      name: def.name,
+      code: def.code,
+      registrationNumber: def.registrationNumber,
+      website: def.website,
+      principalName: def.principalName,
+      principalPhone: def.principalPhone,
+      principalEmail: def.principalEmail,
+      establishedDate: def.establishedDate,
+      schoolType: def.schoolType,
+      educationBoard: def.educationBoard,
+      timezone: def.timezone,
+      currency: def.currency,
+      alternatePhone: def.alternatePhone,
+    };
     schools.push(school);
     await prisma.school.create({ data: school });
-    const branchRows = def.branches.map(name => ({ id: randomUUID(), schoolId: school.id, name: `${def.name} - ${name}` }));
+    const branchRows = def.branches.map((name, i) => ({
+      id: randomUUID(),
+      schoolId: school.id,
+      name: `${def.name} - ${name}`,
+      code: `${def.code}-${i + 1}`,
+      campusType: i === 0 ? 'MAIN' : 'BRANCH',
+      principalName: `${name} Head of Campus`,
+      principalPhone: `${def.principalPhone.slice(0, -1)}${(i + 1) % 10}`,
+      principalEmail: `principal.${def.code.toLowerCase()}${i + 1}@schoolportal.local`,
+      openingDate: new Date(`${1980 + i * 3}-01-15`),
+      capacity: 800 + i * 100,
+      latitude: 24.86 + i * 0.015,
+      longitude: 67.0 + i * 0.015,
+      departments: CAMPUS_DEPARTMENTS,
+      alternatePhone: `${def.alternatePhone.slice(0, -1)}${(i + 2) % 10}`,
+    }));
     branchRows.forEach((row, i) => campusIndex.set(row.id, i + 1));
     campuses.push(...branchRows);
     await prisma.campus.createMany({ data: branchRows });

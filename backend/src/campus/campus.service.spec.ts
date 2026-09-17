@@ -1,8 +1,28 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { OrgStatus, Prisma } from '@prisma/client';
 import { CampusService } from './campus.service';
 import { PrismaService } from '../prisma/prisma.service';
+
+// Default values for the profile fields added on top of the original id/name/schoolId/address/
+// phone/email columns, used to keep fixtures realistic without hand-repeating every field in
+// every test.
+const NEW_PROFILE_FIELDS = {
+  code: null,
+  campusType: null,
+  logoFileId: null,
+  principalName: null,
+  principalPhone: null,
+  principalEmail: null,
+  openingDate: null,
+  capacity: null,
+  latitude: null,
+  longitude: null,
+  status: OrgStatus.ACTIVE,
+  departments: [],
+  alternatePhone: null,
+  addressId: null,
+};
 
 describe('CampusService', () => {
   let service: CampusService;
@@ -47,6 +67,7 @@ describe('CampusService', () => {
       id: 'c1',
       name: 'Gulistan-e-Jauhar',
       schoolId: 's1',
+      ...NEW_PROFILE_FIELDS,
       address: '45 Main Rd',
       phone: '021-222',
       email: 'gulistan@seeds.edu',
@@ -56,7 +77,13 @@ describe('CampusService', () => {
     prisma.staff.count.mockResolvedValue(6);
 
     const result = await service.create(
-      { schoolId: 's1', name: 'Gulistan-e-Jauhar', address: '45 Main Rd', phone: '021-222', email: 'gulistan@seeds.edu' },
+      {
+        schoolId: 's1',
+        name: 'Gulistan-e-Jauhar',
+        address: '45 Main Rd',
+        phone: '021-222',
+        email: 'gulistan@seeds.edu',
+      },
       'admin-1',
     );
 
@@ -65,17 +92,28 @@ describe('CampusService', () => {
       name: 'Gulistan-e-Jauhar',
       schoolId: 's1',
       schoolName: 'The Seeds School',
+      ...NEW_PROFILE_FIELDS,
       address: '45 Main Rd',
       phone: '021-222',
       email: 'gulistan@seeds.edu',
       studentCount: 80,
       staffCount: 6,
     });
-    expect(prisma.enrollment.count).toHaveBeenCalledWith({ where: { status: 'ACTIVE', campusId: 'c1' } });
-    expect(prisma.staff.count).toHaveBeenCalledWith({ where: { campusId: 'c1' } });
+    expect(prisma.enrollment.count).toHaveBeenCalledWith({
+      where: { status: 'ACTIVE', campusId: 'c1' },
+    });
+    expect(prisma.staff.count).toHaveBeenCalledWith({
+      where: { campusId: 'c1' },
+    });
     expect(prisma.campus.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { schoolId: 's1', name: 'Gulistan-e-Jauhar', address: '45 Main Rd', phone: '021-222', email: 'gulistan@seeds.edu' },
+        data: {
+          schoolId: 's1',
+          name: 'Gulistan-e-Jauhar',
+          address: '45 Main Rd',
+          phone: '021-222',
+          email: 'gulistan@seeds.edu',
+        },
         include: withSchool,
       }),
     );
@@ -87,6 +125,46 @@ describe('CampusService', () => {
         }),
       }),
     );
+  });
+
+  it('passes every new profile field through to prisma.campus.create', async () => {
+    const dto = {
+      schoolId: 's1',
+      name: 'Full Fields Campus',
+      code: 'FFC',
+      campusType: 'Primary',
+      logoFileId: 'file-1',
+      principalName: 'Jane Doe',
+      principalPhone: '021-999',
+      principalEmail: 'principal@ffc.edu',
+      openingDate: '2010-08-15',
+      capacity: 500,
+      latitude: 24.86,
+      longitude: 67.01,
+      status: OrgStatus.ACTIVE,
+      departments: ['Science', 'Arts'],
+      alternatePhone: '021-888',
+      addressId: 'addr-1',
+      address: '123 Main St',
+      phone: '021-111',
+      email: 'info@ffc.edu',
+    };
+    prisma.campus.create.mockResolvedValue({
+      id: 'c2',
+      ...dto,
+      openingDate: new Date('2010-08-15'),
+      school: { name: 'The Seeds School' },
+    });
+
+    await service.create(dto, 'admin-1');
+
+    expect(prisma.campus.create).toHaveBeenCalledWith({
+      data: {
+        ...dto,
+        openingDate: new Date('2010-08-15'),
+      },
+      include: withSchool,
+    });
   });
 
   it('translates a foreign-key violation on create into a BadRequestException (invalid schoolId)', async () => {
@@ -102,12 +180,60 @@ describe('CampusService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it('translates a unique-constraint violation on create into a BadRequestException (duplicate code for this school)', async () => {
+    prisma.campus.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    );
+
+    await expect(
+      service.create(
+        { schoolId: 's1', name: 'Duplicate Code Campus', code: 'MAIN' },
+        'admin-1',
+      ),
+    ).rejects.toThrow(
+      new BadRequestException(
+        'This campus code is already in use for this school.',
+      ),
+    );
+  });
+
+  it('allows a second campus in a different school to reuse the same code', async () => {
+    prisma.campus.create.mockResolvedValue({
+      id: 'c3',
+      name: 'Other School Campus',
+      schoolId: 's2',
+      ...NEW_PROFILE_FIELDS,
+      code: 'MAIN',
+      address: null,
+      phone: null,
+      email: null,
+      school: { name: 'Another School' },
+    });
+
+    const result = await service.create(
+      { schoolId: 's2', name: 'Other School Campus', code: 'MAIN' },
+      'admin-1',
+    );
+
+    expect(result.code).toBe('MAIN');
+    expect(result.schoolId).toBe('s2');
+    expect(prisma.campus.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ schoolId: 's2', code: 'MAIN' }),
+      }),
+    );
+  });
+
   it('lists every campus for a SUPER_ADMIN without a schoolId lookup', async () => {
     prisma.campus.findMany.mockResolvedValue([
       {
         id: 'c1',
         name: 'Gulistan-e-Jauhar',
         schoolId: 's1',
+        ...NEW_PROFILE_FIELDS,
         address: null,
         phone: null,
         email: null,
@@ -123,6 +249,7 @@ describe('CampusService', () => {
         name: 'Gulistan-e-Jauhar',
         schoolId: 's1',
         schoolName: 'The Seeds School',
+        ...NEW_PROFILE_FIELDS,
         address: null,
         phone: null,
         email: null,
@@ -143,6 +270,7 @@ describe('CampusService', () => {
         id: 'c1',
         name: 'Gulistan-e-Jauhar',
         schoolId: 's1',
+        ...NEW_PROFILE_FIELDS,
         address: null,
         phone: null,
         email: null,
@@ -158,6 +286,7 @@ describe('CampusService', () => {
         name: 'Gulistan-e-Jauhar',
         schoolId: 's1',
         schoolName: 'The Seeds School',
+        ...NEW_PROFILE_FIELDS,
         address: null,
         phone: null,
         email: null,
@@ -184,18 +313,27 @@ describe('CampusService', () => {
       id: 'c1',
       name: 'Old Name',
       schoolId: 's1',
+      ...NEW_PROFILE_FIELDS,
+      address: null,
+      phone: null,
+      email: null,
     });
     prisma.campus.update.mockResolvedValue({
       id: 'c1',
       name: 'New Name',
       schoolId: 's1',
+      ...NEW_PROFILE_FIELDS,
       address: 'New Address',
       phone: null,
       email: null,
       school: { name: 'The Seeds School' },
     });
 
-    const result = await service.update('c1', { name: 'New Name', address: 'New Address' }, 'admin-1');
+    const result = await service.update(
+      'c1',
+      { name: 'New Name', address: 'New Address' },
+      'admin-1',
+    );
 
     expect(result.name).toBe('New Name');
     expect(result.address).toBe('New Address');
@@ -205,6 +343,36 @@ describe('CampusService', () => {
         data: { name: 'New Name', address: 'New Address' },
       }),
     );
+  });
+
+  it('update() with only { name } does not touch any new profile field', async () => {
+    prisma.campus.findUnique.mockResolvedValue({
+      id: 'c1',
+      name: 'Old Name',
+      schoolId: 's1',
+      ...NEW_PROFILE_FIELDS,
+      address: null,
+      phone: null,
+      email: null,
+    });
+    prisma.campus.update.mockResolvedValue({
+      id: 'c1',
+      name: 'New Name',
+      schoolId: 's1',
+      ...NEW_PROFILE_FIELDS,
+      address: null,
+      phone: null,
+      email: null,
+      school: { name: 'The Seeds School' },
+    });
+
+    await service.update('c1', { name: 'New Name' }, 'admin-1');
+
+    expect(prisma.campus.update).toHaveBeenCalledWith({
+      where: { id: 'c1' },
+      data: { name: 'New Name' },
+      include: withSchool,
+    });
   });
 
   it('throws NotFoundException updating a campus that does not exist', async () => {

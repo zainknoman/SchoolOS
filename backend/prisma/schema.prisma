@@ -43,6 +43,11 @@ enum PromotionDecision {
   WITHDRAWN
 }
 
+enum OrgStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum ConversationRecipientType {
   CLASS_TEACHER
   SCHOOL_ADMIN
@@ -183,15 +188,32 @@ model RefreshToken {
 // --- School structure -----------------------------------------------------
 
 model School {
-  id        String   @id @default(uuid())
-  name      String
-  address   String?
-  phone     String?
-  email     String?
-  campuses  Campus[]
-  users     User[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  name               String
+  code               String?   @unique
+  registrationNumber String?
+  website            String?
+  logoFileId         String?
+  logo               File?     @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
+  principalName      String?
+  principalPhone     String?
+  principalEmail     String?
+  establishedDate    DateTime?
+  schoolType         String?
+  educationBoard     String?
+  status             OrgStatus @default(ACTIVE)
+  timezone           String?   @default("Asia/Karachi")
+  currency           String?   @default("PKR")
+  alternatePhone     String?
+  addressId          String?
+  structuredAddress  Address?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  address            String?
+  phone              String?
+  email              String?
+  campuses           Campus[]
+  users              User[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
 
 model Campus {
@@ -199,6 +221,22 @@ model Campus {
   schoolId           String
   school             School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   name               String
+  code               String?
+  campusType         String?
+  logoFileId         String?
+  logo               File?               @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
+  principalName      String?
+  principalPhone     String?
+  principalEmail     String?
+  openingDate        DateTime?
+  capacity           Int?
+  latitude           Float?
+  longitude          Float?
+  status             OrgStatus           @default(ACTIVE)
+  departments        String[]            @default([])
+  alternatePhone     String?
+  addressId          String?
+  structuredAddress  Address?            @relation(fields: [addressId], references: [id], onDelete: SetNull)
   address            String?
   phone              String?
   email              String?
@@ -212,6 +250,7 @@ model Campus {
   updatedAt          DateTime            @updatedAt
 
   @@index([schoolId])
+  @@unique([schoolId, code])
 }
 
 model AcademicSession {
@@ -561,6 +600,8 @@ model Address {
   staffCurrent           Staff[]                   @relation("StaffCurrentAddress")
   staffPermanent         Staff[]                   @relation("StaffPermanentAddress")
   staffEmergencyContacts StaffEmergencyContact[]
+  schools                School[]
+  campuses               Campus[]
   createdAt              DateTime                  @default(now())
   updatedAt              DateTime                  @updatedAt
 }
@@ -881,6 +922,8 @@ model File {
   staffProfilePhotos     Staff[]
   staffDocuments         StaffDocument[]
   hiringCandidateResumes HiringCandidate[]
+  schoolLogos            School[]
+  campusLogos            Campus[]
   createdAt              DateTime             @default(now())
 }
 
