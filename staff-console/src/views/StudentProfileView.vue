@@ -9,7 +9,7 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import EntityTable from '../components/EntityTable.vue';
 import StatusPill from '../components/StatusPill.vue';
-import Tabs from '../components/Tabs.vue';
+import Tabs from '../components/AppTabs.vue';
 import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
 import { initialsFromName } from '../lib/format';

@@ -6,7 +6,7 @@ import { api, type AddressInput, type StaffProfileDetail } from '../lib/api';
 import { GENDER_OPTIONS, EMPLOYMENT_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS } from '../lib/staff-profile.constants';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
-import Tabs from '../components/Tabs.vue';
+import Tabs from '../components/AppTabs.vue';
 import { initialsFromName } from '../lib/format';
 import EntityTable from '../components/EntityTable.vue';
 import { useConfirm } from '../lib/useConfirm';
