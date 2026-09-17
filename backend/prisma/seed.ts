@@ -62,12 +62,33 @@ async function main() {
 
   const campusIndex = new Map<string, number>();
   for (const def of schoolsDef) {
+    const schoolAddress = {
+      id: randomUUID(),
+      line1: `${def.name} Head Office, Shahrah-e-Faisal`,
+      area: 'Clifton',
+      city: 'Karachi',
+      district: 'Karachi',
+      province: 'Sindh',
+      postalCode: '75600',
+      country: 'Pakistan',
+    };
+    await prisma.address.create({ data: schoolAddress });
+    const schoolLogo = {
+      id: randomUUID(),
+      storageKey: `seed-logo-${def.code.toLowerCase()}.png`,
+      originalName: `${def.code}-logo.png`,
+      mimeType: 'image/png',
+      sizeBytes: 4096,
+    };
+    await prisma.file.create({ data: schoolLogo });
+
     const school = {
       id: randomUUID(),
       name: def.name,
       code: def.code,
       registrationNumber: def.registrationNumber,
       website: def.website,
+      logoFileId: schoolLogo.id,
       principalName: def.principalName,
       principalPhone: def.principalPhone,
       principalEmail: def.principalEmail,
@@ -77,15 +98,41 @@ async function main() {
       timezone: def.timezone,
       currency: def.currency,
       alternatePhone: def.alternatePhone,
+      addressId: schoolAddress.id,
+      address: schoolAddress.line1,
+      phone: def.principalPhone,
+      email: `info@${def.code.toLowerCase()}.schoolportal.local`,
     };
     schools.push(school);
     await prisma.school.create({ data: school });
+
+    const campusAddresses = def.branches.map((name) => ({
+      id: randomUUID(),
+      line1: `${name} Building, Main Boulevard`,
+      area: name.replace(' Campus', '').replace(' Chapter', ''),
+      city: 'Karachi',
+      district: 'Karachi',
+      province: 'Sindh',
+      postalCode: '75500',
+      country: 'Pakistan',
+    }));
+    await prisma.address.createMany({ data: campusAddresses });
+    const campusLogos = def.branches.map((_name, i) => ({
+      id: randomUUID(),
+      storageKey: `seed-logo-${def.code.toLowerCase()}-${i + 1}.png`,
+      originalName: `${def.code}-${i + 1}-logo.png`,
+      mimeType: 'image/png',
+      sizeBytes: 4096,
+    }));
+    await prisma.file.createMany({ data: campusLogos });
+
     const branchRows = def.branches.map((name, i) => ({
       id: randomUUID(),
       schoolId: school.id,
       name: `${def.name} - ${name}`,
       code: `${def.code}-${i + 1}`,
       campusType: i === 0 ? 'MAIN' : 'BRANCH',
+      logoFileId: campusLogos[i].id,
       principalName: `${name} Head of Campus`,
       principalPhone: `${def.principalPhone.slice(0, -1)}${(i + 1) % 10}`,
       principalEmail: `principal.${def.code.toLowerCase()}${i + 1}@schoolportal.local`,
@@ -95,6 +142,10 @@ async function main() {
       longitude: 67.0 + i * 0.015,
       departments: CAMPUS_DEPARTMENTS,
       alternatePhone: `${def.alternatePhone.slice(0, -1)}${(i + 2) % 10}`,
+      addressId: campusAddresses[i].id,
+      address: campusAddresses[i].line1,
+      phone: `${def.principalPhone.slice(0, -1)}${(i + 1) % 10}`,
+      email: `campus.${def.code.toLowerCase()}${i + 1}@schoolportal.local`,
     }));
     branchRows.forEach((row, i) => campusIndex.set(row.id, i + 1));
     campuses.push(...branchRows);
