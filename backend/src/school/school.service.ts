@@ -1,8 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { OrgStatus } from '@prisma/client';
+import { OrgStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
-import { assertCreatable } from '../common/prisma-create-guard';
+import {
+  assertCreatable,
+  assertValidReferences,
+} from '../common/prisma-create-guard';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 
@@ -67,7 +70,13 @@ export class SchoolService {
         },
       });
     } catch (error) {
-      assertCreatable(error, 'This school code is already in use.');
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        assertCreatable(error, 'This school code is already in use.');
+      }
+      assertValidReferences(error, 'Invalid logo or address reference.');
     }
     await this.prisma.auditLog.create({
       data: {
@@ -110,7 +119,13 @@ export class SchoolService {
         },
       });
     } catch (error) {
-      assertCreatable(error, 'This school code is already in use.');
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        assertCreatable(error, 'This school code is already in use.');
+      }
+      assertValidReferences(error, 'Invalid logo or address reference.');
     }
     await this.prisma.auditLog.create({
       data: {
