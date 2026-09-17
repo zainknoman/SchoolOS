@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/auth';
 import { api, type ApplicationSummary, type SectionSummary, type ParentSummary } from '../lib/api';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import AppModal from '../components/AppModal.vue';
 
 const auth = useAuthStore();
 const route = useRoute();
@@ -16,6 +17,8 @@ const parents = ref<ParentSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
 const isMarkingUnderReview = ref(false);
+const showRejectModal = ref(false);
+const showApproveModal = ref(false);
 
 const rejectDecisionNotes = ref('');
 const isRejecting = ref(false);
@@ -65,6 +68,7 @@ async function onReject() {
   isRejecting.value = true;
   try {
     application.value = await api.rejectApplication(auth.accessToken, applicationId, rejectDecisionNotes.value.trim());
+    showRejectModal.value = false;
   } catch (err) {
     rejectErrorMessage.value = err instanceof Error ? err.message : 'Could not reject this application.';
   } finally {
@@ -96,6 +100,7 @@ async function onApprove() {
           }
         : { parentProfileId: newParentProfileId.value }),
     });
+    showApproveModal.value = false;
   } catch (err) {
     approveErrorMessage.value = err instanceof Error ? err.message : 'Could not approve this application.';
   } finally {
@@ -115,67 +120,77 @@ async function onApprove() {
       <p v-if="application.decisionNotes"><strong>Decision notes:</strong> {{ application.decisionNotes }}</p>
 
       <template v-if="application.status !== 'APPROVED' && application.status !== 'REJECTED'">
-        <Button data-testid="mark-under-review" :disabled="isMarkingUnderReview" @click="onMarkUnderReview">
-          Mark Under Review
-        </Button>
-
-        <section class="sub-form">
-          <h2>Reject</h2>
-          <p v-if="rejectErrorMessage" class="error" role="alert">{{ rejectErrorMessage }}</p>
-          <FormField
-            v-model="rejectDecisionNotes"
-            label="Decision notes"
-            type="text"
-            data-testid="reject-decision-notes"
-            placeholder="Reason for rejection"
-            grow
-          />
-          <Button data-testid="reject-submit" variant="secondary" :disabled="isRejecting" @click="onReject">
+        <div class="inline-form">
+          <Button data-testid="mark-under-review" :disabled="isMarkingUnderReview" @click="onMarkUnderReview">
+            Mark Under Review
+          </Button>
+          <Button data-testid="open-reject-modal" variant="secondary" @click="showRejectModal = true">
             Reject
           </Button>
-        </section>
+          <Button data-testid="open-approve-modal" @click="showApproveModal = true">
+            Approve
+          </Button>
+        </div>
 
-        <section class="sub-form">
-          <h2>Approve</h2>
-          <p v-if="approveErrorMessage" class="error" role="alert">{{ approveErrorMessage }}</p>
-          <div class="inline-form">
-            <FormField v-model="approveGrNumber" label="GR number" type="text" data-testid="approve-gr-number" placeholder="GR number" grow />
+        <AppModal v-model="showRejectModal" title="Reject Application">
+          <div class="add-form">
+            <p v-if="rejectErrorMessage" class="error" role="alert">{{ rejectErrorMessage }}</p>
             <FormField
-              v-model="approveSectionId"
-              label="Section"
-              type="select"
-              data-testid="approve-section"
-              placeholder="Choose a section"
-              :options="sections.map((sec) => ({ value: sec.id, label: `${sec.className} ${sec.name} (${sec.campusName})` }))"
+              v-model="rejectDecisionNotes"
+              label="Decision notes"
+              type="text"
+              data-testid="reject-decision-notes"
+              placeholder="Reason for rejection"
+              grow
             />
+            <Button data-testid="reject-submit" variant="secondary" :disabled="isRejecting" @click="onReject">
+              Reject
+            </Button>
           </div>
+        </AppModal>
 
-          <FormField
-            v-model="useNewParent"
-            label="+ New Parent (instead of picking an existing one)"
-            type="checkbox"
-            data-testid="toggle-new-parent"
-          />
+        <AppModal v-model="showApproveModal" title="Approve Application">
+          <div class="add-form">
+            <p v-if="approveErrorMessage" class="error" role="alert">{{ approveErrorMessage }}</p>
+            <div class="form-grid">
+              <FormField v-model="approveGrNumber" label="GR number" type="text" data-testid="approve-gr-number" placeholder="GR number" grow />
+              <FormField
+                v-model="approveSectionId"
+                label="Section"
+                type="select"
+                data-testid="approve-section"
+                placeholder="Choose a section"
+                :options="sections.map((sec) => ({ value: sec.id, label: `${sec.className} ${sec.name} (${sec.campusName})` }))"
+              />
+            </div>
 
-          <div v-if="!useNewParent" class="inline-form">
             <FormField
-              v-model="newParentProfileId"
-              label="Parent"
-              type="select"
-              data-testid="add-parent-select"
-              placeholder="Choose a parent"
-              :options="parents.map((p) => ({ value: p.id, label: `${p.name} (${p.identifier})` }))"
+              v-model="useNewParent"
+              label="+ New Parent (instead of picking an existing one)"
+              type="checkbox"
+              data-testid="toggle-new-parent"
             />
-          </div>
-          <div v-else class="inline-form">
-            <FormField v-model="newParentIdentifier" label="Parent login email" type="text" data-testid="new-parent-identifier" placeholder="Parent login email" grow />
-            <FormField v-model="newParentPassword" label="Initial password" type="password" data-testid="new-parent-password" placeholder="Initial password" grow />
-            <FormField v-model="newParentName" label="Parent full name" type="text" data-testid="new-parent-name" placeholder="Parent full name" grow />
-            <FormField v-model="newParentPhone" label="Phone" type="text" data-testid="new-parent-phone" placeholder="Phone (optional)" grow />
-          </div>
 
-          <Button data-testid="approve-submit" :disabled="isApproving" @click="onApprove">Approve</Button>
-        </section>
+            <div v-if="!useNewParent" class="form-grid">
+              <FormField
+                v-model="newParentProfileId"
+                label="Parent"
+                type="select"
+                data-testid="add-parent-select"
+                placeholder="Choose a parent"
+                :options="parents.map((p) => ({ value: p.id, label: `${p.name} (${p.identifier})` }))"
+              />
+            </div>
+            <div v-else class="form-grid">
+              <FormField v-model="newParentIdentifier" label="Parent login email" type="text" data-testid="new-parent-identifier" placeholder="Parent login email" grow />
+              <FormField v-model="newParentPassword" label="Initial password" type="password" data-testid="new-parent-password" placeholder="Initial password" grow />
+              <FormField v-model="newParentName" label="Parent full name" type="text" data-testid="new-parent-name" placeholder="Parent full name" grow />
+              <FormField v-model="newParentPhone" label="Phone" type="text" data-testid="new-parent-phone" placeholder="Phone (optional)" grow />
+            </div>
+
+            <Button data-testid="approve-submit" :disabled="isApproving" @click="onApprove">Approve</Button>
+          </div>
+        </AppModal>
       </template>
     </div>
   </div>
@@ -194,17 +209,20 @@ async function onApprove() {
   flex-direction: column;
   gap: var(--space-3);
 }
-.sub-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-3);
-}
 .inline-form {
   display: flex;
   align-items: flex-end;
   gap: var(--space-2);
   flex-wrap: wrap;
+}
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-2);
 }
 </style>

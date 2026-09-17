@@ -203,4 +203,58 @@ describe('Bulk import (e2e)', () => {
       expect(res.body.createdCount).toBe(1);
     });
   });
+
+  describe('Staff bulk import', () => {
+    it('commit creates a non-teacher staff member with no login row', async () => {
+      const adminToken = await loginAs('bi-admin');
+      const csv = `name,employeeType,campusId,dateOfBirth,cnic,mobile,email,joiningDate,loginIdentifier\nBI Guard,GUARD,${ids.campus},,,,,,\n`;
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/bulk-import/staff/commit')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .attach('file', Buffer.from(csv), 'staff.csv')
+        .expect(201);
+      expect(res.body.createdCount).toBe(1);
+    });
+
+    it('commit creates a linked Teacher+User for employeeType TEACHER, and rejects a row missing loginIdentifier', async () => {
+      const adminToken = await loginAs('bi-admin');
+      const badCsv = `name,employeeType,campusId,dateOfBirth,cnic,mobile,email,joiningDate,loginIdentifier\nBI Teacher Hire,TEACHER,${ids.campus},,,,,,\n`;
+      await request(app.getHttpServer())
+        .post('/api/v1/bulk-import/staff/commit')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .attach('file', Buffer.from(badCsv), 'staff.csv')
+        .expect(400);
+
+      const goodCsv = `name,employeeType,campusId,dateOfBirth,cnic,mobile,email,joiningDate,loginIdentifier\nBI Teacher Hire,TEACHER,${ids.campus},,,,,,bi-staff-teacher\n`;
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/bulk-import/staff/commit')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .attach('file', Buffer.from(goodCsv), 'staff.csv')
+        .expect(201);
+      expect(res.body.createdCount).toBe(1);
+
+      const createdUser = await prisma.user.findUnique({ where: { identifier: 'bi-staff-teacher' } });
+      expect(createdUser).not.toBeNull();
+    });
+  });
+
+  describe('Sample file download', () => {
+    it.each(['students', 'parents', 'teachers', 'staff'])('returns a CSV sample for %s', async (entity) => {
+      const adminToken = await loginAs('bi-admin');
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/bulk-import/${entity}/sample`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(res.headers['content-type']).toContain('text/csv');
+      expect(res.text.split('\n')[0]!.length).toBeGreaterThan(0);
+    });
+
+    it('rejects an unknown entity', async () => {
+      const adminToken = await loginAs('bi-admin');
+      await request(app.getHttpServer())
+        .get('/api/v1/bulk-import/not-a-real-entity/sample')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(400);
+    });
+  });
 });

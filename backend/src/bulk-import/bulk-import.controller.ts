@@ -1,12 +1,14 @@
 // backend/src/bulk-import/bulk-import.controller.ts
-import { BadRequestException, Controller, Post, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Post, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { StudentsBulkImportService } from './students-bulk-import.service';
 import { ParentsBulkImportService } from './parents-bulk-import.service';
 import { TeachersBulkImportService } from './teachers-bulk-import.service';
+import { StaffBulkImportService } from './staff-bulk-import.service';
+import { BULK_IMPORT_SAMPLES } from './sample';
 import type { RequestUser } from '../common/student-access.service';
 
 interface AuthenticatedRequest extends Request {
@@ -32,7 +34,19 @@ export class BulkImportController {
     private readonly studentsService: StudentsBulkImportService,
     private readonly parentsService: ParentsBulkImportService,
     private readonly teachersService: TeachersBulkImportService,
+    private readonly staffService: StaffBulkImportService,
   ) {}
+
+  @Get(':entity/sample')
+  downloadSample(@Param('entity') entity: string, @Res() res: Response) {
+    const csv = BULK_IMPORT_SAMPLES[entity];
+    if (!csv) {
+      throw new BadRequestException(`Unknown bulk-import entity "${entity}"`);
+    }
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${entity}-sample.csv"`);
+    res.send(csv);
+  }
 
   @Post('students/preview')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
@@ -83,6 +97,25 @@ export class BulkImportController {
   async commitTeachers(@UploadedFile() file: Express.Multer.File, @Req() req: AuthenticatedRequest) {
     try {
       return await this.teachersService.commit(file.buffer, req.user.id);
+    } catch (error) {
+      if (error instanceof Error && 'rows' in error) {
+        throw new BadRequestException({ message: error.message, rows: (error as Error & { rows: unknown }).rows });
+      }
+      throw error;
+    }
+  }
+
+  @Post('staff/preview')
+  @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
+  previewStaff(@UploadedFile() file: Express.Multer.File) {
+    return this.staffService.preview(file.buffer);
+  }
+
+  @Post('staff/commit')
+  @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
+  async commitStaff(@UploadedFile() file: Express.Multer.File, @Req() req: AuthenticatedRequest) {
+    try {
+      return await this.staffService.commit(file.buffer, req.user.id);
     } catch (error) {
       if (error instanceof Error && 'rows' in error) {
         throw new BadRequestException({ message: error.message, rows: (error as Error & { rows: unknown }).rows });

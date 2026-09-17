@@ -245,7 +245,6 @@ const goToItems = computed<CmdkGoTo[]>(() => {
       { testid: 'cmdk-students', label: 'Students', icon: 'users', to: '/admin/students' },
       { testid: 'cmdk-staff', label: 'Staff', icon: 'users', to: '/admin/staff' },
       { testid: 'cmdk-parents', label: 'Parents', icon: 'user-circle', to: '/admin/parents' },
-      { testid: 'cmdk-teachers', label: 'Teachers', icon: 'chalkboard', to: '/admin/teachers' },
     );
   }
   if (canManageHiring.value) {
@@ -454,9 +453,6 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
             <RouterLink data-testid="nav-staff" to="/admin/staff"><Icon name="users" />{{ t('nav.staff') }}</RouterLink>
             <RouterLink data-testid="nav-parents" to="/admin/parents"
               ><Icon name="user-circle" />{{ t('nav.parents') }}</RouterLink
-            >
-            <RouterLink data-testid="nav-teachers" to="/admin/teachers"
-              ><Icon name="chalkboard" />{{ t('nav.teachers') }}</RouterLink
             >
           </div>
 

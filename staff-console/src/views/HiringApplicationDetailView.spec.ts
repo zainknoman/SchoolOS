@@ -41,7 +41,7 @@ describe('HiringApplicationDetailView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listCampuses).mockResolvedValue([
-      { id: 'cam1', name: 'PECHS Campus', schoolId: 'sch1', schoolName: 'Seeds School' },
+      { id: 'cam1', name: 'PECHS Campus', schoolId: 'sch1', schoolName: 'Seeds School', address: null, phone: null, email: null, studentCount: 0, staffCount: 0 },
     ]);
   });
 
@@ -77,6 +77,7 @@ describe('HiringApplicationDetailView', () => {
     const wrapper = await mountView();
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-reject-modal"]').trigger('click');
     await wrapper.find('[data-testid="reject-decision-notes"]').setValue('Not a fit');
     await wrapper.find('[data-testid="reject-submit"]').trigger('click');
     await flushPromises();
@@ -92,6 +93,7 @@ describe('HiringApplicationDetailView', () => {
     const wrapper = await mountView();
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-approve-modal"]').trigger('click');
     await wrapper.find('[data-testid="approve-mobile"]').setValue('0300-1112233');
     await wrapper.find('[data-testid="approve-submit"]').trigger('click');
     await flushPromises();
@@ -107,6 +109,7 @@ describe('HiringApplicationDetailView', () => {
     const wrapper = await mountView();
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-approve-modal"]').trigger('click');
     expect(wrapper.find('[data-testid="approve-login-identifier"]').exists()).toBe(true);
 
     await wrapper.find('[data-testid="approve-submit"]').trigger('click');

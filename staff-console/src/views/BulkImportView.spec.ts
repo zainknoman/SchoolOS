@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
 
 vi.mock('../lib/api', () => ({
-  api: { previewBulkImport: vi.fn(), commitBulkImport: vi.fn() },
+  api: { previewBulkImport: vi.fn(), commitBulkImport: vi.fn(), downloadBulkImportSample: vi.fn() },
 }));
 
 function setFile(wrapper: ReturnType<typeof mount>, file: File) {
@@ -22,6 +22,29 @@ describe('BulkImportView', () => {
     auth.accessToken = 'token-1';
     vi.mocked(api.previewBulkImport).mockReset();
     vi.mocked(api.commitBulkImport).mockReset();
+    vi.mocked(api.downloadBulkImportSample).mockReset();
+  });
+
+  it('disables the sample download button until an entity is chosen, including the new Staff option', async () => {
+    const wrapper = mount(BulkImportView);
+    const options = wrapper.findAll('option').map((o) => o.text());
+    expect(options).toContain('Staff');
+
+    expect((wrapper.find('[data-testid="download-sample"]').element as HTMLButtonElement).disabled).toBe(true);
+
+    await wrapper.find('[data-testid="select-entity"]').setValue('staff');
+    expect((wrapper.find('[data-testid="download-sample"]').element as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('downloads the sample file for the selected entity', async () => {
+    vi.mocked(api.downloadBulkImportSample).mockResolvedValue(undefined);
+    const wrapper = mount(BulkImportView);
+    await wrapper.find('[data-testid="select-entity"]').setValue('staff');
+
+    await wrapper.find('[data-testid="download-sample"]').trigger('click');
+    await flushPromises();
+
+    expect(api.downloadBulkImportSample).toHaveBeenCalledWith('token-1', 'staff');
   });
 
   it('disables Commit until a preview with zero errors has run', async () => {

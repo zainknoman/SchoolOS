@@ -9,8 +9,20 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import EntityTable from '../components/EntityTable.vue';
 import StatusPill from '../components/StatusPill.vue';
+import Tabs from '../components/Tabs.vue';
+import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
 import { initialsFromName } from '../lib/format';
+
+const PROFILE_TABS = [
+  { id: 'profile', label: 'Profile' },
+  { id: 'enrollment', label: 'Current Enrollment' },
+  { id: 'previous-school', label: 'Previous School' },
+  { id: 'contacts', label: 'Emergency Contacts' },
+  { id: 'medical', label: 'Medical / Welfare' },
+  { id: 'documents', label: 'Documents' },
+];
+const activeTab = ref('profile');
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
@@ -263,6 +275,7 @@ async function onSavePreviousSchool() {
 // --- Emergency Contacts section -----------------------------------------------------------------
 const contactsErrorMessage = ref<string | null>(null);
 const isSavingContact = ref(false);
+const showAddContactModal = ref(false);
 
 const newContact = reactive({ name: '', relationship: '', phone: '', alternatePhone: '', email: '', priority: '1', isPrimary: false });
 function resetNewContact() {
@@ -290,12 +303,18 @@ async function onAddContact() {
       isPrimary: newContact.isPrimary,
     });
     resetNewContact();
+    showAddContactModal.value = false;
     await load();
   } catch (err) {
     contactsErrorMessage.value = err instanceof Error ? err.message : 'Could not add this contact.';
   } finally {
     isSavingContact.value = false;
   }
+}
+
+function openAddContactModal() {
+  contactsErrorMessage.value = null;
+  showAddContactModal.value = true;
 }
 
 const editingContactId = ref<string | null>(null);
@@ -399,6 +418,7 @@ async function onSaveMedicalInfo() {
 // --- Documents section ---------------------------------------------------------------------
 const documentsErrorMessage = ref<string | null>(null);
 const isSavingDocument = ref(false);
+const showAddDocumentModal = ref(false);
 const newDocument = reactive({ documentType: '', expiryDate: '', notes: '' });
 const newDocumentFile = ref<File | null>(null);
 
@@ -427,12 +447,18 @@ async function onAddDocument() {
       notes: newDocument.notes || undefined,
     });
     resetNewDocument();
+    showAddDocumentModal.value = false;
     await load();
   } catch (err) {
     documentsErrorMessage.value = err instanceof Error ? err.message : 'Could not add this document.';
   } finally {
     isSavingDocument.value = false;
   }
+}
+
+function openAddDocumentModal() {
+  documentsErrorMessage.value = null;
+  showAddDocumentModal.value = true;
 }
 
 function documentTone(status: string): 'success' | 'warning' | 'critical' {
@@ -487,6 +513,8 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
     <p v-if="pageErrorMessage" class="error" role="alert">{{ pageErrorMessage }}</p>
 
     <div v-if="profile" class="sections">
+      <Tabs :tabs="PROFILE_TABS" v-model="activeTab">
+        <template #tab-profile>
       <section class="profile-section">
         <div class="section-header">
           <h2>Profile</h2>
@@ -570,7 +598,8 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
           </div>
         </div>
       </section>
-
+        </template>
+        <template #tab-enrollment>
       <section class="profile-section">
         <div class="section-header">
           <h2>Current Enrollment</h2>
@@ -596,7 +625,8 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
           </div>
         </template>
       </section>
-
+        </template>
+        <template #tab-previous-school>
       <section class="profile-section">
         <div class="section-header">
           <h2>Previous School</h2>
@@ -648,9 +678,13 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
           </div>
         </div>
       </section>
-
+        </template>
+        <template #tab-contacts>
       <section class="profile-section">
-        <h2>Emergency Contacts</h2>
+        <div class="section-header">
+          <h2>Emergency Contacts</h2>
+          <Button data-testid="open-add-contact" @click="openAddContactModal">+ Add New</Button>
+        </div>
         <p v-if="contactsErrorMessage" class="error" role="alert">{{ contactsErrorMessage }}</p>
 
         <EntityTable
@@ -696,22 +730,25 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
             </template>
           </template>
         </EntityTable>
-
-        <h3>Add contact</h3>
-        <div class="inline-form">
-          <FormField v-model="newContact.name" label="Name" type="text" data-testid="new-contact-name" placeholder="Name" grow />
-          <FormField v-model="newContact.relationship" label="Relationship" type="text" data-testid="new-contact-relationship" placeholder="Relationship" grow />
-          <FormField v-model="newContact.phone" label="Phone" type="text" data-testid="new-contact-phone" placeholder="Phone" grow />
-        </div>
-        <div class="inline-form">
-          <FormField v-model="newContact.alternatePhone" label="Alternate phone" type="text" data-testid="new-contact-alternatePhone" placeholder="Alternate phone" grow />
-          <FormField v-model="newContact.email" label="Email" type="email" data-testid="new-contact-email" placeholder="Email" grow />
-          <FormField v-model="newContact.priority" label="Priority" type="text" data-testid="new-contact-priority" placeholder="Priority" />
-          <FormField v-model="newContact.isPrimary" label="Primary contact" type="checkbox" data-testid="new-contact-isPrimary" />
-        </div>
-        <Button data-testid="add-contact-submit" :disabled="isSavingContact" @click="onAddContact">Add Contact</Button>
       </section>
 
+      <AppModal v-model="showAddContactModal" title="Add Emergency Contact">
+        <div class="add-form">
+          <p v-if="contactsErrorMessage" class="error" role="alert">{{ contactsErrorMessage }}</p>
+          <div class="form-grid">
+            <FormField v-model="newContact.name" label="Name" type="text" data-testid="new-contact-name" placeholder="Name" grow />
+            <FormField v-model="newContact.relationship" label="Relationship" type="text" data-testid="new-contact-relationship" placeholder="Relationship" grow />
+            <FormField v-model="newContact.phone" label="Phone" type="text" data-testid="new-contact-phone" placeholder="Phone" grow />
+            <FormField v-model="newContact.alternatePhone" label="Alternate phone" type="text" data-testid="new-contact-alternatePhone" placeholder="Alternate phone" grow />
+            <FormField v-model="newContact.email" label="Email" type="email" data-testid="new-contact-email" placeholder="Email" grow />
+            <FormField v-model="newContact.priority" label="Priority" type="text" data-testid="new-contact-priority" placeholder="Priority" />
+          </div>
+          <FormField v-model="newContact.isPrimary" label="Primary contact" type="checkbox" data-testid="new-contact-isPrimary" />
+          <Button data-testid="add-contact-submit" :disabled="isSavingContact" @click="onAddContact">Add Contact</Button>
+        </div>
+      </AppModal>
+        </template>
+        <template #tab-medical>
       <section class="profile-section">
         <div class="section-header">
           <h2>Medical / Welfare Info</h2>
@@ -743,9 +780,13 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
           </div>
         </div>
       </section>
-
+        </template>
+        <template #tab-documents>
       <section class="profile-section">
-        <h2>Documents</h2>
+        <div class="section-header">
+          <h2>Documents</h2>
+          <Button data-testid="open-add-document" @click="openAddDocumentModal">+ Add New</Button>
+        </div>
         <p v-if="documentsErrorMessage" class="error" role="alert">{{ documentsErrorMessage }}</p>
 
         <p v-if="!profile.documents.length">No documents on file.</p>
@@ -773,19 +814,25 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
             </template>
           </template>
         </EntityTable>
-
-        <h3>Add document</h3>
-        <div class="inline-form">
-          <FormField v-model="newDocument.documentType" label="Document type" type="select" data-testid="new-document-type" placeholder="Document type" :options="DOCUMENT_TYPE_OPTIONS" />
-          <FormField v-model="newDocument.expiryDate" label="Expiry date" type="date" data-testid="new-document-expiryDate" />
-        </div>
-        <div class="form-field">
-          <label class="sr-only" for="new-document-file-input">File</label>
-          <input id="new-document-file-input" type="file" data-testid="new-document-file" @change="onNewDocumentFileChange" />
-        </div>
-        <FormField v-model="newDocument.notes" label="Notes" type="textarea" data-testid="new-document-notes" placeholder="Notes" />
-        <Button data-testid="add-document-submit" :disabled="isSavingDocument" @click="onAddDocument">Add Document</Button>
       </section>
+
+      <AppModal v-model="showAddDocumentModal" title="Add Document">
+        <div class="add-form">
+          <p v-if="documentsErrorMessage" class="error" role="alert">{{ documentsErrorMessage }}</p>
+          <div class="form-grid">
+            <FormField v-model="newDocument.documentType" label="Document type" type="select" data-testid="new-document-type" placeholder="Document type" :options="DOCUMENT_TYPE_OPTIONS" />
+            <FormField v-model="newDocument.expiryDate" label="Expiry date" type="date" data-testid="new-document-expiryDate" />
+          </div>
+          <div class="form-field">
+            <label class="sr-only" for="new-document-file-input">File</label>
+            <input id="new-document-file-input" type="file" data-testid="new-document-file" @change="onNewDocumentFileChange" />
+          </div>
+          <FormField v-model="newDocument.notes" label="Notes" type="textarea" data-testid="new-document-notes" placeholder="Notes" />
+          <Button data-testid="add-document-submit" :disabled="isSavingDocument" @click="onAddDocument">Add Document</Button>
+        </div>
+      </AppModal>
+        </template>
+      </Tabs>
     </div>
   </div>
 </template>
@@ -880,6 +927,16 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
 }
 .form-actions {
   display: flex;
+  gap: var(--space-2);
+}
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-2);
 }
 .sr-only {

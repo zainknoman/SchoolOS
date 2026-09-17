@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { EmployeeType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { createStaffWithOptionalTeacher } from '../hiring/create-staff-with-optional-teacher';
+import { assertCreatable } from '../common/prisma-create-guard';
+import { CreateStaffDto } from './dto/create-staff.dto';
 import type { RequestUser } from '../common/student-access.service';
 
 export interface StaffSummary {
@@ -45,5 +48,41 @@ export class StaffService {
       orderBy: { name: 'asc' },
     });
     return records.map((r) => this.toSummary(r));
+  }
+
+  async create(dto: CreateStaffDto, actingUserId: string): Promise<{ id: string; name: string }> {
+    if (dto.employeeType === 'TEACHER' && !dto.login) {
+      throw new BadRequestException('A login identifier/password is required for a Teacher.');
+    }
+
+    let created: { id: string; name: string };
+    try {
+      created = await this.prisma.$transaction((tx) =>
+        createStaffWithOptionalTeacher(tx, {
+          name: dto.name,
+          employeeType: dto.employeeType,
+          campusId: dto.campusId,
+          dateOfBirth: dto.dateOfBirth,
+          cnic: dto.cnic,
+          mobile: dto.mobile,
+          email: dto.email,
+          joiningDate: dto.joiningDate,
+          login: dto.login,
+        }),
+      );
+    } catch (error) {
+      assertCreatable(error, 'This CNIC or login identifier is already in use.');
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'staff.create',
+        entity: 'Staff',
+        entityId: created.id,
+        metadata: JSON.stringify({ ...dto, login: dto.login ? { identifier: dto.login.identifier } : undefined }),
+      },
+    });
+    return created;
   }
 }

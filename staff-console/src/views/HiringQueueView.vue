@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type CampusSummary, type HiringApplicationSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
+import Button from '../components/Button.vue';
+import AppModal from '../components/AppModal.vue';
+import HiringCandidateIntakeView from './HiringCandidateIntakeView.vue';
 
 const STATUS_OPTIONS = [
   { value: 'SUBMITTED', label: 'Submitted' },
@@ -50,11 +53,19 @@ async function init() {
   await loadApplications();
 }
 init();
+
+const showAddModal = ref(false);
+watch(showAddModal, (isOpen) => {
+  if (!isOpen) loadApplications();
+});
 </script>
 
 <template>
   <div class="hiring-queue">
-    <h1>Hiring</h1>
+    <div class="page-header">
+      <h1>Hiring</h1>
+      <Button data-testid="open-add-form" @click="showAddModal = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <div class="filter-row">
@@ -94,12 +105,22 @@ init();
         </RouterLink>
       </template>
     </EntityTable>
+
+    <AppModal v-model="showAddModal" title="Add Hiring Candidate">
+      <HiringCandidateIntakeView />
+    </AppModal>
   </div>
 </template>
 
 <style scoped>
 .hiring-queue {
   max-width: 900px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);

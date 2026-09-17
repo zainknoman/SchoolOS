@@ -80,6 +80,7 @@ describe('ApplicationDetailView', () => {
   it('reject flow calls api.rejectApplication with the entered notes', async () => {
     vi.mocked(api.rejectApplication).mockResolvedValue({ ...applicationFixture, status: 'REJECTED', decisionNotes: 'No seats' });
     const wrapper = await mountView();
+    await wrapper.find('[data-testid="open-reject-modal"]').trigger('click');
     await wrapper.find('[data-testid="reject-decision-notes"]').setValue('No seats');
     await wrapper.find('[data-testid="reject-submit"]').trigger('click');
     await flushPromises();
@@ -90,6 +91,7 @@ describe('ApplicationDetailView', () => {
     vi.mocked(api.approveApplication).mockResolvedValue({ ...applicationFixture, status: 'APPROVED', createdStudentId: 'stu-1' });
     const wrapper = await mountView();
 
+    await wrapper.find('[data-testid="open-approve-modal"]').trigger('click');
     await wrapper.find('[data-testid="approve-gr-number"]').setValue('ADM-STU-1');
     await wrapper.find('[data-testid="approve-section"]').setValue('section-1');
     await wrapper.find('[data-testid="toggle-new-parent"]').setValue(true);
@@ -117,6 +119,7 @@ describe('ApplicationDetailView', () => {
     );
     const wrapper = await mountView();
 
+    await wrapper.find('[data-testid="open-approve-modal"]').trigger('click');
     await wrapper.find('[data-testid="approve-gr-number"]').setValue('ADM-STU-1');
     await wrapper.find('[data-testid="approve-section"]').setValue('section-1');
     await wrapper.find('[data-testid="add-parent-select"]').setValue('parent-1');

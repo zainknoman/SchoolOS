@@ -18,9 +18,25 @@ const entityOptions = [
   { value: 'students', label: 'Students' },
   { value: 'parents', label: 'Parents' },
   { value: 'teachers', label: 'Teachers' },
+  { value: 'staff', label: 'Staff' },
 ];
 
 const canCommit = computed(() => !!preview.value && preview.value.errorCount === 0 && !!selectedFile.value);
+const isDownloadingSample = ref(false);
+const sampleErrorMessage = ref<string | null>(null);
+
+async function onDownloadSample() {
+  if (!auth.accessToken || !selectedEntity.value) return;
+  sampleErrorMessage.value = null;
+  isDownloadingSample.value = true;
+  try {
+    await api.downloadBulkImportSample(auth.accessToken, selectedEntity.value);
+  } catch (err) {
+    sampleErrorMessage.value = err instanceof Error ? err.message : 'Could not download the sample file.';
+  } finally {
+    isDownloadingSample.value = false;
+  }
+}
 
 function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement;
@@ -64,6 +80,7 @@ async function onCommit() {
   <div class="bulk-import">
     <h1>Bulk Import</h1>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+    <p v-if="sampleErrorMessage" class="error" role="alert">{{ sampleErrorMessage }}</p>
     <p v-if="successMessage" class="success" role="status">
       {{ successMessage }}
       <br />
@@ -79,6 +96,14 @@ async function onCommit() {
         placeholder="Choose what to import"
         :options="entityOptions"
       />
+      <Button
+        variant="secondary"
+        data-testid="download-sample"
+        :disabled="!selectedEntity || isDownloadingSample"
+        @click="onDownloadSample"
+      >
+        Download sample file
+      </Button>
       <label class="file-field">
         <span>CSV file</span>
         <input data-testid="select-file" type="file" accept=".csv,text/csv" @change="onFileChange" />
@@ -88,6 +113,7 @@ async function onCommit() {
       </Button>
       <Button data-testid="commit-submit" :disabled="isBusy || !canCommit" @click="onCommit">Commit</Button>
     </div>
+    <p class="hint">Download the sample file for your chosen entity and follow the same column format when uploading.</p>
 
     <table v-if="preview" class="preview-table" data-testid="preview-table">
       <thead>
@@ -128,7 +154,12 @@ async function onCommit() {
   gap: var(--space-2);
   align-items: flex-end;
   flex-wrap: wrap;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+.hint {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--space-3);
 }
 .file-field {
   display: flex;

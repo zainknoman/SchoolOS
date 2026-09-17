@@ -4,10 +4,22 @@ import { PrismaService } from '../prisma/prisma.service';
 
 describe('StaffService', () => {
   let service: StaffService;
-  let prisma: { staff: { findMany: jest.Mock }; user: { findUnique: jest.Mock } };
+  let prisma: {
+    staff: { findMany: jest.Mock; create: jest.Mock };
+    user: { findUnique: jest.Mock };
+    teacher: { create: jest.Mock; findUniqueOrThrow: jest.Mock };
+    auditLog: { create: jest.Mock };
+    $transaction: jest.Mock;
+  };
 
   beforeEach(async () => {
-    prisma = { staff: { findMany: jest.fn() }, user: { findUnique: jest.fn() } };
+    prisma = {
+      staff: { findMany: jest.fn(), create: jest.fn() },
+      user: { findUnique: jest.fn() },
+      teacher: { create: jest.fn(), findUniqueOrThrow: jest.fn() },
+      auditLog: { create: jest.fn() },
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
+    };
     const moduleRef = await Test.createTestingModule({
       providers: [StaffService, { provide: PrismaService, useValue: prisma }],
     }).compile();
@@ -57,5 +69,54 @@ describe('StaffService', () => {
 
     expect(result).toEqual([]);
     expect(prisma.staff.findMany).not.toHaveBeenCalled();
+  });
+
+  describe('create', () => {
+    it('creates a non-teacher staff member with no login/Teacher row', async () => {
+      prisma.staff.create.mockResolvedValue({ id: 'st1', name: 'Nazir Ahmed' });
+
+      const result = await service.create(
+        { name: 'Nazir Ahmed', employeeType: 'JANITORIAL', campusId: 'cam1' },
+        'admin-1',
+      );
+
+      expect(result).toEqual({ id: 'st1', name: 'Nazir Ahmed' });
+      expect(prisma.teacher.create).not.toHaveBeenCalled();
+      expect(prisma.staff.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ teacherId: undefined, userId: undefined }) }),
+      );
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ action: 'staff.create', entityId: 'st1' }) }),
+      );
+    });
+
+    it('rejects a TEACHER hire with no login', async () => {
+      await expect(
+        service.create({ name: 'Ayesha Khan', employeeType: 'TEACHER', campusId: 'cam1' }, 'admin-1'),
+      ).rejects.toThrow('A login identifier/password is required for a Teacher.');
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('creates a linked Teacher+User when employeeType is TEACHER with a login', async () => {
+      prisma.teacher.create.mockResolvedValue({ id: 't1', userId: 'u1', name: 'Ayesha Khan' });
+      prisma.teacher.findUniqueOrThrow.mockResolvedValue({ id: 't1', userId: 'u1' });
+      prisma.staff.create.mockResolvedValue({ id: 'st1', name: 'Ayesha Khan' });
+      (prisma as unknown as { user: { create: jest.Mock } }).user = { create: jest.fn().mockResolvedValue({ id: 'u1' }) };
+
+      const result = await service.create(
+        {
+          name: 'Ayesha Khan',
+          employeeType: 'TEACHER',
+          campusId: 'cam1',
+          login: { identifier: 'ayesha.khan', password: 'a-strong-password' },
+        },
+        'admin-1',
+      );
+
+      expect(result).toEqual({ id: 'st1', name: 'Ayesha Khan' });
+      expect(prisma.staff.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ teacherId: 't1', userId: 'u1' }) }),
+      );
+    });
   });
 });

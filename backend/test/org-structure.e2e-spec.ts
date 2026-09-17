@@ -184,9 +184,13 @@ describe('Org Structure (e2e)', () => {
     const school = await request(app.getHttpServer())
       .post('/api/v1/schools')
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'OS E2E School' })
+      .send({ name: 'OS E2E School', address: '1 School Rd', phone: '021-000', email: 'os@seeds.edu.pk' })
       .expect(201);
     ids.school = school.body.id;
+    expect(school.body.address).toBe('1 School Rd');
+    expect(school.body.campusCount).toBe(0);
+    expect(school.body.studentCount).toBe(0);
+    expect(school.body.staffCount).toBe(0);
     // This file's SCHOOL_ADMIN fixture is created in beforeAll, before any School exists (this
     // very test is what creates one) — set its schoolId now, one-line ahead of upcoming route
     // wiring, same intent as the other e2e fixtures (see commit 3352755).
@@ -198,10 +202,19 @@ describe('Org Structure (e2e)', () => {
     const campus = await request(app.getHttpServer())
       .post('/api/v1/campuses')
       .set('Authorization', `Bearer ${token}`)
-      .send({ schoolId: ids.school, name: 'OS Campus' })
+      .send({ schoolId: ids.school, name: 'OS Campus', address: '2 Campus Rd', phone: '021-111', email: 'campus@seeds.edu.pk' })
       .expect(201);
     ids.campus = campus.body.id;
     expect(campus.body.schoolName).toBe('OS E2E School');
+    expect(campus.body.address).toBe('2 Campus Rd');
+    expect(campus.body.studentCount).toBe(0);
+    expect(campus.body.staffCount).toBe(0);
+
+    const schoolAfterCampus = await request(app.getHttpServer())
+      .get('/api/v1/schools')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(schoolAfterCampus.body.find((s: { id: string }) => s.id === ids.school).campusCount).toBe(1);
 
     const session = await request(app.getHttpServer())
       .post('/api/v1/academic-sessions')

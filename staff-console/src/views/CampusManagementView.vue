@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type CampusSummary, type SchoolSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
@@ -16,12 +16,11 @@ const campuses = ref<CampusSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
 const showAddForm = ref(false);
-const newSchoolId = ref('');
-const newName = ref('');
+const newCampus = reactive({ schoolId: '', name: '', address: '', phone: '', email: '' });
 const isSaving = ref(false);
 
 const editingId = ref<string | null>(null);
-const editName = ref('');
+const editForm = reactive({ name: '', address: '', phone: '', email: '' });
 
 async function load() {
   if (!auth.accessToken) return;
@@ -36,13 +35,27 @@ async function load() {
 }
 load();
 
+function resetAddForm() {
+  newCampus.schoolId = '';
+  newCampus.name = '';
+  newCampus.address = '';
+  newCampus.phone = '';
+  newCampus.email = '';
+}
+
 async function onAdd() {
-  if (!auth.accessToken || !newSchoolId.value || !newName.value.trim()) return;
+  if (!auth.accessToken || !newCampus.schoolId || !newCampus.name.trim()) return;
   errorMessage.value = null;
   isSaving.value = true;
   try {
-    await api.createCampus(auth.accessToken, { schoolId: newSchoolId.value, name: newName.value.trim() });
-    newName.value = '';
+    await api.createCampus(auth.accessToken, {
+      schoolId: newCampus.schoolId,
+      name: newCampus.name.trim(),
+      address: newCampus.address.trim() || undefined,
+      phone: newCampus.phone.trim() || undefined,
+      email: newCampus.email.trim() || undefined,
+    });
+    resetAddForm();
     showAddForm.value = false;
     await load();
   } catch (err) {
@@ -54,7 +67,10 @@ async function onAdd() {
 
 function startEdit(campus: CampusSummary) {
   editingId.value = campus.id;
-  editName.value = campus.name;
+  editForm.name = campus.name;
+  editForm.address = campus.address ?? '';
+  editForm.phone = campus.phone ?? '';
+  editForm.email = campus.email ?? '';
 }
 
 function cancelEdit() {
@@ -62,10 +78,15 @@ function cancelEdit() {
 }
 
 async function onSaveEdit(id: string) {
-  if (!auth.accessToken || !editName.value.trim()) return;
+  if (!auth.accessToken || !editForm.name.trim()) return;
   errorMessage.value = null;
   try {
-    await api.updateCampus(auth.accessToken, id, { name: editName.value.trim() });
+    await api.updateCampus(auth.accessToken, id, {
+      name: editForm.name.trim(),
+      address: editForm.address.trim() || undefined,
+      phone: editForm.phone.trim() || undefined,
+      email: editForm.email.trim() || undefined,
+    });
     editingId.value = null;
     await load();
   } catch (err) {
@@ -96,13 +117,28 @@ async function onDelete(id: string) {
 
     <EntityTable
       :items="campuses"
-      :columns="[{ key: 'name', label: 'Name' }, { key: 'schoolName', label: 'School' }]"
+      :columns="[
+        { key: 'name', label: 'Name' },
+        { key: 'schoolName', label: 'School' },
+        { key: 'address', label: 'Address' },
+        { key: 'phone', label: 'Phone' },
+        { key: 'studentCount', label: 'Students' },
+        { key: 'staffCount', label: 'Staff' },
+      ]"
       row-key="id"
       :editing-id="editingId"
     >
       <template #cell-name="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editForm.name" type="text" />
         <span v-else>{{ item.name }}</span>
+      </template>
+      <template #cell-address="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-address-${item.id}`" v-model="editForm.address" type="text" />
+        <span v-else>{{ item.address ?? '—' }}</span>
+      </template>
+      <template #cell-phone="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-phone-${item.id}`" v-model="editForm.phone" type="text" />
+        <span v-else>{{ item.phone ?? '—' }}</span>
       </template>
       <template #actions="{ item, editing }">
         <template v-if="editing">
@@ -119,16 +155,25 @@ async function onDelete(id: string) {
     </EntityTable>
 
     <AppModal v-model="showAddForm" title="Add Campus">
-      <div class="inline-form">
-        <FormField
-          v-model="newSchoolId"
-          label="School"
-          type="select"
-          data-testid="add-school"
-          placeholder="Choose a school"
-          :options="schools.map((s) => ({ value: s.id, label: s.name }))"
-        />
-        <FormField v-model="newName" label="Campus name" type="text" data-testid="add-name" placeholder="Campus name" grow />
+      <div class="add-form">
+        <div class="inline-form">
+          <FormField
+            v-model="newCampus.schoolId"
+            label="School"
+            type="select"
+            data-testid="add-school"
+            placeholder="Choose a school"
+            :options="schools.map((s) => ({ value: s.id, label: s.name }))"
+          />
+          <FormField v-model="newCampus.name" label="Campus name" type="text" data-testid="add-name" placeholder="Campus name" grow />
+        </div>
+        <div class="inline-form">
+          <FormField v-model="newCampus.address" label="Address" type="text" data-testid="add-address" placeholder="Address" grow />
+        </div>
+        <div class="inline-form">
+          <FormField v-model="newCampus.phone" label="Phone" type="text" data-testid="add-phone" placeholder="Phone" grow />
+          <FormField v-model="newCampus.email" label="Email" type="email" data-testid="add-email" placeholder="Email" grow />
+        </div>
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
     </AppModal>
@@ -137,7 +182,7 @@ async function onDelete(id: string) {
 
 <style scoped>
 .org-entity {
-  max-width: 720px;
+  max-width: 1000px;
 }
 .page-header {
   display: flex;
@@ -148,6 +193,11 @@ async function onDelete(id: string) {
 .error {
   color: var(--color-destructive);
   margin-bottom: var(--space-3);
+}
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 .inline-form {
   display: flex;

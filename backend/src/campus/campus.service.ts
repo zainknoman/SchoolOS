@@ -11,6 +11,11 @@ export interface CampusSummary {
   name: string;
   schoolId: string;
   schoolName: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  studentCount: number;
+  staffCount: number;
 }
 
 const WITH_SCHOOL = { school: { select: { name: true } } } as const;
@@ -19,17 +24,29 @@ const WITH_SCHOOL = { school: { select: { name: true } } } as const;
 export class CampusService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private toSummary(record: {
+  private async toSummary(record: {
     id: string;
     name: string;
     schoolId: string;
+    address: string | null;
+    phone: string | null;
+    email: string | null;
     school: { name: string };
-  }): CampusSummary {
+  }): Promise<CampusSummary> {
+    const [studentCount, staffCount] = await Promise.all([
+      this.prisma.enrollment.count({ where: { status: 'ACTIVE', campusId: record.id } }),
+      this.prisma.staff.count({ where: { campusId: record.id } }),
+    ]);
     return {
       id: record.id,
       name: record.name,
       schoolId: record.schoolId,
       schoolName: record.school.name,
+      address: record.address,
+      phone: record.phone,
+      email: record.email,
+      studentCount,
+      staffCount,
     };
   }
 
@@ -39,7 +56,7 @@ export class CampusService {
   ): Promise<CampusSummary> {
     const record = await this.prisma.campus
       .create({
-        data: { schoolId: dto.schoolId, name: dto.name },
+        data: { schoolId: dto.schoolId, name: dto.name, address: dto.address, phone: dto.phone, email: dto.email },
         include: WITH_SCHOOL,
       })
       .catch((error: unknown) =>
@@ -72,7 +89,7 @@ export class CampusService {
       include: WITH_SCHOOL,
       orderBy: { name: 'asc' },
     });
-    return records.map((r) => this.toSummary(r));
+    return Promise.all(records.map((r) => this.toSummary(r)));
   }
 
   async update(
@@ -86,7 +103,12 @@ export class CampusService {
     }
     const record = await this.prisma.campus.update({
       where: { id },
-      data: { ...(dto.name !== undefined ? { name: dto.name } : {}) },
+      data: {
+        ...(dto.name !== undefined ? { name: dto.name } : {}),
+        ...(dto.address !== undefined ? { address: dto.address } : {}),
+        ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
+        ...(dto.email !== undefined ? { email: dto.email } : {}),
+      },
       include: WITH_SCHOOL,
     });
     await this.prisma.auditLog.create({

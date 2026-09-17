@@ -5,8 +5,11 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
-const PASSWORD = process.env.SEED_PASSWORD;
-if (!PASSWORD) throw new Error('SEED_PASSWORD is required when running the seed.');
+const PASSWORD: string = (() => {
+  const value = process.env.SEED_PASSWORD;
+  if (!value) throw new Error('SEED_PASSWORD is required when running the seed.');
+  return value;
+})();
 const CURRENT_START = new Date('2026-08-01');
 const CURRENT_END = new Date('2027-06-30');
 const PREVIOUS_START = new Date('2025-08-01');
@@ -26,11 +29,13 @@ async function main() {
   const passwordHash = await argon2.hash(PASSWORD);
   const schools: any[] = [], campuses: any[] = [], sessions: any[] = [];
 
+  const campusIndex = new Map<string, number>();
   for (const def of schoolsDef) {
     const school = { id: randomUUID(), name: def.name };
     schools.push(school);
     await prisma.school.create({ data: school });
     const branchRows = def.branches.map(name => ({ id: randomUUID(), schoolId: school.id, name: `${def.name} - ${name}` }));
+    branchRows.forEach((row, i) => campusIndex.set(row.id, i + 1));
     campuses.push(...branchRows);
     await prisma.campus.createMany({ data: branchRows });
     const previous = { id: randomUUID(), label: '2025-2026', startDate: PREVIOUS_START, endDate: PREVIOUS_END, isActive: false };
@@ -63,7 +68,7 @@ async function main() {
       for (const letter of ['A', 'B']) {
         const sectionId = randomUUID(), teacherId = randomUUID(), userId = randomUUID();
         const name = `${letter === 'A' ? 'Ayesha' : 'Hamza'} ${g + 1} Teacher`;
-        users.push({ id: userId, identifier: `${schoolCode(school.name)}.g${g + 1}${letter.toLowerCase()}@schoolportal.local`, passwordHash, role: 'TEACHER', schoolId: school.id });
+        users.push({ id: userId, identifier: `${schoolCode(school.name)}.c${campusIndex.get(campus.id)}.g${g + 1}${letter.toLowerCase()}@schoolportal.local`, passwordHash, role: 'TEACHER', schoolId: school.id });
         teachers.push({ id: teacherId, userId, name, campusId: campus.id });
         staff.push({ id: randomUUID(), userId, name, firstName: name.split(' ')[0], lastName: 'Teacher', employeeType: 'TEACHER', campusId: campus.id, joiningDate: new Date('2022-08-01'), employmentStatus: 'ACTIVE', teacherId });
         sections.push({ id: sectionId, classId, name: `${g + 1}${letter}`, classTeacherId: teacherId });
@@ -77,7 +82,7 @@ async function main() {
   await prisma.section.createMany({ data: sections });
   await prisma.staff.createMany({ data: staff });
 
-  const supportStaff = campuses.flatMap((c, i) => [
+  const supportStaff: any[] = campuses.flatMap((c, i) => [
     { id: randomUUID(), name: `Office Staff ${i + 1}`, employeeType: 'OFFICE_STAFF', campusId: c.id, mobile: `0300-${String(9000000 + i).slice(-7)}`, joiningDate: new Date('2023-01-15'), employmentStatus: 'ACTIVE' },
     { id: randomUUID(), name: `Security Guard ${i + 1}`, employeeType: 'GUARD', campusId: c.id, mobile: `0311-${String(8000000 + i).slice(-7)}`, joiningDate: new Date('2023-03-01'), employmentStatus: 'ACTIVE' },
   ]);
@@ -166,7 +171,7 @@ async function main() {
   await prisma.applicant.createMany({ data: applicants });
   await prisma.application.createMany({ data: applications });
 
-  const candidates = campuses.map((campus, i) => ({ id: randomUUID(), name: `Hiring Candidate ${i + 1}`, dateOfBirth: new Date('1990-04-10'), contactPhone: `0355-${String(7000000 + i).slice(-7)}`, contactEmail: `candidate${i + 1}@schoolportal.local` }));
+  const candidates = campuses.map((_campus, i) => ({ id: randomUUID(), name: `Hiring Candidate ${i + 1}`, dateOfBirth: new Date('1990-04-10'), contactPhone: `0355-${String(7000000 + i).slice(-7)}`, contactEmail: `candidate${i + 1}@schoolportal.local` }));
   await prisma.hiringCandidate.createMany({ data: candidates });
   await prisma.hiringApplication.createMany({ data: candidates.map((c, i) => ({ id: randomUUID(), candidateId: c.id, employeeType: i % 2 ? 'GUARD' : 'OFFICE_STAFF', campusId: campuses[i].id, status: i % 2 ? 'SHORTLISTED' : 'SUBMITTED' })) });
 

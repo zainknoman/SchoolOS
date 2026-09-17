@@ -10,6 +10,9 @@ vi.mock('../lib/api', () => ({
   api: {
     listAcademicSessions: vi.fn(),
     listApplications: vi.fn(),
+    listClasses: vi.fn(),
+    createApplicant: vi.fn(),
+    createApplication: vi.fn(),
   },
 }));
 
@@ -18,6 +21,7 @@ function makeRouter() {
     history: createMemoryHistory(),
     routes: [
       { path: '/admin/admissions', name: 'admin-admissions', component: AdmissionsQueueView },
+      { path: '/admin/admissions/new', name: 'admin-admissions-new', component: { template: '<div>new</div>' } },
       { path: '/admin/admissions/:id', name: 'admin-admission-detail', component: { template: '<div>detail</div>' } },
     ],
   });
@@ -58,6 +62,7 @@ describe('AdmissionsQueueView', () => {
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listAcademicSessions).mockResolvedValue(sessionsFixture);
     vi.mocked(api.listApplications).mockResolvedValue(applicationsFixture);
+    vi.mocked(api.listClasses).mockResolvedValue([]);
   });
 
   it('loads applications for the active session by default', async () => {
@@ -77,6 +82,20 @@ describe('AdmissionsQueueView', () => {
       academicSessionId: 'sess-1',
       status: 'UNDER_REVIEW',
     });
+  });
+
+  it('opens the applicant intake form in a popup, and reloads the list when it is closed', async () => {
+    const wrapper = await mountView();
+    expect(wrapper.find('[data-testid="applicant-name"]').exists()).toBe(false);
+
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="applicant-name"]').exists()).toBe(true);
+
+    vi.mocked(api.listApplications).mockClear();
+    await wrapper.find('[data-testid="modal-close"]').trigger('click');
+    await flushPromises();
+    expect(api.listApplications).toHaveBeenCalled();
   });
 
   it('each row links to the correct detail route', async () => {

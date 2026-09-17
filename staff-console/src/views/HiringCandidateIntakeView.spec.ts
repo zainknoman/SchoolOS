@@ -21,7 +21,7 @@ describe('HiringCandidateIntakeView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listCampuses).mockResolvedValue([
-      { id: 'cam1', name: 'PECHS Campus', schoolId: 'sch1', schoolName: 'Seeds School' },
+      { id: 'cam1', name: 'PECHS Campus', schoolId: 'sch1', schoolName: 'Seeds School', address: null, phone: null, email: null, studentCount: 0, staffCount: 0 },
     ]);
   });
 

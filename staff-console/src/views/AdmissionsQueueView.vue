@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type ApplicationSummary, type AcademicSessionSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
+import Button from '../components/Button.vue';
+import AppModal from '../components/AppModal.vue';
+import ApplicantIntakeView from './ApplicantIntakeView.vue';
 
 const STATUS_OPTIONS = [
   { value: 'SUBMITTED', label: 'Submitted' },
@@ -51,11 +54,19 @@ async function init() {
   await loadApplications();
 }
 init();
+
+const showAddModal = ref(false);
+watch(showAddModal, (isOpen) => {
+  if (!isOpen) loadApplications();
+});
 </script>
 
 <template>
   <div class="admissions-queue">
-    <h1>Admissions</h1>
+    <div class="page-header">
+      <h1>Admissions</h1>
+      <Button data-testid="open-add-form" @click="showAddModal = true">+ Add New</Button>
+    </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <div class="filter-row">
@@ -94,12 +105,22 @@ init();
         </RouterLink>
       </template>
     </EntityTable>
+
+    <AppModal v-model="showAddModal" title="Add Applicant">
+      <ApplicantIntakeView />
+    </AppModal>
   </div>
 </template>
 
 <style scoped>
 .admissions-queue {
   max-width: 900px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);

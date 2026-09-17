@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { api, type StaffAdminSummary } from '../lib/api';
+import { api, type CampusSummary, type NewStaffInput, type StaffAdminSummary } from '../lib/api';
 import { EMPLOYEE_TYPE_OPTIONS } from '../lib/staff-profile.constants.ts';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
+import Button from '../components/Button.vue';
+import AppModal from '../components/AppModal.vue';
 
 const auth = useAuthStore();
 
 const staff = ref<StaffAdminSummary[]>([]);
+const campuses = ref<CampusSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 const selectedEmployeeType = ref('');
 
@@ -17,18 +20,91 @@ async function load() {
   if (!auth.accessToken) return;
   errorMessage.value = null;
   try {
-    staff.value = await api.listAdminStaff(auth.accessToken, selectedEmployeeType.value || undefined);
+    [staff.value, campuses.value] = await Promise.all([
+      api.listAdminStaff(auth.accessToken, selectedEmployeeType.value || undefined),
+      api.listCampuses(auth.accessToken),
+    ]);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load staff.';
   }
 }
 load();
+
+// --- Add New Staff --------------------------------------------------------------------------
+const showAddForm = ref(false);
+const isSaving = ref(false);
+const addErrorMessage = ref<string | null>(null);
+
+const newStaff = reactive({
+  name: '',
+  employeeType: '',
+  campusId: '',
+  dateOfBirth: '',
+  cnic: '',
+  mobile: '',
+  email: '',
+  joiningDate: '',
+  loginIdentifier: '',
+  loginPassword: '',
+});
+
+function resetAddForm() {
+  newStaff.name = '';
+  newStaff.employeeType = '';
+  newStaff.campusId = '';
+  newStaff.dateOfBirth = '';
+  newStaff.cnic = '';
+  newStaff.mobile = '';
+  newStaff.email = '';
+  newStaff.joiningDate = '';
+  newStaff.loginIdentifier = '';
+  newStaff.loginPassword = '';
+  addErrorMessage.value = null;
+}
+
+function openAddForm() {
+  resetAddForm();
+  showAddForm.value = true;
+}
+
+async function onAdd() {
+  if (!auth.accessToken || !newStaff.name.trim() || !newStaff.employeeType || !newStaff.campusId) return;
+  if (newStaff.employeeType === 'TEACHER' && (!newStaff.loginIdentifier.trim() || !newStaff.loginPassword)) {
+    addErrorMessage.value = 'Login email and initial password are required for a Teacher.';
+    return;
+  }
+  addErrorMessage.value = null;
+  isSaving.value = true;
+  try {
+    const payload: NewStaffInput = {
+      name: newStaff.name.trim(),
+      employeeType: newStaff.employeeType as NewStaffInput['employeeType'],
+      campusId: newStaff.campusId,
+      dateOfBirth: newStaff.dateOfBirth || undefined,
+      cnic: newStaff.cnic.trim() || undefined,
+      mobile: newStaff.mobile.trim() || undefined,
+      email: newStaff.email.trim() || undefined,
+      joiningDate: newStaff.joiningDate || undefined,
+      ...(newStaff.employeeType === 'TEACHER'
+        ? { login: { identifier: newStaff.loginIdentifier.trim(), password: newStaff.loginPassword } }
+        : {}),
+    };
+    await api.createStaff(auth.accessToken, payload);
+    showAddForm.value = false;
+    await load();
+  } catch (err) {
+    addErrorMessage.value = err instanceof Error ? err.message : 'Could not create this staff member.';
+  } finally {
+    isSaving.value = false;
+  }
+}
 </script>
 
 <template>
   <div class="org-entity">
     <div class="page-header">
       <h1>Staff</h1>
+      <Button data-testid="open-add-form" @click="openAddForm">+ Add New</Button>
     </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
@@ -59,6 +135,59 @@ load();
         <RouterLink :data-testid="`view-profile-${item.id}`" :to="`/admin/staff/${item.id}`">View Profile</RouterLink>
       </template>
     </EntityTable>
+
+    <AppModal v-model="showAddForm" title="Add Staff">
+      <div class="add-form">
+        <p v-if="addErrorMessage" class="error" role="alert">{{ addErrorMessage }}</p>
+        <div class="form-grid">
+          <FormField v-model="newStaff.name" label="Full name" type="text" data-testid="add-name" placeholder="Full name" grow />
+          <FormField
+            v-model="newStaff.employeeType"
+            label="Employee type"
+            type="select"
+            data-testid="add-employee-type"
+            placeholder="Select employee type"
+            :options="EMPLOYEE_TYPE_OPTIONS"
+          />
+          <FormField
+            v-model="newStaff.campusId"
+            label="Campus"
+            type="select"
+            data-testid="add-campus"
+            placeholder="Select a campus"
+            :options="campuses.map((c) => ({ value: c.id, label: c.name }))"
+          />
+          <FormField v-model="newStaff.dateOfBirth" label="Date of birth" type="date" data-testid="add-dob" />
+          <FormField v-model="newStaff.cnic" label="CNIC" type="text" data-testid="add-cnic" placeholder="CNIC" />
+          <FormField v-model="newStaff.mobile" label="Mobile" type="text" data-testid="add-mobile" placeholder="Mobile" />
+          <FormField v-model="newStaff.email" label="Email" type="email" data-testid="add-email" placeholder="Email" />
+          <FormField v-model="newStaff.joiningDate" label="Joining date" type="date" data-testid="add-joining-date" />
+        </div>
+
+        <div v-if="newStaff.employeeType === 'TEACHER'" class="login-section">
+          <h3>Login credentials</h3>
+          <p class="hint">Required for a Teacher — this creates their staff-console login.</p>
+          <div class="form-grid">
+            <FormField
+              v-model="newStaff.loginIdentifier"
+              label="Login email"
+              type="text"
+              data-testid="add-login-identifier"
+              placeholder="Login email"
+            />
+            <FormField
+              v-model="newStaff.loginPassword"
+              label="Initial password"
+              type="password"
+              data-testid="add-login-password"
+              placeholder="Initial password"
+            />
+          </div>
+        </div>
+
+        <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
+      </div>
+    </AppModal>
   </div>
 </template>
 
@@ -82,5 +211,28 @@ load();
   align-items: flex-end;
   flex-wrap: wrap;
   margin-bottom: var(--space-3);
+}
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-2);
+}
+.login-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-2);
+}
+.login-section h3 {
+  font-size: var(--font-size-sm);
+  margin-bottom: 0.2rem;
+}
+.hint {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--space-2);
 }
 </style>

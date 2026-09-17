@@ -37,7 +37,6 @@ function makeRouter() {
       },
       { path: '/admin/classes', name: 'admin-classes', component: { template: '<div>classes</div>' } },
       { path: '/admin/sections', name: 'admin-sections', component: { template: '<div>sections</div>' } },
-      { path: '/admin/teachers', name: 'admin-teachers', component: { template: '<div>teachers</div>' } },
       { path: '/admin/parents', name: 'admin-parents', component: { template: '<div>parents</div>' } },
       { path: '/admin/students', name: 'admin-students', component: { template: '<div>students</div>' } },
       { path: '/admin/hiring', name: 'admin-hiring', component: { template: '<div>hiring</div>' } },
@@ -100,7 +99,7 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.text()).toContain('Dashboard');
     expect(wrapper.text()).toContain('Students');
     expect(wrapper.text()).toContain('Parents');
-    expect(wrapper.text()).toContain('Teachers');
+    expect(wrapper.text()).toContain('Staff');
     expect(wrapper.text()).toContain('Timetable');
     expect(wrapper.text()).toContain('Circulars');
     expect(wrapper.text()).toContain('Fees');
@@ -158,22 +157,18 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.find('[data-testid="nav-sections"]').exists()).toBe(false);
   });
 
-  it('shows the People CRUD nav links (Teachers/Parents/Students) for a SUPER_ADMIN role', async () => {
+  it('shows the People CRUD nav links (Parents/Students) for a SUPER_ADMIN role', async () => {
     const wrapper = await mountAsRole('SUPER_ADMIN');
 
-    expect(wrapper.find('[data-testid="nav-teachers"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="nav-teachers"]').attributes('href')).toBe('/admin/teachers');
     expect(wrapper.find('[data-testid="nav-parents"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-parents"]').attributes('href')).toBe('/admin/parents');
     expect(wrapper.find('[data-testid="nav-students"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-students"]').attributes('href')).toBe('/admin/students');
   });
 
-  it('shows the People CRUD nav links (Teachers/Parents/Students) for a SCHOOL_ADMIN role', async () => {
+  it('shows the People CRUD nav links (Parents/Students) for a SCHOOL_ADMIN role', async () => {
     const wrapper = await mountAsRole('SCHOOL_ADMIN');
 
-    expect(wrapper.find('[data-testid="nav-teachers"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="nav-teachers"]').attributes('href')).toBe('/admin/teachers');
     expect(wrapper.find('[data-testid="nav-parents"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-parents"]').attributes('href')).toBe('/admin/parents');
     expect(wrapper.find('[data-testid="nav-students"]').exists()).toBe(true);
@@ -207,18 +202,16 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.find('[data-testid="nav-hiring"]').exists()).toBe(false);
   });
 
-  it('hides the People CRUD nav links (Teachers/Parents/Students) for an ACCOUNTS role', async () => {
+  it('hides the People CRUD nav links (Parents/Students) for an ACCOUNTS role', async () => {
     const wrapper = await mountAsRole('ACCOUNTS');
 
-    expect(wrapper.find('[data-testid="nav-teachers"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-parents"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-students"]').exists()).toBe(false);
   });
 
-  it('hides the People CRUD nav links (Teachers/Parents/Students) for a TEACHER role', async () => {
+  it('hides the People CRUD nav links (Parents/Students) for a TEACHER role', async () => {
     const wrapper = await mountAsRole('TEACHER');
 
-    expect(wrapper.find('[data-testid="nav-teachers"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-parents"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-students"]').exists()).toBe(false);
   });

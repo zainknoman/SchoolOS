@@ -70,6 +70,22 @@ describe('StudentProfileView', () => {
     });
   });
 
+  it('renders the profile sections as tabs, showing only the active one', async () => {
+    vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile());
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="tab-profile"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="tab-documents"]').exists()).toBe(true);
+
+    const panels = wrapper.findAll('[role="tabpanel"]');
+    expect((panels[0]!.element as HTMLElement).style.display).not.toBe('none');
+
+    await wrapper.find('[data-testid="tab-documents"]').trigger('click');
+    const panelsAfter = wrapper.findAll('[role="tabpanel"]');
+    expect((panelsAfter[0]!.element as HTMLElement).style.display).toBe('none');
+  });
+
   const activeEnrollment = {
     id: 'enr-1', rollNumber: '12', remarks: null,
     section: { id: 'sec-1', name: '3A', class: { id: 'c-1', name: 'Grade 3', campus: { id: 'cam-1', name: 'PECHS Campus' } } },
@@ -309,6 +325,7 @@ describe('StudentProfileView', () => {
 
     expect(wrapper.text()).toContain('Amina Sample');
 
+    await wrapper.find('[data-testid="open-add-contact"]').trigger('click');
     await wrapper.find('[data-testid="new-contact-name"]').setValue('New Contact');
     await wrapper.find('[data-testid="new-contact-relationship"]').setValue('Uncle');
     await wrapper.find('[data-testid="new-contact-phone"]').setValue('0311-0000000');
@@ -391,6 +408,7 @@ describe('StudentProfileView', () => {
 
     expect(wrapper.text()).toContain('birth-cert.pdf');
 
+    await wrapper.find('[data-testid="open-add-document"]').trigger('click');
     await wrapper.find('[data-testid="new-document-type"]').setValue('CNIC');
     const fileInput = wrapper.find('[data-testid="new-document-file"]');
     const file = new File(['data'], 'cnic.pdf', { type: 'application/pdf' });

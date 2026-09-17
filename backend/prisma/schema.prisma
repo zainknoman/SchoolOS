@@ -175,6 +175,9 @@ model RefreshToken {
 model School {
   id        String   @id @default(uuid())
   name      String
+  address   String?
+  phone     String?
+  email     String?
   campuses  Campus[]
   users     User[]
   createdAt DateTime @default(now())
@@ -186,6 +189,9 @@ model Campus {
   schoolId           String
   school             School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   name               String
+  address            String?
+  phone              String?
+  email              String?
   classes            Class[]
   enrollments        Enrollment[]
   holidays           Holiday[]

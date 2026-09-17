@@ -13,7 +13,7 @@ import { CreateStaffDocumentDto } from './dto/create-staff-document.dto';
 export const STAFF_PROFILE_INCLUDE = {
   currentAddress: true,
   permanentAddress: true,
-  teacher: true,
+  teacher: { include: { user: { select: { identifier: true } } } },
   emergencyContacts: { include: { address: true }, orderBy: { priority: 'asc' as const } },
   experience: { orderBy: { fromDate: 'desc' as const } },
   documents: { include: { file: true }, orderBy: { createdAt: 'desc' as const } },

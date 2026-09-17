@@ -51,6 +51,12 @@ export interface SectionSummary {
 export interface SchoolSummary {
   id: string;
   name: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  campusCount: number;
+  studentCount: number;
+  staffCount: number;
 }
 
 export interface CampusSummary {
@@ -58,6 +64,11 @@ export interface CampusSummary {
   name: string;
   schoolId: string;
   schoolName: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  studentCount: number;
+  staffCount: number;
 }
 
 export interface AcademicSessionSummary {
@@ -580,6 +591,18 @@ export interface StaffAdminSummary {
   campusName: string;
 }
 
+export interface NewStaffInput {
+  name: string;
+  employeeType: StaffAdminSummary['employeeType'];
+  campusId: string;
+  dateOfBirth?: string;
+  cnic?: string;
+  mobile?: string;
+  email?: string;
+  joiningDate?: string;
+  login?: { identifier: string; password: string };
+}
+
 export interface StaffEmergencyContactDetail {
   id: string;
   name: string;
@@ -632,7 +655,7 @@ export interface StaffProfileDetail {
   employmentStatus: 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED' | 'RESIGNED';
   leavingDate: string | null;
   leavingReason: string | null;
-  teacher: { id: string; name: string } | null;
+  teacher: { id: string; name: string; user: { identifier: string } } | null;
   emergencyContacts: StaffEmergencyContactDetail[];
   experience: StaffExperienceDetail[];
   documents: StaffDocumentDetail[];
@@ -711,7 +734,7 @@ export interface BulkImportPreviewResult {
   errorCount: number;
 }
 
-export type BulkImportEntity = 'students' | 'parents' | 'teachers';
+export type BulkImportEntity = 'students' | 'parents' | 'teachers' | 'staff';
 
 function authHeaders(accessToken: string) {
   return { Authorization: `Bearer ${accessToken}` };
@@ -797,7 +820,10 @@ export const api = {
     return asJson(res);
   },
 
-  async createSchool(accessToken: string, payload: { name: string }): Promise<void> {
+  async createSchool(
+    accessToken: string,
+    payload: { name: string; address?: string; phone?: string; email?: string },
+  ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/schools`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
@@ -808,7 +834,11 @@ export const api = {
     }
   },
 
-  async updateSchool(accessToken: string, id: string, payload: { name?: string }): Promise<void> {
+  async updateSchool(
+    accessToken: string,
+    id: string,
+    payload: { name?: string; address?: string; phone?: string; email?: string },
+  ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/schools/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
@@ -834,7 +864,10 @@ export const api = {
     return asJson(res);
   },
 
-  async createCampus(accessToken: string, payload: { schoolId: string; name: string }): Promise<void> {
+  async createCampus(
+    accessToken: string,
+    payload: { schoolId: string; name: string; address?: string; phone?: string; email?: string },
+  ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/campuses`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
@@ -845,7 +878,11 @@ export const api = {
     }
   },
 
-  async updateCampus(accessToken: string, id: string, payload: { name?: string }): Promise<void> {
+  async updateCampus(
+    accessToken: string,
+    id: string,
+    payload: { name?: string; address?: string; phone?: string; email?: string },
+  ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/campuses/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
@@ -1320,20 +1357,6 @@ export const api = {
     return asJson(res);
   },
 
-  async createTeacher(
-    accessToken: string,
-    payload: { identifier: string; password: string; name: string; campusId: string },
-  ): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/api/v1/admin/teachers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      throw new ApiError(await parseErrorMessage(res), res.status);
-    }
-  },
-
   async updateTeacher(
     accessToken: string,
     id: string,
@@ -1575,6 +1598,15 @@ export const api = {
     const suffix = employeeType ? `?employeeType=${encodeURIComponent(employeeType)}` : '';
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff${suffix}`, {
       headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async createStaff(accessToken: string, payload: NewStaffInput): Promise<{ id: string; name: string }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
     });
     return asJson(res);
   },
@@ -2220,5 +2252,23 @@ export const api = {
       throw new ApiError(body?.message ?? 'Import failed.', res.status);
     }
     return res.json();
+  },
+
+  async downloadBulkImportSample(accessToken: string, entity: BulkImportEntity): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/bulk-import/${entity}/sample`, {
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${entity}-sample.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
   },
 };

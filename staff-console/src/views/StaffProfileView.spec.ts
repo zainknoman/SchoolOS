@@ -44,8 +44,10 @@ vi.mock('../lib/api', () => ({
     createStaffExperience: vi.fn(), 
     updateStaffExperience: vi.fn(), 
     deleteStaffExperience: vi.fn(),
-    addStaffDocument: vi.fn(), 
+    addStaffDocument: vi.fn(),
     verifyStaffDocument: vi.fn(),
+    updateTeacher: vi.fn(),
+    deleteTeacher: vi.fn(),
   },
 }));
 
@@ -75,6 +77,22 @@ describe('StaffProfileView', () => {
     expect(wrapper.find('[data-testid="edit-profile"]').exists()).toBe(true);
   });
 
+  it('renders the profile sections as tabs, showing only the active one', async () => {
+    vi.mocked(api.getStaffProfile).mockResolvedValue(baseProfile());
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="tab-profile"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="tab-documents"]').exists()).toBe(true);
+
+    const panels = wrapper.findAll('[role="tabpanel"]');
+    expect((panels[0]!.element as HTMLElement).style.display).not.toBe('none');
+
+    await wrapper.find('[data-testid="tab-documents"]').trigger('click');
+    const panelsAfter = wrapper.findAll('[role="tabpanel"]');
+    expect((panelsAfter[0]!.element as HTMLElement).style.display).toBe('none');
+  });
+
   it('shows a page-level error when the profile fails to load', async () => {
     vi.mocked(api.getStaffProfile).mockRejectedValue(new Error('Staff member not found'));
 
@@ -86,13 +104,48 @@ describe('StaffProfileView', () => {
 
   it('shows the linked teacher account when present', async () => {
     vi.mocked(api.getStaffProfile).mockResolvedValue(
-      baseProfile({ employeeType: 'TEACHER', teacher: { id: 't1', name: 'Ayesha Khan' } }),
+      baseProfile({
+        employeeType: 'TEACHER',
+        teacher: { id: 't1', name: 'Ayesha Khan', user: { identifier: 'ayesha.khan' } },
+      }),
     );
 
     const wrapper = await mountView();
     await flushPromises();
 
     expect(wrapper.text()).toContain('Ayesha Khan');
+  });
+
+  it('shows a Login section with the teacher login email for a linked teacher, and lets an admin reset the password', async () => {
+    vi.mocked(api.getStaffProfile).mockResolvedValue(
+      baseProfile({
+        employeeType: 'TEACHER',
+        teacher: { id: 't1', name: 'Ayesha Khan', user: { identifier: 'ayesha.khan' } },
+      }),
+    );
+    vi.mocked(api.updateTeacher).mockResolvedValue(undefined);
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    const loginSection = wrapper.find('[data-testid="login-section"]');
+    expect(loginSection.exists()).toBe(true);
+    expect(loginSection.text()).toContain('ayesha.khan');
+
+    await wrapper.get('[data-testid="login-new-password"]').setValue('a-new-password');
+    await wrapper.get('[data-testid="login-reset-password"]').trigger('click');
+    await flushPromises();
+
+    expect(api.updateTeacher).toHaveBeenCalledWith('token-1', 't1', { password: 'a-new-password' });
+  });
+
+  it('does not show a Login section for a non-teacher staff member', async () => {
+    vi.mocked(api.getStaffProfile).mockResolvedValue(baseProfile({ employeeType: 'JANITORIAL', teacher: null }));
+
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="login-section"]').exists()).toBe(false);
   });
 
   it('edits identity/contact/employment fields', async () => {
@@ -153,6 +206,7 @@ describe('emergency contacts', () => {
     const wrapper = await mountView();
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-add-contact"]').trigger('click');
     await wrapper.find('[data-testid="new-contact-name"]').setValue('Bushra Ahmed');
     await wrapper.find('[data-testid="new-contact-relationship"]').setValue('Spouse');
     await wrapper.find('[data-testid="new-contact-phone"]').setValue('0300-1112233');
@@ -204,6 +258,7 @@ describe('experience', () => {
     const wrapper = await mountView();
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-add-experience"]').trigger('click');
     await wrapper.find('[data-testid="new-experience-organization"]').setValue('City Grammar School');
     await wrapper.find('[data-testid="new-experience-role"]').setValue('Janitorial Staff');
     await wrapper.find('[data-testid="add-experience-submit"]').trigger('click');
@@ -255,6 +310,7 @@ describe('documents', () => {
     const wrapper = await mountView();
     await flushPromises();
 
+    await wrapper.find('[data-testid="open-add-document"]').trigger('click');
     await wrapper.find('[data-testid="new-document-type"]').setValue('CNIC');
     const fileInput = wrapper.find('[data-testid="new-document-file"]');
     const file = new File(['data'], 'cnic.pdf', { type: 'application/pdf' });

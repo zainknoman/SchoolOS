@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type SchoolSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
@@ -15,11 +15,11 @@ const schools = ref<SchoolSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
 const showAddForm = ref(false);
-const newName = ref('');
+const newSchool = reactive({ name: '', address: '', phone: '', email: '' });
 const isSaving = ref(false);
 
 const editingId = ref<string | null>(null);
-const editName = ref('');
+const editForm = reactive({ name: '', address: '', phone: '', email: '' });
 
 async function load() {
   if (!auth.accessToken) return;
@@ -31,13 +31,25 @@ async function load() {
 }
 load();
 
+function resetAddForm() {
+  newSchool.name = '';
+  newSchool.address = '';
+  newSchool.phone = '';
+  newSchool.email = '';
+}
+
 async function onAdd() {
-  if (!auth.accessToken || !newName.value.trim()) return;
+  if (!auth.accessToken || !newSchool.name.trim()) return;
   errorMessage.value = null;
   isSaving.value = true;
   try {
-    await api.createSchool(auth.accessToken, { name: newName.value.trim() });
-    newName.value = '';
+    await api.createSchool(auth.accessToken, {
+      name: newSchool.name.trim(),
+      address: newSchool.address.trim() || undefined,
+      phone: newSchool.phone.trim() || undefined,
+      email: newSchool.email.trim() || undefined,
+    });
+    resetAddForm();
     showAddForm.value = false;
     await load();
   } catch (err) {
@@ -49,7 +61,10 @@ async function onAdd() {
 
 function startEdit(school: SchoolSummary) {
   editingId.value = school.id;
-  editName.value = school.name;
+  editForm.name = school.name;
+  editForm.address = school.address ?? '';
+  editForm.phone = school.phone ?? '';
+  editForm.email = school.email ?? '';
 }
 
 function cancelEdit() {
@@ -57,10 +72,15 @@ function cancelEdit() {
 }
 
 async function onSaveEdit(id: string) {
-  if (!auth.accessToken || !editName.value.trim()) return;
+  if (!auth.accessToken || !editForm.name.trim()) return;
   errorMessage.value = null;
   try {
-    await api.updateSchool(auth.accessToken, id, { name: editName.value.trim() });
+    await api.updateSchool(auth.accessToken, id, {
+      name: editForm.name.trim(),
+      address: editForm.address.trim() || undefined,
+      phone: editForm.phone.trim() || undefined,
+      email: editForm.email.trim() || undefined,
+    });
     editingId.value = null;
     await load();
   } catch (err) {
@@ -89,10 +109,30 @@ async function onDelete(id: string) {
     </div>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <EntityTable :items="schools" :columns="[{ key: 'name', label: 'Name' }]" row-key="id" :editing-id="editingId">
+    <EntityTable
+      :items="schools"
+      :columns="[
+        { key: 'name', label: 'Name' },
+        { key: 'address', label: 'Address' },
+        { key: 'phone', label: 'Phone' },
+        { key: 'campusCount', label: 'Campuses' },
+        { key: 'studentCount', label: 'Students' },
+        { key: 'staffCount', label: 'Staff' },
+      ]"
+      row-key="id"
+      :editing-id="editingId"
+    >
       <template #cell-name="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editForm.name" type="text" />
         <span v-else>{{ item.name }}</span>
+      </template>
+      <template #cell-address="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-address-${item.id}`" v-model="editForm.address" type="text" />
+        <span v-else>{{ item.address ?? '—' }}</span>
+      </template>
+      <template #cell-phone="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-phone-${item.id}`" v-model="editForm.phone" type="text" />
+        <span v-else>{{ item.phone ?? '—' }}</span>
       </template>
       <template #actions="{ item, editing }">
         <template v-if="editing">
@@ -109,8 +149,17 @@ async function onDelete(id: string) {
     </EntityTable>
 
     <AppModal v-model="showAddForm" title="Add School">
-      <div class="inline-form">
-        <FormField v-model="newName" label="School name" type="text" data-testid="add-name" placeholder="School name" grow />
+      <div class="add-form">
+        <div class="inline-form">
+          <FormField v-model="newSchool.name" label="School name" type="text" data-testid="add-name" placeholder="School name" grow />
+        </div>
+        <div class="inline-form">
+          <FormField v-model="newSchool.address" label="Address" type="text" data-testid="add-address" placeholder="Address" grow />
+        </div>
+        <div class="inline-form">
+          <FormField v-model="newSchool.phone" label="Phone" type="text" data-testid="add-phone" placeholder="Phone" grow />
+          <FormField v-model="newSchool.email" label="Email" type="email" data-testid="add-email" placeholder="Email" grow />
+        </div>
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
     </AppModal>
@@ -119,7 +168,7 @@ async function onDelete(id: string) {
 
 <style scoped>
 .org-entity {
-  max-width: 720px;
+  max-width: 1000px;
 }
 .page-header {
   display: flex;
@@ -130,6 +179,11 @@ async function onDelete(id: string) {
 .error {
   color: var(--color-destructive);
   margin-bottom: var(--space-3);
+}
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 .inline-form {
   display: flex;
