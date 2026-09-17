@@ -9,6 +9,13 @@
 
 No new research was performed. Every claim below traces to one of the four documents above.
 
+> **2026-09-17 amendment:** the sections below (§1-15) are a point-in-time snapshot as of 2026-09-08
+> and are left unedited as a historical record. The project has since moved well past the "Current
+> MVP" state described in §2 — see `PROJECT-STATUS.md`'s "Phase: MVP → Production-Ready" note and
+> `MASTER-PROMPT-TRACKER.md`'s "Production-Ready Backlog" section for the current phase and its
+> reviewed, prioritized backlog. The Implementation Checklist immediately below this note **is** kept
+> current (see its own "Last updated" line).
+
 ---
 
 ## Implementation Checklist (living — updated on every completed task)
@@ -16,9 +23,14 @@ No new research was performed. Every claim below traces to one of the four docum
 > Update this section every time a sprint or task from §4 ships — check a sprint's box once every
 > item in its **Features** line has landed and been verified (not just merged); leave sub-items
 > checked individually for partial progress within an in-flight sprint. Note the merge commit range
-> and date next to a completed sprint. Last updated: **2026-09-13** (Sprint M — P0 test coverage,
-> UI half — merged; Sprints N–Q remain sequenced below from the Master Validation Prompt audit — see
-> `build/MASTER-PROMPT-TRACKER.md` for the per-item evidence).
+> and date next to a completed sprint. Last updated: **2026-09-17** — reconciled a documentation sync
+> gap: Sprints N/O/P/Q were still shown unchecked below despite having real shipped code and a written
+> plan file each (they were simply never marked done here or in `PROJECT-STATUS.md` — see that file's
+> "Documentation Sync Gap" note); marked "Code shipped, verification pass pending" rather than fully
+> checked, since test-suite status hasn't been re-confirmed against each plan's own acceptance
+> criteria. Added **Sprint R** (Student Promotion/Re-Enrollment), un-deferred the same day per
+> `MASTER-PROMPT-TRACKER.md`'s "Production-Ready Backlog" section — spec'd and planned, not yet
+> implemented.
 
 - [x] **Sprint A — Stabilization I: Session, CI, Data** — merged to `main` 2026-09-08 (`988278a..7081595`)
   - [x] Working refresh-token loop with rotation-on-use — `POST /api/v1/auth/refresh`
@@ -222,43 +234,55 @@ No new research was performed. Every claim below traces to one of the four docum
     files touched), staff-console **255/255** (up from 239, +16 new tests), `vue-tsc` clean,
     parent-app `flutter analyze` clean, parent-app **94/94** (up from 88, +6 new tests). Full detail:
     `build/PROJECT-STATUS.md`'s Sprint M section.
-- [ ] **Sprint N — Structured Gradebook (Phase 8, P1)**
-  - [ ] Confirmed 2026-09-12: report cards are currently an uploaded PDF
-    (`backend/src/report-cards/report-cards.service.ts:36-51`), not structured marks — no
-    subjects/assessment-categories/weights/grade-calculation model exists anywhere in the schema or
-    backend.
-  - [ ] Design (in the spec, not guessed here): subjects, weighted assessment categories
-    (assignments/quizzes/midterm/final), marks + max-marks entry, term, calculated final grade.
-    Report cards should consume this structured data instead of (or alongside) the existing PDF
-    upload path — decide during spec whether PDF upload is retained as a fallback or superseded.
-  - Spec: TBD. Plan: TBD.
-- [ ] **Sprint O — Admissions/Enrollment Pipeline (Phase 8 remainder, P1)**
-  - [ ] Confirmed 2026-09-12: the existing `EnrollmentService` only reads which class/section an
-    already-created student is enrolled in (`getCurrentEnrollment`/`getEnrollmentForDate`) — there is
-    no applicant → application → review → approval/rejection → student-creation pipeline.
-  - [ ] Extend the existing Enrollment module rather than building a parallel system — design during
-    spec how an `Applicant`/`Application` model relates to the existing `Student`/`Class`/`Section`/
-    `AcademicSession` models.
-  - [ ] EMI-style fee installments (depends on Sprint E's payment gateway) — carried forward from the
-    original Phase 8 remainder line; scope during this sprint's spec whether it's bundled here or
-    split into its own sprint.
-  - Spec: TBD. Plan: TBD.
-- [ ] **Sprint P — Bulk Import/Export (Phase 8, P1)**
-  - [ ] Confirmed 2026-09-12: no CSV/Excel import exists anywhere in the backend for
-    Students/Parents/Teachers.
-  - [ ] Design during spec: validation, duplicate detection, preview-before-import, safe transaction
-    handling (no partial/corrupted imports), role authorization, audit logging — per the master
-    validation prompt's explicit requirements for this feature.
-  - Spec: TBD. Plan: TBD.
-- [ ] **Sprint Q — StatusPill + Remaining Accessibility Follow-Through**
-  - [ ] `StatusPill.vue` — confirmed 2026-09-12 still not implemented; the Staff Console Shell
-    Redesign spec already scoped this (empty/loading/error state machine + shared `StatusPill.vue`
-    across all 14 admin/teacher views) but it was never started. Use existing spec if still valid,
-    otherwise refresh it.
-  - [ ] Attendance segmented-control keyboard/focus/screen-reader audit and Dashboard chart
-    accessible-name audit — not yet reviewed as of 2026-09-12.
-  - Spec: reuse Staff Console Shell Redesign's existing follow-up scope if still accurate; otherwise
-    TBD. Plan: TBD.
+- [~] **Sprint N — Structured Gradebook (Phase 8, P1)** — **code shipped, verification pass pending
+      (found 2026-09-17)**
+  - [x] `backend/src/gradebook/` module exists, plan file
+    `docs/superpowers/plans/2026-09-13-sprint-n-gradebook.md` was written and (per the schema's
+    `AssessmentCategory`/`Term`/weighted-category models) executed.
+  - [ ] **Not yet done:** re-run the backend/staff-console suites against this module's own plan
+    acceptance criteria and append a real evidence-based status entry to `PROJECT-STATUS.md` (see
+    that file's "Documentation Sync Gap" note, added 2026-09-17) — do not treat this as fully
+    verified until that pass happens.
+  - Spec: `docs/superpowers/specs/2026-09-13-sprint-n-gradebook-design.md` (if present — confirm
+    during the verification pass). Plan: `docs/superpowers/plans/2026-09-13-sprint-n-gradebook.md`.
+- [~] **Sprint O — Admissions/Enrollment Pipeline (Phase 8 remainder, P1)** — **code shipped,
+      verification pass pending (found 2026-09-17)**
+  - [x] `backend/src/admissions/` module and `Applicant`/`Application` Prisma models exist
+    (migration `20260913080800_add_admissions`).
+  - [ ] EMI-style fee installments — confirm during the verification pass whether this sub-item
+    shipped alongside admissions or remains open; not confirmed either way as of 2026-09-17.
+  - [ ] Same "re-run and confirm" follow-up as Sprint N above.
+  - Plan: `docs/superpowers/plans/2026-09-13-sprint-o-admissions.md`.
+- [~] **Sprint P — Bulk Import/Export (Phase 8, P1)** — **code shipped, verification pass pending
+      (found 2026-09-17)**
+  - [x] `backend/src/bulk-import/` module exists.
+  - [ ] Same "re-run and confirm" follow-up as Sprint N above — specifically verify validation/
+    duplicate-detection/transaction-safety/audit-logging were all actually built, not just a bare
+    import endpoint.
+  - Plan: `docs/superpowers/plans/2026-09-13-sprint-p-bulk-import.md`.
+- [~] **Sprint Q — StatusPill + Remaining Accessibility Follow-Through** — **code shipped,
+      verification pass pending (found 2026-09-17)**
+  - [x] Plan file exists and was written against the Staff Console Shell Redesign's follow-up scope.
+  - [ ] Confirm `StatusPill.vue` actually exists and is adopted across the 14 admin/teacher views the
+    original scope named, and that the two accessibility audits were performed — not confirmed as of
+    2026-09-17.
+  - Plan: `docs/superpowers/plans/2026-09-13-sprint-q-statuspill-accessibility.md`.
+- [ ] **Sprint R — Student Promotion / Re-Enrollment (un-deferred 2026-09-17)**
+  - [ ] Un-deferred at the project owner's explicit direction following an external architecture
+    review — see `MASTER-PROMPT-TRACKER.md`'s "Production-Ready Backlog — External Review
+    2026-09-17" section for the full disposition of every reviewed recommendation (this was the one
+    accepted for immediate work; staff/teacher assignment history and the full HR/Admissions domain
+    expansion from the same review were explicitly rejected/deferred).
+  - [ ] Extends the existing `Enrollment` historical-record pattern (Sprint 6.5) — never mutates a
+    prior `Enrollment` row, always closes it and creates a new one for the target session.
+  - Spec: `docs/superpowers/specs/2026-09-17-sprint-r-promotion-reenrollment-design.md`. Plan:
+    `docs/superpowers/plans/2026-09-17-sprint-r-promotion-reenrollment.md`. Not yet implemented.
+- **Also found 2026-09-17, not previously tracked in this checklist:** "Staff & Hiring Foundation"
+  (`backend/src/staff/`, `backend/src/hiring/`, migration `20260914111659_add_staff_and_hiring`, plans
+  `docs/superpowers/plans/2026-09-14-staff-hiring-foundation.md` +
+  `2026-09-14-staff-hiring-console-ui.md`) and "School/Campus contact fields" (migration
+  `20260916210234_add_school_campus_contact_fields`) both shipped with no checklist entry at all.
+  Same "re-run and confirm" follow-up applies before treating either as verified-done.
 - **Blocked on external access, not schedulable as engineering work:** live sandbox verification of
   JazzCash/EasyPaisa (needs a real merchant account) and FCM/WhatsApp/SMS (needs a real Firebase
   project + WhatsApp Business/SMS gateway credentials). Re-check each the moment credentials exist;

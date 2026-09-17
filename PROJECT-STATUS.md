@@ -8,7 +8,32 @@ or scope changes. Spec source: `Seeds/apk/MVP-Plan-V3.md` (validated MVP plan) �
 Accounts, role-gated, one app) and a Flutter parent app. Public website refresh and a parent web
 portal are separate, lower-priority tracks (see Deferred below), not part of this build.
 
-Repo: https://github.com/zainknoman/SchoolPortal
+## Phase: MVP → Production-Ready (2026-09-17)
+
+The original MVP (Sprints 1 through K, FEAT-001..014) shipped and was validated against the master
+implementation prompt (see `MASTER-PROMPT-TRACKER.md`). The project has since shipped substantially
+past MVP scope (Staff/Hiring, Admissions, structured Gradebook, Bulk Import, Student Profile — see
+the Documentation Sync Gap note below) and is now explicitly in a **Production-Ready hardening and
+expansion phase**, per the project owner's direction on 2026-09-17. See
+`MASTER-PROMPT-TRACKER.md`'s "Production-Ready Backlog" section for the reviewed, prioritized backlog
+this phase draws from, and `docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s
+Implementation Checklist for the sprint-by-sprint plan.
+
+## Documentation Sync Gap (found 2026-09-17)
+
+Six shipped sub-projects have real code and a written plan file but were never logged in this file:
+**Sprint N** (Structured Gradebook — `backend/src/gradebook/`), **Sprint O** (Admissions/Enrollment
+Pipeline — `backend/src/admissions/`), **Sprint P** (Bulk Import/Export —
+`backend/src/bulk-import/`), **Sprint Q** (StatusPill + accessibility), **Staff & Hiring Foundation**
+(`backend/src/staff/`, `backend/src/hiring/`, migration `20260914111659_add_staff_and_hiring`), and
+**School/Campus contact fields** (migration `20260916210234_add_school_campus_contact_fields`). Each
+has a plan file under `docs/superpowers/plans/2026-09-13-sprint-{n,o,p,q}-*.md` /
+`2026-09-14-staff-hiring-*.md`. **Not backfilling fabricated test-count/verification entries for
+these here** — that would violate this file's own established "don't fabricate verification"
+standard (see e.g. the JazzCash/EasyPaisa/FCM entries above). Queued as its own follow-up task: re-run
+each sub-project's test suite, confirm current pass/fail state against its plan's own acceptance
+criteria, and append a real, evidence-based status entry per sub-project — do this before relying on
+any of the six being "done" for planning purposes.
 
 ---
 

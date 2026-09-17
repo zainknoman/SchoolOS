@@ -36,7 +36,22 @@ update both when a sprint starts or ships.
 | 4 | **Sprint O** | Admissions/enrollment pipeline (applicant → application → review → approval → student) | Extends the existing narrow `EnrollmentService`; was already the roadmap's own unscoped "Phase 8 remainder" item |
 | 5 | **Sprint P** | Bulk import/export (Students/Parents/Teachers via CSV/Excel) | No existing foundation to extend; validation/duplicate-detection/audit-logging needs real design |
 | 6 | **Sprint Q** | `StatusPill.vue` + remaining accessibility audits | UI polish/consistency — lowest urgency relative to security and data-correctness gaps above |
+| 7 | **Sprint R** | Student Promotion / Re-Enrollment (un-deferred 2026-09-17, see Production-Ready Backlog below) | Extends existing `Enrollment` historical-record pattern (Sprint 6.5); spec + plan written 2026-09-17, not yet implemented |
 | — | **Blocked, not schedulable** | JazzCash/EasyPaisa/FCM/WhatsApp/SMS live sandbox verification | Needs external credentials (merchant account, Firebase project, gateway credentials) this environment doesn't have — re-check when available, don't fabricate verification |
+
+**Documentation sync gap found 2026-09-17:** Sprints N (gradebook), O (admissions), P (bulk import),
+and Q (StatusPill/accessibility) all have real code in `backend/src/` (`gradebook/`, `admissions/`,
+`bulk-import/` modules exist; `add_gradebook`/`add_admissions` migrations are applied) and a written
+plan file each (`docs/superpowers/plans/2026-09-13-sprint-{n,o,p,q}-*.md`), plus two more shipped
+sub-projects with no status-file entry at all: "Staff & Hiring Foundation" (`add_staff_and_hiring`
+migration, `backend/src/staff/`/`hiring/` modules, plan:
+`docs/superpowers/plans/2026-09-14-staff-hiring-foundation.md` +
+`2026-09-14-staff-hiring-console-ui.md`) and "School/Campus contact fields"
+(`add_school_campus_contact_fields` migration, 2026-09-16). None of these six were ever marked done
+in this table, `PROJECT-STATUS.md`, or the PostMVP roadmap checklist — the living docs fell behind
+the actual shipped work. **Not fabricating verification numbers for them here** (this file's own
+Section 8 conclusion explicitly warns against that) — see `PROJECT-STATUS.md`'s new "Documentation
+Sync Gap" note for the queued follow-up to re-verify and backfill each one's real test-suite status.
 
 **Next action:** brainstorm + spec Sprint L (the security fix) first, since it's both highest-priority
 and already well-understood in scope (one chokepoint service, extend to check campus/section
@@ -130,9 +145,38 @@ request.
 ## Deferred Features (Master Prompt Section 14)
 
 Per the master prompt's own instruction, these are **intentionally deferred**, not gaps: fee installments,
-promotion/re-enrollment, QR attendance, RFID, full payroll, full accounting ERP, full LMS, AI tutor,
-hostel management, alumni management, GPS/transport, canteen wallet. No action expected unless the
-repo or an explicit ask changes this.
+QR attendance, RFID, full payroll, full accounting ERP, full LMS, AI tutor, hostel management, alumni
+management, GPS/transport, canteen wallet. No action expected unless the repo or an explicit ask
+changes this.
+
+**Un-deferred 2026-09-17:** promotion/re-enrollment was removed from this list at the project owner's
+explicit direction, following an external architecture review (see Production-Ready Backlog below) —
+now tracked as **Sprint R** in the Sequenced Implementation Plan above. Spec:
+`docs/superpowers/specs/2026-09-17-sprint-r-promotion-reenrollment-design.md`. Plan:
+`docs/superpowers/plans/2026-09-17-sprint-r-promotion-reenrollment.md`.
+
+---
+
+## Production-Ready Backlog — External Review 2026-09-17
+
+The project owner shared two external (ChatGPT-authored) architecture-review prompts covering (1)
+School/Campus/Staff-HR/Hiring/Admissions domain expansion and (2) Student→Enrollment→AcademicSession
+historical-data architecture and Staff/Teacher assignment history. Both were written assuming an
+early-stage schema and recommended rebuilding substantial parts of what this repo already has. Each
+recommendation was checked against the actual current code (not assumed) before being filed below.
+This also marks the project's own phase transition: **MVP is complete; the project is now in a
+Production-Ready hardening/expansion phase** (mirrored in `PROJECT-STATUS.md`'s phase note and
+`docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s Product Maturity Roadmap).
+
+| Recommendation | Source | Disposition | Why |
+|---|---|---|---|
+| Student → Enrollment → AcademicSession never-overwrite historical model | Prompt 2 | **Already built** (Sprint 6.5, 2026-08) | `EnrollmentService`/`Enrollment` already exist for exactly this reason |
+| Student Promotion / Re-Enrollment workflow | Prompt 2 | **Accepted — Sprint R**, un-deferred 2026-09-17 | See above |
+| Staff/Teacher `StaffAssignment`/`TeachingAssignment` history | Prompt 2 | **Rejected for now** | No staff/teacher transfer feature exists yet to protect (`Staff.campusId`/`Teacher.campusId` have no `update()` path at all) — building history infrastructure for a feature nobody can trigger is premature. Revisit when a real transfer request lands; already flagged as a **Sprint O** follow-up consideration in `PROJECT-STATUS.md`'s "Teacher Subject/Class Assignment Scoping" section for the closely-related non-`ACTIVE`-enrollment staff-access gap |
+| `AcademicSession`/`Subject`/`FeeStructure` school-scoping decision | Both (Prompt 1's Subject-uniqueness concern, Prompt 2's per-school session concern) | **Real, already-tracked gap — needs its own sprint, not yet numbered** | Independently confirmed in `PROJECT-STATUS.md`'s "Teacher Subject/Class Assignment Scoping" section (2026-09-14): 4 endpoints deliberately left unscoped pending this exact decision; `StudentService.create()`'s `findFirst({ isActive: true })` is silently wrong the moment a second school exists. Sequence this as the next sprint after R given Sprint L's own note that "the product will be multi-tenant SaaS in the future" |
+| Free-text status fields → enums (`HiringApplication.status`, `Application.status`, `LeaveRequest.status`, `Complaint.status`, `FeePayment.status`/`method`, `Circular.scope`/`priority`) | Prompt 1 | **Accepted, low priority** | Cheap, low-risk, matches this codebase's own `EnrollmentStatus`/`StudentStatus`/`PromotionDecision` enum convention. Queue as a small dedicated sprint after the school-scoping decision above (touches many files, best done as one focused pass, not folded into Sprint R) |
+| Full HR/Recruitment/Admissions domain expansion (`Department`, `JobPosition`, `StaffEducation`, `StaffCertification`, `HiringInterview`, `HiringOffer`, etc.) | Prompt 1 | **Rejected — explicit project-owner decision 2026-09-17** | Current `Staff`/`Hiring`/`Admissions` modules already cover the MVP-and-beyond need (all shipped within the last week — see Documentation Sync Gap above); none of Prompt 1's additional entities are named anywhere in this project's own roadmap. Revisit only when a specific real requirement shows up, not speculatively |
+| Full School/Campus profile expansion (logo, registration number, principal/head, facilities, departments, etc.) | Prompt 1 | **Rejected for now, same reasoning as above** | No current feature reads any of these fields; `School`/`Campus` already gained contact fields 2026-09-16 to close a real gap (see Documentation Sync Gap). Add fields when a screen actually needs them |
 
 ---
 

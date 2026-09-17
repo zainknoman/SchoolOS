@@ -63,7 +63,8 @@ The current Prisma schema is additive and covers:
 | Parent accounts | 2 per student = 3,200 |
 | Class teachers | 1 per section = 80 |
 
-The two seeded schools are **Beacon House** (3 branches) and **The City School** (2 branches).
+The two seeded schools are **Test School A** (3 branches) and **Test School B** (2 branches) —
+placeholder demo names, not real institutions.
 
 Each seeded student receives:
 
@@ -139,14 +140,14 @@ npx prisma migrate deploy
 
 The seed creates school-level Admin, Principal and Accounts users, one Teacher login per seeded section, and two Parent accounts per seeded student.
 
-Teacher identifiers follow this pattern:
+Teacher identifiers follow this pattern (`school1`/`school2` denote the two seeded test schools):
 
 ```text
-bh.g1a@schoolportal.local
-bh.g1b@schoolportal.local
+school1.g1a@schoolportal.local
+school1.g1b@schoolportal.local
 ...
-tcs.g8a@schoolportal.local
-tcs.g8b@schoolportal.local
+school2.g8a@schoolportal.local
+school2.g8b@schoolportal.local
 ```
 
 Parent identifiers follow this pattern:
