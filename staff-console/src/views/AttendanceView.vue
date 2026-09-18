@@ -3,9 +3,19 @@ import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type StudentSummary, type AttendanceStatus } from '../lib/api';
 import { initialsFromName } from '../lib/format';
+import Icon from '../components/AppIcon.vue';
 
 const auth = useAuthStore();
-const today = new Date().toISOString().slice(0, 10);
+const now = new Date();
+const today = now.toISOString().slice(0, 10);
+// Formatted from `now` directly, not by re-parsing `today` — that ISO string is UTC-sliced, so
+// re-parsing it can roll back a calendar day in negative-UTC-offset timezones near midnight.
+const todayDisplay = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+}).format(now);
 
 const sections = ref<SectionSummary[]>([]);
 const selectedSectionId = ref('');
@@ -81,6 +91,9 @@ const absentCount = computed(
 const assignedCount = computed(
   () => Object.values(statuses.value).filter((s) => s !== '').length,
 );
+const progressPercent = computed(() =>
+  students.value.length ? Math.round((assignedCount.value / students.value.length) * 100) : 0,
+);
 
 async function onSave() {
   if (!auth.accessToken) return;
@@ -107,38 +120,53 @@ async function onSave() {
 
 <template>
   <div class="attendance">
-    <h1>Attendance</h1>
-    <p class="subtitle">{{ today }}</p>
+    <div class="page-header">
+      <div>
+        <h1>Attendance</h1>
+        <div class="subtitle"><Icon name="calendar" :size="15" /> {{ todayDisplay }}</div>
+      </div>
 
-    <label class="field">
-      <span>Section</span>
-      <select data-testid="section-select" v-model="selectedSectionId" @change="onSectionChange">
-        <option value="" disabled>Choose a section</option>
-        <option v-for="s in sections" :key="s.id" :value="s.id">
-          {{ s.className }} {{ s.name }} — {{ s.campusName }}
-        </option>
-      </select>
-    </label>
+      <label class="field">
+        <span>Section</span>
+        <select data-testid="section-select" v-model="selectedSectionId" @change="onSectionChange">
+          <option value="" disabled>Choose a section</option>
+          <option v-for="s in sections" :key="s.id" :value="s.id">
+            {{ s.className }} {{ s.name }} — {{ s.campusName }}
+          </option>
+        </select>
+      </label>
+    </div>
 
-    <button
-      v-if="students.length"
-      type="button"
-      data-testid="default-all-present"
-      class="default-all"
-      @click="markAllPresent"
-    >
-      Default all present
-    </button>
-
-    <ul v-if="students.length" class="roster">
-      <li v-for="(student, i) in students" :key="student.id" class="roster-row">
-        <div class="roster-student">
-          <span class="roster-index">{{ i + 1 }}</span>
-          <span class="roster-avatar">{{ initialsFromName(student.name) }}</span>
-          <span class="roster-name">{{ student.name }}</span>
+    <div v-if="students.length" class="progress-card">
+      <div class="progress-info">
+        <div class="progress-top">
+          <span>{{ assignedCount }} of {{ students.length }} marked</span>
+          <span class="mono muted">{{ progressPercent }}%</span>
         </div>
+        <div class="progress-track">
+          <div class="progress-fill" :style="{ width: `${progressPercent}%` }"></div>
+        </div>
+      </div>
+      <button type="button" data-testid="default-all-present" class="default-all" @click="markAllPresent">
+        <Icon name="check" :size="14" />
+        Mark all present
+      </button>
+    </div>
 
-        <div class="status-group">
+    <div v-if="students.length" class="roster-card">
+      <div class="roster-header">
+        <span>Student</span>
+        <span>Status</span>
+      </div>
+      <ul class="roster">
+        <li v-for="(student, i) in students" :key="student.id" class="roster-row">
+          <div class="roster-student">
+            <span class="roster-index mono">{{ i + 1 }}</span>
+            <span class="roster-avatar">{{ initialsFromName(student.name) }}</span>
+            <span class="roster-name">{{ student.name }}</span>
+          </div>
+
+          <div class="status-group">
           <div class="segmented" role="radiogroup" :aria-label="`Attendance for ${student.name}`">
             <button
               type="button"
@@ -211,18 +239,19 @@ async function onSave() {
               </button>
             </div>
           </div>
-        </div>
-      </li>
-    </ul>
+          </div>
+        </li>
+      </ul>
+    </div>
 
     <p v-if="message" class="success" data-testid="success">{{ message }}</p>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <footer v-if="students.length" class="summary-bar">
       <div class="summary-counts">
-        <span><strong>{{ presentCount }}</strong> Present</span>
-        <span><strong>{{ absentCount }}</strong> Absent</span>
-        <span><strong>{{ students.length }}</strong> Total</span>
+        <div><span class="dot dot-present"></span><strong class="mono">{{ presentCount }}</strong> Present</div>
+        <div><span class="dot dot-absent"></span><strong class="mono">{{ absentCount }}</strong> Absent</div>
+        <div><strong class="mono">{{ students.length }}</strong> Total</div>
       </div>
       <button data-testid="save-attendance" :disabled="isSaving" @click="onSave">
         {{ isSaving ? 'Saving…' : `Submit Attendance (${assignedCount}/${students.length})` }}
@@ -233,57 +262,133 @@ async function onSave() {
 
 <style scoped>
 .attendance {
-  max-width: 640px;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.page-header h1 {
+  margin: 0 0 var(--space-1);
 }
 .subtitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   color: var(--color-muted);
-  margin-bottom: var(--space-4);
+  font-size: var(--font-size-sm);
 }
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-3);
-  max-width: 320px;
+  align-items: flex-end;
+  gap: 0.2rem;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-muted);
 }
 select {
-  padding: 0.5rem 0.6rem;
+  padding: 0.55rem 0.8rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
+  font-weight: 600;
+  min-width: 220px;
 }
 
-.default-all {
-  display: block;
-  width: 100%;
-  margin-bottom: var(--space-4);
-  padding: 0.7rem;
+.progress-card {
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: var(--color-muted-bg);
-  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.progress-info {
+  flex-grow: 1;
+}
+.progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
   font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+.progress-track {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-muted-bg);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+}
+.default-all {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
   cursor: pointer;
 }
 
+.roster-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.roster-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
 .roster {
   list-style: none;
-  margin-bottom: var(--space-4);
-  border-top: 1px solid var(--color-border);
+  margin: 0;
+  padding: 0;
 }
 .roster-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-2) 0;
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
+}
+.roster-row:last-child {
+  border-bottom: none;
 }
 .roster-student {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
 }
 .roster-index {
@@ -305,7 +410,7 @@ select {
   flex-shrink: 0;
 }
 .roster-name {
-  font-weight: 500;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -319,34 +424,32 @@ select {
 }
 .segmented {
   display: flex;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+  gap: var(--space-1);
 }
 .segment {
-  min-width: 2.5rem;
-  padding: 0.4rem 0;
-  border: none;
-  border-left: 1px solid var(--color-border);
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-muted);
-  font-weight: 600;
+  font-weight: 700;
   font-size: var(--font-size-sm);
   cursor: pointer;
 }
-.segment:first-child {
-  border-left: none;
-}
 .segment-present.active {
   background: var(--color-present);
+  border-color: var(--color-present);
   color: var(--color-on-primary);
 }
 .segment-absent.active {
   background: var(--color-destructive);
+  border-color: var(--color-destructive);
   color: var(--color-on-primary);
 }
 .segment-late.active {
   background: var(--color-late);
+  border-color: var(--color-late);
   color: var(--color-on-primary);
 }
 
@@ -354,17 +457,19 @@ select {
   position: relative;
 }
 .overflow-trigger {
-  border: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-muted);
   cursor: pointer;
   font-size: var(--font-size-base);
-  padding: 0.2rem 0.4rem;
 }
 .overflow-menu {
   position: absolute;
   right: 0;
-  top: 100%;
+  top: calc(100% + var(--space-1));
   z-index: 1;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -372,15 +477,21 @@ select {
   box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
-  min-width: 6rem;
+  min-width: 8rem;
+  padding: var(--space-1);
 }
 .overflow-menu button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   border: none;
+  border-radius: var(--radius-sm);
   background: transparent;
   text-align: left;
-  padding: 0.5rem 0.7rem;
+  padding: var(--space-1) var(--space-2);
   font: inherit;
   font-size: var(--font-size-sm);
+  font-weight: 600;
   cursor: pointer;
 }
 .overflow-menu button:hover {
@@ -389,32 +500,50 @@ select {
 
 .success {
   color: var(--color-accent);
-  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
 }
 
 .summary-bar {
   position: sticky;
   bottom: 0;
   background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  padding: var(--space-3) 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
 }
 .summary-counts {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-2);
+  gap: var(--space-4);
   font-size: var(--font-size-sm);
   color: var(--color-muted);
 }
+.summary-counts > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.dot-present {
+  background: var(--color-present);
+}
+.dot-absent {
+  background: var(--color-destructive);
+}
 .summary-bar button {
-  width: 100%;
-  padding: 0.8rem;
+  padding: var(--space-2) var(--space-4);
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--color-primary);
   color: var(--color-on-primary);
   font-weight: 700;
@@ -423,5 +552,25 @@ select {
 .summary-bar button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+  }
+  .field {
+    align-items: flex-start;
+    width: 100%;
+  }
+  select {
+    width: 100%;
+  }
+  .progress-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .roster-row {
+    flex-wrap: wrap;
+  }
 }
 </style>

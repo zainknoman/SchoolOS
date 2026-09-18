@@ -11,6 +11,7 @@ import {
 } from '../lib/api';
 import { useConfirm } from '../lib/useConfirm';
 import AppModal from '../components/AppModal.vue';
+import Icon from '../components/AppIcon.vue';
 
 const DAY_OPTIONS = [
   { value: 1, label: 'Monday' },
@@ -72,6 +73,11 @@ loadLookups();
 const sortedEntries = computed(() =>
   [...entries.value].sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period),
 );
+
+const selectedSectionLabel = computed(() => {
+  const s = sections.value.find((sec) => sec.id === selectedSectionId.value);
+  return s ? `${s.className} ${s.name} · ${s.campusName}` : '';
+});
 
 async function reloadEntries() {
   if (!selectedSectionId.value || !auth.accessToken) return;
@@ -477,24 +483,27 @@ async function onSaveBulk() {
 
 <template>
   <div class="timetable">
-    <h1>Timetable</h1>
-
-    <div class="header-row">
-      <label class="field">
-        <span>Section</span>
-        <select data-testid="section-select" v-model="selectedSectionId" @change="onSectionChange">
-          <option value="" disabled>Choose a section</option>
-          <option v-for="s in sections" :key="s.id" :value="s.id">
-            {{ s.className }} {{ s.name }} — {{ s.campusName }}
-          </option>
-        </select>
-      </label>
-      <div v-if="selectedSectionId && !isBulkMode" class="header-actions">
-        <button type="button" data-testid="open-bulk" class="bulk-toggle" @click="openBulkComposer">
+    <div class="header-row" v-if="!isBulkMode">
+      <div>
+        <h1>Timetable</h1>
+        <label class="section-picker">
+          <span>Section</span>
+          <select data-testid="section-select" v-model="selectedSectionId" @change="onSectionChange">
+            <option value="" disabled>Choose a section</option>
+            <option v-for="s in sections" :key="s.id" :value="s.id">
+              {{ s.className }} {{ s.name }} — {{ s.campusName }}
+            </option>
+          </select>
+        </label>
+      </div>
+      <div v-if="selectedSectionId" class="header-actions">
+        <button type="button" data-testid="open-bulk" class="btn-secondary" @click="openBulkComposer">
+          <Icon name="grid" :size="14" />
           Bulk edit (grid)
         </button>
-        <button type="button" data-testid="open-add-form" class="add-toggle" @click="showAddForm = true">
-          + Add New
+        <button type="button" data-testid="open-add-form" class="btn-primary" @click="showAddForm = true">
+          <Icon name="plus" :size="14" />
+          Add New
         </button>
       </div>
     </div>
@@ -503,6 +512,30 @@ async function onSaveBulk() {
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <template v-if="selectedSectionId && isBulkMode">
+      <div class="bulk-header">
+        <div>
+          <div class="breadcrumb">Timetable / {{ selectedSectionLabel }}</div>
+          <h1>Bulk edit — weekly grid</h1>
+        </div>
+        <div class="header-actions">
+          <button type="button" data-testid="cancel-bulk" class="btn-secondary" @click="cancelBulk">Cancel</button>
+          <button
+            type="button"
+            data-testid="save-bulk"
+            class="btn-primary"
+            :disabled="isSaving || !isBulkValid()"
+            @click="onSaveBulk"
+          >
+            {{ isSaving ? 'Saving…' : `Save Timetable (${filledCellCount} period${filledCellCount === 1 ? '' : 's'})` }}
+          </button>
+        </div>
+      </div>
+
+      <p v-if="entries.length" class="bulk-note">
+        <Icon name="clock" :size="14" />
+        Pre-filled from this section's existing timetable — saving replaces it entirely.
+      </p>
+
       <div class="bulk-config">
         <label class="field">
           <span>Periods per day</span>
@@ -516,25 +549,28 @@ async function onSaveBulk() {
         </label>
         <label class="field">
           <span>Default room</span>
-          <input v-model="defaultRoom" data-testid="bulk-default-room" placeholder="Room" />
+          <input v-model="defaultRoom" data-testid="bulk-default-room" placeholder="Room" class="mono" />
         </label>
         <fieldset class="bulk-days">
           <legend>Working days</legend>
-          <label v-for="d in orderedDayOptions" :key="d.value" class="day-checkbox">
-            <input
-              type="checkbox"
-              :checked="bulkDays.includes(d.value)"
-              :data-testid="`bulk-day-${d.value}`"
-              @change="toggleBulkDay(d.value)"
-            />
-            {{ d.label.slice(0, 3) }}
-          </label>
+          <div class="day-pills">
+            <label
+              v-for="d in orderedDayOptions"
+              :key="d.value"
+              class="day-checkbox"
+              :class="{ active: bulkDays.includes(d.value) }"
+            >
+              <input
+                type="checkbox"
+                :checked="bulkDays.includes(d.value)"
+                :data-testid="`bulk-day-${d.value}`"
+                @change="toggleBulkDay(d.value)"
+              />
+              {{ d.label.slice(0, 3) }}
+            </label>
+          </div>
         </fieldset>
       </div>
-
-      <p v-if="entries.length" class="bulk-note">
-        Pre-filled from this section's existing timetable — saving replaces it entirely.
-      </p>
 
       <div class="grid-scroll">
         <table class="bulk-grid" data-testid="bulk-grid">
@@ -614,18 +650,6 @@ async function onSaveBulk() {
           </tbody>
         </table>
       </div>
-
-      <div class="bulk-actions">
-        <button
-          type="button"
-          data-testid="save-bulk"
-          :disabled="isSaving || !isBulkValid()"
-          @click="onSaveBulk"
-        >
-          {{ isSaving ? 'Saving…' : `Save Timetable (${filledCellCount} period${filledCellCount === 1 ? '' : 's'})` }}
-        </button>
-        <button type="button" data-testid="cancel-bulk" @click="cancelBulk">Cancel</button>
-      </div>
     </template>
 
     <template v-else-if="selectedSectionId">
@@ -665,7 +689,10 @@ async function onSaveBulk() {
         </table>
       </div>
 
-      <h2 v-if="sortedEntries.length" class="manage-heading">Manage periods</h2>
+      <div v-if="sortedEntries.length" class="manage-heading-row">
+        <h2 class="manage-heading">Manage periods</h2>
+        <span class="muted">{{ sortedEntries.length }} period{{ sortedEntries.length === 1 ? '' : 's' }} scheduled</span>
+      </div>
       <table v-if="sortedEntries.length" class="entries" data-testid="entries-table">
         <thead>
           <tr>
@@ -770,27 +797,90 @@ async function onSaveBulk() {
 
 <style scoped>
 .timetable {
-  max-width: 960px;
+  max-width: 1180px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
+
+/* Shared header/button language for both view and bulk modes */
+.header-row,
+.bulk-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.header-row h1,
+.bulk-header h1 {
+  margin: 0 0 var(--space-2);
+}
+.breadcrumb {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--space-1);
+}
+.section-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.header-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.btn-primary {
+  border: none;
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+}
+.btn-secondary {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-4);
-  max-width: 320px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-muted);
 }
 select,
 input {
-  padding: 0.4rem 0.5rem;
+  padding: 0.5rem 0.7rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
   font-size: var(--font-size-sm);
 }
+
+/* Read-only weekly grid */
 .tt-grid-wrap {
   overflow-x: auto;
-  margin-bottom: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
 }
 .tt-grid {
   border-collapse: separate;
@@ -799,31 +889,38 @@ input {
   width: 100%;
 }
 .tt-grid th {
-  background: var(--color-muted-bg);
-  border: 1px solid var(--color-border);
-  padding: var(--space-2);
-  font-size: var(--font-size-xs);
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   color: var(--color-muted);
+  text-align: left;
   white-space: nowrap;
 }
 .tt-period-time {
   display: block;
   font-weight: 400;
   text-transform: none;
+  letter-spacing: normal;
   font-variant-numeric: tabular-nums;
   font-family: var(--font-family-mono);
+  color: var(--color-muted);
   margin-top: 2px;
 }
 .tt-grid td {
-  border: 1px solid var(--color-border);
-  padding: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-1) var(--space-2);
   vertical-align: top;
   min-width: 7.5rem;
 }
+.tt-grid tbody tr:last-child td {
+  border-bottom: none;
+}
 .tt-day-label {
-  background: var(--color-muted-bg);
+  background: var(--color-background);
   font-weight: 700;
   color: var(--color-text);
   font-size: var(--font-size-sm);
@@ -850,36 +947,76 @@ input {
 }
 .tt-empty {
   text-align: center;
-  color: var(--color-muted);
+  color: var(--color-border);
   font-size: var(--font-size-sm);
+}
+
+/* Manage periods table */
+.manage-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .manage-heading {
   font-size: var(--font-size-base);
-  margin-bottom: var(--space-2);
+  margin: 0;
+}
+.muted {
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
 }
 .entries {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
-.entries th,
+.entries th {
+  background: var(--color-background);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
 .entries td {
-  padding: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--color-border);
   text-align: left;
   font-size: var(--font-size-sm);
+}
+.entries tbody tr:last-child td {
+  border-bottom: none;
+}
+.entries tbody tr:hover td {
+  background: var(--color-background);
 }
 .row-actions {
   display: flex;
   gap: var(--space-2);
 }
 .row-actions button {
-  padding: 0.3rem 0.6rem;
+  padding: 0.3rem 0.7rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   cursor: pointer;
   font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+.row-actions button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.row-actions button[data-testid^='delete']:hover {
+  border-color: var(--color-destructive);
+  color: var(--color-destructive);
 }
 .edit-row {
   display: flex;
@@ -910,92 +1047,113 @@ button:disabled {
 }
 .success {
   color: var(--color-accent);
-  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
 }
 .empty {
   color: var(--color-muted);
-  margin-bottom: var(--space-4);
 }
 
-.header-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-3);
-  max-width: 100%;
-}
-.header-actions {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-}
-.bulk-toggle {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  font-weight: 600;
-  cursor: pointer;
-}
-.add-toggle {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 600;
-  cursor: pointer;
-}
-.bulk-config {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-  align-items: flex-start;
-  margin-bottom: var(--space-3);
-}
-.bulk-days {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
-  display: flex;
-  gap: var(--space-2);
-}
-.bulk-days legend {
-  font-size: var(--font-size-sm);
-  padding: 0 0.3rem;
-}
-.day-checkbox {
+/* Bulk composer */
+.bulk-note {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: var(--space-2);
+  background: var(--color-status-info-tint);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
   font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-3);
 }
-.bulk-note {
+.bulk-config {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: flex-start;
+}
+.bulk-days {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.bulk-days legend {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
   color: var(--color-muted);
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-3);
+  padding: 0;
+  margin-bottom: 0.2rem;
+}
+.day-pills {
+  display: flex;
+  gap: var(--space-1);
+}
+.day-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.day-checkbox.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.day-checkbox input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
 }
 .grid-scroll {
   overflow-x: auto;
-  margin-bottom: var(--space-4);
 }
 .bulk-grid {
   border-collapse: collapse;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  width: 100%;
 }
 .bulk-grid th,
 .bulk-grid td {
   padding: var(--space-2);
-  border: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
   text-align: left;
   font-size: var(--font-size-sm);
   vertical-align: top;
 }
+.bulk-grid th {
+  background: var(--color-background);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
 .day-label {
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
   vertical-align: middle;
 }
@@ -1005,22 +1163,30 @@ button:disabled {
   gap: 0.3rem;
   margin-top: 0.4rem;
   font-weight: 400;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   color: var(--color-muted);
   cursor: pointer;
 }
 .period-header {
-  font-weight: 600;
+  font-weight: 700;
 }
 .period-label {
   margin-bottom: 0.3rem;
   white-space: nowrap;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
 }
 .time-cell {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   font-weight: 400;
+}
+.time-cell input {
+  padding: 0.3rem 0.4rem;
+  font-size: var(--font-size-2xs);
 }
 .time-cell-compact {
   margin-bottom: 0.3rem;
@@ -1035,42 +1201,26 @@ button:disabled {
   flex-direction: column;
   gap: 0.2rem;
 }
+.grid-cell select {
+  padding: 0.3rem 0.4rem;
+  font-size: var(--font-size-xs);
+}
 .grid-cell select,
 .time-cell input {
   width: 100%;
 }
 .break-header {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   text-align: center;
   white-space: nowrap;
 }
 .break-cell {
   color: var(--color-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   text-align: center;
   white-space: nowrap;
-  background: var(--color-muted-bg, #f5f5f5);
-}
-.bulk-actions {
-  display: flex;
-  gap: var(--space-2);
-}
-.bulk-actions button[data-testid='save-bulk'] {
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 700;
-  cursor: pointer;
-}
-.bulk-actions button[data-testid='cancel-bulk'] {
-  padding: 0.6rem 1.2rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  cursor: pointer;
+  background: var(--color-background);
 }
 </style>
