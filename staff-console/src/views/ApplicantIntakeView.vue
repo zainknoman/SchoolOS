@@ -100,29 +100,29 @@ async function onCreateApplication() {
     <h1>New Applicant</h1>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <section class="form-section">
-      <h2>Applicant details</h2>
-      <div class="inline-form">
+    <div v-if="showDuplicateBanner && possibleDuplicate" class="duplicate-banner" data-testid="duplicate-banner" role="alert">
+      A similar applicant already exists — {{ possibleDuplicate.name }}
+      <button type="button" class="dismiss-banner" @click="dismissDuplicateBanner">Dismiss</button>
+    </div>
+
+    <section class="stage-card">
+      <h2>1 · Applicant details</h2>
+      <div class="field-grid">
         <FormField v-model="applicantName" label="Name" type="text" data-testid="applicant-name" placeholder="Applicant's full name" grow />
         <FormField v-model="applicantDob" label="Date of birth" type="date" data-testid="applicant-dob" />
         <FormField v-model="applicantGuardianName" label="Guardian name" type="text" data-testid="applicant-guardian-name" placeholder="Guardian's full name" grow />
         <FormField v-model="applicantGuardianPhone" label="Guardian phone" type="text" data-testid="applicant-guardian-phone" placeholder="Guardian phone" grow />
-        <Button data-testid="applicant-submit" :disabled="isSavingApplicant" @click="onCreateApplicant">
-          Create Applicant
-        </Button>
       </div>
-
-      <div v-if="showDuplicateBanner && possibleDuplicate" class="duplicate-banner" data-testid="duplicate-banner" role="alert">
-        A similar applicant already exists — {{ possibleDuplicate.name }}
-        <button type="button" class="dismiss-banner" @click="dismissDuplicateBanner">Dismiss</button>
-      </div>
+      <Button data-testid="applicant-submit" :disabled="isSavingApplicant" @click="onCreateApplicant">
+        Create Applicant
+      </Button>
     </section>
 
-    <section v-if="applicantId" class="form-section">
-      <h2>Application</h2>
+    <section v-if="applicantId" class="stage-card">
+      <h2>2 · Application</h2>
       <p v-if="applicationErrorMessage" class="error" role="alert">{{ applicationErrorMessage }}</p>
       <p v-if="applicationCreated" class="success">Application created.</p>
-      <div class="inline-form">
+      <div class="field-grid">
         <FormField
           v-model="applicationClassId"
           label="Desired class"
@@ -139,10 +139,10 @@ async function onCreateApplication() {
           placeholder="Choose a session"
           :options="sessions.map((s) => ({ value: s.id, label: s.label }))"
         />
-        <Button data-testid="application-submit" :disabled="isSavingApplication" @click="onCreateApplication">
-          Create Application
-        </Button>
       </div>
+      <Button data-testid="application-submit" :disabled="isSavingApplication" @click="onCreateApplication">
+        Create Application
+      </Button>
     </section>
   </div>
 </template>
@@ -150,39 +150,64 @@ async function onCreateApplication() {
 <style scoped>
 .applicant-intake {
   max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
-.form-section {
-  margin-bottom: var(--space-4);
+.applicant-intake h1 {
+  margin: 0;
 }
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
 }
 .success {
   color: var(--color-accent);
-  margin-bottom: var(--space-3);
 }
-.inline-form {
+.stage-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
   display: flex;
-  gap: var(--space-2);
-  align-items: flex-end;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.stage-card h2 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
 }
 .duplicate-banner {
-  margin-top: var(--space-3);
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-muted-bg);
+  background: var(--color-status-warning-tint);
+  color: var(--color-late);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
 }
 .dismiss-banner {
   border: none;
   background: none;
-  color: var(--color-accent);
+  color: inherit;
+  font-weight: 700;
   cursor: pointer;
-  font: inherit;
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 640px) {
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

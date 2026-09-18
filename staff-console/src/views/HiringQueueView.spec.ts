@@ -49,7 +49,7 @@ describe('HiringQueueView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('Bilal Hussain');
-    expect(wrapper.text()).toContain('SUBMITTED');
+    expect(wrapper.text()).toContain('Submitted');
   });
 
   it('opens the candidate intake form in a popup, and reloads the list when it is closed', async () => {

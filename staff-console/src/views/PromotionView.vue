@@ -14,6 +14,7 @@ import {
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import ListPageCard from '../components/ListPageCard.vue';
 import { useConfirm } from '../lib/useConfirm';
 import { useToast } from '../lib/useToast';
 
@@ -207,12 +208,12 @@ async function onExecute() {
 </script>
 
 <template>
-  <div class="org-entity">
-    <div class="page-header">
-      <h1>Promotions</h1>
-    </div>
+  <ListPageCard
+    icon="calendar"
+    title="Promotions"
+    :subtitle="activeSession ? `Source academic session: ${activeSession.label}` : undefined"
+  >
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-    <p v-if="activeSession" class="hint">Source academic session: {{ activeSession.label }}</p>
 
     <div class="pickers">
       <FormField
@@ -303,43 +304,32 @@ async function onExecute() {
       </template>
     </EntityTable>
 
-    <Button data-testid="execute-promotions" :disabled="!canExecute || isExecuting" @click="onExecute">
-      Execute
-    </Button>
-  </div>
+    <div class="execute-row">
+      <Button data-testid="execute-promotions" :disabled="!canExecute || isExecuting" @click="onExecute">
+        Execute
+      </Button>
+    </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.org-entity {
-  max-width: 1080px;
-}
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
 }
-.hint {
-  color: var(--color-muted);
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-3);
-}
-.pickers {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-3);
-}
+.pickers,
 .bulk-assign {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: flex-end;
-  gap: var(--space-2);
+  gap: var(--space-3);
   flex-wrap: wrap;
-  margin-bottom: var(--space-3);
+}
+.execute-row {
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

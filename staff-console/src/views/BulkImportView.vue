@@ -6,6 +6,7 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppSkeleton from '../components/AppSkeleton.vue';
 import ErrorRetry from '../components/ErrorRetry.vue';
+import ListPageCard from '../components/ListPageCard.vue';
 import { useFocusTarget } from '../lib/useFocusTarget';
 
 const auth = useAuthStore();
@@ -83,17 +84,8 @@ async function onCommit() {
 </script>
 
 <template>
-  <div class="bulk-import">
-    <h1>Bulk Import</h1>
-    <ErrorRetry v-if="errorMessage" :message="errorMessage" @retry="onPreview" />
-    <ErrorRetry v-if="sampleErrorMessage" :message="sampleErrorMessage" @retry="onDownloadSample" />
-    <p v-if="successMessage" class="success" role="status">
-      {{ successMessage }}
-      <br />
-      Any newly created accounts should use Forgot Password to set their own password.
-    </p>
-
-    <div class="picker-row">
+  <ListPageCard icon="grid" title="Bulk Import" subtitle="Import records from a CSV file">
+    <template #toolbar>
       <FormField
         ref="entityFieldRef"
         v-model="selectedEntity"
@@ -118,55 +110,52 @@ async function onCommit() {
       <Button data-testid="preview-submit" :disabled="isBusy || !selectedEntity || !selectedFile" @click="onPreview">
         Preview
       </Button>
-      <Button data-testid="commit-submit" :disabled="isBusy || !canCommit" @click="onCommit">Commit</Button>
-    </div>
+      <Button data-testid="commit-submit" class="commit-btn" :disabled="isBusy || !canCommit" @click="onCommit">Commit</Button>
+    </template>
+
+    <ErrorRetry v-if="errorMessage" :message="errorMessage" @retry="onPreview" />
+    <ErrorRetry v-if="sampleErrorMessage" :message="sampleErrorMessage" @retry="onDownloadSample" />
+    <p v-if="successMessage" class="success" role="status">
+      {{ successMessage }}
+      <br />
+      Any newly created accounts should use Forgot Password to set their own password.
+    </p>
     <p class="hint">Download the sample file for your chosen entity and follow the same column format when uploading.</p>
 
     <div v-if="isBusy && !preview" class="preview-skeleton" data-testid="preview-skeleton">
       <AppSkeleton v-for="n in 4" :key="n" height="1.4rem" />
     </div>
 
-    <table v-if="preview" class="preview-table" data-testid="preview-table">
-      <thead>
-        <tr>
-          <th>Line</th>
-          <th>Data</th>
-          <th>Errors</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="row in preview.rows" :key="row.line" :class="{ 'row-error': row.errors.length > 0 }">
-          <td>{{ row.line }}</td>
-          <td>{{ Object.values(row.data).join(', ') }}</td>
-          <td class="errors">{{ row.errors.join('; ') }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p v-if="preview" class="summary">
-      {{ preview.validCount }} valid, {{ preview.errorCount }} with errors.
-    </p>
-  </div>
+    <p v-if="preview" class="summary">{{ preview.validCount }} valid, {{ preview.errorCount }} with errors.</p>
+
+    <div v-if="preview" class="preview-card">
+      <table class="preview-table" data-testid="preview-table">
+        <thead>
+          <tr>
+            <th class="col-line">Line</th>
+            <th>Data</th>
+            <th class="col-errors">Errors</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in preview.rows" :key="row.line" :class="{ 'row-error': row.errors.length > 0 }">
+            <td class="mono">{{ row.line }}</td>
+            <td>{{ Object.values(row.data).join(', ') }}</td>
+            <td :class="row.errors.length ? 'errors' : 'muted'">{{ row.errors.length ? row.errors.join('; ') : '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.bulk-import {
-  max-width: 900px;
-}
 .success {
   color: var(--color-accent);
-  margin-bottom: var(--space-3);
-}
-.picker-row {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: var(--space-2);
 }
 .hint {
   color: var(--color-muted);
   font-size: var(--font-size-xs);
-  margin-bottom: var(--space-3);
 }
 .file-field {
   display: flex;
@@ -174,30 +163,64 @@ async function onCommit() {
   gap: 0.2rem;
   font-size: var(--font-size-sm);
 }
+.commit-btn {
+  margin-left: auto;
+}
 .preview-skeleton {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
+}
+.preview-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 .preview-table {
   width: 100%;
   border-collapse: collapse;
 }
-.preview-table th,
-.preview-table td {
+.preview-table th {
   text-align: left;
-  padding: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  background: var(--color-background);
   border-bottom: 1px solid var(--color-border);
 }
-.row-error {
-  background: color-mix(in srgb, var(--color-destructive) 10%, transparent);
+.preview-table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+.preview-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.col-line {
+  width: 3.5rem;
+}
+.col-errors {
+  width: 280px;
+}
+.row-error td {
+  background: var(--color-status-critical-tint);
 }
 .errors {
   color: var(--color-destructive);
+  font-weight: 600;
+}
+.muted {
+  color: var(--color-muted);
 }
 .summary {
-  margin-top: var(--space-2);
   color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 </style>

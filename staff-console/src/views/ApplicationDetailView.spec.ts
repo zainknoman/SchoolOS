@@ -20,7 +20,10 @@ vi.mock('../lib/api', () => ({
 function makeRouter() {
   return createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/admin/admissions/:id', name: 'admin-admission-detail', component: ApplicationDetailView }],
+    routes: [
+      { path: '/admin/admissions/:id', name: 'admin-admission-detail', component: ApplicationDetailView },
+      { path: '/admin/admissions', name: 'admin-admissions', component: { template: '<div />' } },
+    ],
   });
 }
 
@@ -66,7 +69,7 @@ describe('ApplicationDetailView', () => {
     const wrapper = await mountView();
     expect(api.getApplication).toHaveBeenCalledWith('token-1', 'appl-1');
     expect(wrapper.text()).toContain('Zainab Ali');
-    expect(wrapper.text()).toContain('SUBMITTED');
+    expect(wrapper.text()).toContain('Submitted');
   });
 
   it('"Mark Under Review" calls api.updateApplicationStatus', async () => {

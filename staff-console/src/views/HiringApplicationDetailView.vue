@@ -6,6 +6,28 @@ import { api, type CampusSummary, type HiringApplicationSummary } from '../lib/a
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
+import StatusPill from '../components/StatusPill.vue';
+
+const STATUS_LABELS: Record<string, string> = {
+  SUBMITTED: 'Submitted',
+  SHORTLISTED: 'Shortlisted',
+  INTERVIEWED: 'Interviewed',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+};
+const STATUS_TONES: Record<string, 'success' | 'warning' | 'critical' | 'info' | 'neutral'> = {
+  SUBMITTED: 'neutral',
+  SHORTLISTED: 'info',
+  INTERVIEWED: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'critical',
+};
+function statusLabel(status: string): string {
+  return STATUS_LABELS[status] ?? status;
+}
+function statusTone(status: string): 'success' | 'warning' | 'critical' | 'info' | 'neutral' {
+  return STATUS_TONES[status] ?? 'neutral';
+}
 
 const auth = useAuthStore();
 const route = useRoute();
@@ -106,25 +128,32 @@ async function onApprove() {
 
 <template>
   <div class="application-detail">
-    <h1>Hiring Application</h1>
+    <RouterLink to="/admin/hiring" class="back-link">← Back to Hiring</RouterLink>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <div v-if="application" class="application-info">
-      <p><strong>Candidate:</strong> {{ application.candidateName }}</p>
-      <p><strong>Employee type:</strong> {{ application.employeeType }}</p>
-      <p><strong>Campus:</strong> {{ campusName }}</p>
-      <p><strong>Status:</strong> {{ application.status }}</p>
-      <p v-if="application.decisionNotes"><strong>Decision notes:</strong> {{ application.decisionNotes }}</p>
+      <div class="detail-header">
+        <h1>{{ application.candidateName }}</h1>
+        <StatusPill :tone="statusTone(application.status)" :label="statusLabel(application.status)" />
+      </div>
+
+      <div class="info-card">
+        <div class="info-row"><span class="muted">Candidate</span><span class="info-value">{{ application.candidateName }}</span></div>
+        <div class="info-row"><span class="muted">Employee type</span><span class="info-value">{{ application.employeeType }}</span></div>
+        <div class="info-row"><span class="muted">Campus</span><span class="info-value">{{ campusName }}</span></div>
+        <div class="info-row"><span class="muted">Status</span><span class="info-value">{{ statusLabel(application.status) }}</span></div>
+        <div v-if="application.decisionNotes" class="info-row"><span class="muted">Decision notes</span><span class="info-value">{{ application.decisionNotes }}</span></div>
+      </div>
 
       <template v-if="application.status !== 'APPROVED' && application.status !== 'REJECTED'">
         <div class="inline-form">
-          <Button data-testid="mark-shortlisted" :disabled="isMarkingStatus" @click="onMarkStatus('SHORTLISTED')">
+          <Button data-testid="mark-shortlisted" variant="secondary" :disabled="isMarkingStatus" @click="onMarkStatus('SHORTLISTED')">
             Mark Shortlisted
           </Button>
-          <Button data-testid="mark-interviewed" :disabled="isMarkingStatus" @click="onMarkStatus('INTERVIEWED')">
+          <Button data-testid="mark-interviewed" variant="secondary" :disabled="isMarkingStatus" @click="onMarkStatus('INTERVIEWED')">
             Mark Interviewed
           </Button>
-          <Button data-testid="open-reject-modal" variant="secondary" @click="showRejectModal = true">
+          <Button data-testid="open-reject-modal" variant="secondary" class="btn-danger-outline" @click="showRejectModal = true">
             Reject
           </Button>
           <Button data-testid="open-approve-modal" @click="showApproveModal = true">
@@ -161,7 +190,7 @@ async function onApprove() {
             </div>
 
             <template v-if="application.employeeType === 'TEACHER'">
-              <p class="hint">A login is required to hire a teacher.</p>
+              <p class="hint hint-info">A login is required to hire a teacher.</p>
               <div class="form-grid">
                 <FormField v-model="approveLoginIdentifier" label="Login email" type="text" data-testid="approve-login-identifier" placeholder="Login email" grow />
                 <FormField v-model="approveLoginPassword" label="Initial password" type="password" data-testid="approve-login-password" placeholder="Initial password" grow />
@@ -178,20 +207,64 @@ async function onApprove() {
 
 <style scoped>
 .application-detail {
-  max-width: 900px;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.back-link {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-decoration: none;
 }
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
 }
 .hint {
-  color: var(--color-muted, #64748b);
   font-size: var(--font-size-sm);
+}
+.hint-info {
+  background: var(--color-status-info-tint);
+  color: var(--color-accent);
+  font-weight: 600;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
 }
 .application-info {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.detail-header h1 {
+  margin: 0;
+}
+.info-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+.info-value {
+  font-weight: 600;
+}
+.muted {
+  color: var(--color-muted);
 }
 .inline-form {
   display: flex;
@@ -199,14 +272,8 @@ async function onApprove() {
   gap: var(--space-2);
   flex-wrap: wrap;
 }
-.add-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-2);
+.btn-danger-outline {
+  border-color: var(--color-destructive) !important;
+  color: var(--color-destructive) !important;
 }
 </style>

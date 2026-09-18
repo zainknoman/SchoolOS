@@ -9,7 +9,10 @@ import { api, type HiringApplicationSummary } from '../lib/api';
 async function mountView(id = 'app1') {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/admin/hiring/:id', name: 'admin-hiring-detail', component: HiringApplicationDetailView }],
+    routes: [
+      { path: '/admin/hiring/:id', name: 'admin-hiring-detail', component: HiringApplicationDetailView },
+      { path: '/admin/hiring', name: 'admin-hiring', component: { template: '<div />' } },
+    ],
   });
   await router.push(`/admin/hiring/${id}`);
   await router.isReady();
@@ -53,7 +56,7 @@ describe('HiringApplicationDetailView', () => {
 
     expect(wrapper.text()).toContain('Bilal Hussain');
     expect(wrapper.text()).toContain('PECHS Campus');
-    expect(wrapper.text()).toContain('SUBMITTED');
+    expect(wrapper.text()).toContain('Submitted');
   });
 
   it('marks the application shortlisted', async () => {
@@ -67,7 +70,7 @@ describe('HiringApplicationDetailView', () => {
     await flushPromises();
 
     expect(api.updateHiringApplicationStatus).toHaveBeenCalledWith('token-1', 'app1', { status: 'SHORTLISTED' });
-    expect(wrapper.text()).toContain('SHORTLISTED');
+    expect(wrapper.text()).toContain('Shortlisted');
   });
 
   it('rejects the application with decision notes', async () => {

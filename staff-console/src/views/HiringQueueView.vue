@@ -8,6 +8,8 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import ErrorRetry from '../components/ErrorRetry.vue';
+import ListPageCard from '../components/ListPageCard.vue';
+import StatusPill from '../components/StatusPill.vue';
 import HiringCandidateIntakeView from './HiringCandidateIntakeView.vue';
 import { useToast } from '../lib/useToast';
 
@@ -18,6 +20,21 @@ const STATUS_OPTIONS = [
   { value: 'APPROVED', label: 'Approved' },
   { value: 'REJECTED', label: 'Rejected' },
 ];
+
+const STATUS_TONES: Record<string, 'success' | 'warning' | 'critical' | 'info' | 'neutral'> = {
+  SUBMITTED: 'neutral',
+  SHORTLISTED: 'info',
+  INTERVIEWED: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'critical',
+};
+
+function statusLabel(status: string): string {
+  return STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
+}
+function statusTone(status: string): 'success' | 'warning' | 'critical' | 'info' | 'neutral' {
+  return STATUS_TONES[status] ?? 'neutral';
+}
 
 const auth = useAuthStore();
 const toast = useToast();
@@ -72,14 +89,11 @@ function onCandidateCreated() {
 </script>
 
 <template>
-  <div class="hiring-queue">
-    <div class="page-header">
-      <h1>Hiring</h1>
+  <ListPageCard icon="users" title="Hiring" subtitle="Candidate applications">
+    <template #actions>
       <Button data-testid="open-add-form" @click="showAddModal = true">+ Add New</Button>
-    </div>
-    <ErrorRetry v-if="errorMessage" :message="errorMessage" @retry="loadApplications" />
-
-    <div class="filter-row">
+    </template>
+    <template #toolbar>
       <FormField
         v-model="selectedCampusId"
         label="Campus"
@@ -98,7 +112,9 @@ function onCandidateCreated() {
         :options="STATUS_OPTIONS"
         @update:model-value="loadApplications"
       />
-    </div>
+    </template>
+
+    <ErrorRetry v-if="errorMessage" :message="errorMessage" @retry="loadApplications" />
 
     <EntityTable
       :items="applications"
@@ -116,6 +132,9 @@ function onCandidateCreated() {
       empty-cta-label="+ Add New"
       @empty-cta="showAddModal = true"
     >
+      <template #cell-status="{ item }">
+        <StatusPill :tone="statusTone(item.status)" :label="statusLabel(item.status)" />
+      </template>
       <template #actions="{ item }">
         <RouterLink :data-testid="`view-application-${item.id}`" :to="`/admin/hiring/${item.id}`">
           View
@@ -126,24 +145,5 @@ function onCandidateCreated() {
     <AppModal v-model="showAddModal" title="Add Hiring Candidate">
       <HiringCandidateIntakeView @created="onCandidateCreated" />
     </AppModal>
-  </div>
+  </ListPageCard>
 </template>
-
-<style scoped>
-.hiring-queue {
-  max-width: 900px;
-}
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
-.filter-row {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: var(--space-3);
-}
-</style>

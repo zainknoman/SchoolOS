@@ -103,36 +103,34 @@ async function onCreateApplication() {
     <h1>New Hiring Candidate</h1>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <section class="form-section">
-      <h2>Candidate details</h2>
-      <div class="inline-form">
+    <div v-if="showDuplicateBanner && possibleDuplicate" class="duplicate-banner" data-testid="duplicate-banner" role="alert">
+      A similar candidate already exists — {{ possibleDuplicate.name }}
+      <button type="button" class="dismiss-banner" @click="dismissDuplicateBanner">Dismiss</button>
+    </div>
+
+    <section class="stage-card">
+      <h2>1 · Candidate details</h2>
+      <div class="field-grid">
         <FormField v-model="candidateName" label="Name" type="text" data-testid="candidate-name" placeholder="Candidate's full name" grow />
         <FormField v-model="candidateDob" label="Date of birth" type="date" data-testid="candidate-dob" />
         <FormField v-model="candidateCnic" label="CNIC" type="text" data-testid="candidate-cnic" placeholder="CNIC" grow />
-      </div>
-      <div class="inline-form">
         <FormField v-model="candidatePhone" label="Contact phone" type="text" data-testid="candidate-phone" placeholder="Contact phone" grow />
         <FormField v-model="candidateEmail" label="Contact email" type="email" data-testid="candidate-email" placeholder="Contact email" grow />
-      </div>
-      <div class="form-field">
-        <label class="sr-only" for="candidate-resume-input">Résumé</label>
-        <input id="candidate-resume-input" type="file" data-testid="candidate-resume" @change="onResumeFileChange" />
+        <div class="resume-field">
+          <label class="resume-label" for="candidate-resume-input">Résumé</label>
+          <input id="candidate-resume-input" class="resume-input" type="file" data-testid="candidate-resume" @change="onResumeFileChange" />
+        </div>
       </div>
       <Button data-testid="candidate-submit" :disabled="isSavingCandidate" @click="onCreateCandidate">
         Create Candidate
       </Button>
-
-      <div v-if="showDuplicateBanner && possibleDuplicate" class="duplicate-banner" data-testid="duplicate-banner" role="alert">
-        A similar candidate already exists — {{ possibleDuplicate.name }}
-        <button type="button" class="dismiss-banner" @click="dismissDuplicateBanner">Dismiss</button>
-      </div>
     </section>
 
-    <section v-if="candidateId" class="form-section">
-      <h2>Application</h2>
+    <section v-if="candidateId" class="stage-card">
+      <h2>2 · Application</h2>
       <p v-if="applicationErrorMessage" class="error" role="alert">{{ applicationErrorMessage }}</p>
       <p v-if="applicationCreated" class="success">Application created.</p>
-      <div class="inline-form">
+      <div class="field-grid">
         <FormField
           v-model="applicationEmployeeType"
           label="Employee type"
@@ -149,10 +147,10 @@ async function onCreateApplication() {
           placeholder="Choose a campus"
           :options="campuses.map((c) => ({ value: c.id, label: c.name }))"
         />
-        <Button data-testid="application-submit" :disabled="isSavingApplication" @click="onCreateApplication">
-          Create Application
-        </Button>
       </div>
+      <Button data-testid="application-submit" :disabled="isSavingApplication" @click="onCreateApplication">
+        Create Application
+      </Button>
     </section>
   </div>
 </template>
@@ -160,50 +158,81 @@ async function onCreateApplication() {
 <style scoped>
 .candidate-intake {
   max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
-.form-section {
-  margin-bottom: var(--space-4);
+.candidate-intake h1 {
+  margin: 0;
 }
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
 }
 .success {
   color: var(--color-accent);
-  margin-bottom: var(--space-3);
 }
-.inline-form {
+.stage-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
   display: flex;
-  gap: var(--space-2);
-  align-items: flex-end;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.stage-card h2 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+.resume-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.resume-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.resume-input {
+  padding: 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
 }
 .duplicate-banner {
-  margin-top: var(--space-3);
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-muted-bg);
+  background: var(--color-status-warning-tint);
+  color: var(--color-late);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
 }
 .dismiss-banner {
   border: none;
   background: none;
-  color: var(--color-accent);
+  color: inherit;
+  font-weight: 700;
   cursor: pointer;
-  font: inherit;
+  font-size: var(--font-size-xs);
 }
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+
+@media (max-width: 640px) {
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type ApplicationSummary, type AcademicSessionSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
@@ -7,6 +7,8 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import ErrorRetry from '../components/ErrorRetry.vue';
+import ListPageCard from '../components/ListPageCard.vue';
+import StatusPill from '../components/StatusPill.vue';
 import ApplicantIntakeView from './ApplicantIntakeView.vue';
 import { useToast } from '../lib/useToast';
 
@@ -17,6 +19,21 @@ const STATUS_OPTIONS = [
   { value: 'REJECTED', label: 'Rejected' },
   { value: 'WITHDRAWN', label: 'Withdrawn' },
 ];
+
+const STATUS_TONES: Record<string, 'success' | 'warning' | 'critical' | 'info' | 'neutral'> = {
+  SUBMITTED: 'neutral',
+  UNDER_REVIEW: 'info',
+  APPROVED: 'success',
+  REJECTED: 'critical',
+  WITHDRAWN: 'warning',
+};
+
+function statusLabel(status: string): string {
+  return STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
+}
+function statusTone(status: string): 'success' | 'warning' | 'critical' | 'info' | 'neutral' {
+  return STATUS_TONES[status] ?? 'neutral';
+}
 
 const auth = useAuthStore();
 const toast = useToast();
@@ -70,17 +87,18 @@ watch(showAddModal, (isOpen) => {
 function onApplicantCreated() {
   toast.success('Applicant added.');
 }
+
+const activeSessionLabel = computed(
+  () => sessions.value.find((s) => s.id === selectedSessionId.value)?.label ?? '',
+);
 </script>
 
 <template>
-  <div class="admissions-queue">
-    <div class="page-header">
-      <h1>Admissions</h1>
+  <ListPageCard icon="users" title="Admissions" :subtitle="activeSessionLabel ? `Application queue · ${activeSessionLabel}` : 'Application queue'">
+    <template #actions>
       <Button data-testid="open-add-form" @click="showAddModal = true">+ Add New</Button>
-    </div>
-    <ErrorRetry v-if="errorMessage" :message="errorMessage" @retry="loadApplications" />
-
-    <div class="filter-row">
+    </template>
+    <template #toolbar>
       <FormField
         v-model="selectedSessionId"
         label="Academic session"
@@ -99,7 +117,9 @@ function onApplicantCreated() {
         :options="STATUS_OPTIONS"
         @update:model-value="loadApplications"
       />
-    </div>
+    </template>
+
+    <ErrorRetry v-if="errorMessage" :message="errorMessage" @retry="loadApplications" />
 
     <EntityTable
       :items="applications"
@@ -116,6 +136,9 @@ function onApplicantCreated() {
       empty-cta-label="+ Add New"
       @empty-cta="showAddModal = true"
     >
+      <template #cell-status="{ item }">
+        <StatusPill :tone="statusTone(item.status)" :label="statusLabel(item.status)" />
+      </template>
       <template #actions="{ item }">
         <RouterLink :data-testid="`view-application-${item.id}`" :to="`/admin/admissions/${item.id}`">
           View
@@ -126,24 +149,5 @@ function onApplicantCreated() {
     <AppModal v-model="showAddModal" title="Add Applicant">
       <ApplicantIntakeView @created="onApplicantCreated" />
     </AppModal>
-  </div>
+  </ListPageCard>
 </template>
-
-<style scoped>
-.admissions-queue {
-  max-width: 900px;
-}
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
-.filter-row {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: var(--space-3);
-}
-</style>
