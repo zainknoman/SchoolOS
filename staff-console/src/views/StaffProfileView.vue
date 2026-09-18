@@ -2,23 +2,27 @@
 import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { api, type AddressInput, type StaffProfileDetail } from '../lib/api';
-import { GENDER_OPTIONS, EMPLOYMENT_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS } from '../lib/staff-profile.constants';
+import { api, type AddressInput, type AddressDetail, type StaffProfileDetail } from '../lib/api';
+import { GENDER_OPTIONS, EMPLOYEE_TYPE_OPTIONS, EMPLOYMENT_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS } from '../lib/staff-profile.constants';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import AppIcon from '../components/AppIcon.vue';
 import Tabs from '../components/AppTabs.vue';
 import { initialsFromName } from '../lib/format';
-import EntityTable from '../components/EntityTable.vue';
+import EmptyState from '../components/EmptyState.vue';
+import ErrorRetry from '../components/ErrorRetry.vue';
 import { useConfirm } from '../lib/useConfirm';
 import StatusPill from '../components/StatusPill.vue';
 import AppModal from '../components/AppModal.vue';
+import ProfileIdentityCard from '../components/ProfileIdentityCard.vue';
+import ProfileSectionCard from '../components/ProfileSectionCard.vue';
 import { useToast } from '../lib/useToast';
 
 const PROFILE_TABS = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'contacts', label: 'Emergency Contacts' },
-  { id: 'experience', label: 'Experience' },
-  { id: 'documents', label: 'Documents' },
+  { id: 'profile', label: 'Personal Info', icon: 'user-circle' as const },
+  { id: 'contacts', label: 'Emergency Contacts', icon: 'users' as const },
+  { id: 'experience', label: 'Experience', icon: 'briefcase' as const },
+  { id: 'documents', label: 'Documents', icon: 'file-text' as const },
 ];
 const activeTab = ref('profile');
 
@@ -33,6 +37,7 @@ const pageErrorMessage = ref<string | null>(null);
 
 async function load() {
   if (!auth.accessToken) return;
+  pageErrorMessage.value = null;
   try {
     profile.value = await api.getStaffProfile(auth.accessToken, staffId);
   } catch (err) {
@@ -40,6 +45,81 @@ async function load() {
   }
 }
 load();
+
+// --- Header presentation helpers (derived only from data already on the profile) --------------
+function employeeTypeLabel(type: StaffProfileDetail['employeeType']): string {
+  return EMPLOYEE_TYPE_OPTIONS.find((opt) => opt.value === type)?.label ?? type;
+}
+
+const EMPLOYMENT_STATUS_LABELS: Record<StaffProfileDetail['employmentStatus'], string> = {
+  ACTIVE: 'Active',
+  ON_LEAVE: 'On Leave',
+  TERMINATED: 'Terminated',
+  RESIGNED: 'Resigned',
+};
+function staffStatusLabel(status: StaffProfileDetail['employmentStatus']): string {
+  return EMPLOYMENT_STATUS_LABELS[status];
+}
+function staffStatusTone(status: StaffProfileDetail['employmentStatus']): 'success' | 'warning' | 'critical' | 'info' | 'neutral' {
+  if (status === 'ACTIVE') return 'success';
+  if (status === 'ON_LEAVE') return 'warning';
+  if (status === 'TERMINATED') return 'critical';
+  return 'neutral';
+}
+
+function ordinalSuffix(n: number): string {
+  const j = n % 10;
+  const k = n % 100;
+  if (j === 1 && k !== 11) return 'st';
+  if (j === 2 && k !== 12) return 'nd';
+  if (j === 3 && k !== 13) return 'rd';
+  return 'th';
+}
+function yearsSince(dateStr: string): number {
+  const start = new Date(dateStr);
+  const now = new Date();
+  let years = now.getFullYear() - start.getFullYear();
+  const monthDiff = now.getMonth() - start.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < start.getDate())) years--;
+  return years;
+}
+
+const ageLabel = computed(() => {
+  const dob = profile.value?.dateOfBirth;
+  if (!dob) return null;
+  const years = yearsSince(dob);
+  return Number.isFinite(years) && years >= 0 ? `${years} yrs` : null;
+});
+
+const tenureLabel = computed(() => {
+  const joining = profile.value?.joiningDate;
+  if (!joining) return null;
+  const years = Math.max(0, yearsSince(joining)) + 1;
+  return `${years}${ordinalSuffix(years)} year at school`;
+});
+
+const contactsLabel = computed(() => {
+  const count = profile.value?.emergencyContacts.length ?? 0;
+  return `${count} contact${count === 1 ? '' : 's'} on file`;
+});
+
+const documentsLabel = computed(() => {
+  const docs = profile.value?.documents ?? [];
+  const verified = docs.filter((d) => d.verificationStatus === 'VERIFIED').length;
+  return `${verified}/${docs.length} documents verified`;
+});
+
+function formatAddress(address: AddressDetail | null): string {
+  if (!address) return '—';
+  const firstLine = [address.line1, address.line2, address.area].filter(Boolean).join(', ');
+  const cityLine = [address.city, address.province].filter(Boolean).join(', ');
+  const secondLine = [cityLine, address.postalCode].filter(Boolean).join(' · ');
+  return [firstLine, secondLine].filter(Boolean).join('\n') || '—';
+}
+
+function documentTypeLabel(type: string): string {
+  return DOCUMENT_TYPE_OPTIONS.find((opt) => opt.value === type)?.label ?? type;
+}
 
 // Every field here is always a definite string (never undefined) so it can bind to FormField's
 // `modelValue: string | boolean` prop — AddressInput's fields are optional (string | undefined),
@@ -85,6 +165,11 @@ function startEditProfile() {
   isEditingProfile.value = true;
 }
 
+function onHeaderEditProfile() {
+  activeTab.value = 'profile';
+  startEditProfile();
+}
+
 function cancelEditProfile() {
   isEditingProfile.value = false;
   profileErrorMessage.value = null;
@@ -121,8 +206,7 @@ async function onSaveProfile() {
   }
 }
 
-// --- Profile photo (top-right avatar) --------------------------------------------------------
-const photoInputRef = ref<HTMLInputElement | null>(null);
+// --- Profile photo (identity card avatar) ----------------------------------------------------
 const photoPreviewUrl = ref<string | null>(null);
 const photoErrorMessage = ref<string | null>(null);
 const isSavingPhoto = ref(false);
@@ -132,10 +216,6 @@ const displayPhotoUrl = computed(() => {
   const fileId = profile.value?.profilePhotoFileId;
   return fileId && auth.accessToken ? api.filePreviewUrl(auth.accessToken, fileId) : null;
 });
-
-function triggerPhotoInput() {
-  photoInputRef.value?.click();
-}
 
 async function onPhotoFileSelected(event: Event) {
   const input = event.target as HTMLInputElement;
@@ -459,326 +539,409 @@ async function onDeleteLogin() {
     loginErrorMessage.value = err instanceof Error ? err.message : 'Could not delete this login.';
   }
 }
-
 </script>
 
 <template>
   <div class="staff-profile">
-    <div class="page-header">
-      <h1 v-if="profile">{{ profile.name }}</h1>
-      <h1 v-else>Staff Profile</h1>
-
-      <div v-if="profile" class="photo-widget">
-        <button
-          type="button"
-          class="photo-avatar"
-          data-testid="profile-photo-trigger"
-          :disabled="isSavingPhoto"
-          @click="triggerPhotoInput"
-        >
-          <img v-if="displayPhotoUrl" :src="displayPhotoUrl" alt="" class="photo-avatar-img" />
-          <template v-else>{{ initialsFromName(profile.name) }}</template>
-        </button>
-        <label class="sr-only" for="profile-photo-input">Staff photo</label>
-        <input
-          id="profile-photo-input"
-          ref="photoInputRef"
-          type="file"
-          accept="image/*"
-          class="sr-only"
-          data-testid="profile-photo-input"
-          @change="onPhotoFileSelected"
-        />
-        <span class="photo-hint">{{ isSavingPhoto ? 'Uploading…' : (profile.profilePhotoFileId ? 'Change photo' : 'Upload photo') }}</span>
+    <ProfileIdentityCard
+      v-if="profile"
+      :name="profile.name"
+      :initials="initialsFromName(profile.name)"
+      :photo-url="displayPhotoUrl"
+      photo-label="Staff photo"
+      :is-saving-photo="isSavingPhoto"
+      :subtitle-tag="employeeTypeLabel(profile.employeeType)"
+      :status-label="staffStatusLabel(profile.employmentStatus)"
+      :status-tone="staffStatusTone(profile.employmentStatus)"
+      :age-label="ageLabel"
+      :tenure-label="tenureLabel"
+      :contacts-label="contactsLabel"
+      :documents-label="documentsLabel"
+      :compact="isEditingProfile"
+      @edit-profile="onHeaderEditProfile"
+      @photo-file-change="onPhotoFileSelected"
+    />
+    <div v-else-if="!pageErrorMessage" class="identity-skeleton" data-testid="staff-profile-skeleton">
+      <span class="skeleton-avatar" />
+      <div class="skeleton-lines">
+        <span class="skeleton-line" style="width: 40%; height: 1.4rem" />
+        <span class="skeleton-line" style="width: 60%" />
       </div>
     </div>
+
     <p v-if="photoErrorMessage" class="error" role="alert" data-testid="profile-photo-error">{{ photoErrorMessage }}</p>
-    <p v-if="pageErrorMessage" class="error" role="alert">{{ pageErrorMessage }}</p>
+    <ErrorRetry v-if="pageErrorMessage" :message="pageErrorMessage" @retry="load" />
 
     <div v-if="profile" class="sections">
-      <Tabs :tabs="PROFILE_TABS" v-model="activeTab">
+      <Tabs :tabs="PROFILE_TABS" v-model="activeTab" variant="pill">
         <template #tab-profile>
-      <section class="profile-section">
-        <div class="section-header">
-          <h2>Profile</h2>
-          <Button v-if="!isEditingProfile" data-testid="edit-profile" @click="startEditProfile">Edit</Button>
-        </div>
-        <p v-if="profileErrorMessage" data-testid="profile-error" class="error" role="alert">{{ profileErrorMessage }}</p>
+          <ProfileSectionCard icon="user-circle" title="Personal Info">
+            <template #actions>
+              <Button v-if="!isEditingProfile" variant="secondary" data-testid="edit-profile" @click="startEditProfile">
+                <AppIcon name="edit" :size="13" /> Edit
+              </Button>
+            </template>
+            <p v-if="profileErrorMessage" data-testid="profile-error" class="error" role="alert">{{ profileErrorMessage }}</p>
 
-        <dl v-if="!isEditingProfile" class="detail-grid">
-          <dt>Full name</dt><dd>{{ profile.name }}</dd>
-          <dt>Employee type</dt><dd>{{ profile.employeeType }}</dd>
-          <dt>Employment status</dt><dd>{{ profile.employmentStatus }}</dd>
-          <dt>Gender</dt><dd>{{ profile.gender ?? '—' }}</dd>
-          <dt>Date of birth</dt><dd>{{ profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : '—' }}</dd>
-          <dt>CNIC</dt><dd>{{ profile.cnic ?? '—' }}</dd>
-          <dt>Mobile</dt><dd>{{ profile.mobile ?? '—' }}</dd>
-          <dt>Email</dt><dd>{{ profile.email ?? '—' }}</dd>
-          <dt>Joining date</dt><dd>{{ profile.joiningDate ? profile.joiningDate.slice(0, 10) : '—' }}</dd>
-          <dt>Leaving date</dt><dd>{{ profile.leavingDate ? profile.leavingDate.slice(0, 10) : '—' }}</dd>
-          <dt>Linked teacher account</dt><dd>{{ profile.teacher ? profile.teacher.name : '—' }}</dd>
-          <dt>Current address</dt>
-          <dd>{{ profile.currentAddress ? [profile.currentAddress.line1, profile.currentAddress.city].filter(Boolean).join(', ') : '—' }}</dd>
-          <dt>Permanent address</dt>
-          <dd>{{ profile.permanentAddress ? [profile.permanentAddress.line1, profile.permanentAddress.city].filter(Boolean).join(', ') : '—' }}</dd>
-        </dl>
+            <template v-if="!isEditingProfile">
+              <div class="field-group">
+                <div class="group-title">Identity</div>
+                <div class="field-grid">
+                  <div class="field"><span class="field-label">Full name</span><span class="field-value">{{ profile.name }}</span></div>
+                  <div class="field"><span class="field-label">Employee type</span><span class="field-value">{{ employeeTypeLabel(profile.employeeType) }}</span></div>
+                  <div class="field"><span class="field-label">Gender</span><span class="field-value">{{ profile.gender ?? '—' }}</span></div>
+                  <div class="field"><span class="field-label">Date of birth</span><span class="field-value mono">{{ profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : '—' }}</span></div>
+                  <div class="field"><span class="field-label">CNIC</span><span class="field-value mono">{{ profile.cnic ?? '—' }}</span></div>
+                  <div class="field"><span class="field-label">Linked teacher account</span><span class="field-value">{{ profile.teacher ? profile.teacher.name : '—' }}</span></div>
+                </div>
+              </div>
+              <div class="field-group">
+                <div class="group-title">Employment &amp; contact</div>
+                <div class="field-grid">
+                  <div class="field"><span class="field-label">Status</span><span class="field-value">{{ staffStatusLabel(profile.employmentStatus) }}</span></div>
+                  <div class="field"><span class="field-label">Joining date</span><span class="field-value mono">{{ profile.joiningDate ? profile.joiningDate.slice(0, 10) : '—' }}</span></div>
+                  <div class="field"><span class="field-label">Leaving date</span><span class="field-value mono">{{ profile.leavingDate ? profile.leavingDate.slice(0, 10) : '—' }}</span></div>
+                  <div class="field"><span class="field-label">Mobile</span><span class="field-value mono">{{ profile.mobile ?? '—' }}</span></div>
+                  <div class="field"><span class="field-label">Email</span><span class="field-value">{{ profile.email ?? '—' }}</span></div>
+                </div>
+              </div>
+              <div class="field-group two-col">
+                <div>
+                  <div class="group-title">Current address</div>
+                  <p class="field-value address-block">{{ formatAddress(profile.currentAddress) }}</p>
+                </div>
+                <div>
+                  <div class="group-title">Permanent address</div>
+                  <p class="field-value address-block">{{ formatAddress(profile.permanentAddress) }}</p>
+                </div>
+              </div>
+            </template>
 
-        <div v-else class="edit-form">
-          <div class="inline-form">
-            <FormField v-model="profileForm.firstName" label="First name" type="text" data-testid="profile-firstName" placeholder="First name" grow />
-            <FormField v-model="profileForm.middleName" label="Middle name" type="text" data-testid="profile-middleName" placeholder="Middle name" grow />
-            <FormField v-model="profileForm.lastName" label="Last name" type="text" data-testid="profile-lastName" placeholder="Last name" grow />
-          </div>
-          <div class="inline-form">
-            <FormField v-model="profileForm.gender" label="Gender" type="select" data-testid="profile-gender" placeholder="Gender" :options="GENDER_OPTIONS" />
-            <FormField v-model="profileForm.dateOfBirth" label="Date of birth" type="date" data-testid="profile-dateOfBirth" />
-            <FormField v-model="profileForm.cnic" label="CNIC" type="text" data-testid="profile-cnic" placeholder="CNIC" grow />
-          </div>
-          <div class="inline-form">
-            <FormField v-model="profileForm.mobile" label="Mobile" type="text" data-testid="profile-mobile" placeholder="Mobile" grow />
-            <FormField v-model="profileForm.email" label="Email" type="email" data-testid="profile-email" placeholder="Email" grow />
-          </div>
-          <div class="inline-form">
-            <FormField v-model="profileForm.joiningDate" label="Joining date" type="date" data-testid="profile-joiningDate" />
-            <FormField v-model="profileForm.employmentStatus" label="Employment status" type="select" data-testid="profile-employmentStatus" :options="EMPLOYMENT_STATUS_OPTIONS" />
-            <FormField v-model="profileForm.leavingDate" label="Leaving date" type="date" data-testid="profile-leavingDate" />
-          </div>
-          <FormField v-model="profileForm.leavingReason" label="Leaving reason" type="textarea" data-testid="profile-leavingReason" placeholder="Leaving reason" />
+            <div v-else class="edit-form">
+              <div class="field-group">
+                <div class="group-title">Identity</div>
+                <div class="field-grid-edit">
+                  <FormField v-model="profileForm.firstName" label="First name" type="text" data-testid="profile-firstName" placeholder="First name" grow />
+                  <FormField v-model="profileForm.middleName" label="Middle name" type="text" data-testid="profile-middleName" placeholder="Middle name" grow />
+                  <FormField v-model="profileForm.lastName" label="Last name" type="text" data-testid="profile-lastName" placeholder="Last name" grow />
+                  <FormField v-model="profileForm.gender" label="Gender" type="select" data-testid="profile-gender" placeholder="Gender" :options="GENDER_OPTIONS" />
+                  <FormField v-model="profileForm.dateOfBirth" label="Date of birth" type="date" data-testid="profile-dateOfBirth" mono />
+                  <FormField v-model="profileForm.cnic" label="CNIC" type="text" data-testid="profile-cnic" placeholder="CNIC" mono grow />
+                </div>
+              </div>
 
-          <h3>Current address</h3>
-          <div class="inline-form">
-            <FormField v-model="currentAddressForm.line1" label="Line 1" type="text" data-testid="profile-currentAddress-line1" placeholder="Line 1" grow />
-            <FormField v-model="currentAddressForm.line2" label="Line 2" type="text" data-testid="profile-currentAddress-line2" placeholder="Line 2" grow />
-            <FormField v-model="currentAddressForm.area" label="Area" type="text" data-testid="profile-currentAddress-area" placeholder="Area" grow />
-          </div>
-          <div class="inline-form">
-            <FormField v-model="currentAddressForm.city" label="City" type="text" data-testid="profile-currentAddress-city" placeholder="City" grow />
-            <FormField v-model="currentAddressForm.province" label="Province" type="text" data-testid="profile-currentAddress-province" placeholder="Province" grow />
-            <FormField v-model="currentAddressForm.postalCode" label="Postal code" type="text" data-testid="profile-currentAddress-postalCode" placeholder="Postal code" grow />
-          </div>
+              <div class="field-group">
+                <div class="group-title">Employment &amp; contact</div>
+                <div class="field-grid-edit">
+                  <FormField v-model="profileForm.mobile" label="Mobile" type="text" data-testid="profile-mobile" placeholder="Mobile" mono grow />
+                  <FormField v-model="profileForm.email" label="Email" type="email" data-testid="profile-email" placeholder="Email" grow />
+                  <FormField v-model="profileForm.joiningDate" label="Joining date" type="date" data-testid="profile-joiningDate" mono />
+                  <FormField v-model="profileForm.employmentStatus" label="Employment status" type="select" data-testid="profile-employmentStatus" :options="EMPLOYMENT_STATUS_OPTIONS" />
+                  <FormField v-model="profileForm.leavingDate" label="Leaving date" type="date" data-testid="profile-leavingDate" mono />
+                </div>
+                <FormField v-model="profileForm.leavingReason" label="Leaving reason" type="textarea" data-testid="profile-leavingReason" placeholder="Leaving reason" />
+              </div>
 
-          <h3>Permanent address</h3>
-          <div class="inline-form">
-            <FormField v-model="permanentAddressForm.line1" label="Line 1" type="text" data-testid="profile-permanentAddress-line1" placeholder="Line 1" grow />
-            <FormField v-model="permanentAddressForm.line2" label="Line 2" type="text" data-testid="profile-permanentAddress-line2" placeholder="Line 2" grow />
-            <FormField v-model="permanentAddressForm.area" label="Area" type="text" data-testid="profile-permanentAddress-area" placeholder="Area" grow />
-          </div>
-          <div class="inline-form">
-            <FormField v-model="permanentAddressForm.city" label="City" type="text" data-testid="profile-permanentAddress-city" placeholder="City" grow />
-            <FormField v-model="permanentAddressForm.province" label="Province" type="text" data-testid="profile-permanentAddress-province" placeholder="Province" grow />
-            <FormField v-model="permanentAddressForm.postalCode" label="Postal code" type="text" data-testid="profile-permanentAddress-postalCode" placeholder="Postal code" grow />
-          </div>
+              <div class="field-group">
+                <div class="group-title">Current address</div>
+                <div class="field-grid-edit">
+                  <FormField v-model="currentAddressForm.line1" label="Line 1" type="text" data-testid="profile-currentAddress-line1" placeholder="Line 1" grow />
+                  <FormField v-model="currentAddressForm.line2" label="Line 2" type="text" data-testid="profile-currentAddress-line2" placeholder="Line 2" grow />
+                  <FormField v-model="currentAddressForm.area" label="Area" type="text" data-testid="profile-currentAddress-area" placeholder="Area" grow />
+                  <FormField v-model="currentAddressForm.city" label="City" type="text" data-testid="profile-currentAddress-city" placeholder="City" grow />
+                  <FormField v-model="currentAddressForm.province" label="Province" type="text" data-testid="profile-currentAddress-province" placeholder="Province" grow />
+                  <FormField v-model="currentAddressForm.postalCode" label="Postal code" type="text" data-testid="profile-currentAddress-postalCode" placeholder="Postal code" mono grow />
+                </div>
+              </div>
 
-          <div class="form-actions">
-            <Button data-testid="profile-save" :disabled="isSavingProfile" @click="onSaveProfile">Save</Button>
-            <Button variant="secondary" data-testid="profile-cancel" @click="cancelEditProfile">Cancel</Button>
-          </div>
-        </div>
-      </section>
+              <div class="field-group">
+                <div class="group-title">Permanent address</div>
+                <div class="field-grid-edit">
+                  <FormField v-model="permanentAddressForm.line1" label="Line 1" type="text" data-testid="profile-permanentAddress-line1" placeholder="Line 1" grow />
+                  <FormField v-model="permanentAddressForm.line2" label="Line 2" type="text" data-testid="profile-permanentAddress-line2" placeholder="Line 2" grow />
+                  <FormField v-model="permanentAddressForm.area" label="Area" type="text" data-testid="profile-permanentAddress-area" placeholder="Area" grow />
+                  <FormField v-model="permanentAddressForm.city" label="City" type="text" data-testid="profile-permanentAddress-city" placeholder="City" grow />
+                  <FormField v-model="permanentAddressForm.province" label="Province" type="text" data-testid="profile-permanentAddress-province" placeholder="Province" grow />
+                  <FormField v-model="permanentAddressForm.postalCode" label="Postal code" type="text" data-testid="profile-permanentAddress-postalCode" placeholder="Postal code" mono grow />
+                </div>
+              </div>
 
-      <section v-if="profile.employeeType === 'TEACHER' && profile.teacher" class="profile-section" data-testid="login-section">
-        <h2>Login</h2>
-        <p v-if="loginErrorMessage" class="error" role="alert">{{ loginErrorMessage }}</p>
-        <dl class="detail-grid">
-          <dt>Login email</dt><dd>{{ profile.teacher.user.identifier }}</dd>
-        </dl>
-        <div class="inline-form">
-          <FormField
-            v-model="newLoginPassword"
-            label="New password"
-            type="password"
-            data-testid="login-new-password"
-            placeholder="New password"
-            grow
-          />
-          <Button data-testid="login-reset-password" :disabled="isSavingLogin || !newLoginPassword" @click="onResetLoginPassword">
-            Reset password
-          </Button>
-        </div>
-        <Button variant="secondary" data-testid="login-delete" @click="onDeleteLogin">Delete teacher login</Button>
-      </section>
+              <div class="form-actions">
+                <Button data-testid="profile-save" :disabled="isSavingProfile" @click="onSaveProfile">
+                  <AppIcon name="check" :size="14" /> Save changes
+                </Button>
+                <Button variant="secondary" data-testid="profile-cancel" @click="cancelEditProfile">Cancel</Button>
+              </div>
+            </div>
+          </ProfileSectionCard>
+
+          <ProfileSectionCard v-if="profile.employeeType === 'TEACHER' && profile.teacher" icon="lock" title="Login Access" data-testid="login-section">
+            <p v-if="loginErrorMessage" class="error" role="alert">{{ loginErrorMessage }}</p>
+            <div class="field-grid">
+              <div class="field"><span class="field-label">Login email</span><span class="field-value mono">{{ profile.teacher.user.identifier }}</span></div>
+            </div>
+            <div class="field-grid-edit">
+              <FormField
+                v-model="newLoginPassword"
+                label="New password"
+                type="password"
+                data-testid="login-new-password"
+                placeholder="New password"
+                grow
+              />
+            </div>
+            <div class="form-actions">
+              <Button data-testid="login-reset-password" :disabled="isSavingLogin || !newLoginPassword" @click="onResetLoginPassword">
+                Reset password
+              </Button>
+              <Button variant="secondary" data-testid="login-delete" @click="onDeleteLogin">Delete teacher login</Button>
+            </div>
+          </ProfileSectionCard>
         </template>
+
         <template #tab-contacts>
-      <section class="profile-section">
-        <div class="section-header">
-          <h2>Emergency Contacts</h2>
-          <Button data-testid="open-add-contact" @click="openAddContactModal">+ Add New</Button>
-        </div>
-        <p v-if="contactsErrorMessage" class="error" role="alert">{{ contactsErrorMessage }}</p>
-
-        <EntityTable
-          :items="profile.emergencyContacts"
-          :columns="[
-            { key: 'name', label: 'Name' },
-            { key: 'relationship', label: 'Relationship' },
-            { key: 'phone', label: 'Phone' },
-            { key: 'priority', label: 'Priority' },
-            { key: 'isPrimary', label: 'Primary' },
-          ]"
-          row-key="id"
-          :editing-id="editingContactId"
-        >
-          <template #cell-name="{ item, editing }">
-            <input v-if="editing" :data-testid="`edit-contact-name-${item.id}`" v-model="editContactForm.name" type="text" />
-            <span v-else>{{ item.name }}</span>
-          </template>
-          <template #cell-relationship="{ item, editing }">
-            <input v-if="editing" :data-testid="`edit-contact-relationship-${item.id}`" v-model="editContactForm.relationship" type="text" />
-            <span v-else>{{ item.relationship }}</span>
-          </template>
-          <template #cell-phone="{ item, editing }">
-            <input v-if="editing" :data-testid="`edit-contact-phone-${item.id}`" v-model="editContactForm.phone" type="text" />
-            <span v-else>{{ item.phone }}</span>
-          </template>
-          <template #cell-priority="{ item, editing }">
-            <input v-if="editing" :data-testid="`edit-contact-priority-${item.id}`" v-model="editContactForm.priority" type="text" />
-            <span v-else>{{ item.priority }}</span>
-          </template>
-          <template #cell-isPrimary="{ item, editing }">
-            <input v-if="editing" :data-testid="`edit-contact-isPrimary-${item.id}`" v-model="editContactForm.isPrimary" type="checkbox" />
-            <span v-else>{{ item.isPrimary ? 'Yes' : 'No' }}</span>
-          </template>
-          <template #actions="{ item, editing }">
-            <template v-if="editing">
-              <Button :data-testid="`save-contact-${item.id}`" @click="onSaveContact(item.id)">Save</Button>
-              <Button variant="secondary" @click="cancelEditContact">Cancel</Button>
+          <ProfileSectionCard icon="users" title="Emergency Contacts">
+            <template #actions>
+              <Button data-testid="open-add-contact" @click="openAddContactModal">
+                <AppIcon name="plus" :size="14" /> Add New
+              </Button>
             </template>
-            <template v-else>
-              <Button :data-testid="`edit-contact-${item.id}`" @click="startEditContact(item)">Edit</Button>
-              <Button variant="secondary" :data-testid="`delete-contact-${item.id}`" @click="onDeleteContact(item.id)">Delete</Button>
-            </template>
-          </template>
-        </EntityTable>
-      </section>
+            <p v-if="contactsErrorMessage" class="error" role="alert">{{ contactsErrorMessage }}</p>
 
-      <AppModal v-model="showAddContactModal" title="Add Emergency Contact">
-        <div class="add-form">
-          <p v-if="contactsErrorMessage" class="error" role="alert">{{ contactsErrorMessage }}</p>
-          <div class="form-grid">
-            <FormField v-model="newContact.name" label="Name" type="text" data-testid="new-contact-name" placeholder="Name" grow />
-            <FormField v-model="newContact.relationship" label="Relationship" type="text" data-testid="new-contact-relationship" placeholder="Relationship" grow />
-            <FormField v-model="newContact.phone" label="Phone" type="text" data-testid="new-contact-phone" placeholder="Phone" grow />
-            <FormField v-model="newContact.alternatePhone" label="Alternate phone" type="text" data-testid="new-contact-alternatePhone" placeholder="Alternate phone" grow />
-            <FormField v-model="newContact.email" label="Email" type="email" data-testid="new-contact-email" placeholder="Email" grow />
-            <FormField v-model="newContact.priority" label="Priority" type="text" data-testid="new-contact-priority" placeholder="Priority" />
-          </div>
-          <FormField v-model="newContact.isPrimary" label="Primary contact" type="checkbox" data-testid="new-contact-isPrimary" />
-          <Button data-testid="add-contact-submit" :disabled="isSavingContact" @click="onAddContact">Add Contact</Button>
-        </div>
-      </AppModal>
+            <EmptyState
+              v-if="!profile.emergencyContacts.length"
+              icon="users"
+              title="No emergency contacts yet."
+              message="Add someone the school can call in an emergency."
+              cta-label="+ Add New"
+              @cta="openAddContactModal"
+            />
+            <div v-else class="contact-grid">
+              <div v-for="contact in profile.emergencyContacts" :key="contact.id" class="contact-card">
+                <template v-if="editingContactId === contact.id">
+                  <div class="contact-edit-grid">
+                    <label class="contact-edit-field">
+                      <span class="field-label">Name</span>
+                      <input :data-testid="`edit-contact-name-${contact.id}`" v-model="editContactForm.name" type="text" />
+                    </label>
+                    <label class="contact-edit-field">
+                      <span class="field-label">Relationship</span>
+                      <input :data-testid="`edit-contact-relationship-${contact.id}`" v-model="editContactForm.relationship" type="text" />
+                    </label>
+                    <label class="contact-edit-field">
+                      <span class="field-label">Phone</span>
+                      <input :data-testid="`edit-contact-phone-${contact.id}`" v-model="editContactForm.phone" type="text" class="mono" />
+                    </label>
+                    <label class="contact-edit-field">
+                      <span class="field-label">Priority</span>
+                      <input :data-testid="`edit-contact-priority-${contact.id}`" v-model="editContactForm.priority" type="text" class="mono" />
+                    </label>
+                    <label class="contact-edit-checkbox">
+                      <input :data-testid="`edit-contact-isPrimary-${contact.id}`" v-model="editContactForm.isPrimary" type="checkbox" />
+                      Primary contact
+                    </label>
+                  </div>
+                  <div class="contact-card-actions">
+                    <Button :data-testid="`save-contact-${contact.id}`" @click="onSaveContact(contact.id)">Save</Button>
+                    <Button variant="secondary" @click="cancelEditContact">Cancel</Button>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="contact-card-top">
+                    <span class="contact-name">{{ contact.name }}</span>
+                    <span v-if="contact.isPrimary" class="contact-primary-badge">Primary</span>
+                  </div>
+                  <div class="contact-relationship">{{ contact.relationship }}</div>
+                  <div class="contact-phone mono">{{ contact.phone }}</div>
+                  <div class="contact-card-actions">
+                    <Button :data-testid="`edit-contact-${contact.id}`" variant="secondary" @click="startEditContact(contact)">
+                      <AppIcon name="edit" :size="12" /> Edit
+                    </Button>
+                    <Button variant="secondary" :data-testid="`delete-contact-${contact.id}`" @click="onDeleteContact(contact.id)">Delete</Button>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </ProfileSectionCard>
+
+          <AppModal
+            v-model="showAddContactModal"
+            title="Add Emergency Contact"
+            subtitle="Who should the school call first in an emergency?"
+            icon="users"
+          >
+            <div class="add-form">
+              <p v-if="contactsErrorMessage" class="error" role="alert">{{ contactsErrorMessage }}</p>
+              <div class="form-grid">
+                <FormField v-model="newContact.name" label="Name" type="text" data-testid="new-contact-name" placeholder="Full name" grow />
+                <FormField v-model="newContact.relationship" label="Relationship" type="text" data-testid="new-contact-relationship" placeholder="e.g. Spouse, Sibling" grow />
+                <FormField v-model="newContact.phone" label="Phone" type="text" data-testid="new-contact-phone" placeholder="03XX XXXXXXX" mono grow />
+                <FormField v-model="newContact.alternatePhone" label="Alternate phone" type="text" data-testid="new-contact-alternatePhone" placeholder="Optional" mono grow />
+                <FormField v-model="newContact.email" label="Email" type="email" data-testid="new-contact-email" placeholder="Optional" grow />
+              </div>
+
+              <div class="priority-row">
+                <div>
+                  <span class="field-label">Contact priority</span>
+                  <p class="field-hint">Who we call first, in order</p>
+                </div>
+                <div class="priority-pills">
+                  <button
+                    v-for="n in 4"
+                    :key="n"
+                    type="button"
+                    class="priority-pill"
+                    :class="{ active: Number(newContact.priority) === n }"
+                    :data-testid="`new-contact-priority-${n}`"
+                    @click="newContact.priority = String(n)"
+                  >
+                    {{ n }}
+                  </button>
+                </div>
+              </div>
+
+              <FormField
+                v-model="newContact.isPrimary"
+                label="Set as primary contact"
+                hint="Shown first across this staff member's record"
+                type="checkbox"
+                data-testid="new-contact-isPrimary"
+              />
+              <div class="form-actions">
+                <Button data-testid="add-contact-submit" :disabled="isSavingContact" @click="onAddContact">
+                  <AppIcon name="plus" :size="14" /> Add Contact
+                </Button>
+              </div>
+            </div>
+          </AppModal>
         </template>
+
         <template #tab-experience>
-      <section class="profile-section">
-        <div class="section-header">
-          <h2>Experience</h2>
-          <Button data-testid="open-add-experience" @click="openAddExperienceModal">+ Add New</Button>
-        </div>
-        <p v-if="experienceErrorMessage" class="error" role="alert">{{ experienceErrorMessage }}</p>
-
-        <EntityTable
-          :items="profile.experience"
-          :columns="[
-            { key: 'organization', label: 'Organization' },
-            { key: 'role', label: 'Role' },
-            { key: 'fromDate', label: 'From' },
-            { key: 'toDate', label: 'To' },
-          ]"
-          row-key="id"
-          :editing-id="editingExperienceId"
-        >
-          <template #cell-organization="{ item, editing }">
-            <input v-if="editing" :data-testid="`edit-experience-organization-${item.id}`" v-model="editExperienceForm.organization" type="text" />
-            <span v-else>{{ item.organization }}</span>
-          </template>
-          <template #cell-role="{ item, editing }">
-            <input v-if="editing" :data-testid="`edit-experience-role-${item.id}`" v-model="editExperienceForm.role" type="text" />
-            <span v-else>{{ item.role }}</span>
-          </template>
-          <template #cell-fromDate="{ item, editing }">
-            <input v-if="editing" :data-testid="`edit-experience-fromDate-${item.id}`" v-model="editExperienceForm.fromDate" type="date" />
-            <span v-else>{{ item.fromDate ? item.fromDate.slice(0, 10) : '—' }}</span>
-          </template>
-          <template #cell-toDate="{ item, editing }">
-            <input v-if="editing" :data-testid="`edit-experience-toDate-${item.id}`" v-model="editExperienceForm.toDate" type="date" />
-            <span v-else>{{ item.toDate ? item.toDate.slice(0, 10) : '—' }}</span>
-          </template>
-          <template #actions="{ item, editing }">
-            <template v-if="editing">
-              <Button :data-testid="`save-experience-${item.id}`" @click="onSaveExperience(item.id)">Save</Button>
-              <Button variant="secondary" @click="cancelEditExperience">Cancel</Button>
+          <ProfileSectionCard icon="briefcase" title="Experience">
+            <template #actions>
+              <Button data-testid="open-add-experience" @click="openAddExperienceModal">
+                <AppIcon name="plus" :size="14" /> Add New
+              </Button>
             </template>
-            <template v-else>
-              <Button :data-testid="`edit-experience-${item.id}`" @click="startEditExperience(item)">Edit</Button>
-              <Button variant="secondary" :data-testid="`delete-experience-${item.id}`" @click="onDeleteExperience(item.id)">Delete</Button>
-            </template>
-          </template>
-        </EntityTable>
-      </section>
+            <p v-if="experienceErrorMessage" class="error" role="alert">{{ experienceErrorMessage }}</p>
 
-      <AppModal v-model="showAddExperienceModal" title="Add Experience">
-        <div class="add-form">
-          <p v-if="experienceErrorMessage" class="error" role="alert">{{ experienceErrorMessage }}</p>
-          <div class="form-grid">
-            <FormField v-model="newExperience.organization" label="Organization" type="text" data-testid="new-experience-organization" placeholder="Organization" grow />
-            <FormField v-model="newExperience.role" label="Role" type="text" data-testid="new-experience-role" placeholder="Role" grow />
-            <FormField v-model="newExperience.fromDate" label="From" type="date" data-testid="new-experience-fromDate" />
-            <FormField v-model="newExperience.toDate" label="To" type="date" data-testid="new-experience-toDate" />
-          </div>
-          <FormField v-model="newExperience.description" label="Description" type="textarea" data-testid="new-experience-description" placeholder="Description" />
-          <Button data-testid="add-experience-submit" :disabled="isSavingExperience" @click="onAddExperience">Add Experience</Button>
-        </div>
-      </AppModal>
+            <EmptyState v-if="!profile.experience.length" icon="briefcase" title="No experience on file." cta-label="+ Add New" @cta="openAddExperienceModal" />
+            <div v-else class="contact-grid">
+              <div v-for="entry in profile.experience" :key="entry.id" class="contact-card">
+                <template v-if="editingExperienceId === entry.id">
+                  <div class="contact-edit-grid">
+                    <label class="contact-edit-field">
+                      <span class="field-label">Organization</span>
+                      <input :data-testid="`edit-experience-organization-${entry.id}`" v-model="editExperienceForm.organization" type="text" />
+                    </label>
+                    <label class="contact-edit-field">
+                      <span class="field-label">Role</span>
+                      <input :data-testid="`edit-experience-role-${entry.id}`" v-model="editExperienceForm.role" type="text" />
+                    </label>
+                    <label class="contact-edit-field">
+                      <span class="field-label">From</span>
+                      <input :data-testid="`edit-experience-fromDate-${entry.id}`" v-model="editExperienceForm.fromDate" type="date" class="mono" />
+                    </label>
+                    <label class="contact-edit-field">
+                      <span class="field-label">To</span>
+                      <input :data-testid="`edit-experience-toDate-${entry.id}`" v-model="editExperienceForm.toDate" type="date" class="mono" />
+                    </label>
+                  </div>
+                  <div class="contact-card-actions">
+                    <Button :data-testid="`save-experience-${entry.id}`" @click="onSaveExperience(entry.id)">Save</Button>
+                    <Button variant="secondary" @click="cancelEditExperience">Cancel</Button>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="contact-card-top">
+                    <span class="contact-name">{{ entry.organization }}</span>
+                  </div>
+                  <div class="contact-relationship">{{ entry.role }}</div>
+                  <div class="contact-phone mono">
+                    {{ entry.fromDate ? entry.fromDate.slice(0, 10) : '—' }} – {{ entry.toDate ? entry.toDate.slice(0, 10) : 'Present' }}
+                  </div>
+                  <p v-if="entry.description" class="field-value">{{ entry.description }}</p>
+                  <div class="contact-card-actions">
+                    <Button :data-testid="`edit-experience-${entry.id}`" variant="secondary" @click="startEditExperience(entry)">
+                      <AppIcon name="edit" :size="12" /> Edit
+                    </Button>
+                    <Button variant="secondary" :data-testid="`delete-experience-${entry.id}`" @click="onDeleteExperience(entry.id)">Delete</Button>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </ProfileSectionCard>
+
+          <AppModal v-model="showAddExperienceModal" title="Add Experience" icon="briefcase">
+            <div class="add-form">
+              <p v-if="experienceErrorMessage" class="error" role="alert">{{ experienceErrorMessage }}</p>
+              <div class="form-grid">
+                <FormField v-model="newExperience.organization" label="Organization" type="text" data-testid="new-experience-organization" placeholder="Organization" grow />
+                <FormField v-model="newExperience.role" label="Role" type="text" data-testid="new-experience-role" placeholder="Role" grow />
+                <FormField v-model="newExperience.fromDate" label="From" type="date" data-testid="new-experience-fromDate" mono />
+                <FormField v-model="newExperience.toDate" label="To" type="date" data-testid="new-experience-toDate" mono />
+              </div>
+              <FormField v-model="newExperience.description" label="Description" type="textarea" data-testid="new-experience-description" placeholder="Description" />
+              <div class="form-actions">
+                <Button data-testid="add-experience-submit" :disabled="isSavingExperience" @click="onAddExperience">
+                  <AppIcon name="plus" :size="14" /> Add Experience
+                </Button>
+              </div>
+            </div>
+          </AppModal>
         </template>
+
         <template #tab-documents>
-      <section class="profile-section">
-        <div class="section-header">
-          <h2>Documents</h2>
-          <Button data-testid="open-add-document" @click="openAddDocumentModal">+ Add New</Button>
-        </div>
-        <p v-if="documentsErrorMessage" class="error" role="alert">{{ documentsErrorMessage }}</p>
-
-        <p v-if="!profile.documents.length">No documents on file.</p>
-        <EntityTable
-          v-else
-          :items="profile.documents"
-          :columns="[
-            { key: 'documentType', label: 'Type' },
-            { key: 'file', label: 'File' },
-            { key: 'verificationStatus', label: 'Status' },
-            { key: 'expiryDate', label: 'Expiry' },
-          ]"
-          row-key="id"
-          :editing-id="null"
-        >
-          <template #cell-file="{ item }">{{ item.file.originalName }}</template>
-          <template #cell-verificationStatus="{ item }">
-            <StatusPill :tone="documentTone(item.verificationStatus)" :label="item.verificationStatus" />
-          </template>
-          <template #cell-expiryDate="{ item }">{{ item.expiryDate ? item.expiryDate.slice(0, 10) : '—' }}</template>
-          <template #actions="{ item }">
-            <template v-if="item.verificationStatus === 'PENDING'">
-              <Button :data-testid="`verify-document-${item.id}`" @click="onVerifyDocument(item.id, true)">Verify</Button>
-              <Button variant="secondary" :data-testid="`reject-document-${item.id}`" @click="onVerifyDocument(item.id, false)">Reject</Button>
+          <ProfileSectionCard icon="file-text" title="Documents">
+            <template #actions>
+              <Button data-testid="open-add-document" @click="openAddDocumentModal">
+                <AppIcon name="plus" :size="14" /> Add New
+              </Button>
             </template>
-          </template>
-        </EntityTable>
-      </section>
+            <p v-if="documentsErrorMessage" class="error" role="alert">{{ documentsErrorMessage }}</p>
 
-      <AppModal v-model="showAddDocumentModal" title="Add Document">
-        <div class="add-form">
-          <p v-if="documentsErrorMessage" class="error" role="alert">{{ documentsErrorMessage }}</p>
-          <div class="form-grid">
-            <FormField v-model="newDocument.documentType" label="Document type" type="select" data-testid="new-document-type" placeholder="Document type" :options="DOCUMENT_TYPE_OPTIONS" />
-            <FormField v-model="newDocument.expiryDate" label="Expiry date" type="date" data-testid="new-document-expiryDate" />
-          </div>
-          <div class="form-field">
-            <label class="sr-only" for="new-document-file-input">File</label>
-            <input id="new-document-file-input" type="file" data-testid="new-document-file" @change="onNewDocumentFileChange" />
-          </div>
-          <FormField v-model="newDocument.notes" label="Notes" type="textarea" data-testid="new-document-notes" placeholder="Notes" />
-          <Button data-testid="add-document-submit" :disabled="isSavingDocument" @click="onAddDocument">Add Document</Button>
-        </div>
-      </AppModal>
+            <EmptyState
+              v-if="!profile.documents.length"
+              icon="file-text"
+              title="No documents on file."
+              cta-label="+ Add New"
+              @cta="openAddDocumentModal"
+            />
+            <div v-else class="document-grid">
+              <div v-for="doc in profile.documents" :key="doc.id" class="document-card">
+                <div class="document-card-top">
+                  <span class="document-type">{{ documentTypeLabel(doc.documentType) }}</span>
+                  <StatusPill :tone="documentTone(doc.verificationStatus)" :label="doc.verificationStatus" />
+                </div>
+                <div class="document-file mono">{{ doc.file.originalName }}</div>
+                <div v-if="doc.expiryDate" class="document-expiry mono">Expires {{ doc.expiryDate.slice(0, 10) }}</div>
+                <div v-if="doc.verificationStatus === 'PENDING'" class="document-card-actions">
+                  <Button :data-testid="`verify-document-${doc.id}`" @click="onVerifyDocument(doc.id, true)">Verify</Button>
+                  <Button variant="secondary" :data-testid="`reject-document-${doc.id}`" @click="onVerifyDocument(doc.id, false)">Reject</Button>
+                </div>
+              </div>
+            </div>
+          </ProfileSectionCard>
+
+          <AppModal v-model="showAddDocumentModal" title="Add Document" icon="file-text">
+            <div class="add-form">
+              <p v-if="documentsErrorMessage" class="error" role="alert">{{ documentsErrorMessage }}</p>
+              <div class="form-grid">
+                <FormField v-model="newDocument.documentType" label="Document type" type="select" data-testid="new-document-type" placeholder="Document type" :options="DOCUMENT_TYPE_OPTIONS" />
+                <FormField v-model="newDocument.expiryDate" label="Expiry date" type="date" data-testid="new-document-expiryDate" mono />
+              </div>
+              <div class="form-field">
+                <label class="sr-only" for="new-document-file-input">File</label>
+                <input id="new-document-file-input" type="file" data-testid="new-document-file" @change="onNewDocumentFileChange" />
+              </div>
+              <FormField v-model="newDocument.notes" label="Notes" type="textarea" data-testid="new-document-notes" placeholder="Notes" />
+              <div class="form-actions">
+                <Button data-testid="add-document-submit" :disabled="isSavingDocument" @click="onAddDocument">
+                  <AppIcon name="plus" :size="14" /> Add Document
+                </Button>
+              </div>
+            </div>
+          </AppModal>
         </template>
       </Tabs>
     </div>
@@ -787,95 +950,142 @@ async function onDeleteLogin() {
 
 <style scoped>
 .staff-profile {
-  max-width: 900px;
-}
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-.photo-widget {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  flex-shrink: 0;
-}
-.photo-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: 50%;
-  border: none;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font-size: var(--font-size-md);
-  font-weight: 700;
-  cursor: pointer;
-  overflow: hidden;
-  padding: 0;
-}
-.photo-avatar:disabled {
-  cursor: default;
-  opacity: 0.7;
-}
-.photo-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.photo-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-muted, #64748b);
+  gap: var(--space-4);
 }
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
 }
 .sections {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
-.profile-section {
+.sections :deep(.tab-panel) {
+  gap: var(--space-4);
+}
+
+/* Loading skeleton — shape-matches the identity card so the page doesn't jump on load. */
+.identity-skeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4) var(--space-5);
+}
+.skeleton-avatar {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, var(--color-muted-bg) 25%, var(--color-border) 37%, var(--color-muted-bg) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.skeleton-lines {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  flex-grow: 1;
 }
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.skeleton-line {
+  display: block;
+  height: 0.9rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--color-muted-bg) 25%, var(--color-border) 37%, var(--color-muted-bg) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
-.detail-grid {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: var(--space-1) var(--space-3);
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
 }
-.detail-grid dt {
-  font-weight: 600;
-  color: var(--color-muted, #64748b);
-}
-.detail-grid dd {
-  margin: 0;
-}
-.edit-form {
+
+/* Field display grid — replaces the old <dl class="detail-grid"> everywhere read-only data is shown. */
+.field-group {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
-.inline-form {
+.field-group.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--space-5);
+}
+.group-title {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.group-title::after {
+  content: '';
+  flex-grow: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: var(--space-3);
+  column-gap: var(--space-4);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.field-label {
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.field-value {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  margin: 0;
+}
+.field-value.address-block {
+  white-space: pre-line;
+  line-height: 1.6;
+}
+.field-hint {
+  margin: 0.1rem 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+.mono {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.field-grid-edit {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
 }
 .form-actions {
   display: flex;
   gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
 }
 .add-form {
   display: flex;
@@ -897,5 +1107,175 @@ async function onDeleteLogin() {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Contact / experience cards (share the same card language) */
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+.contact-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.contact-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+.contact-name {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+.contact-primary-badge {
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-status-success-tint);
+  color: var(--color-status-success);
+  flex-shrink: 0;
+}
+.contact-relationship {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+.contact-phone {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+.contact-card-actions,
+.document-card-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.contact-edit-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.contact-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.contact-edit-field input {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+.contact-edit-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--font-size-sm);
+}
+
+/* Add-contact priority pill selector */
+.priority-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
+}
+.priority-pills {
+  display: flex;
+  gap: var(--space-1);
+}
+.priority-pill {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-family-mono);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+.priority-pill.active {
+  border-color: var(--color-accent);
+  background: var(--color-status-info-tint);
+  color: var(--color-accent);
+}
+
+/* Document cards */
+.document-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+.document-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.document-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.document-type {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+.document-file {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+.document-expiry {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+@media (max-width: 1024px) {
+  .field-grid,
+  .field-grid-edit {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 768px) {
+  .field-group.two-col {
+    grid-template-columns: 1fr;
+    row-gap: var(--space-3);
+  }
+  .field-grid,
+  .field-grid-edit {
+    grid-template-columns: 1fr;
+  }
+  .priority-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+}
+@media (max-width: 480px) {
+  .contact-grid,
+  .document-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+  .form-actions :deep(.btn) {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

@@ -21,7 +21,7 @@ import ErrorRetry from '../components/ErrorRetry.vue';
 import StatusPill from '../components/StatusPill.vue';
 import Tabs from '../components/AppTabs.vue';
 import AppModal from '../components/AppModal.vue';
-import StudentIdentityCard from '../components/StudentIdentityCard.vue';
+import ProfileIdentityCard from '../components/ProfileIdentityCard.vue';
 import ProfileSectionCard from '../components/ProfileSectionCard.vue';
 import { useConfirm } from '../lib/useConfirm';
 import { initialsFromName } from '../lib/format';
@@ -620,15 +620,16 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
 
 <template>
   <div class="student-profile">
-    <StudentIdentityCard
+    <ProfileIdentityCard
       v-if="profile"
       :name="profile.name"
       :initials="initialsFromName(profile.name)"
       :photo-url="displayPhotoUrl"
+      photo-label="Student photo"
       :is-saving-photo="isSavingPhoto"
-      :gr-number="profile.grNumber"
-      :class-section="headerClassSection"
-      :roll-number="activeEnrollment?.rollNumber ?? null"
+      :id-chip="profile.grNumber"
+      :subtitle-tag="headerClassSection"
+      :secondary-tag="activeEnrollment?.rollNumber ? `Roll No. ${activeEnrollment.rollNumber}` : null"
       :status-label="studentStatusLabel(profile.status)"
       :status-tone="studentStatusTone(profile.status)"
       :age-label="ageLabel"

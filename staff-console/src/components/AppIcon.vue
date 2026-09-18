@@ -26,7 +26,9 @@ export type IconName =
   | 'file-text'
   | 'leaf'
   | 'plus'
-  | 'check';
+  | 'check'
+  | 'briefcase'
+  | 'lock';
 
 defineProps<{ name: IconName; size?: number }>();
 </script>
@@ -133,6 +135,14 @@ defineProps<{ name: IconName; size?: number }>();
     </template>
     <template v-else-if="name === 'check'">
       <path d="M4 12.5l5 5L20 6.5" />
+    </template>
+    <template v-else-if="name === 'briefcase'">
+      <rect x="3" y="7.5" width="18" height="12" rx="1.5" />
+      <path d="M8 7.5V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1.5M3 13h18" />
+    </template>
+    <template v-else-if="name === 'lock'">
+      <rect x="4.5" y="10.5" width="15" height="10" rx="1.5" />
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
     </template>
   </svg>
 </template>

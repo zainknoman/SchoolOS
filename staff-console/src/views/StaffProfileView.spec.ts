@@ -73,7 +73,8 @@ describe('StaffProfileView', () => {
 
     expect(api.getStaffProfile).toHaveBeenCalledWith('token-1', 'st1');
     expect(wrapper.text()).toContain('Nazir Ahmed');
-    expect(wrapper.text()).toContain('JANITORIAL');
+    // Employee type is now shown via its friendly label (see EMPLOYEE_TYPE_OPTIONS), not the raw enum.
+    expect(wrapper.text()).toContain('Janitorial');
     expect(wrapper.find('[data-testid="edit-profile"]').exists()).toBe(true);
   });
 

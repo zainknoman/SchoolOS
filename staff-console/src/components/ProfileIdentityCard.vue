@@ -1,8 +1,10 @@
-<!-- staff-console/src/components/StudentIdentityCard.vue -->
-<!-- The Student Profile's identity header: a photo, name/status, and a quick-facts row derived
-     from data already on the profile (age, tenure, contacts on file, documents verified). Collapses
-     to a compact single-line strip while Personal Info is being edited, matching the edit form's
-     own "Editing" state instead of showing stats that don't apply while mid-edit. -->
+<!-- staff-console/src/components/ProfileIdentityCard.vue -->
+<!-- The shared identity header for detail-page profiles (Student, Staff): a photo, name/status,
+     and a quick-facts row derived from data already on the profile. Collapses to a compact
+     single-line strip while the profile is being edited, matching the edit form's own "Editing"
+     state instead of showing stats that don't apply while mid-edit. Domain-specific formatting
+     (e.g. "Grade 9 · Section B", "Roll No. 14", "Teacher") is the caller's job — this component
+     only lays out whatever tags/labels it's given. -->
 <script setup lang="ts">
 import { ref } from 'vue';
 import AppIcon from './AppIcon.vue';
@@ -14,10 +16,14 @@ withDefaults(
     name: string;
     initials: string;
     photoUrl: string | null;
+    photoLabel: string;
     isSavingPhoto: boolean;
-    grNumber: string;
-    classSection: string | null;
-    rollNumber: string | null;
+    /** A short identifying chip next to the name, e.g. a GR number. Omit if none applies. */
+    idChip?: string | null;
+    /** e.g. "Grade 9 · Section B" for a student, "Teacher" for a staff member. */
+    subtitleTag?: string | null;
+    /** e.g. "Roll No. 14" — a second, dot-separated tag after subtitleTag. */
+    secondaryTag?: string | null;
     statusLabel: string;
     statusTone: 'success' | 'warning' | 'critical' | 'info' | 'neutral';
     ageLabel: string | null;
@@ -26,7 +32,7 @@ withDefaults(
     documentsLabel: string;
     compact?: boolean;
   }>(),
-  { compact: false },
+  { compact: false, idChip: null, subtitleTag: null, secondaryTag: null },
 );
 
 const emit = defineEmits<{ 'edit-profile': []; 'photo-file-change': [Event] }>();
@@ -58,7 +64,7 @@ function onFileChange(event: Event) {
       <span v-if="!compact" class="identity-avatar-badge" aria-hidden="true">
         <AppIcon name="camera" :size="14" />
       </span>
-      <label class="sr-only" for="profile-photo-input">Student photo</label>
+      <label class="sr-only" for="profile-photo-input">{{ photoLabel }}</label>
       <input
         id="profile-photo-input"
         ref="photoInputRef"
@@ -74,7 +80,9 @@ function onFileChange(event: Event) {
       <template v-if="compact">
         <div class="identity-name-row">
           <span class="identity-name-compact">{{ name }}</span>
-          <span class="identity-meta-compact mono">{{ grNumber }}<template v-if="classSection"> · {{ classSection }}</template></span>
+          <span v-if="idChip || subtitleTag" class="identity-meta-compact mono">
+            {{ [idChip, subtitleTag].filter(Boolean).join(' · ') }}
+          </span>
         </div>
       </template>
       <template v-else>
@@ -83,13 +91,13 @@ function onFileChange(event: Event) {
           <StatusPill :tone="statusTone" :label="statusLabel" />
         </div>
         <div class="identity-tags-row">
-          <span class="identity-gr mono">{{ grNumber }}</span>
-          <template v-if="classSection">
-            <span class="identity-muted">{{ classSection }}</span>
+          <span v-if="idChip" class="identity-gr mono">{{ idChip }}</span>
+          <template v-if="subtitleTag">
+            <span class="identity-muted">{{ subtitleTag }}</span>
           </template>
-          <template v-if="rollNumber">
+          <template v-if="secondaryTag">
             <span class="identity-dot" aria-hidden="true">·</span>
-            <span class="identity-muted">Roll No. {{ rollNumber }}</span>
+            <span class="identity-muted">{{ secondaryTag }}</span>
           </template>
         </div>
         <div class="identity-stats-row">
