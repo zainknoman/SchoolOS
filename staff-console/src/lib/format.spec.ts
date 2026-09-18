@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatPkrShort, formatPkrFull, initialsFromName, roleInitials, formatDateTime } from './format';
+import { formatPkrShort, formatPkrFull, initialsFromName, roleInitials, formatDateTime, formatTimeAgo } from './format';
 
 describe('formatPkrShort', () => {
   it('formats millions with one decimal place', () => {
@@ -56,5 +56,26 @@ describe('formatDateTime', () => {
     expect(result).toContain('Aug');
     expect(result).toContain('29');
     expect(result).toMatch(/\d{1,2}:\d{2}/);
+  });
+});
+
+describe('formatTimeAgo', () => {
+  it('returns "just now" for a timestamp less than a minute old', () => {
+    expect(formatTimeAgo(new Date().toISOString())).toBe('just now');
+  });
+
+  it('returns minutes ago for a timestamp under an hour old', () => {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60_000).toISOString();
+    expect(formatTimeAgo(fiveMinAgo)).toBe('5m ago');
+  });
+
+  it('returns hours ago for a timestamp under a day old', () => {
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60_000).toISOString();
+    expect(formatTimeAgo(threeHoursAgo)).toBe('3h ago');
+  });
+
+  it('returns days ago for anything older than a day', () => {
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60_000).toISOString();
+    expect(formatTimeAgo(twoDaysAgo)).toBe('2d ago');
   });
 });

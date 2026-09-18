@@ -34,6 +34,7 @@ describe('auth store', () => {
       accessToken: 'token-abc',
       refreshToken: 'refresh-abc',
       role: 'TEACHER',
+      isPrincipal: false,
     });
 
     const store = useAuthStore();
@@ -49,6 +50,7 @@ describe('auth store', () => {
       accessToken: 'token-abc',
       refreshToken: 'refresh-abc',
       role: 'SCHOOL_ADMIN',
+      isPrincipal: false,
     });
 
     const store = useAuthStore();
@@ -75,6 +77,7 @@ describe('auth store', () => {
       accessToken: 'token-abc',
       refreshToken: 'refresh-abc',
       role: 'TEACHER',
+      isPrincipal: false,
     });
 
     const store = useAuthStore();
@@ -91,11 +94,13 @@ describe('auth store', () => {
       accessToken: 'token-old',
       refreshToken: 'refresh-old',
       role: 'TEACHER',
+      isPrincipal: false,
     });
     vi.mocked(api.refresh).mockResolvedValue({
       accessToken: 'token-new',
       refreshToken: 'refresh-new',
       role: 'TEACHER',
+      isPrincipal: false,
     });
 
     const store = useAuthStore();
@@ -114,6 +119,7 @@ describe('auth store', () => {
       accessToken: 'token-old',
       refreshToken: 'refresh-old',
       role: 'TEACHER',
+      isPrincipal: false,
     });
     vi.mocked(api.refresh).mockRejectedValue(new ApiError('Invalid credentials', 401));
 
@@ -139,8 +145,14 @@ describe('auth store', () => {
       accessToken: 'token-old',
       refreshToken: 'refresh-old',
       role: 'TEACHER',
+      isPrincipal: false,
     });
-    let resolveRefresh!: (value: { accessToken: string; refreshToken: string; role: string }) => void;
+    let resolveRefresh!: (value: {
+      accessToken: string;
+      refreshToken: string;
+      role: string;
+      isPrincipal: boolean;
+    }) => void;
     vi.mocked(api.refresh).mockReturnValue(
       new Promise((resolve) => {
         resolveRefresh = resolve;
@@ -152,7 +164,7 @@ describe('auth store', () => {
 
     const call1 = store.refreshSession();
     const call2 = store.refreshSession();
-    resolveRefresh({ accessToken: 'token-new', refreshToken: 'refresh-new', role: 'TEACHER' });
+    resolveRefresh({ accessToken: 'token-new', refreshToken: 'refresh-new', role: 'TEACHER', isPrincipal: false });
 
     const [result1, result2] = await Promise.all([call1, call2]);
 

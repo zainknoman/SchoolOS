@@ -3,8 +3,11 @@ import { useAuthStore } from '../stores/auth';
 
 const STAFF_ROLES = ['TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'];
 
-function homeRouteForRole(role: string | null): string {
+function homeRouteForRole(role: string | null, isPrincipal: boolean): string {
   if (role === 'TEACHER') return '/teacher';
+  // A Principal is a SCHOOL_ADMIN user with isPrincipal=true, not a separate role — they land on
+  // their own overview instead of the generic admin dashboard, but keep full SCHOOL_ADMIN access.
+  if (role === 'SCHOOL_ADMIN' && isPrincipal) return '/principal';
   if (role && STAFF_ROLES.includes(role)) return '/admin';
   return '/login';
 }
@@ -34,6 +37,12 @@ const router = createRouter({
       path: '/teacher',
       name: 'teacher-home',
       component: () => import('../views/TeacherHomeView.vue'),
+      meta: { requiresRole: ['TEACHER'], title: 'My Day' },
+    },
+    {
+      path: '/teacher/attendance',
+      name: 'teacher-attendance',
+      component: () => import('../views/AttendancePageView.vue'),
       meta: { requiresRole: ['TEACHER'], title: 'Attendance' },
     },
     {
@@ -223,8 +232,31 @@ const router = createRouter({
     {
       path: '/teacher/gradebook',
       name: 'teacher-gradebook',
-      component: () => import('../views/MarksEntryPageView.vue'),
+      component: () => import('../views/TeacherGradebookOverviewPageView.vue'),
       meta: { requiresRole: ['TEACHER'], title: 'Gradebook' },
+    },
+    {
+      path: '/teacher/gradebook/entry',
+      name: 'teacher-gradebook-entry',
+      component: () => import('../views/MarksEntryPageView.vue'),
+      meta: { requiresRole: ['TEACHER'], title: 'Enter Marks', group: 'Gradebook' },
+    },
+    {
+      path: '/principal',
+      name: 'principal-overview',
+      component: () => import('../views/PrincipalOverviewPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN'], requiresPrincipal: true, title: 'School Overview', group: 'Principal' },
+    },
+    {
+      path: '/principal/academics-staff',
+      name: 'principal-academics-staff',
+      component: () => import('../views/PrincipalAcademicsStaffPageView.vue'),
+      meta: {
+        requiresRole: ['SCHOOL_ADMIN'],
+        requiresPrincipal: true,
+        title: 'Academics & Staff',
+        group: 'Principal',
+      },
     },
     {
       path: '/admin/admissions',
@@ -260,7 +292,7 @@ router.beforeEach((to) => {
   if (to.meta.public) {
     // Already logged in and heading to /login — send them straight to their own home instead.
     if (auth.isAuthenticated && to.name === 'login') {
-      return homeRouteForRole(auth.role);
+      return homeRouteForRole(auth.role, auth.isPrincipal);
     }
     return true;
   }
@@ -272,7 +304,11 @@ router.beforeEach((to) => {
   const requiresRole = to.meta.requiresRole as string[] | undefined;
   if (requiresRole && !requiresRole.includes(auth.role ?? '')) {
     // Wrong-role staff hitting the other console's route — send them home, not a blank/denied page.
-    return homeRouteForRole(auth.role);
+    return homeRouteForRole(auth.role, auth.isPrincipal);
+  }
+
+  if (to.meta.requiresPrincipal && !auth.isPrincipal) {
+    return homeRouteForRole(auth.role, auth.isPrincipal);
   }
 
   return true;

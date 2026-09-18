@@ -11,6 +11,14 @@ describe('DashboardService', () => {
     feeVoucher: { findMany: jest.Mock };
     notification: { findMany: jest.Mock };
     user: { findUnique: jest.Mock; findMany: jest.Mock };
+    application: { count: jest.Mock };
+    leaveRequest: { count: jest.Mock };
+    studentDocument: { count: jest.Mock };
+    school: { findMany: jest.Mock };
+    staff: { count: jest.Mock };
+    section: { findMany: jest.Mock };
+    assessmentCategory: { findMany: jest.Mock; findFirst: jest.Mock };
+    mark: { findMany: jest.Mock };
   };
   const superAdmin = { id: 'super-1', role: 'SUPER_ADMIN' };
 
@@ -22,6 +30,14 @@ describe('DashboardService', () => {
       feeVoucher: { findMany: jest.fn().mockResolvedValue([]) },
       notification: { findMany: jest.fn().mockResolvedValue([]) },
       user: { findUnique: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+      application: { count: jest.fn().mockResolvedValue(0) },
+      leaveRequest: { count: jest.fn().mockResolvedValue(0) },
+      studentDocument: { count: jest.fn().mockResolvedValue(0) },
+      school: { findMany: jest.fn().mockResolvedValue([]) },
+      staff: { count: jest.fn().mockResolvedValue(0) },
+      section: { findMany: jest.fn().mockResolvedValue([]) },
+      assessmentCategory: { findMany: jest.fn().mockResolvedValue([]), findFirst: jest.fn().mockResolvedValue(null) },
+      mark: { findMany: jest.fn().mockResolvedValue([]) },
     };
     const moduleRef = await Test.createTestingModule({
       providers: [DashboardService, { provide: PrismaService, useValue: prisma }],
@@ -172,6 +188,150 @@ describe('DashboardService', () => {
       expect(prisma.feePayment.aggregate).not.toHaveBeenCalled();
       expect(prisma.feeVoucher.findMany).not.toHaveBeenCalled();
       expect(prisma.notification.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getOperationsSummary', () => {
+    const schoolAdmin = { id: 'admin-1', role: 'SCHOOL_ADMIN' };
+
+    it('counts admissions pending, fee defaulters (distinct students), and pending leave/documents, scoped by school', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
+      prisma.application.count.mockResolvedValue(14);
+      prisma.feeVoucher.findMany.mockResolvedValue([
+        { studentId: 's1', items: [{ amount: 100 }], allocations: [] }, // due, defaulter
+        { studentId: 's1', items: [{ amount: 200 }], allocations: [] }, // same student, second overdue voucher
+        { studentId: 's2', items: [{ amount: 100 }], allocations: [{ amount: 100 }] }, // fully paid
+      ]);
+      prisma.leaveRequest.count.mockResolvedValue(5);
+      prisma.studentDocument.count.mockResolvedValue(31);
+
+      const result = await service.getOperationsSummary(schoolAdmin);
+
+      expect(result.admissionsPending).toBe(14);
+      expect(result.feeDefaulters).toBe(1); // s1 counted once despite two overdue vouchers
+      expect(result.leaveRequestsPending).toBe(5);
+      expect(result.documentsToVerify).toBe(31);
+      expect(prisma.application.count).toHaveBeenCalledWith({
+        where: { status: 'SUBMITTED', desiredClass: { campus: { schoolId: 'school-1' } } },
+      });
+      expect(prisma.leaveRequest.count).toHaveBeenCalledWith({
+        where: { status: 'pending', student: { enrollments: { some: { campus: { schoolId: 'school-1' } } } } },
+      });
+      expect(prisma.studentDocument.count).toHaveBeenCalledWith({
+        where: {
+          verificationStatus: 'PENDING',
+          student: { enrollments: { some: { campus: { schoolId: 'school-1' } } } },
+        },
+      });
+    });
+
+    it('returns zeros without querying anything for a SCHOOL_ADMIN with no schoolId', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+
+      const result = await service.getOperationsSummary(schoolAdmin);
+
+      expect(result).toEqual({
+        admissionsPending: 0,
+        feeDefaulters: 0,
+        leaveRequestsPending: 0,
+        documentsToVerify: 0,
+        recentActivity: [],
+      });
+      expect(prisma.application.count).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getNetworkOverview', () => {
+    it('aggregates per-school campus/student counts and fee-collection percent, network-wide', async () => {
+      prisma.school.findMany.mockResolvedValue([
+        { id: 'school-1', name: 'Riverdale', status: 'ACTIVE', campuses: [{ id: 'c1' }, { id: 'c2' }] },
+      ]);
+      prisma.enrollment.count.mockResolvedValueOnce(500).mockResolvedValueOnce(120); // totalStudents, then per-school
+      prisma.staff.count.mockResolvedValue(60);
+      prisma.feePayment.aggregate.mockResolvedValue({ _sum: { amount: 900000 } }); // 9000 PKR collected
+      prisma.feeVoucher.findMany.mockResolvedValue([
+        { items: [{ amount: 300000 }], allocations: [{ amount: 200000 }] }, // 1000 PKR due
+      ]);
+
+      const result = await service.getNetworkOverview();
+
+      expect(result.totalSchools).toBe(1);
+      expect(result.totalStudents).toBe(500);
+      expect(result.totalStaff).toBe(60);
+      expect(result.schools).toEqual([
+        {
+          id: 'school-1',
+          name: 'Riverdale',
+          status: 'ACTIVE',
+          campusesCount: 2,
+          studentsCount: 120,
+          feeCollectionPercent: 90, // 9000 / (9000 + 1000) = 90%
+        },
+      ]);
+      expect(prisma.staff.count).toHaveBeenCalledWith({ where: { employmentStatus: 'ACTIVE' } });
+    });
+  });
+
+  describe('getPrincipalAcademicsSummary', () => {
+    it('rejects a SCHOOL_ADMIN who is not flagged isPrincipal', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1', isPrincipal: false });
+
+      await expect(
+        service.getPrincipalAcademicsSummary({ id: 'admin-1', role: 'SCHOOL_ADMIN' }),
+      ).rejects.toThrow('only available to a school Principal');
+    });
+
+    it("derives exam-schedule status from whether a category's assessments exist yet", async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1', isPrincipal: true });
+      prisma.section.findMany.mockResolvedValue([]);
+      prisma.assessmentCategory.findMany.mockResolvedValue([
+        {
+          id: 'cat-1',
+          name: 'Mid-term',
+          class: { name: 'Grade 9' },
+          term: { label: 'Term 1' },
+          assessments: [{ id: 'a1' }],
+        },
+        { id: 'cat-2', name: 'Mid-term', class: { name: 'Grade 6' }, term: { label: 'Term 1' }, assessments: [] },
+      ]);
+
+      const result = await service.getPrincipalAcademicsSummary({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+      expect(result.examScheduleStatus).toEqual([
+        { categoryId: 'cat-1', categoryName: 'Mid-term', className: 'Grade 9', termLabel: 'Term 1', status: 'ready' },
+        { categoryId: 'cat-2', categoryName: 'Mid-term', className: 'Grade 6', termLabel: 'Term 1', status: 'pending' },
+      ]);
+    });
+
+    it('computes per-section attendance% (HOLIDAY excluded) and average marks%', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1', isPrincipal: true });
+      prisma.section.findMany.mockResolvedValue([
+        {
+          id: 'sec-1',
+          name: 'A',
+          class: { id: 'class-1', name: '9' },
+          classTeacher: { name: 'Ms. Iqbal' },
+        },
+      ]);
+      prisma.attendance.findMany.mockResolvedValue([{ status: 'PRESENT' }, { status: 'ABSENT' }, { status: 'HOLIDAY' }]);
+      prisma.assessmentCategory.findFirst.mockResolvedValue({ id: 'cat-1' });
+      prisma.mark.findMany.mockResolvedValue([
+        { obtainedMarks: 45, assessment: { maxMarks: 50 } }, // 90%
+        { obtainedMarks: 30, assessment: { maxMarks: 50 } }, // 60%
+      ]);
+
+      const result = await service.getPrincipalAcademicsSummary({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+      expect(result.classHealth).toEqual([
+        {
+          sectionId: 'sec-1',
+          className: '9',
+          sectionName: 'A',
+          teacherName: 'Ms. Iqbal',
+          attendancePercent: 50, // 1 present of 2 countable, HOLIDAY excluded
+          averageMarksPercent: 75, // average of 90% and 60%
+        },
+      ]);
     });
   });
 });

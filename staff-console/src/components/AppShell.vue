@@ -71,6 +71,7 @@ function onSidebarKeydown(event: KeyboardEvent) {
 
 const isTeacher = computed(() => auth.role === 'TEACHER');
 const isAdmin = computed(() => ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'].includes(auth.role ?? ''));
+const isPrincipal = computed(() => auth.role === 'SCHOOL_ADMIN' && auth.isPrincipal);
 const canManageLeave = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManagePromotions = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManageOrgStructure = computed(() => auth.role === 'SUPER_ADMIN');
@@ -222,7 +223,8 @@ interface CmdkAction { testid: string; label: string; icon: IconName; to: string
 const goToItems = computed<CmdkGoTo[]>(() => {
   if (isTeacher.value) {
     return [
-      { testid: 'cmdk-attendance', label: 'Attendance', icon: 'calendar', to: '/teacher' },
+      { testid: 'cmdk-my-day', label: 'My Day', icon: 'home', to: '/teacher' },
+      { testid: 'cmdk-attendance', label: 'Attendance', icon: 'calendar', to: '/teacher/attendance' },
       { testid: 'cmdk-diary', label: 'Diary', icon: 'notebook', to: '/teacher/diary' },
       { testid: 'cmdk-messages', label: 'Messages', icon: 'chat', to: '/teacher/messages' },
     ];
@@ -489,7 +491,8 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
         @click="(e) => { if ((e.target as HTMLElement).closest('a')) closeSidebar(); }"
       >
         <template v-if="isTeacher">
-          <RouterLink data-testid="nav-attendance" to="/teacher"><Icon name="calendar" />{{ t('nav.attendance') }}</RouterLink>
+          <RouterLink data-testid="nav-my-day" to="/teacher"><Icon name="home" />{{ t('nav.myDay') }}</RouterLink>
+          <RouterLink data-testid="nav-attendance" to="/teacher/attendance"><Icon name="calendar" />{{ t('nav.attendance') }}</RouterLink>
           <RouterLink data-testid="nav-diary" to="/teacher/diary"><Icon name="notebook" />{{ t('nav.diary') }}</RouterLink>
           <RouterLink data-testid="nav-timetable" to="/teacher/timetable"><Icon name="grid" />{{ t('nav.timetable') }}</RouterLink>
           <RouterLink data-testid="nav-messages" to="/teacher/messages"><Icon name="chat" />{{ t('nav.messages') }}</RouterLink>
@@ -501,6 +504,16 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
           <div class="nav-group">
             <div class="nav-group-label">Overview</div>
             <RouterLink data-testid="nav-dashboard" to="/admin"><Icon name="home" />{{ t('nav.dashboard') }}</RouterLink>
+          </div>
+
+          <div v-if="isPrincipal" class="nav-group">
+            <div class="nav-group-label">Principal</div>
+            <RouterLink data-testid="nav-principal-overview" to="/principal"
+              ><Icon name="home" />School Overview</RouterLink
+            >
+            <RouterLink data-testid="nav-principal-academics-staff" to="/principal/academics-staff"
+              ><Icon name="chalkboard" />Academics &amp; Staff</RouterLink
+            >
           </div>
 
           <div v-if="canManagePeople" class="nav-group">

@@ -40,6 +40,7 @@ describe('AuthService', () => {
     identifier: 'parent@schoolos.edu.pk',
     role: 'PARENT',
     isLocked: false,
+    isPrincipal: false,
     lockedUntil: null as Date | null,
     failedLoginCount: 0,
   };

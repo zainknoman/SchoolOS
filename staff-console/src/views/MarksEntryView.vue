@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import {
   api,
@@ -12,6 +13,7 @@ import {
 } from '../lib/api';
 
 const auth = useAuthStore();
+const route = useRoute();
 
 const sections = ref<SectionSummary[]>([]);
 const classes = ref<ClassSummary[]>([]);
@@ -46,6 +48,14 @@ async function loadInitial() {
     ]);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load sections.';
+    return;
+  }
+  // A "?sectionId=" query param (e.g. from the Gradebook overview's "Enter marks" link)
+  // preselects that section, same as picking it from the dropdown manually would.
+  const preselectSectionId = route.query.sectionId;
+  if (typeof preselectSectionId === 'string' && sections.value.some((s) => s.id === preselectSectionId)) {
+    selectedSectionId.value = preselectSectionId;
+    await onSectionChange();
   }
 }
 loadInitial();

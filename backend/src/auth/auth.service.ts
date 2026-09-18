@@ -20,6 +20,7 @@ export type SessionResult = {
   accessToken: string;
   refreshToken: string;
   role: string;
+  isPrincipal: boolean;
 };
 
 function hashToken(token: string): string {
@@ -87,7 +88,7 @@ export class AuthService {
       data: { failedLoginCount: 0, lockedUntil: null },
     });
 
-    return this.issueSession(user.id, user.role);
+    return this.issueSession(user.id, user.role, user.isPrincipal);
   }
 
   async refresh(refreshToken: string): Promise<SessionResult> {
@@ -120,7 +121,7 @@ export class AuthService {
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }
 
-    return this.issueSession(user.id, user.role);
+    return this.issueSession(user.id, user.role, user.isPrincipal);
   }
 
   /**
@@ -187,6 +188,7 @@ export class AuthService {
   private async issueSession(
     userId: string,
     role: string,
+    isPrincipal: boolean,
   ): Promise<SessionResult> {
     const accessToken = this.jwt.sign({ sub: userId, role });
 
@@ -201,6 +203,6 @@ export class AuthService {
       },
     });
 
-    return { accessToken, refreshToken, role };
+    return { accessToken, refreshToken, role, isPrincipal };
   }
 }

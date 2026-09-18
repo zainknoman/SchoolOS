@@ -10,6 +10,7 @@ interface PersistedSession {
   accessToken: string;
   refreshToken: string;
   role: string;
+  isPrincipal: boolean;
 }
 
 function loadPersistedSession(): PersistedSession | null {
@@ -35,7 +36,8 @@ export const useAuthStore = defineStore('auth', {
       accessToken: persisted?.accessToken ?? null,
       refreshToken: persisted?.refreshToken ?? null,
       role: persisted?.role ?? null,
-    } as { accessToken: string | null; refreshToken: string | null; role: string | null };
+      isPrincipal: persisted?.isPrincipal ?? false,
+    } as { accessToken: string | null; refreshToken: string | null; role: string | null; isPrincipal: boolean };
   },
 
   getters: {
@@ -50,6 +52,7 @@ export const useAuthStore = defineStore('auth', {
       this.accessToken = session.accessToken;
       this.refreshToken = session.refreshToken;
       this.role = session.role;
+      this.isPrincipal = session.isPrincipal;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
     },
 
@@ -71,6 +74,7 @@ export const useAuthStore = defineStore('auth', {
         this.accessToken = session.accessToken;
         this.refreshToken = session.refreshToken;
         this.role = session.role;
+        this.isPrincipal = session.isPrincipal;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
         return session.accessToken;
       } catch {
@@ -83,6 +87,7 @@ export const useAuthStore = defineStore('auth', {
       this.accessToken = null;
       this.refreshToken = null;
       this.role = null;
+      this.isPrincipal = false;
       localStorage.removeItem(STORAGE_KEY);
     },
   },

@@ -2,9 +2,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+import { createRouter, createMemoryHistory } from 'vue-router';
 import MarksEntryView from './MarksEntryView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+
+function makeRouter(initialPath = '/teacher/gradebook/entry') {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/teacher/gradebook/entry', name: 'teacher-gradebook-entry', component: MarksEntryView }],
+  });
+  router.push(initialPath);
+  return router;
+}
+
+async function mountWithRouter(initialPath?: string) {
+  const router = makeRouter(initialPath);
+  await router.isReady();
+  const wrapper = mount(MarksEntryView, { global: { plugins: [router] } });
+  await flushPromises();
+  return wrapper;
+}
 
 vi.mock('../lib/api', () => ({
   api: {
@@ -45,8 +63,7 @@ describe('MarksEntryView', () => {
   it('cascades section -> term -> category -> assessment and saves marks', async () => {
     vi.mocked(api.saveMarksBulk).mockResolvedValue(undefined);
 
-    const wrapper = mount(MarksEntryView);
-    await flushPromises();
+    const wrapper = await mountWithRouter();
 
     await wrapper.find('[data-testid="select-section"]').setValue('sec-1');
     await flushPromises();
@@ -73,8 +90,7 @@ describe('MarksEntryView', () => {
       new Error('Student s1: obtained marks (999) exceed the maximum (20) for this assessment'),
     );
 
-    const wrapper = mount(MarksEntryView);
-    await flushPromises();
+    const wrapper = await mountWithRouter();
     await wrapper.find('[data-testid="select-section"]').setValue('sec-1');
     await flushPromises();
     await wrapper.find('[data-testid="select-term"]').setValue('t1');
@@ -89,5 +105,28 @@ describe('MarksEntryView', () => {
     await flushPromises();
 
     expect(wrapper.find('[role="alert"]').text()).toContain('exceed the maximum');
+  });
+
+  describe('?sectionId= preselection (from the Gradebook overview\'s "Enter marks" link)', () => {
+    it('preselects the section and loads its students/terms when the query param matches a real section', async () => {
+      const wrapper = await mountWithRouter('/teacher/gradebook/entry?sectionId=sec-1');
+
+      expect((wrapper.find('[data-testid="select-section"]').element as HTMLSelectElement).value).toBe('sec-1');
+      expect(wrapper.text()).toContain('Ali Khan');
+      expect(wrapper.find('[data-testid="select-term"]').exists()).toBe(true);
+    });
+
+    it('leaves the section unselected when the query param does not match any real section', async () => {
+      const wrapper = await mountWithRouter('/teacher/gradebook/entry?sectionId=does-not-exist');
+
+      expect((wrapper.find('[data-testid="select-section"]').element as HTMLSelectElement).value).toBe('');
+      expect(wrapper.text()).not.toContain('Ali Khan');
+    });
+
+    it('behaves exactly as before when no sectionId query param is present', async () => {
+      const wrapper = await mountWithRouter('/teacher/gradebook/entry');
+
+      expect((wrapper.find('[data-testid="select-section"]').element as HTMLSelectElement).value).toBe('');
+    });
   });
 });

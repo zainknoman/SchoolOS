@@ -28,6 +28,7 @@ export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
   role: string;
+  isPrincipal: boolean;
 }
 
 export interface ChildSummary {
@@ -139,6 +140,101 @@ export interface DashboardSummary {
   feesOutstandingPkr: number;
   weeklyTrend: DashboardWeeklyPoint[];
   recentAlerts: DashboardAlert[];
+}
+
+export interface OperationsSummary {
+  admissionsPending: number;
+  feeDefaulters: number;
+  leaveRequestsPending: number;
+  documentsToVerify: number;
+  recentActivity: DashboardAlert[];
+}
+
+export interface SchoolOverviewRow {
+  id: string;
+  name: string;
+  status: string;
+  campusesCount: number;
+  studentsCount: number;
+  feeCollectionPercent: number;
+}
+
+export interface NetworkOverview {
+  totalSchools: number;
+  totalStudents: number;
+  totalStaff: number;
+  schools: SchoolOverviewRow[];
+}
+
+export interface ClassHealthRow {
+  sectionId: string;
+  className: string;
+  sectionName: string;
+  teacherName: string | null;
+  attendancePercent: number;
+  averageMarksPercent: number | null;
+}
+
+export interface ExamScheduleStatusRow {
+  categoryId: string;
+  categoryName: string;
+  className: string;
+  termLabel: string;
+  status: 'ready' | 'pending';
+}
+
+export interface PrincipalAcademicsSummary {
+  classHealth: ClassHealthRow[];
+  examScheduleStatus: ExamScheduleStatusRow[];
+}
+
+export interface MyDayClass {
+  timetableId: string;
+  sectionId: string;
+  className: string;
+  sectionName: string;
+  subjectName: string;
+  period: number;
+  startTime: string;
+  endTime: string;
+  room: string | null;
+  attendanceMarked: boolean;
+}
+
+export interface MyDayDiaryDue {
+  id: string;
+  className: string;
+  sectionName: string;
+  subjectName: string;
+  text: string;
+}
+
+export interface MyDaySummary {
+  classesToday: MyDayClass[];
+  diaryDueToday: MyDayDiaryDue[];
+}
+
+export interface GradebookClassRow {
+  sectionId: string;
+  subjectId: string;
+  className: string;
+  sectionName: string;
+  subjectName: string;
+  termLabel: string | null;
+  studentsCount: number;
+  marksEnteredCount: number;
+}
+
+export interface UpcomingExamRow {
+  termId: string;
+  label: string;
+  startDate: string;
+  daysUntil: number;
+}
+
+export interface GradebookOverview {
+  classes: GradebookClassRow[];
+  upcomingExams: UpcomingExamRow[];
 }
 
 export interface StudentSummary {
@@ -1126,6 +1222,41 @@ export const api = {
 
   async dashboardSummary(accessToken: string): Promise<DashboardSummary> {
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/dashboard-summary`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async operationsSummary(accessToken: string): Promise<OperationsSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/operations-summary`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async networkOverview(accessToken: string): Promise<NetworkOverview> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/network-overview`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async principalAcademicsSummary(accessToken: string): Promise<PrincipalAcademicsSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/principal-academics-summary`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async teacherMyDay(accessToken: string): Promise<MyDaySummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/teachers/me/day`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async teacherGradebookOverview(accessToken: string): Promise<GradebookOverview> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/teachers/me/gradebook-overview`, {
       headers: authHeaders(accessToken),
     });
     return asJson(res);

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import AppShell from '../components/AppShell.vue';
-import TeacherMyDayView from './TeacherMyDayView.vue';
+import TeacherGradebookOverviewView from './TeacherGradebookOverviewView.vue';
 </script>
 
 <template>
   <AppShell>
-    <TeacherMyDayView />
+    <TeacherGradebookOverviewView />
   </AppShell>
 </template>

@@ -19,4 +19,16 @@ export class TeachersController {
   listAll(@Req() req: AuthenticatedRequest) {
     return this.teachersService.listAll(req.user);
   }
+
+  @Roles('TEACHER')
+  @Get('me/day')
+  getMyDay(@Req() req: AuthenticatedRequest) {
+    return this.teachersService.getMyDay(req.user);
+  }
+
+  @Roles('TEACHER')
+  @Get('me/gradebook-overview')
+  getGradebookOverview(@Req() req: AuthenticatedRequest) {
+    return this.teachersService.getGradebookOverview(req.user);
+  }
 }
