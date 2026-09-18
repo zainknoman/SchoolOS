@@ -15,6 +15,10 @@ withDefaults(
     placeholder?: string;
     error?: string;
     grow?: boolean;
+    /** Small muted helper line — under the label for most types, under the checkbox text itself. */
+    hint?: string;
+    /** Renders the input in the app's monospace face, for IDs/dates/phone numbers. */
+    mono?: boolean;
   }>(),
   { grow: false },
 );
@@ -26,7 +30,7 @@ defineExpose({ focus: () => inputRef.value?.focus() });
 </script>
 
 <template>
-  <label v-if="type === 'checkbox'" class="checkbox-row">
+  <label v-if="type === 'checkbox'" class="checkbox-row" :class="{ bordered: !!hint }">
     <input
       ref="inputRef"
       type="checkbox"
@@ -34,7 +38,11 @@ defineExpose({ focus: () => inputRef.value?.focus() });
       :checked="modelValue as boolean"
       @change="$emit('update:modelValue', ($event.target as HTMLInputElement).checked)"
     />
-    {{ label }}
+    <span v-if="hint" class="checkbox-text">
+      <span class="checkbox-title">{{ label }}</span>
+      <span class="checkbox-hint">{{ hint }}</span>
+    </span>
+    <template v-else>{{ label }}</template>
   </label>
   <div v-else class="form-field" :class="{ grow }">
     <label class="sr-only">{{ label }}</label>
@@ -42,6 +50,7 @@ defineExpose({ focus: () => inputRef.value?.focus() });
       v-if="type === 'select'"
       ref="inputRef"
       v-bind="$attrs"
+      :class="{ mono }"
       :value="modelValue"
       @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
     >
@@ -52,6 +61,7 @@ defineExpose({ focus: () => inputRef.value?.focus() });
       v-else-if="type === 'textarea'"
       ref="inputRef"
       v-bind="$attrs"
+      :class="{ mono }"
       :value="modelValue as string"
       :placeholder="placeholder"
       @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
@@ -61,6 +71,7 @@ defineExpose({ focus: () => inputRef.value?.focus() });
       ref="inputRef"
       :type="type"
       v-bind="$attrs"
+      :class="{ mono }"
       :value="modelValue"
       :placeholder="placeholder"
       @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
@@ -106,6 +117,33 @@ defineExpose({ focus: () => inputRef.value?.focus() });
   display: flex;
   align-items: center;
   gap: 0.3rem;
+}
+.checkbox-row.bordered {
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.checkbox-row.bordered input {
+  margin-top: 0.2rem;
+}
+.checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.checkbox-title {
+  font-weight: 600;
+}
+.checkbox-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+.form-field .mono {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
 }
 .field-error {
   color: var(--color-destructive);

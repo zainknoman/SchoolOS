@@ -20,7 +20,13 @@ export type IconName =
   | 'warning'
   | 'search'
   | 'sun'
-  | 'moon';
+  | 'moon'
+  | 'edit'
+  | 'camera'
+  | 'file-text'
+  | 'leaf'
+  | 'plus'
+  | 'check';
 
 defineProps<{ name: IconName; size?: number }>();
 </script>
@@ -107,6 +113,26 @@ defineProps<{ name: IconName; size?: number }>();
     </template>
     <template v-else-if="name === 'moon'">
       <path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z" />
+    </template>
+    <template v-else-if="name === 'edit'">
+      <path d="M4 20h4L18.5 9.5a2 2 0 0 0-4-4L4 16v4Z" />
+    </template>
+    <template v-else-if="name === 'camera'">
+      <path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+      <circle cx="12" cy="13.5" r="3.5" />
+    </template>
+    <template v-else-if="name === 'file-text'">
+      <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M14 3v5h5M8 13h8M8 17h5" />
+    </template>
+    <template v-else-if="name === 'leaf'">
+      <path d="M20.8 8.6c1.9 3.6.6 7-2.8 8.7-1 .5-1 1.8 0 2.3-3.8.4-7-1.7-7.6-5.2-2.2 1-4.2-.4-4.2-2.7 0-1.3.8-2.2 1.9-2.6-1-2.9.8-5.8 3.9-6.1 1.7-3 5.6-3.6 8-1.2 1.7-.4 3.5.6 3.8 2.3.2.9-.1 1.8-.7 2.5" />
+    </template>
+    <template v-else-if="name === 'plus'">
+      <path d="M12 5v14M5 12h14" />
+    </template>
+    <template v-else-if="name === 'check'">
+      <path d="M4 12.5l5 5L20 6.5" />
     </template>
   </svg>
 </template>

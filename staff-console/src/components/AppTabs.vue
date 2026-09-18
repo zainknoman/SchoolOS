@@ -1,15 +1,23 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import AppIcon, { type IconName } from './AppIcon.vue';
 
 interface TabDef {
   id: string;
   label: string;
+  icon?: IconName;
 }
 
-const props = defineProps<{
-  tabs: TabDef[];
-  modelValue: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    tabs: TabDef[];
+    modelValue: string;
+    /** 'pill' is a segmented-control look for identity-heavy detail pages (e.g. Student Profile);
+     * 'underline' (default) is the original tab-strip look used elsewhere. */
+    variant?: 'underline' | 'pill';
+  }>(),
+  { variant: 'underline' },
+);
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
 const tabRefs = ref<HTMLButtonElement[]>([]);
@@ -31,7 +39,7 @@ function onKeydown(event: KeyboardEvent, index: number) {
 </script>
 
 <template>
-  <div class="tabs">
+  <div class="tabs" :class="`variant-${variant}`">
     <div class="tab-list" role="tablist">
       <button
         v-for="(tab, index) in tabs"
@@ -47,6 +55,7 @@ function onKeydown(event: KeyboardEvent, index: number) {
         @click="select(tab.id)"
         @keydown="onKeydown($event, index)"
       >
+        <AppIcon v-if="tab.icon" :name="tab.icon" :size="15" />
         {{ tab.label }}
       </button>
     </div>
@@ -69,6 +78,9 @@ function onKeydown(event: KeyboardEvent, index: number) {
   overflow-x: auto;
 }
 .tab-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.6rem 1rem;
   border: none;
   background: none;
@@ -80,7 +92,7 @@ function onKeydown(event: KeyboardEvent, index: number) {
   white-space: nowrap;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 .tab-trigger:hover {
   color: var(--color-text);
@@ -93,5 +105,28 @@ function onKeydown(event: KeyboardEvent, index: number) {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+
+/* Pill/segmented variant — an opt-in look for identity-heavy detail pages. */
+.variant-pill .tab-list {
+  display: inline-flex;
+  gap: var(--space-0-5);
+  background: var(--color-muted-bg);
+  padding: 0.3rem;
+  border-radius: var(--radius-full);
+  border-bottom: none;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.variant-pill .tab-trigger {
+  border-bottom: none;
+  border-radius: var(--radius-full);
+  margin-bottom: 0;
+  padding: 0.55rem 1rem;
+}
+.variant-pill .tab-trigger.active {
+  background: var(--color-surface);
+  color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
 }
 </style>

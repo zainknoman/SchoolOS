@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import AppIcon, { type IconName } from './AppIcon.vue';
+
 defineProps<{
   modelValue: boolean;
   title: string;
+  icon?: IconName;
+  subtitle?: string;
 }>();
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
@@ -25,7 +29,11 @@ function onKeydown(event: KeyboardEvent) {
   >
     <div class="modal-dialog" role="dialog" aria-modal="true" :aria-label="title">
       <div class="modal-header">
-        <h2>{{ title }}</h2>
+        <span v-if="icon" class="modal-icon"><AppIcon :name="icon" :size="19" /></span>
+        <div class="modal-heading">
+          <h2>{{ title }}</h2>
+          <p v-if="subtitle" class="modal-subtitle">{{ subtitle }}</p>
+        </div>
         <button type="button" class="modal-close" data-testid="modal-close" aria-label="Close" @click="close">
           &times;
         </button>
@@ -60,14 +68,38 @@ function onKeydown(event: KeyboardEvent) {
 }
 .modal-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
   margin-bottom: var(--space-3);
+}
+.modal-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-status-info-tint);
+  color: var(--color-accent);
+}
+.modal-heading {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 .modal-header h2 {
   font-size: var(--font-size-lg);
 }
+.modal-subtitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  line-height: 1.5;
+}
 .modal-close {
+  flex-shrink: 0;
   background: transparent;
   border: none;
   font-size: 1.5rem;
