@@ -406,8 +406,9 @@ and the backend `me` jest suite + `tsc`). There is also a queued feature request
 given mid-rollout during Chunk 3, that comes **after** Chunk 6.
 
 ### To resume in a new session, say:
-> "Continue from the SchoolOS design system rollout spec, Section 12 (Progress Log) — start
-> the queued management-view feature request."
+> "Continue from the SchoolOS design system rollout spec
+> (`docs/superpowers/specs/2026-09-18-schoolos-design-system-rollout.md`), Section 12 —
+> start the queued management-view feature request (see 'REMAINING WORK')."
 
 ### What's done
 - **Chunk 0** — `patterns.css`, `EntityTable.vue` restyle, `ListPageCard.vue`.
@@ -443,6 +444,9 @@ w/ due pills + attachment chips) redesigned; `cardTheme` (14px radius/1px border
 **Guardian accent (11.7 resolved):** `/me/children` now returns `relationship`
 (`StudentParent.relationship`, no migration); `"mother"` → magenta `#B0336B`, anything else → blue
 `#0369A1`, applied per active child via `AccentController` → `buildAppTheme(accent:)`.
+**Follow-up shipped (`c0f3b07`):** Diary sub-tab now has a Monday-first month calendar on top
+(dot on days with entries, selected day filled with accent, month arrows) and shows the existing
+diary cards filtered to the selected day, with an empty state. `flutter test`: 99 pass.
 **Deviations from the mockups (deliberate):** no "Mr./Mrs." in the greeting and the school badge/name
 uses the child's campus (no guardian-name or school-name field on the parent API); the Results
 card stays a muted "Coming soon" (no per-test summary endpoint); the shell AppBar (dropdown, bell,
@@ -460,7 +464,18 @@ when this chunk starts) and 11.9 (6-item bottom nav: Home/Calendar/Circulars/Mes
 Fees/More — the 5-item Home-mockup nav is stale, ignore it). See Section 7 for full
 mockup detail.
 
-### Queued for after Chunk 6: management-view feature request
+### REMAINING WORK — start here in a new session
+1. **Management-view feature request** (below) — the only unfinished item in the rollout. Suggested
+   order: (a) Staff list Edit/Delete buttons (small, no schema), (b) School & Campus View button +
+   Profile pages, (c) Parent schema extension + migration + Parent Profile (biggest; own chunk).
+2. **Optional follow-ups** (not blockers): `DESIGN.md` addendum for parent-app Open Decisions #3/#4
+   (per-guardian accent now shipped); wire the Home "Results" card once a per-test summary
+   endpoint exists; auth screens (`Login`/`ForgotPassword`/`ResetPassword`) were never chunked;
+   row-selection/bulk-actions/detail-rail (11.8 option B) still deferred per page.
+3. Housekeeping: working tree has pre-existing deleted `docs/UI-Screenshots/*` files (not from this
+   rollout) — stage specific paths when committing, don't `git add -A`.
+
+### Queued: management-view feature request
 Given mid-Chunk-3, scoped and confirmed by the user, not yet started:
 - **School & Campus**: new dedicated Profile pages matching the Student/Staff Profile
   pattern (currently they only have list + inline edit, no profile view). Add a "View"
