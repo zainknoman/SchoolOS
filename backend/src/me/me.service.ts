@@ -9,6 +9,8 @@ export interface ChildSummary {
   campus: string;
   class: string;
   section: string;
+  /** The logged-in parent's StudentParent.relationship to this child ("mother", "father", "guardian", …) — the parent-app uses it to pick its per-guardian accent colour. */
+  relationship: string;
 }
 
 @Injectable()
@@ -48,7 +50,7 @@ export class MeService {
       return [];
     }
 
-    return parentProfile.children.map(({ student }) => {
+    return parentProfile.children.map(({ student, relationship }) => {
       const enrollment = student.enrollments[0];
       return {
         id: student.id,
@@ -57,6 +59,7 @@ export class MeService {
         campus: enrollment.campus.name,
         class: enrollment.section.class.name,
         section: enrollment.section.name,
+        relationship,
       };
     });
   }

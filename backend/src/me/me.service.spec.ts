@@ -45,6 +45,7 @@ describe('MeService', () => {
       id: 'pp-1',
       children: [
         {
+          relationship: 'mother',
           student: {
             id: 's-1',
             name: 'Eshaal',
@@ -62,6 +63,7 @@ describe('MeService', () => {
           },
         },
         {
+          relationship: 'guardian',
           student: {
             id: 's-2',
             name: 'Ahmed',
@@ -91,7 +93,9 @@ describe('MeService', () => {
       campus: 'Gulistan-e-Jauhar',
       class: 'Grade 3',
       section: '3A',
+      relationship: 'mother',
     });
+    expect(children[1].relationship).toBe('guardian');
     expect(children[1].campus).toBe('Gulshan-e-Iqbal');
   });
 

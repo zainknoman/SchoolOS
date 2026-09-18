@@ -24,6 +24,7 @@ class ChildSummary {
     required this.campus,
     required this.schoolClass,
     required this.section,
+    this.relationship = 'guardian',
   });
 
   final String id;
@@ -33,6 +34,10 @@ class ChildSummary {
   final String schoolClass;
   final String section;
 
+  /// The logged-in parent's relationship to this child ("mother", "father", "guardian") — drives
+  /// the per-guardian accent colour. Defaults to "guardian" for a backend that predates the field.
+  final String relationship;
+
   factory ChildSummary.fromJson(Map<String, dynamic> json) => ChildSummary(
     id: json['id'] as String,
     name: json['name'] as String,
@@ -40,6 +45,7 @@ class ChildSummary {
     campus: json['campus'] as String,
     schoolClass: json['class'] as String,
     section: json['section'] as String,
+    relationship: (json['relationship'] as String?) ?? 'guardian',
   );
 }
 

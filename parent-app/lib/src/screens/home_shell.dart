@@ -6,6 +6,7 @@ import '../api/models.dart';
 import '../auth/auth_state.dart';
 import '../notifications/device_token_registrar.dart';
 import '../notifications/notification_target.dart';
+import '../theme/accent_controller.dart';
 import 'calendar_tab.dart';
 import 'circulars_tab.dart';
 import 'fees_tab.dart';
@@ -15,9 +16,11 @@ import 'more_tab.dart';
 import 'notifications_sheet.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Authenticated shell: multi-child switcher up top, bottom nav below (Home / Calendar /
-/// Notifications / Messages / Fees / More — per the MVP plan). Every tab is a placeholder;
-/// FEAT-006 onward fill these in against the same /api/v1 endpoints the staff console uses.
+/// Authenticated shell: bottom nav (Home / Calendar / Circulars / Messages / Fees / More) with
+/// the active child shared across tabs. Home and Calendar draw their own headers (child pills /
+/// title + notification bell) per the parent-app mockups, so the shell's AppBar — child dropdown,
+/// bell, logout — only shows on the remaining tabs. The per-guardian accent colour is derived from
+/// the active child's `relationship` and pushed to `AccentController`.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, this.initialTab = 0});
 
@@ -182,6 +185,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         _activeChildId = children.isNotEmpty ? children.first.id : null;
         _isLoading = false;
       });
+      _applyAccent();
     } on ApiException catch (e) {
       setState(() {
         _loadError = e.message;
@@ -193,12 +197,31 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   ChildSummary? get _activeChild =>
       _children.where((c) => c.id == _activeChildId).cast<ChildSummary?>().firstOrNull;
 
-  void _onLogout() => context.read<AuthState>().logout();
+  /// Sets the app accent from the active child's guardian relationship (blue unless "mother").
+  void _applyAccent() {
+    final relationship = _activeChild?.relationship;
+    context.read<AccentController>().setAccent(GuardianAccent.fromRelationship(relationship));
+  }
+
+  void _selectChild(String id) {
+    setState(() => _activeChildId = id);
+    _applyAccent();
+  }
+
+  void _onLogout() {
+    // Back to the default blue so the login screen doesn't keep the previous guardian's accent.
+    context.read<AccentController>().reset();
+    context.read<AuthState>().logout();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Home (0) and Calendar (1) render their own headers.
+    final ownsHeader = _tabIndex == 0 || _tabIndex == 1;
     return Scaffold(
-      appBar: AppBar(
+      appBar: ownsHeader
+          ? null
+          : AppBar(
         title: _buildChildSwitcher(),
         actions: [
           IconButton(
@@ -217,7 +240,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           ),
         ],
       ),
-      body: _buildBody(),
+      body: ownsHeader ? SafeArea(bottom: false, child: _buildBody()) : _buildBody(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
         onDestinationSelected: (i) => setState(() {
@@ -271,7 +294,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               ),
             )
             .toList(),
-        onChanged: (id) => setState(() => _activeChildId = id),
+        onChanged: (id) {
+          if (id != null) _selectChild(id);
+        },
       ),
     );
   }
@@ -304,6 +329,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         onOpenTimetable: () => setState(() => _tabIndex = 1),
         onSeeAllAnnouncements: () => setState(() => _tabIndex = 2),
         onOpenFees: () => setState(() => _tabIndex = 4),
+        campusName: child.campus,
+        children: _children,
+        activeChildId: _activeChildId,
+        onSelectChild: _selectChild,
+        unreadNotifications: _unreadNotifications,
+        onOpenNotifications: _openNotifications,
       );
     }
 
@@ -322,6 +353,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         accessToken: auth.accessToken!,
         api: api,
         initialSubTab: _calendarInitialSubTab,
+        childLabel: '${child.name.trim().split(RegExp(r'\s+')).first} · ${child.schoolClass} ${child.section}',
+        unreadNotifications: _unreadNotifications,
+        onOpenNotifications: _openNotifications,
       );
     }
 

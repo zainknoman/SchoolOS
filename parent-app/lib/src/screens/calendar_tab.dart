@@ -7,74 +7,86 @@ import '../cache/cached_load.dart';
 import '../cache/data_cache.dart';
 import '../cache/last_updated_banner.dart';
 import '../theme/text_direction.dart';
+import '../theme/tones.dart';
+import '../widgets/parent_header.dart';
+import 'home_tab.dart' show formatShortDate;
 
 const _dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const _fullDayNames = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+const _fullMonthNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
-const _dayColWidth = 72.0;
-const _periodColWidth = 104.0;
-const _breakColWidth = 84.0;
+/// Chip order for the day selector: Mon → Sat, then Sunday last (matches the mockup's Mon–Sun strip;
+/// `TimetableEntry.dayOfWeek` is 0 = Sunday).
+const _chipDays = [1, 2, 3, 4, 5, 6, 0];
 
-/// One column of the weekly timetable grid — either a real period (from the data) or an
-/// auto-detected break between two periods. `period` is null for a break column.
-class _TimetableColumn {
-  const _TimetableColumn.period({
-    required int this.period,
-    required this.startTime,
-    required this.endTime,
-  }) : isBreak = false;
-  const _TimetableColumn.breakColumn({
-    required this.startTime,
-    required this.endTime,
-  }) : isBreak = true,
-       period = null;
+String _monthKey(DateTime m) => '${m.year}-${m.month.toString().padLeft(2, '0')}';
 
-  final int? period;
-  final String startTime;
-  final String endTime;
-  final bool isBreak;
-
-  String get label => isBreak ? 'BREAK' : 'P$period';
-  double get width => isBreak ? _breakColWidth : _periodColWidth;
-}
+String _titleCase(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
 
 int _minutesSinceMidnight(String hhmm) {
   final parts = hhmm.split(':');
   return int.parse(parts[0]) * 60 + int.parse(parts[1]);
 }
 
-/// Derives the grid's columns from whatever periods actually appear in the week's entries —
-/// not a fixed period count — and inserts a BREAK column wherever two consecutive periods'
-/// times leave a gap bigger than a normal passing period (10 minutes).
-List<_TimetableColumn> _buildColumns(List<TimetableEntry> entries) {
-  final periodTimes = <int, (String, String)>{};
-  for (final e in entries) {
-    periodTimes.putIfAbsent(e.period, () => (e.startTime, e.endTime));
-  }
-  final sortedPeriods = periodTimes.keys.toList()..sort();
+/// One row of a day's period list — either a real period or an auto-detected break between two
+/// periods (a gap bigger than a normal 10-minute passing period).
+class _PeriodRow {
+  const _PeriodRow.period(TimetableEntry this.entry)
+    : isBreak = false,
+      startTime = '',
+      endTime = '';
+  const _PeriodRow.breakRow({required this.startTime, required this.endTime})
+    : isBreak = true,
+      entry = null;
 
-  final columns = <_TimetableColumn>[];
-  for (var i = 0; i < sortedPeriods.length; i++) {
-    final period = sortedPeriods[i];
-    final (start, end) = periodTimes[period]!;
-    columns.add(
-      _TimetableColumn.period(period: period, startTime: start, endTime: end),
-    );
+  final TimetableEntry? entry;
+  final bool isBreak;
+  final String startTime;
+  final String endTime;
+}
 
-    if (i < sortedPeriods.length - 1) {
-      final (nextStart, _) = periodTimes[sortedPeriods[i + 1]]!;
-      final gapMinutes =
-          _minutesSinceMidnight(nextStart) - _minutesSinceMidnight(end);
-      if (gapMinutes > 10) {
-        columns.add(
-          _TimetableColumn.breakColumn(startTime: end, endTime: nextStart),
+List<_PeriodRow> _buildRows(List<TimetableEntry> dayEntries) {
+  final sorted = [...dayEntries]..sort((a, b) => a.period.compareTo(b.period));
+  final rows = <_PeriodRow>[];
+  for (var i = 0; i < sorted.length; i++) {
+    rows.add(_PeriodRow.period(sorted[i]));
+    if (i < sorted.length - 1) {
+      final gap =
+          _minutesSinceMidnight(sorted[i + 1].startTime) - _minutesSinceMidnight(sorted[i].endTime);
+      if (gap > 10) {
+        rows.add(
+          _PeriodRow.breakRow(startTime: sorted[i].endTime, endTime: sorted[i + 1].startTime),
         );
       }
     }
   }
-  return columns;
+  return rows;
 }
 
-/// Calendar → Timetable / Attendance / Diary tabs, per the MVP plan.
+/// Calendar → Timetable / Attendance / Diary tabs, per the MVP plan and the Calendar mockups: a
+/// shared header ("Calendar" + the selected child + notification bell) above a 3-way segmented
+/// sub-tab.
 class CalendarTab extends StatelessWidget {
   const CalendarTab({
     super.key,
@@ -82,6 +94,9 @@ class CalendarTab extends StatelessWidget {
     required this.accessToken,
     required this.api,
     this.initialSubTab = 0,
+    this.childLabel,
+    this.unreadNotifications = 0,
+    this.onOpenNotifications,
   });
 
   final String studentId;
@@ -93,38 +108,78 @@ class CalendarTab extends StatelessWidget {
   /// notification tap) pass a non-zero value here.
   final int initialSubTab;
 
+  /// "Hania · 6-A" under the "Calendar" title; omitted when null.
+  final String? childLabel;
+  final int unreadNotifications;
+  final VoidCallback? onOpenNotifications;
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tones = Tones.of(context);
+    final accent = theme.colorScheme.primary;
     return DefaultTabController(
       length: 3,
       initialIndex: initialSubTab,
       child: Column(
         children: [
-          const TabBar(
-            tabs: [
-              Tab(text: 'Timetable'),
-              Tab(text: 'Attendance'),
-              Tab(text: 'Diary'),
-            ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Calendar',
+                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      if (childLabel != null)
+                        Text(
+                          childLabel!,
+                          style: theme.textTheme.bodySmall?.copyWith(color: tones.muted),
+                        ),
+                    ],
+                  ),
+                ),
+                if (onOpenNotifications != null)
+                  NotificationBell(
+                    unreadCount: unreadNotifications,
+                    onPressed: onOpenNotifications!,
+                  ),
+              ],
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Tones.tint(tones.muted),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: TabBar(
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(8)),
+              labelColor: Colors.white,
+              unselectedLabelColor: theme.colorScheme.onSurface,
+              labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
+              splashBorderRadius: BorderRadius.circular(8),
+              tabs: const [
+                Tab(height: 34, text: 'Timetable'),
+                Tab(height: 34, text: 'Attendance'),
+                Tab(height: 34, text: 'Diary'),
+              ],
+            ),
           ),
           Expanded(
             child: TabBarView(
               children: [
-                _TimetableTab(
-                  studentId: studentId,
-                  accessToken: accessToken,
-                  api: api,
-                ),
-                _AttendanceTab(
-                  studentId: studentId,
-                  accessToken: accessToken,
-                  api: api,
-                ),
-                _DiaryTab(
-                  studentId: studentId,
-                  accessToken: accessToken,
-                  api: api,
-                ),
+                _TimetableTab(studentId: studentId, accessToken: accessToken, api: api),
+                _AttendanceTab(studentId: studentId, accessToken: accessToken, api: api),
+                _DiaryTab(studentId: studentId, accessToken: accessToken, api: api),
               ],
             ),
           ),
@@ -135,11 +190,7 @@ class CalendarTab extends StatelessWidget {
 }
 
 class _TimetableTab extends StatefulWidget {
-  const _TimetableTab({
-    required this.studentId,
-    required this.accessToken,
-    required this.api,
-  });
+  const _TimetableTab({required this.studentId, required this.accessToken, required this.api});
   final String studentId;
   final String accessToken;
   final ApiClient api;
@@ -153,6 +204,7 @@ class _TimetableTabState extends State<_TimetableTab> {
   String? _error;
   DateTime? _lastUpdated;
   bool _stale = false;
+  int _selectedDay = DateTime.now().weekday % 7;
 
   @override
   void initState() {
@@ -186,133 +238,219 @@ class _TimetableTabState extends State<_TimetableTab> {
     );
   }
 
+  /// The calendar date of weekday [dow] in the current Mon–Sun week.
+  DateTime _dateForDay(int dow) {
+    final now = DateTime.now();
+    final monday = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+    return monday.add(Duration(days: (dow + 6) % 7));
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null) return Center(child: Text(_error!));
-    if (_entries == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_entries!.isEmpty) {
-      return const Center(child: Text('No timetable published yet.'));
-    }
+    if (_entries == null) return const Center(child: CircularProgressIndicator());
+    if (_entries!.isEmpty) return const Center(child: Text('No timetable published yet.'));
 
-    final byDayPeriod = <int, Map<int, TimetableEntry>>{};
-    for (final e in _entries!) {
-      byDayPeriod.putIfAbsent(e.dayOfWeek, () => {})[e.period] = e;
-    }
-    final columns = _buildColumns(_entries!);
-    final borderColor = Theme.of(context).colorScheme.outlineVariant;
-    final gridWidth =
-        _dayColWidth + columns.fold(0.0, (sum, c) => sum + c.width);
+    final theme = Theme.of(context);
+    final tones = Tones.of(context);
+    final accent = theme.colorScheme.primary;
+    final daysWithPeriods = {for (final e in _entries!) e.dayOfWeek};
+    final rows = _buildRows(_entries!.where((e) => e.dayOfWeek == _selectedDay).toList());
+    final selectedDate = _dateForDay(_selectedDay);
 
-    Widget cell(
-      String text,
-      double width, {
-      bool bold = false,
-      bool muted = false,
-      bool alignLeft = false,
-      int maxLines = 1,
-      String? sub,
-    }) {
-      return Container(
-        width: width,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        alignment: alignLeft ? Alignment.centerLeft : Alignment.center,
-        decoration: BoxDecoration(
-          border: Border(right: BorderSide(color: borderColor)),
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      children: [
+        SizedBox(
+          height: 56,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              for (final d in _chipDays)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: _dayChip(
+                    context,
+                    d,
+                    selected: d == _selectedDay,
+                    hasPeriods: daysWithPeriods.contains(d),
+                    accent: accent,
+                  ),
+                ),
+            ],
+          ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: alignLeft
-              ? CrossAxisAlignment.start
-              : CrossAxisAlignment.center,
+        const SizedBox(height: 14),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
+              const SizedBox(height: 8),
+              Text(
+                '${_fullDayNames[_selectedDay]}, ${selectedDate.day} ${_fullMonthNames[selectedDate.month - 1]}'
+                    .toUpperCase(),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: tones.muted,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (rows.isEmpty)
+                Card(
+                  key: const Key('timetableNoPeriods'),
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      '${_fullDayNames[_selectedDay]} has no periods · marked as a holiday',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: tones.muted, fontSize: 12),
+                    ),
+                  ),
+                )
+              else
+                Card(
+                  key: const Key('timetablePeriods'),
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < rows.length; i++) ...[
+                        if (i > 0) Divider(height: 1, color: theme.colorScheme.outlineVariant),
+                        _periodRow(context, rows[i], accent),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _dayChip(
+    BuildContext context,
+    int dow, {
+    required bool selected,
+    required bool hasPeriods,
+    required Color accent,
+  }) {
+    final theme = Theme.of(context);
+    final muted = Tones.of(context).muted;
+    final date = _dateForDay(dow);
+    final fg = selected ? Colors.white : theme.colorScheme.onSurface;
+    return Opacity(
+      opacity: hasPeriods || selected ? 1 : 0.6,
+      child: InkWell(
+        key: Key('timetableDay$dow'),
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => setState(() => _selectedDay = dow),
+        child: Container(
+          width: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? accent : (hasPeriods ? theme.colorScheme.surface : Tones.tint(muted)),
+            borderRadius: BorderRadius.circular(12),
+            border: selected ? null : Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _dayNames[dow].toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? Colors.white70 : muted,
+                ),
+              ),
+              Text(
+                '${date.day}',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: fg),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _periodRow(BuildContext context, _PeriodRow row, Color accent) {
+    final theme = Theme.of(context);
+    final tones = Tones.of(context);
+    final mono = theme.textTheme.labelMedium?.copyWith(color: tones.muted, fontFamily: 'monospace');
+
+    if (row.isBreak) {
+      return Container(
+        color: Tones.tint(tones.muted).withValues(alpha: 0.05),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
           children: [
-            Text(
-              text,
-              textAlign: alignLeft ? TextAlign.left : TextAlign.center,
-              maxLines: maxLines,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-                color: muted ? Theme.of(context).colorScheme.outline : null,
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Tones.tint(tones.muted),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.local_cafe_outlined, size: 15, color: tones.muted),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Break',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
+                      color: tones.muted,
+                    ),
+                  ),
+                  Text('${row.startTime} – ${row.endTime}', style: mono),
+                ],
               ),
             ),
-            if (sub != null)
-              Text(
-                sub,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall
-                    ?.copyWith(color: Theme.of(context).colorScheme.outline),
-              ),
           ],
         ),
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final e = row.entry!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
         children: [
-          Text(
-            'WEEKLY TIMETABLE',
-            style: Theme.of(context).textTheme.titleSmall,
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Tones.tint(accent),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'P${e.period}',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: accent),
+            ),
           ),
-          const SizedBox(height: 4),
-          LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Container(
-              key: const Key('timetableGrid'),
-              decoration: BoxDecoration(border: Border.all(color: borderColor)),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      cell('DAY', _dayColWidth, bold: true),
-                      for (final col in columns)
-                        cell(
-                          col.label,
-                          col.width,
-                          bold: true,
-                          sub: '${col.startTime}-${col.endTime}',
-                        ),
-                    ],
-                  ),
-                  Divider(height: 1, thickness: 1, color: borderColor),
-                  for (var day = 0; day < 7; day++) ...[
-                    if (day > 0) Divider(height: 1, color: borderColor),
-                    Row(
-                      key: Key('timetableRow$day'),
-                      children: [
-                        cell(
-                          _dayNames[day],
-                          _dayColWidth,
-                          bold: true,
-                          alignLeft: true,
-                        ),
-                        if (byDayPeriod[day] == null ||
-                            byDayPeriod[day]!.isEmpty)
-                          cell('HOLIDAY', gridWidth - _dayColWidth, muted: true)
-                        else
-                          for (final col in columns)
-                            col.isBreak
-                                ? cell('BREAK', col.width, muted: true)
-                                : cell(
-                                    byDayPeriod[day]![col.period]?.subject ??
-                                        '',
-                                    col.width,
-                                    maxLines: 2,
-                                  ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  e.subject,
+                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                Text('${e.startTime} – ${e.endTime}', style: mono),
+              ],
             ),
           ),
         ],
@@ -322,11 +460,7 @@ class _TimetableTabState extends State<_TimetableTab> {
 }
 
 class _AttendanceTab extends StatefulWidget {
-  const _AttendanceTab({
-    required this.studentId,
-    required this.accessToken,
-    required this.api,
-  });
+  const _AttendanceTab({required this.studentId, required this.accessToken, required this.api});
   final String studentId;
   final String accessToken;
   final ApiClient api;
@@ -341,26 +475,33 @@ class _AttendanceTabState extends State<_AttendanceTab> {
   String? _error;
   DateTime? _lastUpdated;
   bool _stale = false;
+  late DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+
+  bool get _isCurrentMonth {
+    final now = DateTime.now();
+    return _month.year == now.year && _month.month == now.month;
+  }
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadHolidays();
   }
 
   Future<void> _load() async {
-    final month = DateTime.now().toIso8601String().substring(0, 7);
+    final month = _monthKey(_month);
     final cache = await DataCache.open();
     await loadWithCache<AttendanceReport>(
       cache: cache,
       cacheKey: 'cache:attendance:${widget.studentId}:$month',
-      fetch: () =>
-          widget.api.attendance(widget.accessToken, widget.studentId, month),
+      fetch: () => widget.api.attendance(widget.accessToken, widget.studentId, month),
       toJson: (report) => report.toJson(),
-      fromJson: (json) =>
-          AttendanceReport.fromJson(json as Map<String, dynamic>),
+      fromJson: (json) => AttendanceReport.fromJson(json as Map<String, dynamic>),
       onData: (data, lastUpdated, {required stale}) {
-        if (mounted) {
+        // A slow response for a month the user has already navigated away from must not overwrite
+        // the month now on screen.
+        if (mounted && month == _monthKey(_month)) {
           setState(() {
             _report = data;
             _lastUpdated = lastUpdated;
@@ -370,16 +511,27 @@ class _AttendanceTabState extends State<_AttendanceTab> {
         }
       },
       onError: (message) {
-        if (mounted) setState(() => _error = message);
+        if (mounted && month == _monthKey(_month)) setState(() => _error = message);
       },
     );
+  }
 
+  Future<void> _loadHolidays() async {
     try {
       final holidays = await widget.api.holidays(widget.accessToken);
       if (mounted) setState(() => _holidays = holidays);
     } catch (_) {
-      // Non-critical overlay — the attendance report above already rendered without it.
+      // Non-critical overlay — the attendance report already renders without it.
     }
+  }
+
+  void _shiftMonth(int delta) {
+    setState(() {
+      _month = DateTime(_month.year, _month.month + delta);
+      _report = null;
+      _error = null;
+    });
+    _load();
   }
 
   Holiday? _holidayFor(String isoDate) {
@@ -389,89 +541,303 @@ class _AttendanceTabState extends State<_AttendanceTab> {
     return null;
   }
 
+  /// Holidays overlapping the month on screen (ISO date strings compare correctly lexicographically).
+  List<Holiday> get _monthHolidays {
+    final first = '${_monthKey(_month)}-01';
+    final last = '${_monthKey(_month)}-31';
+    return _holidays
+        .where((h) => h.startDate.compareTo(last) <= 0 && h.endDate.compareTo(first) >= 0)
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null) return Center(child: Text(_error!));
     final report = _report;
-    if (report == null) return const Center(child: CircularProgressIndicator());
+    final theme = Theme.of(context);
+    final tones = Tones.of(context);
+
+    final monthSelector = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _monthArrow(
+          context,
+          Icons.chevron_left,
+          const Key('attendancePrevMonth'),
+          () => _shiftMonth(-1),
+        ),
+        Text(
+          '${_fullMonthNames[_month.month - 1]} ${_month.year}',
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        _monthArrow(
+          context,
+          Icons.chevron_right,
+          const Key('attendanceNextMonth'),
+          _isCurrentMonth ? null : () => _shiftMonth(1),
+        ),
+      ],
+    );
+
+    if (report == null) {
+      return Column(
+        children: [
+          Padding(padding: const EdgeInsets.fromLTRB(20, 14, 20, 0), child: monthSelector),
+          const Expanded(child: Center(child: CircularProgressIndicator())),
+        ],
+      );
+    }
 
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    final todayEntry = report.days
-        .where((d) => d.date == today)
-        .cast<AttendanceDay?>()
-        .firstOrNull;
+    final todayEntry = report.days.where((d) => d.date == today).cast<AttendanceDay?>().firstOrNull;
+    final pct = report.summary.attendancePercentage;
+    final band = pct >= 90 ? tones.present : (pct >= 75 ? tones.late : tones.absent);
+    final holidays = _monthHolidays;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
       children: [
+        monthSelector,
+        const SizedBox(height: 4),
         LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Card(
+          key: const Key('attendanceHero'),
+          margin: EdgeInsets.zero,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Today: ${todayEntry?.status ?? 'Not marked yet'}',
-                  style: Theme.of(context).textTheme.titleMedium,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ATTENDANCE THIS MONTH',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: tones.muted,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          Text(
+                            '$pct%',
+                            style: TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w800,
+                              color: band,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_isCurrentMonth)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            todayEntry != null ? _titleCase(todayEntry.status) : 'Not marked yet',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Today',
+                            style: theme.textTheme.labelSmall?.copyWith(color: tones.muted),
+                          ),
+                        ],
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '${report.summary.attendancePercentage}% attendance this month',
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(9999),
+                  child: LinearProgressIndicator(
+                    value: (pct.clamp(0, 100)) / 100,
+                    minHeight: 8,
+                    color: band,
+                    backgroundColor: Tones.tint(band),
+                  ),
                 ),
-                Text(
-                  'Present ${report.summary.present} · Absent ${report.summary.absent} · '
-                  'Late ${report.summary.late} · Leave ${report.summary.leave} · '
-                  'Holiday ${report.summary.holiday}',
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 6,
+                  children: [
+                    _legend(context, tones.present, report.summary.present, 'Present'),
+                    _legend(context, tones.absent, report.summary.absent, 'Absent'),
+                    _legend(context, tones.late, report.summary.late, 'Late'),
+                    _legend(context, tones.leave, report.summary.leave, 'Leave'),
+                    _legend(context, tones.muted, report.summary.holiday, 'Holiday'),
+                  ],
                 ),
               ],
             ),
           ),
         ),
-        if (_holidays.isNotEmpty) ...[
-          const SizedBox(height: 4),
+        if (holidays.isNotEmpty) ...[
+          const SizedBox(height: 14),
           Card(
             key: const Key('holidaysCard'),
+            margin: EdgeInsets.zero,
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Declared holidays', style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(height: 4),
-                  for (final h in _holidays)
-                    Text('${h.title}: ${h.startDate} – ${h.endDate}'),
+                  for (var i = 0; i < holidays.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Tones.tint(tones.holiday),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.event_outlined, size: 15, color: tones.holiday),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  holidays[i].title,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  '${formatShortDate(holidays[i].startDate)} – ${formatShortDate(holidays[i].endDate)}',
+                                  style: theme.textTheme.labelSmall?.copyWith(color: tones.muted),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
         ],
-        const SizedBox(height: 12),
-        for (final day in report.days.reversed)
-          Card(
-            key: Key('attendanceDay${day.date}'),
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              dense: true,
-              title: Text(day.date),
-              subtitle: _holidayFor(day.date) != null
-                  ? Text('Holiday: ${_holidayFor(day.date)!.title}')
-                  : null,
-              trailing: Text(day.status),
+        const SizedBox(height: 14),
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Text(
+                  'Daily record',
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              for (final day in report.days.reversed) ...[
+                Divider(height: 1, color: theme.colorScheme.outlineVariant),
+                _dayRow(context, day),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _monthArrow(BuildContext context, IconData icon, Key key, VoidCallback? onTap) {
+    final theme = Theme.of(context);
+    return InkWell(
+      key: key,
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Opacity(
+        opacity: onTap == null ? 0.35 : 1,
+        child: Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Icon(icon, size: 16),
+        ),
+      ),
+    );
+  }
+
+  Widget _legend(BuildContext context, Color color, int count, String label) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '$count',
+          style: theme.textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            fontFamily: 'monospace',
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: theme.textTheme.labelSmall?.copyWith(color: Tones.of(context).muted)),
+      ],
+    );
+  }
+
+  Widget _dayRow(BuildContext context, AttendanceDay day) {
+    final theme = Theme.of(context);
+    final tones = Tones.of(context);
+    final parsed = DateTime.tryParse(day.date);
+    final label = parsed != null
+        ? '${_dayNames[parsed.weekday % 7]}, ${formatShortDate(day.date)}'
+        : day.date;
+    final holiday = _holidayFor(day.date);
+    return Padding(
+      key: Key('attendanceDay${day.date}'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                if (holiday != null)
+                  Text(
+                    'Holiday: ${holiday.title}',
+                    style: theme.textTheme.labelSmall?.copyWith(color: tones.muted),
+                  ),
+              ],
             ),
           ),
-      ],
+          TonePill(label: _titleCase(day.status), color: tones.forStatus(day.status)),
+        ],
+      ),
     );
   }
 }
 
 class _DiaryTab extends StatefulWidget {
-  const _DiaryTab({
-    required this.studentId,
-    required this.accessToken,
-    required this.api,
-  });
+  const _DiaryTab({required this.studentId, required this.accessToken, required this.api});
   final String studentId;
   final String accessToken;
   final ApiClient api;
@@ -498,8 +864,7 @@ class _DiaryTabState extends State<_DiaryTab> {
     await loadWithCache<List<DiaryEntry>>(
       cache: cache,
       cacheKey: 'cache:diary:${widget.studentId}:$month',
-      fetch: () =>
-          widget.api.diary(widget.accessToken, widget.studentId, month),
+      fetch: () => widget.api.diary(widget.accessToken, widget.studentId, month),
       toJson: (entries) => entries.map((e) => e.toJson()).toList(),
       fromJson: (json) => (json as List<dynamic>)
           .map((e) => DiaryEntry.fromJson(e as Map<String, dynamic>))
@@ -523,77 +888,107 @@ class _DiaryTabState extends State<_DiaryTab> {
   @override
   Widget build(BuildContext context) {
     if (_error != null) return Center(child: Text(_error!));
-    if (_entries == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_entries!.isEmpty) {
-      return const Center(child: Text('No diary entries yet.'));
-    }
+    if (_entries == null) return const Center(child: CircularProgressIndicator());
+    if (_entries!.isEmpty) return const Center(child: Text('No diary entries yet.'));
 
-    return Column(
+    final theme = Theme.of(context);
+    final tones = Tones.of(context);
+    final now = DateTime.now();
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
+        Text(
+          '${_fullMonthNames[now.month - 1]} ${now.year}'.toUpperCase(),
+          style: theme.textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: tones.muted,
+            letterSpacing: 0.5,
           ),
         ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _entries!.length,
-            itemBuilder: (context, i) {
-              final e = _entries![i];
-              return Card(
-                key: Key('diaryEntry${e.id}'),
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 2),
+        LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
+        const SizedBox(height: 10),
+        for (final e in _entries!)
+          Card(
+            key: Key('diaryEntry${e.id}'),
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          DirectionalText(
-                            e.subject,
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          Text(
-                            ' · ${e.date}${e.dueDate != null ? ' (due ${e.dueDate})' : ''}',
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      DirectionalText(e.text),
-                      if (e.attachments.isNotEmpty)
-                        Wrap(
-                          spacing: 8,
-                          children: e.attachments
-                              .map(
-                                (a) => ActionChip(
-                                  label: Text(a.originalName),
-                                  onPressed: () => launchUrl(
-                                    widget.api.fileDownloadUrl(
-                                      a.id,
-                                      widget.accessToken,
-                                    ),
-                                    mode: LaunchMode.externalApplication,
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                      Expanded(
+                        child: DirectionalText(
+                          e.subject,
+                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                         ),
+                      ),
+                      Text(
+                        formatShortDate(e.date),
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: tones.muted,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              );
-            },
+                  const SizedBox(height: 8),
+                  DirectionalText(e.text),
+                  if (e.dueDate != null || e.attachments.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (e.dueDate != null)
+                          TonePill(label: 'Due ${formatShortDate(e.dueDate!)}', color: tones.late),
+                        for (final a in e.attachments) _attachmentChip(context, a),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
       ],
+    );
+  }
+
+  Widget _attachmentChip(BuildContext context, DiaryAttachment a) {
+    final theme = Theme.of(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => launchUrl(
+        widget.api.fileDownloadUrl(a.id, widget.accessToken),
+        mode: LaunchMode.externalApplication,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.attach_file, size: 13, color: Tones.of(context).muted),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                a.originalName,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

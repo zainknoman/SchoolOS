@@ -23,7 +23,7 @@ class _FakePushTokenProvider implements PushTokenProvider {
   Stream<NotificationTarget> get onNotificationTapped => _taps;
 }
 
-Future<void> _loginWithTwoChildren(WidgetTester tester) async {
+Future<void> _loginWithTwoChildren(WidgetTester tester, {String? relationship}) async {
   final api = ApiClient(
     baseUrl: 'http://test',
     client: MockClient((request) async {
@@ -43,6 +43,7 @@ Future<void> _loginWithTwoChildren(WidgetTester tester) async {
               'campus': 'Gulistan-e-Jauhar',
               'class': 'Grade 3',
               'section': '3A',
+              'relationship': ?relationship,
             },
             {
               'id': 's2',
@@ -76,17 +77,33 @@ void main() {
 
     expect(find.textContaining('Eshaal'), findsWidgets);
 
-    await tester.tap(find.byKey(const Key('childSwitcher')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Ahmed — Grade 6 6B').last);
+    expect(find.text('Is Eshaal at school today?'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('childPill-s2')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Ahmed'), findsWidgets);
+    expect(find.text('Is Ahmed at school today?'), findsOneWidget);
+  });
+
+  testWidgets('the app accent follows the active child\'s guardian relationship', (tester) async {
+    await _loginWithTwoChildren(tester, relationship: 'mother');
+
+    Color primary() => Theme.of(tester.element(find.byType(Scaffold).first)).colorScheme.primary;
+    expect(primary(), const Color(0xFFB0336B));
+
+    // Eshaal's relationship is 'mother'; Ahmed's is absent from the response (defaults to
+    // 'guardian'), so switching to Ahmed goes back to the standard blue.
+    await tester.tap(find.byKey(const Key('childPill-s2')));
+    await tester.pumpAndSettle();
+    expect(primary(), const Color(0xFF0369A1));
   });
 
   testWidgets('logging out returns to the login screen', (tester) async {
     await _loginWithTwoChildren(tester);
 
+    // Home draws its own header, so the AppBar's logout button lives on the remaining tabs.
+    await tester.tap(find.text('More'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('logoutButton')));
     await tester.pumpAndSettle();
 
@@ -381,6 +398,7 @@ void main() {
   testWidgets('Home tab "Timetable" quick-link switches to the Calendar tab', (tester) async {
     await loginSingleChild(tester, makeHomeIntegrationClient());
 
+    await tester.ensureVisible(find.byKey(const Key('homeTimetableCard')));
     await tester.tap(find.byKey(const Key('homeTimetableCard')));
     await tester.pumpAndSettle();
 

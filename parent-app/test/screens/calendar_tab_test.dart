@@ -77,8 +77,8 @@ void main() {
   }
 
   testWidgets(
-    'Timetable tab renders a weekly grid: period columns, an auto-detected break column, '
-    'and holiday rows for days with no periods',
+    'Timetable tab shows the selected day\'s periods with an auto-detected break, and a holiday '
+    'message for days with no periods',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -87,27 +87,30 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Column headers come from the actual period numbers present in the data (1, 2, 4 — no
-      // period 3 exists), with a BREAK column auto-inserted wherever there's a >10-minute gap
-      // between two consecutive periods' times (here: 09:20 end of P2 to 10:00 start of P4).
+      // The data only has Monday periods; select Monday explicitly (the default is today).
+      await tester.tap(find.byKey(const Key('timetableDay1')));
+      await tester.pumpAndSettle();
+
+      // Period badges come from the actual period numbers present (1, 2, 4 — no period 3), with a
+      // Break row auto-inserted wherever there's a >10-minute gap between two consecutive periods'
+      // times (here: 09:20 end of P2 to 10:00 start of P4).
       expect(find.text('P1'), findsOneWidget);
       expect(find.text('P2'), findsOneWidget);
       expect(find.text('P4'), findsOneWidget);
       expect(find.text('P3'), findsNothing);
-      expect(find.text('BREAK'), findsNWidgets(2)); // header + Monday's row
+      expect(find.text('Break'), findsOneWidget);
+      expect(find.text('09:20 – 10:00'), findsOneWidget);
+      expect(find.text('08:00 – 08:40'), findsOneWidget);
 
-      // Header time ranges.
-      expect(find.textContaining('08:00'), findsWidgets);
-      expect(find.textContaining('09:20'), findsWidgets);
-
-      // Monday's row has the right subjects under the right period columns.
       expect(find.text('English'), findsOneWidget);
       expect(find.text('Math'), findsOneWidget);
       expect(find.text('Science'), findsOneWidget);
 
-      // Every other day of the week (6 of them) renders as a single merged HOLIDAY row,
-      // not omitted and not shown as empty period cells.
-      expect(find.text('HOLIDAY'), findsNWidgets(6));
+      // A day with no periods renders the holiday message instead of an empty list.
+      await tester.tap(find.byKey(const Key('timetableDay2')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('timetableNoPeriods')), findsOneWidget);
+      expect(find.text('P1'), findsNothing);
     },
   );
 
@@ -216,6 +219,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: api))),
       );
+      await tester.pumpAndSettle();
+      // The cached entry is a Monday period; select Monday (the default day is today).
+      await tester.tap(find.byKey(const Key('timetableDay1')));
       await tester.pumpAndSettle();
 
       expect(find.text('Cached Subject'), findsOneWidget);

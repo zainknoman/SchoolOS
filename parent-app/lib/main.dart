@@ -9,6 +9,7 @@ import 'src/auth/token_store.dart';
 import 'src/notifications/device_token_registrar.dart';
 import 'src/notifications/push_token_provider.dart';
 import 'src/router/app_router.dart';
+import 'src/theme/accent_controller.dart';
 import 'src/theme/app_theme.dart';
 import 'src/theme/theme_controller.dart';
 import 'src/theme/locale_controller.dart';
@@ -44,6 +45,7 @@ class _ParentAppState extends State<ParentApp> {
   );
   late final ThemeController _themeController = ThemeController();
   late final LocaleController _localeController = LocaleController();
+  late final AccentController _accentController = AccentController();
   late final GoRouter _router = buildAppRouter(_auth);
 
   @override
@@ -65,12 +67,13 @@ class _ParentAppState extends State<ParentApp> {
         Provider<DeviceTokenRegistrar>.value(value: _deviceTokenRegistrar),
         ChangeNotifierProvider<ThemeController>.value(value: _themeController),
         ChangeNotifierProvider<LocaleController>.value(value: _localeController),
+        ChangeNotifierProvider<AccentController>.value(value: _accentController),
       ],
-      child: Consumer2<ThemeController, LocaleController>(
-        builder: (context, themeController, localeController, _) => MaterialApp.router(
+      child: Consumer3<ThemeController, LocaleController, AccentController>(
+        builder: (context, themeController, localeController, accentController, _) => MaterialApp.router(
           onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
-          theme: buildAppTheme(),
-          darkTheme: buildDarkAppTheme(),
+          theme: buildAppTheme(accent: accentController.accent.light),
+          darkTheme: buildDarkAppTheme(accent: accentController.accent.dark),
           themeMode: themeController.mode,
           locale: localeController.locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,

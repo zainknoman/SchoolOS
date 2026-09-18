@@ -1,8 +1,7 @@
 # SchoolOS Staff Console — Design System Rollout Plan
 
-Status: **IN PROGRESS — Chunks 0–5 implemented, committed, and pushed to `origin/main`.
-Chunk 6 (Flutter parent-app) not started. See "Progress Log" at the bottom of this
-file for exactly what's done and what to say to resume in a new session.**
+Status: **Chunks 0–6 implemented, committed, and pushed to `origin/main`. Only the queued
+management-view feature request (end of Section 12) remains.**
 Date: 2026-09-18 (updated same day after new reference designs were added; progress
 log added 2026-09-19)
 Scope: primarily `staff-console` (Vue). A Flutter `parent-app` chunk is now included
@@ -284,7 +283,7 @@ coverage noted so you can reorder on actual priority rather than "what has a moc
 | **3 — Dashboards** | New: `PrincipalOverviewView`, `PrincipalAcademicsStaffView`, `SuperAdminDashboardView`, `TeacherMyDayView`, `TeacherGradebookOverviewView`; retires the shared `AdminHomeView` split across roles | ✅ Yes — decision 11.6 resolved (build full role IA); backend endpoint audit is this chunk's first step | ✅ DONE — committed & pushed (`isPrincipal` reused as existing boolean flag, no migration needed) |
 | **4 — Admissions & Hiring workflows** | `AdmissionsQueueView`, `ApplicantIntakeView`, `ApplicationDetailView`, `HiringQueueView`, `HiringCandidateIntakeView`, `HiringApplicationDetailView`, `BulkImportView`, `PromotionView` | ❌ None yet | ✅ DONE — committed & pushed |
 | **5 — Academic records & operations** | `AssessmentCategoriesView`, `MarksEntryView`, `ReportCardsView`+`TeacherReportCardsView`, `DiaryView`, `CircularsView`, `ComplaintsQueueView`+`TeacherComplaintsView`, `HolidaysView`, `LeaveManagementView`, `FeeManagementView` | ❌ None yet | ✅ DONE — committed & pushed (commit `956c9b3`) |
-| **6 — Flutter parent-app** | `home_tab.dart`, `home_shell.dart`, `calendar_tab.dart` | ✅ Yes (Section 7) — different stack, own effort, bottom-nav conflict to resolve first (11.9) | ⏳ NOT STARTED — next up |
+| **6 — Flutter parent-app** | `home_tab.dart`, `home_shell.dart`, `calendar_tab.dart` | ✅ Yes (Section 7) — different stack, own effort, bottom-nav conflict to resolve first (11.9) | ✅ DONE — committed & pushed |
 
 **Not chunked (auth screens):** `LoginView`, `ForgotPasswordView`, `ResetPasswordView`
 — low-traffic, already simple; include only if you want them touched.
@@ -401,15 +400,14 @@ or reorder/edit/resolve open decisions above first.
 
 ## 12. Progress Log (updated 2026-09-19)
 
-**Chunks 0–5 are done, verified (`vue-tsc --build`, full `vitest` suite, lint), and
-pushed to `origin/main`.** Chunk 6 (Flutter parent-app) has not been started. There is
-also a queued feature request from the user, given mid-rollout during Chunk 3, that
-comes **after** Chunk 6.
+**Chunks 0–6 are done and pushed to `origin/main`** (Chunks 0–5 verified with
+`vue-tsc --build`, full `vitest`, lint; Chunk 6 with `flutter test` (98 pass), `flutter analyze`,
+and the backend `me` jest suite + `tsc`). There is also a queued feature request from the user,
+given mid-rollout during Chunk 3, that comes **after** Chunk 6.
 
 ### To resume in a new session, say:
-> "Continue the SchoolOS design system rollout — read
-> `docs/superpowers/specs/2026-09-18-schoolos-design-system-rollout.md`, Section 12
-> (Progress Log), then start Chunk 6."
+> "Continue from the SchoolOS design system rollout spec, Section 12 (Progress Log) — start
+> the queued management-view feature request."
 
 ### What's done
 - **Chunk 0** — `patterns.css`, `EntityTable.vue` restyle, `ListPageCard.vue`.
@@ -437,7 +435,22 @@ comes **after** Chunk 6.
   (e.g. a new DB schema's field list), not for restyle judgment calls.
 - Commit messages end with `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`.
 
-### Next up: Chunk 6 — Flutter parent-app
+### Chunk 6 — Flutter parent-app (DONE)
+**What shipped:** Home (header w/ campus badge + bell, child pills, three-question cards,
+announcements, today's timetable) and Calendar (segmented sub-tabs; Timetable day-chips + period
+list w/ auto Break rows; Attendance month nav + hero meter + legend + daily record; Diary cards
+w/ due pills + attachment chips) redesigned; `cardTheme` (14px radius/1px border) applied app-wide.
+**Guardian accent (11.7 resolved):** `/me/children` now returns `relationship`
+(`StudentParent.relationship`, no migration); `"mother"` → magenta `#B0336B`, anything else → blue
+`#0369A1`, applied per active child via `AccentController` → `buildAppTheme(accent:)`.
+**Deviations from the mockups (deliberate):** no "Mr./Mrs." in the greeting and the school badge/name
+uses the child's campus (no guardian-name or school-name field on the parent API); the Results
+card stays a muted "Coming soon" (no per-test summary endpoint); the shell AppBar (dropdown, bell,
+logout) now only shows on Circulars/Messages/Fees/More — Home and Calendar draw their own headers,
+so logout is reached via More; dark-mode magenta `#F08AB4` is my pick (mockups are light-only).
+`DESIGN.md` Open Decisions #3/#4 not edited (non-goal) — worth a follow-up addendum.
+
+**Original plan notes (kept for reference):**
 Different stack (Dart/Flutter, not Vue/CSS) — its own implementation pass under
 `parent-app/lib/`. Files: `home_tab.dart`, `home_shell.dart` (239/391 lines), and
 `calendar_tab.dart` (603 lines, already-unified Calendar tab being redesigned, not new

@@ -7,6 +7,7 @@ import 'package:parent_app/src/auth/token_store.dart';
 import 'package:parent_app/src/notifications/device_token_registrar.dart';
 import 'package:parent_app/src/notifications/push_token_provider.dart';
 import 'package:parent_app/src/router/app_router.dart';
+import 'package:parent_app/src/theme/accent_controller.dart';
 import 'package:parent_app/src/theme/app_theme.dart';
 import 'package:parent_app/src/theme/theme_controller.dart';
 import 'package:parent_app/src/theme/locale_controller.dart';
@@ -35,6 +36,7 @@ Widget buildTestApp({
       deviceTokenRegistrar ?? DeviceTokenRegistrar(api: api, tokenProvider: NoopPushTokenProvider());
   final theme = themeController ?? ThemeController();
   final locale = LocaleController();
+  final accent = AccentController();
 
   return MultiProvider(
     providers: [
@@ -43,11 +45,12 @@ Widget buildTestApp({
       Provider<DeviceTokenRegistrar>.value(value: registrar),
       ChangeNotifierProvider<ThemeController>.value(value: theme),
       ChangeNotifierProvider<LocaleController>.value(value: locale),
+      ChangeNotifierProvider<AccentController>.value(value: accent),
     ],
-    child: Consumer<ThemeController>(
-      builder: (context, themeController, _) => MaterialApp.router(
-        theme: buildAppTheme(),
-        darkTheme: buildDarkAppTheme(),
+    child: Consumer2<ThemeController, AccentController>(
+      builder: (context, themeController, accentController, _) => MaterialApp.router(
+        theme: buildAppTheme(accent: accentController.accent.light),
+        darkTheme: buildDarkAppTheme(accent: accentController.accent.dark),
         themeMode: themeController.mode,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,

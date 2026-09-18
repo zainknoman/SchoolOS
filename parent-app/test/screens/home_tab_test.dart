@@ -91,7 +91,7 @@ void main() {
     ),
   ];
 
-  testWidgets('shows the greeting, child card, attendance stat, and recent announcements', (
+  testWidgets('shows the greeting, the three questions, recent announcements, and today\'s timetable', (
     tester,
   ) async {
     var timetableOpened = false;
@@ -117,15 +117,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Assalam-o-Alaikum'), findsOneWidget);
-    expect(find.text('Zara Ahmed'), findsOneWidget);
-    expect(find.text('Class 8A'), findsOneWidget);
+    expect(find.text('Is Zara at school today?'), findsOneWidget);
+    expect(find.text('Any fees due?'), findsOneWidget);
+    expect(find.text('How did the last test go?'), findsOneWidget);
+    expect(find.text("Today's timetable — Zara"), findsOneWidget);
     expect(find.text('93%'), findsOneWidget);
     expect(find.text('Independence Day Holiday'), findsOneWidget);
     expect(find.text('Older notice'), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(const Key('homeTimetableCard')));
     await tester.tap(find.byKey(const Key('homeTimetableCard')));
     expect(timetableOpened, isTrue);
 
+    await tester.ensureVisible(find.byKey(const Key('homeSeeAllAnnouncements')));
     await tester.tap(find.byKey(const Key('homeSeeAllAnnouncements')));
     expect(seeAllTapped, isTrue);
   });
@@ -152,14 +156,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Only v1's 500000-paisa amountDue is outstanding (v2 is fully paid): PKR 5000.
-      expect(find.text('PKR 5000'), findsOneWidget);
+      // Only v1's 500000-paisa amountDue is outstanding (v2 is fully paid): PKR 5,000, due 10 Sep.
+      expect(find.text('PKR 5,000 due 10 Sep'), findsOneWidget);
       expect(find.text('Coming soon'), findsOneWidget);
       expect(find.text('—'), findsNothing);
       expect(find.text('View latest results'), findsNothing);
 
       final opacity = tester.widget<Opacity>(
-        find.descendant(of: find.byKey(const Key('homeResultsCard')), matching: find.byType(Opacity)),
+        find.ancestor(of: find.byKey(const Key('homeResultsCard')), matching: find.byType(Opacity)),
       );
       expect(opacity.opacity, lessThan(1.0));
     },
@@ -195,10 +199,10 @@ void main() {
     // The rest of the screen still renders — greeting, child card, and announcements — even
     // though both the attendance and fees fetches failed; only their own stat cards are affected.
     expect(find.text('Assalam-o-Alaikum'), findsOneWidget);
-    expect(find.text('Zara Ahmed'), findsOneWidget);
+    expect(find.text('Is Zara at school today?'), findsOneWidget);
     expect(find.text('Independence Day Holiday'), findsOneWidget);
-    // Both the attendance and fees fetches fail under this mock, so both stat cards show it.
-    expect(find.text('Unavailable'), findsNWidgets(2));
+    // The attendance, fees and timetable fetches all fail under this mock, so each card shows it.
+    expect(find.text('Unavailable'), findsNWidgets(3));
     expect(find.text('—'), findsNWidgets(2));
   });
 

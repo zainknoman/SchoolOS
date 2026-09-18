@@ -16,10 +16,19 @@ class AppColors {
   static const lateStatus = Color(0xFFB45309);
 }
 
-ThemeData buildAppTheme() {
+/// The mockups' card: 14px radius, 1px border, near-flat (the hairline shadow is dropped in favour of
+/// the border — Material elevation shadows don't match the mockup's 2-layer soft shadow).
+CardThemeData _cardTheme(Color surface, Color border) => CardThemeData(
+  color: surface,
+  elevation: 0,
+  surfaceTintColor: Colors.transparent,
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: border)),
+);
+
+ThemeData buildAppTheme({Color accent = AppColors.accent}) {
   final colorScheme = ColorScheme.fromSeed(
-    seedColor: AppColors.accent,
-    primary: AppColors.accent,
+    seedColor: accent,
+    primary: accent,
     surface: AppColors.surface,
     error: AppColors.destructive,
     brightness: Brightness.light,
@@ -46,7 +55,7 @@ ThemeData buildAppTheme() {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.accent,
+        backgroundColor: accent,
         foregroundColor: Colors.white,
         minimumSize: const Size.fromHeight(48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -54,8 +63,9 @@ ThemeData buildAppTheme() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surface,
-      indicatorColor: AppColors.accent.withValues(alpha: 0.12),
+      indicatorColor: accent.withValues(alpha: 0.12),
     ),
+    cardTheme: _cardTheme(AppColors.surface, AppColors.border),
   );
 }
 
@@ -74,10 +84,10 @@ class AppColorsDark {
   static const lateStatus = Color(0xFFFBBF24);
 }
 
-ThemeData buildDarkAppTheme() {
+ThemeData buildDarkAppTheme({Color accent = AppColorsDark.accent}) {
   final colorScheme = ColorScheme.fromSeed(
-    seedColor: AppColorsDark.accent,
-    primary: AppColorsDark.accent,
+    seedColor: accent,
+    primary: accent,
     surface: AppColorsDark.surface,
     error: AppColorsDark.destructive,
     brightness: Brightness.dark,
@@ -106,7 +116,7 @@ ThemeData buildDarkAppTheme() {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColorsDark.accent,
+        backgroundColor: accent,
         foregroundColor: AppColorsDark.background,
         minimumSize: const Size.fromHeight(48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -114,7 +124,8 @@ ThemeData buildDarkAppTheme() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColorsDark.surface,
-      indicatorColor: AppColorsDark.accent.withValues(alpha: 0.12),
+      indicatorColor: accent.withValues(alpha: 0.12),
     ),
+    cardTheme: _cardTheme(AppColorsDark.surface, AppColorsDark.border),
   );
 }
