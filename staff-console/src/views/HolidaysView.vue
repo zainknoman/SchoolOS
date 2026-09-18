@@ -6,6 +6,7 @@ import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
+import ListPageCard from '../components/ListPageCard.vue';
 import { useConfirm } from '../lib/useConfirm';
 import { useToast } from '../lib/useToast';
 
@@ -115,11 +116,10 @@ async function onDelete(id: string) {
 </script>
 
 <template>
-  <div class="org-entity">
-    <div class="page-header">
-      <h1>Holidays</h1>
+  <ListPageCard icon="calendar" title="Holidays" subtitle="Declared school holidays & breaks">
+    <template #actions>
       <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
-    </div>
+    </template>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable
@@ -178,22 +178,12 @@ async function onDelete(id: string) {
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
     </AppModal>
-  </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.org-entity {
-  max-width: 900px;
-}
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
 }
 .inline-form {
   display: flex;

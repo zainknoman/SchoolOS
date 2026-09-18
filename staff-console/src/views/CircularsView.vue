@@ -4,6 +4,8 @@ import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type CircularSummary } from '../lib/api';
 import { detectDirection, detectLang } from '../lib/textDirection';
 import { useFocusTarget } from '../lib/useFocusTarget';
+import ListPageCard from '../components/ListPageCard.vue';
+import Button from '../components/Button.vue';
 
 type CircularScope = 'school' | 'section';
 
@@ -117,109 +119,131 @@ async function onPublish() {
 </script>
 
 <template>
-  <div class="circulars">
-    <h1>Circulars</h1>
-
-    <label class="field">
-      <span>Title</span>
-      <input ref="titleInputRef" data-testid="title-input" v-model="title" type="text" :disabled="isSaving" />
-    </label>
-
-    <label class="field">
-      <span>Description</span>
-      <textarea
-        data-testid="description-input"
-        v-model="description"
-        rows="3"
-        :disabled="isSaving"
-      ></textarea>
-      <button
-        type="button"
-        data-testid="suggest-draft-toggle"
-        class="link-button"
-        @click="showDraftPrompt = !showDraftPrompt"
-      >
-        Suggest draft
-      </button>
-    </label>
-
-    <div v-if="showDraftPrompt" class="draft-prompt">
+  <ListPageCard icon="megaphone" title="Circulars" subtitle="Compose and publish school-wide notices">
+    <div class="compose-card">
       <label class="field">
-        <span>What's this circular about?</span>
-        <input
-          data-testid="draft-context-input"
-          v-model="draftContext"
-          type="text"
-          placeholder="e.g. Parent-teacher meeting next Friday"
-        />
+        <span>Title</span>
+        <input ref="titleInputRef" data-testid="title-input" v-model="title" type="text" :disabled="isSaving" />
       </label>
-      <button
-        type="button"
-        data-testid="draft-context-submit"
-        :disabled="isSuggesting || !draftContext.trim()"
-        @click="onSuggestDraft"
+
+      <label class="field">
+        <div class="field-top">
+          <span>Description</span>
+          <button
+            type="button"
+            data-testid="suggest-draft-toggle"
+            class="link-button"
+            @click="showDraftPrompt = !showDraftPrompt"
+          >
+            Suggest draft
+          </button>
+        </div>
+        <textarea
+          data-testid="description-input"
+          v-model="description"
+          rows="3"
+          :disabled="isSaving"
+        ></textarea>
+      </label>
+
+      <div v-if="showDraftPrompt" class="draft-prompt">
+        <label class="field">
+          <span>What's this circular about?</span>
+          <input
+            data-testid="draft-context-input"
+            v-model="draftContext"
+            type="text"
+            placeholder="e.g. Parent-teacher meeting next Friday"
+          />
+        </label>
+        <Button :disabled="isSuggesting || !draftContext.trim()" data-testid="draft-context-submit" @click="onSuggestDraft">
+          {{ isSuggesting ? 'Generating…' : 'Generate' }}
+        </Button>
+      </div>
+
+      <div class="field-grid">
+        <label class="field">
+          <span>Scope</span>
+          <select data-testid="scope-select" v-model="scope" :disabled="isSaving">
+            <option value="school">Whole school</option>
+            <option value="section">One section</option>
+          </select>
+        </label>
+
+        <label v-if="scope === 'section'" class="field">
+          <span>Section</span>
+          <select data-testid="section-select" v-model="sectionId" :disabled="isSaving">
+            <option value="" disabled>Choose a section</option>
+            <option v-for="s in sections" :key="s.id" :value="s.id">
+              {{ s.className }} {{ s.name }} — {{ s.campusName }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Attachments (optional)</span>
+          <input data-testid="file-input" type="file" multiple :disabled="isSaving" @change="onFileChange" />
+        </label>
+      </div>
+
+      <p v-if="message" class="success" data-testid="success">{{ message }}</p>
+      <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+
+      <Button
+        data-testid="publish-circular"
+        :disabled="isSaving || !title || !description || (scope === 'section' && !sectionId)"
+        @click="onPublish"
       >
-        {{ isSuggesting ? 'Generating…' : 'Generate' }}
-      </button>
+        {{ isSaving ? 'Publishing…' : 'Publish circular' }}
+      </Button>
     </div>
 
-    <label class="field">
-      <span>Scope</span>
-      <select data-testid="scope-select" v-model="scope" :disabled="isSaving">
-        <option value="school">Whole school</option>
-        <option value="section">One section</option>
-      </select>
-    </label>
-
-    <label v-if="scope === 'section'" class="field">
-      <span>Section</span>
-      <select data-testid="section-select" v-model="sectionId" :disabled="isSaving">
-        <option value="" disabled>Choose a section</option>
-        <option v-for="s in sections" :key="s.id" :value="s.id">
-          {{ s.className }} {{ s.name }} — {{ s.campusName }}
-        </option>
-      </select>
-    </label>
-
-    <label class="field">
-      <span>Attachments (optional)</span>
-      <input data-testid="file-input" type="file" multiple :disabled="isSaving" @change="onFileChange" />
-    </label>
-
-    <p v-if="message" class="success" data-testid="success">{{ message }}</p>
-    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-
-    <button
-      data-testid="publish-circular"
-      :disabled="isSaving || !title || !description || (scope === 'section' && !sectionId)"
-      @click="onPublish"
-    >
-      {{ isSaving ? 'Publishing…' : 'Publish circular' }}
-    </button>
-
-    <template v-if="circulars.length">
-      <h2>Published circulars</h2>
-      <ul class="circulars-list">
-        <li v-for="c in circulars" :key="c.id">
-          <strong :dir="detectDirection(c.title)" :lang="detectLang(c.title)">{{ c.title }}</strong> — {{ c.scope }}
-          <span data-testid="stats">Delivered {{ c.delivered }} · Read {{ c.read }}</span>
-        </li>
-      </ul>
-    </template>
-  </div>
+    <div v-if="circulars.length" class="published-card">
+      <h2>Published</h2>
+      <div v-for="c in circulars" :key="c.id" class="circular-row">
+        <div class="circular-title">
+          <strong :dir="detectDirection(c.title)" :lang="detectLang(c.title)">{{ c.title }}</strong>
+          <span class="muted">— {{ c.scope === 'school' ? 'Whole school' : 'One section' }}</span>
+        </div>
+        <span class="mono muted" data-testid="stats">Delivered {{ c.delivered }} · Read {{ c.read }}</span>
+      </div>
+    </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.circulars {
-  max-width: 640px;
+.compose-card,
+.published-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.published-card h2 {
+  margin: 0;
+  font-size: var(--font-size-base);
 }
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-4);
-  max-width: 480px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
 }
 select,
 input,
@@ -227,36 +251,24 @@ textarea {
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
+  font-size: var(--font-size-sm);
 }
 .link-button {
-  align-self: flex-start;
   background: none;
   border: none;
   padding: 0;
   color: var(--color-accent);
   font-size: var(--font-size-xs);
+  font-weight: 700;
   cursor: pointer;
-  text-decoration: underline;
 }
 .draft-prompt {
   display: flex;
   gap: var(--space-2);
   align-items: flex-end;
-  margin-bottom: var(--space-4);
-}
-.draft-prompt button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 600;
-  cursor: pointer;
-}
-.draft-prompt button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 .success {
   color: var(--color-accent);
@@ -264,31 +276,24 @@ textarea {
 .error {
   color: var(--color-destructive);
 }
-button {
-  padding: 0.6rem 1.1rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 700;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.circulars-list {
-  list-style: none;
-  padding: 0;
-  margin-top: var(--space-3);
-}
-.circulars-list li {
+.circular-row {
   padding: var(--space-2) 0;
   border-bottom: 1px solid var(--color-border);
 }
-.circulars-list span {
-  display: block;
-  color: var(--color-muted);
+.circular-row:last-child {
+  border-bottom: none;
+}
+.circular-title {
+  font-weight: 700;
   font-size: var(--font-size-sm);
+}
+.muted {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+.circular-row .mono {
+  display: block;
+  font-size: var(--font-size-xs);
+  margin-top: 0.2rem;
 }
 </style>

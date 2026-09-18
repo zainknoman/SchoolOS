@@ -16,6 +16,7 @@ import StatusPill from '../components/StatusPill.vue';
 import EntityTable from '../components/EntityTable.vue';
 import ErrorRetry from '../components/ErrorRetry.vue';
 import Button from '../components/Button.vue';
+import ListPageCard from '../components/ListPageCard.vue';
 import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
@@ -199,26 +200,24 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
 </script>
 
 <template>
-  <div class="fees">
-    <h1>Fees</h1>
-
+  <ListPageCard icon="receipt" title="Fees" subtitle="Fee structures, vouchers & the student ledger">
     <section class="fee-section">
       <div class="section-header">
         <h2>Fee Structures</h2>
-        <button type="button" data-testid="open-add-structure" class="add-toggle" @click="showAddStructureForm = true">
-          + Add New
-        </button>
+        <Button data-testid="open-add-structure" @click="showAddStructureForm = true">+ Add New</Button>
       </div>
       <p v-if="structureError" class="error" role="alert">{{ structureError }}</p>
-      <ul v-if="structures.length" class="structures-list">
-        <li v-for="s in structures" :key="s.id">{{ s.name }} — PKR {{ formatPkrFull(s.amount / 100) }}</li>
-      </ul>
+      <div v-if="structures.length" class="structures-list">
+        <div v-for="s in structures" :key="s.id" class="structure-row">
+          {{ s.name }} <span class="mono muted">— PKR {{ formatPkrFull(s.amount / 100) }}</span>
+        </div>
+      </div>
       <p v-else class="empty-hint">No fee structures yet — add one to start issuing vouchers.</p>
       <AppModal v-model="showAddStructureForm" title="Add Fee Structure">
         <div class="inline-form">
           <input data-testid="structure-name" v-model="newStructureName" type="text" placeholder="Name" />
           <input data-testid="structure-amount" v-model="newStructureAmount" type="number" placeholder="Amount (PKR)" />
-          <button data-testid="create-structure" @click="onCreateStructure">Add</button>
+          <Button data-testid="create-structure" @click="onCreateStructure">Add</Button>
         </div>
       </AppModal>
     </section>
@@ -236,7 +235,7 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
         </select>
       </label>
 
-      <fieldset v-if="sectionStudents.length" class="field">
+      <fieldset v-if="sectionStudents.length" class="check-fieldset">
         <legend>Individual students (leave all unchecked to issue to the whole section)</legend>
         <label v-for="st in sectionStudents" :key="st.id" class="checkbox-row">
           <input
@@ -249,7 +248,7 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
         </label>
       </fieldset>
 
-      <fieldset class="field">
+      <fieldset class="check-fieldset">
         <legend>Fee structures to include</legend>
         <label v-for="s in structures" :key="s.id" class="checkbox-row">
           <input
@@ -262,38 +261,41 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
         </label>
       </fieldset>
 
-      <label class="field">
-        <span>Month</span>
-        <input data-testid="issue-month" v-model="issueMonth" type="text" placeholder="2026-09" />
-      </label>
-      <label class="field">
-        <span>Due date</span>
-        <input data-testid="issue-due-date" v-model="issueDueDate" type="date" />
-      </label>
-
-      <button data-testid="issue-vouchers" :disabled="isIssuing" @click="onIssue">
-        {{ isIssuing ? 'Issuing…' : 'Issue vouchers' }}
-      </button>
+      <div class="inline-fields">
+        <label class="field">
+          <span>Month</span>
+          <input data-testid="issue-month" v-model="issueMonth" type="text" placeholder="2026-09" />
+        </label>
+        <label class="field">
+          <span>Due date</span>
+          <input data-testid="issue-due-date" v-model="issueDueDate" type="date" />
+        </label>
+        <Button data-testid="issue-vouchers" :disabled="isIssuing" @click="onIssue">
+          {{ isIssuing ? 'Issuing…' : 'Issue vouchers' }}
+        </Button>
+      </div>
     </section>
 
     <section class="fee-section">
       <h2>Student Ledger</h2>
-      <label class="field">
-        <span>Section</span>
-        <select data-testid="ledger-section" v-model="ledgerSectionId" @change="onLedgerSectionChange">
-          <option value="" disabled>Choose a section</option>
-          <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.className }} {{ s.name }}</option>
-        </select>
-      </label>
-      <label v-if="ledgerSectionStudents.length" class="field">
-        <span>Student</span>
-        <select data-testid="ledger-student" v-model="ledgerStudentId" @change="onLoadLedger">
-          <option value="" disabled>Choose a student</option>
-          <option v-for="st in ledgerSectionStudents" :key="st.id" :value="st.id">
-            {{ st.name }} ({{ st.grNumber }})
-          </option>
-        </select>
-      </label>
+      <div class="inline-fields">
+        <label class="field">
+          <span>Section</span>
+          <select data-testid="ledger-section" v-model="ledgerSectionId" @change="onLedgerSectionChange">
+            <option value="" disabled>Choose a section</option>
+            <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.className }} {{ s.name }}</option>
+          </select>
+        </label>
+        <label v-if="ledgerSectionStudents.length" class="field">
+          <span>Student</span>
+          <select data-testid="ledger-student" v-model="ledgerStudentId" @change="onLoadLedger">
+            <option value="" disabled>Choose a student</option>
+            <option v-for="st in ledgerSectionStudents" :key="st.id" :value="st.id">
+              {{ st.name }} ({{ st.grNumber }})
+            </option>
+          </select>
+        </label>
+      </div>
       <ErrorRetry v-if="ledgerError" :message="ledgerError" @retry="onLoadLedger" />
 
       <EntityTable
@@ -355,33 +357,33 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
           <span>Note (optional)</span>
           <input data-testid="reconcile-note" v-model="reconcileNote" type="text" />
         </label>
-        <button data-testid="reconcile-submit" @click="onReconcile">Record payment</button>
-        <button data-testid="reconcile-cancel" @click="reconcilingVoucherId = null">Cancel</button>
+        <div class="reconcile-actions">
+          <Button data-testid="reconcile-submit" @click="onReconcile">Record payment</Button>
+          <Button variant="secondary" data-testid="reconcile-cancel" @click="reconcilingVoucherId = null">
+            Cancel
+          </Button>
+        </div>
       </div>
 
-      <ul v-if="ledgerPayments.length" class="payments-list">
-        <li v-for="p in ledgerPayments" :key="p.id">
-          PKR {{ formatPkrFull(p.amount / 100) }} — {{ p.status }}
+      <div v-if="ledgerPayments.length" class="payments-list">
+        <div v-for="p in ledgerPayments" :key="p.id" class="payment-row">
+          <span>PKR {{ formatPkrFull(p.amount / 100) }} — {{ p.status }}</span>
           <a
             v-if="p.receiptId && auth.accessToken"
             :href="api.receiptPdfUrl(auth.accessToken, p.id)"
             target="_blank"
             rel="noopener"
+            class="link"
           >
             Receipt
           </a>
-        </li>
-      </ul>
+        </div>
+      </div>
     </section>
-  </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.fees {
-  display: flex;
-  flex-direction: column;
-  max-width: 760px;
-}
 /* Anti-card pass: three logically-grouped workflows on one page, separated by a top border
    instead of three stacked boxes — no elevation needed since there's nothing to lift above
    another surface here (Rule 4: cards only when elevation communicates hierarchy). */
@@ -416,41 +418,61 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
 .reconcile-panel h3 {
   margin-bottom: var(--space-2);
 }
-.add-toggle {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 600;
-  cursor: pointer;
+.reconcile-actions {
+  display: flex;
+  gap: var(--space-2);
 }
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
   font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-muted);
   margin-bottom: var(--space-3);
   border: none;
   padding: 0;
+}
+.check-fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.check-fieldset legend {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-muted);
+  padding: 0 var(--space-1);
 }
 .checkbox-row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   font-weight: 400;
+  color: var(--color-text);
+  padding: 0.2rem 0;
 }
 select,
 input {
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
+  font-size: var(--font-size-sm);
 }
 .inline-form {
   display: flex;
   gap: var(--space-2);
   align-items: center;
+}
+.inline-fields {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
 }
 .error {
   color: var(--color-destructive);
@@ -460,22 +482,27 @@ input {
 }
 .structures-list,
 .payments-list {
-  list-style: none;
-  padding: 0;
   margin-bottom: var(--space-3);
 }
-button {
-  padding: 0.5rem 0.9rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
+.structure-row,
+.payment-row {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.structure-row:last-child,
+.payment-row:last-child {
+  border-bottom: none;
+}
+.link {
+  color: var(--color-accent);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  text-decoration: none;
 }
 .num-cell {
   display: block;

@@ -4,10 +4,18 @@ import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type SubjectSummary, type DiaryEntrySummary } from '../lib/api';
 import { detectDirection, detectLang } from '../lib/textDirection';
 import DirectionalText from '../components/DirectionalText.vue';
+import ListPageCard from '../components/ListPageCard.vue';
+import Button from '../components/Button.vue';
 
 const auth = useAuthStore();
 const today = new Date().toISOString().slice(0, 10);
 const month = today.slice(0, 7);
+const todayDisplay = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+}).format(new Date());
 
 const sections = ref<SectionSummary[]>([]);
 const subjects = ref<SubjectSummary[]>([]);
@@ -115,117 +123,133 @@ async function onPost() {
 </script>
 
 <template>
-  <div class="diary">
-    <h1>Diary</h1>
-    <p class="subtitle">{{ today }}</p>
+  <ListPageCard icon="notebook" title="Diary" :subtitle="todayDisplay">
+    <div class="compose-card">
+      <div class="field-grid">
+        <label class="field">
+          <span>Section</span>
+          <select data-testid="section-select" v-model="selectedSectionId" :disabled="isSaving" @change="loadEntries">
+            <option value="" disabled>Choose a section</option>
+            <option v-for="s in sections" :key="s.id" :value="s.id">
+              {{ s.className }} {{ s.name }} — {{ s.campusName }}
+            </option>
+          </select>
+        </label>
 
-    <label class="field">
-      <span>Section</span>
-      <select data-testid="section-select" v-model="selectedSectionId" :disabled="isSaving" @change="loadEntries">
-        <option value="" disabled>Choose a section</option>
-        <option v-for="s in sections" :key="s.id" :value="s.id">
-          {{ s.className }} {{ s.name }} — {{ s.campusName }}
-        </option>
-      </select>
-    </label>
+        <label class="field">
+          <span>Subject</span>
+          <select data-testid="subject-select" v-model="selectedSubjectId" :disabled="isSaving">
+            <option value="" disabled>Choose a subject</option>
+            <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
+        </label>
 
-    <label class="field">
-      <span>Subject</span>
-      <select data-testid="subject-select" v-model="selectedSubjectId" :disabled="isSaving">
-        <option value="" disabled>Choose a subject</option>
-        <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
-      </select>
-    </label>
+        <label class="field">
+          <span>Due date (optional)</span>
+          <input data-testid="due-date" type="date" v-model="dueDate" :disabled="isSaving" />
+        </label>
 
-    <label class="field">
-      <span>Due date (optional)</span>
-      <input data-testid="due-date" type="date" v-model="dueDate" :disabled="isSaving" />
-    </label>
+        <label class="field">
+          <span>Attachments (optional)</span>
+          <input data-testid="file-input" type="file" multiple :disabled="isSaving" @change="onFileChange" />
+        </label>
+      </div>
 
-    <label class="field">
-      <span>Entry</span>
-      <textarea
-        data-testid="entry-text"
-        v-model="text"
-        rows="4"
-        :dir="detectDirection(text)"
-        :lang="detectLang(text)"
-        :disabled="isSaving"
-      ></textarea>
-      <button
-        type="button"
-        data-testid="suggest-draft-toggle"
-        class="link-button"
-        @click="showDraftPrompt = !showDraftPrompt"
-      >
-        Suggest draft
-      </button>
-    </label>
-
-    <div v-if="showDraftPrompt" class="draft-prompt">
       <label class="field">
-        <span>What's this entry about?</span>
-        <input
-          data-testid="draft-context-input"
-          v-model="draftContext"
-          type="text"
-          placeholder="e.g. Homework reminder for chapter 4"
-        />
+        <div class="field-top">
+          <span>Entry</span>
+          <button
+            type="button"
+            data-testid="suggest-draft-toggle"
+            class="link-button"
+            @click="showDraftPrompt = !showDraftPrompt"
+          >
+            Suggest draft
+          </button>
+        </div>
+        <textarea
+          data-testid="entry-text"
+          v-model="text"
+          rows="4"
+          :dir="detectDirection(text)"
+          :lang="detectLang(text)"
+          :disabled="isSaving"
+        ></textarea>
       </label>
-      <button
-        type="button"
-        data-testid="draft-context-submit"
-        :disabled="isSuggesting || !draftContext.trim()"
-        @click="onSuggestDraft"
+
+      <div v-if="showDraftPrompt" class="draft-prompt">
+        <label class="field">
+          <span>What's this entry about?</span>
+          <input
+            data-testid="draft-context-input"
+            v-model="draftContext"
+            type="text"
+            placeholder="e.g. Homework reminder for chapter 4"
+          />
+        </label>
+        <Button :disabled="isSuggesting || !draftContext.trim()" data-testid="draft-context-submit" @click="onSuggestDraft">
+          {{ isSuggesting ? 'Generating…' : 'Generate' }}
+        </Button>
+      </div>
+
+      <p v-if="message" class="success" data-testid="success">{{ message }}</p>
+      <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+
+      <Button
+        data-testid="post-entry"
+        :disabled="isSaving || !selectedSectionId || !selectedSubjectId || !text"
+        @click="onPost"
       >
-        {{ isSuggesting ? 'Generating…' : 'Generate' }}
-      </button>
+        {{ isSaving ? 'Posting…' : 'Post entry' }}
+      </Button>
     </div>
 
-    <label class="field">
-      <span>Attachments (optional)</span>
-      <input data-testid="file-input" type="file" multiple :disabled="isSaving" @change="onFileChange" />
-    </label>
-
-    <p v-if="message" class="success" data-testid="success">{{ message }}</p>
-    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-
-    <button
-      data-testid="post-entry"
-      :disabled="isSaving || !selectedSectionId || !selectedSubjectId || !text"
-      @click="onPost"
-    >
-      {{ isSaving ? 'Posting…' : 'Post entry' }}
-    </button>
-
-    <template v-if="entries.length">
+    <div v-if="entries.length" class="entries-card">
       <h2>This section's entries</h2>
-      <ul class="entries">
-        <li v-for="entry in entries" :key="entry.id">
-          <strong :dir="detectDirection(entry.subject)" :lang="detectLang(entry.subject)">{{ entry.subject }}</strong> — {{ entry.date }}
-          <span v-if="entry.dueDate"> (due {{ entry.dueDate }})</span>
-          <DirectionalText :text="entry.text" />
-        </li>
-      </ul>
-    </template>
-  </div>
+      <div v-for="entry in entries" :key="entry.id" class="entry-row">
+        <div class="entry-title">
+          <strong :dir="detectDirection(entry.subject)" :lang="detectLang(entry.subject)">{{ entry.subject }}</strong>
+          <span class="muted">· {{ entry.date }}<template v-if="entry.dueDate"> (due {{ entry.dueDate }})</template></span>
+        </div>
+        <DirectionalText :text="entry.text" class="entry-text" />
+      </div>
+    </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.diary {
-  max-width: 640px;
+.compose-card,
+.entries-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
-.subtitle {
-  color: var(--color-muted);
-  margin-bottom: var(--space-4);
+.entries-card h2 {
+  margin: 0;
+  font-size: var(--font-size-base);
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
 }
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-4);
-  max-width: 480px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 select,
 input,
@@ -233,36 +257,24 @@ textarea {
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
+  font-size: var(--font-size-sm);
 }
 .link-button {
-  align-self: flex-start;
   background: none;
   border: none;
   padding: 0;
   color: var(--color-accent);
   font-size: var(--font-size-xs);
+  font-weight: 700;
   cursor: pointer;
-  text-decoration: underline;
 }
 .draft-prompt {
   display: flex;
   gap: var(--space-2);
   align-items: flex-end;
-  margin-bottom: var(--space-4);
-}
-.draft-prompt button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 600;
-  cursor: pointer;
-}
-.draft-prompt button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 .success {
   color: var(--color-accent);
@@ -270,26 +282,23 @@ textarea {
 .error {
   color: var(--color-destructive);
 }
-button {
-  padding: 0.6rem 1.1rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  font-weight: 700;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.entries {
-  list-style: none;
-  padding: 0;
-  margin-top: var(--space-3);
-}
-.entries li {
+.entry-row {
   padding: var(--space-2) 0;
   border-bottom: 1px solid var(--color-border);
+}
+.entry-row:last-child {
+  border-bottom: none;
+}
+.entry-title {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+.muted {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+.entry-text {
+  font-size: var(--font-size-sm);
+  margin-top: 0.2rem;
 }
 </style>

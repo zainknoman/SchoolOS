@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import {
@@ -11,6 +11,8 @@ import {
   type AssessmentCategorySummary,
   type AssessmentSummary,
 } from '../lib/api';
+import ListPageCard from '../components/ListPageCard.vue';
+import Button from '../components/Button.vue';
 
 const auth = useAuthStore();
 const route = useRoute();
@@ -117,6 +119,8 @@ async function onCategoryChange() {
   }
 }
 
+const selectedAssessment = computed(() => assessments.value.find((a) => a.id === selectedAssessmentId.value));
+
 async function onSave() {
   if (!auth.accessToken || !selectedAssessmentId.value) return;
   message.value = null;
@@ -137,111 +141,144 @@ async function onSave() {
 </script>
 
 <template>
-  <div class="marks-entry">
-    <h1>Gradebook</h1>
+  <ListPageCard icon="grid" title="Gradebook" subtitle="Enter marks for one assessment at a time">
+    <div class="picker-card">
+      <label class="field">
+        <span>Section</span>
+        <select data-testid="select-section" v-model="selectedSectionId" @change="onSectionChange">
+          <option value="" disabled>Choose a section</option>
+          <option v-for="s in sections" :key="s.id" :value="s.id">
+            {{ s.className }} {{ s.name }} — {{ s.campusName }}
+          </option>
+        </select>
+      </label>
 
-    <label class="field">
-      <span>Section</span>
-      <select data-testid="select-section" v-model="selectedSectionId" @change="onSectionChange">
-        <option value="" disabled>Choose a section</option>
-        <option v-for="s in sections" :key="s.id" :value="s.id">
-          {{ s.className }} {{ s.name }} — {{ s.campusName }}
-        </option>
-      </select>
-    </label>
+      <label class="field" v-if="terms.length">
+        <span>Term</span>
+        <select data-testid="select-term" v-model="selectedTermId" @change="onTermChange">
+          <option value="" disabled>Choose a term</option>
+          <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.label }}</option>
+        </select>
+      </label>
 
-    <label class="field" v-if="terms.length">
-      <span>Term</span>
-      <select data-testid="select-term" v-model="selectedTermId" @change="onTermChange">
-        <option value="" disabled>Choose a term</option>
-        <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.label }}</option>
-      </select>
-    </label>
+      <label class="field" v-if="categories.length">
+        <span>Category</span>
+        <select data-testid="select-category" v-model="selectedCategoryId" @change="onCategoryChange">
+          <option value="" disabled>Choose a category</option>
+          <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+        </select>
+      </label>
 
-    <label class="field" v-if="categories.length">
-      <span>Category</span>
-      <select data-testid="select-category" v-model="selectedCategoryId" @change="onCategoryChange">
-        <option value="" disabled>Choose a category</option>
-        <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-      </select>
-    </label>
+      <label class="field" v-if="assessments.length">
+        <span>Assessment</span>
+        <select data-testid="select-assessment" v-model="selectedAssessmentId">
+          <option value="" disabled>Choose an assessment</option>
+          <option v-for="a in assessments" :key="a.id" :value="a.id">{{ a.label }} (max {{ a.maxMarks }})</option>
+        </select>
+      </label>
+    </div>
 
-    <label class="field" v-if="assessments.length">
-      <span>Assessment</span>
-      <select data-testid="select-assessment" v-model="selectedAssessmentId">
-        <option value="" disabled>Choose an assessment</option>
-        <option v-for="a in assessments" :key="a.id" :value="a.id">{{ a.label }} (max {{ a.maxMarks }})</option>
-      </select>
-    </label>
-
-    <ul v-if="students.length" class="roster">
-      <li v-for="student in students" :key="student.id" class="roster-row">
+    <div v-if="students.length" class="roster-card">
+      <div class="roster-header">
+        <span>Roster · {{ students.length }} student{{ students.length === 1 ? '' : 's' }}</span>
+        <span v-if="selectedAssessment" class="mono muted">max {{ selectedAssessment.maxMarks }}</span>
+      </div>
+      <div v-for="student in students" :key="student.id" class="roster-row">
         <span class="roster-name">{{ student.name }}</span>
         <input
           v-if="selectedAssessmentId"
           :data-testid="`marks-input-${student.id}`"
+          class="mono"
           type="number"
           min="0"
           v-model="marks[student.id]"
         />
-      </li>
-    </ul>
+      </div>
+    </div>
 
     <p v-if="message" class="success" data-testid="success">{{ message }}</p>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <button
-      v-if="students.length && selectedAssessmentId"
-      data-testid="save-marks"
-      :disabled="isSaving"
-      @click="onSave"
-    >
-      {{ isSaving ? 'Saving…' : 'Save Marks' }}
-    </button>
-  </div>
+    <div v-if="students.length && selectedAssessmentId" class="save-row">
+      <Button data-testid="save-marks" :disabled="isSaving" @click="onSave">
+        {{ isSaving ? 'Saving…' : 'Save Marks' }}
+      </Button>
+    </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.marks-entry {
-  max-width: 640px;
+.picker-card,
+.roster-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.picker-card {
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
 }
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-3);
-  max-width: 320px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-muted);
 }
 select,
 input {
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
+  font-size: var(--font-size-sm);
 }
-.roster {
-  list-style: none;
-  margin-bottom: var(--space-4);
-  border-top: 1px solid var(--color-border);
+.roster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
 }
 .roster-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-2) 0;
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
+}
+.roster-row:last-child {
+  border-bottom: none;
+}
+.roster-name {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
 }
 .roster-row input {
   width: 6rem;
+  text-align: right;
+}
+.muted {
+  color: var(--color-muted);
 }
 .success {
   color: var(--color-accent);
-  margin-bottom: var(--space-3);
 }
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
+}
+.save-row {
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

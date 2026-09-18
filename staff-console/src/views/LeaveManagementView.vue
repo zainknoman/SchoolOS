@@ -4,6 +4,8 @@ import { useAuthStore } from '../stores/auth';
 import { api, type LeaveRequestSummary } from '../lib/api';
 import { useConfirm } from '../lib/useConfirm';
 import StatusPill from '../components/StatusPill.vue';
+import ListPageCard from '../components/ListPageCard.vue';
+import EmptyState from '../components/EmptyState.vue';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
@@ -60,33 +62,34 @@ function leaveTone(status: string): 'success' | 'warning' | 'critical' | 'neutra
 </script>
 
 <template>
-  <div class="leave">
-    <h1>Leave Applications</h1>
-
-    <label class="field">
-      <span>Status</span>
-      <select data-testid="status-filter" v-model="statusFilter" @change="load">
-        <option value="pending">Pending</option>
-        <option value="approved">Approved</option>
-        <option value="rejected">Rejected</option>
-        <option value="">All</option>
-      </select>
-    </label>
+  <ListPageCard icon="calendar" title="Leave Applications" subtitle="Student leave requests">
+    <template #toolbar>
+      <label class="field">
+        <span>Status</span>
+        <select data-testid="status-filter" v-model="statusFilter" @change="load">
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="">All</option>
+        </select>
+      </label>
+    </template>
 
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-    <p v-if="!requests.length && !errorMessage" class="empty">No leave requests here.</p>
+    <EmptyState v-if="!requests.length && !errorMessage" icon="calendar" title="No leave requests here." />
 
-    <ul class="requests-list">
-      <li v-for="r in requests" :key="r.id" class="request-row">
+    <div v-else class="requests-card">
+      <div v-for="r in requests" :key="r.id" class="request-row">
         <div class="request-main">
           <strong>{{ r.studentName }}</strong>
-          <span>{{ r.startDate }} to {{ r.endDate }}</span>
+          <span class="muted">{{ r.startDate }} to {{ r.endDate }}</span>
           <span class="reason">{{ r.reason }}</span>
         </div>
         <div class="request-actions">
           <StatusPill :tone="leaveTone(r.status)" :label="r.status" />
           <template v-if="r.status === 'pending'">
             <button
+              class="btn-secondary"
               :data-testid="`approve-${r.id}`"
               :disabled="busyId === r.id"
               @click="onApprove(r.id)"
@@ -94,8 +97,8 @@ function leaveTone(status: string): 'success' | 'warning' | 'critical' | 'neutra
               Approve
             </button>
             <button
+              class="btn-danger-outline"
               :data-testid="`reject-${r.id}`"
-              class="secondary"
               :disabled="busyId === r.id"
               @click="onReject(r.id)"
             >
@@ -103,77 +106,97 @@ function leaveTone(status: string): 'success' | 'warning' | 'critical' | 'neutra
             </button>
           </template>
         </div>
-      </li>
-    </ul>
-  </div>
+      </div>
+    </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.leave {
-  max-width: 720px;
-}
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-4);
-  max-width: 240px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-muted);
 }
 select {
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
 }
 .error {
   color: var(--color-destructive);
 }
-.empty {
-  color: var(--color-muted);
-}
-.requests-list {
-  list-style: none;
-  padding: 0;
+.requests-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 .request-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
+}
+.request-row:last-child {
+  border-bottom: none;
 }
 .request-main {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
 }
-.reason {
+.muted {
   color: var(--color-muted);
   font-size: var(--font-size-sm);
+}
+.reason {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
 }
 .request-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-shrink: 0;
 }
-button {
+.btn-secondary {
   padding: 0.4rem 0.8rem;
-  border: none;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-on-primary);
+  background: var(--color-surface);
+  color: var(--color-text);
   font-weight: 600;
+  font-size: var(--font-size-sm);
   cursor: pointer;
 }
-button.secondary {
-  background: transparent;
-  color: var(--color-destructive);
+.btn-danger-outline {
+  padding: 0.4rem 0.8rem;
   border: 1px solid var(--color-destructive);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-destructive);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
 }
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .request-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

@@ -6,6 +6,7 @@ import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
+import ListPageCard from '../components/ListPageCard.vue';
 import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
@@ -100,14 +101,11 @@ async function onUpdateStatus(id: string, status: string) {
 </script>
 
 <template>
-  <div class="complaints">
-    <div class="page-header">
-      <h1>Complaints</h1>
+  <ListPageCard icon="chat" title="Complaints" subtitle="Your sections only">
+    <template #actions>
       <Button data-testid="open-add-form" :disabled="!selectedStudentId" @click="showAddForm = true">+ Add New</Button>
-    </div>
-    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-
-    <div class="picker-row">
+    </template>
+    <template #toolbar>
       <FormField
         v-model="selectedSectionId"
         label="Section"
@@ -126,7 +124,9 @@ async function onUpdateStatus(id: string, status: string) {
         :options="students.map((s) => ({ value: s.id, label: `${s.name} (${s.grNumber})` }))"
         @update:model-value="loadComplaints"
       />
-    </div>
+    </template>
+
+    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable
       v-if="selectedStudentId"
@@ -168,29 +168,12 @@ async function onUpdateStatus(id: string, status: string) {
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Raise complaint</Button>
       </div>
     </AppModal>
-  </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.complaints {
-  max-width: 900px;
-}
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
-}
-.picker-row {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: var(--space-4);
 }
 .inline-form {
   display: flex;
@@ -201,6 +184,8 @@ select {
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
 }
 </style>

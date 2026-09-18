@@ -11,6 +11,8 @@ import {
 } from '../lib/api';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import ListPageCard from '../components/ListPageCard.vue';
+import EmptyState from '../components/EmptyState.vue';
 
 const auth = useAuthStore();
 
@@ -105,11 +107,8 @@ function downloadUrl(id: string): string {
 </script>
 
 <template>
-  <div class="report-cards">
-    <h1>Report Cards</h1>
-    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-
-    <div class="picker-row">
+  <ListPageCard icon="file-text" title="Report Cards" subtitle="Grades & downloadable report cards">
+    <div class="picker-card">
       <FormField
         v-model="selectedStudentId"
         label="Student"
@@ -145,71 +144,142 @@ function downloadUrl(id: string): string {
       <Button data-testid="upload-submit" :disabled="isUploading" @click="onUpload">Upload</Button>
     </div>
 
-    <table v-if="grades.length" class="grades-table" data-testid="grades-table">
-      <thead>
-        <tr>
-          <th>Subject</th>
-          <th>Categories</th>
-          <th>Final %</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="grade in grades" :key="grade.subjectId">
-          <td>{{ grade.subjectName }}</td>
-          <td>
-            <span v-for="cat in grade.categories" :key="cat.name" class="category-chip">
-              {{ cat.name }}: {{ cat.weightPercent }}% wt, {{ cat.obtainedPercent }}% obtained
-            </span>
-          </td>
-          <td>{{ grade.finalPercent }}%</td>
-        </tr>
-      </tbody>
-    </table>
+    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <ul v-else-if="selectedStudentId" class="report-card-list">
-      <li v-if="!reportCards.length" class="empty">No report cards uploaded yet.</li>
-      <li v-for="card in reportCards" :key="card.id" class="report-card-row">
-        <span>{{ sessions.find((s) => s.id === card.academicSessionId)?.label ?? card.academicSessionId }}</span>
-        <a :data-testid="`download-${card.id}`" :href="downloadUrl(card.id)" target="_blank" rel="noopener">
-          Download
-        </a>
-      </li>
-    </ul>
-  </div>
+    <div v-if="grades.length" class="grades-card">
+      <table class="grades-table" data-testid="grades-table">
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Categories</th>
+            <th class="col-final">Final %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="grade in grades" :key="grade.subjectId">
+            <td class="subject-name">{{ grade.subjectName }}</td>
+            <td>
+              <span v-for="cat in grade.categories" :key="cat.name" class="category-chip">
+                {{ cat.name }}: {{ cat.weightPercent }}% wt, {{ cat.obtainedPercent }}% obtained
+              </span>
+            </td>
+            <td class="mono final-percent">{{ grade.finalPercent }}%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <template v-else-if="selectedStudentId">
+      <EmptyState v-if="!reportCards.length" icon="file-text" title="No report cards uploaded yet." />
+      <div v-else class="report-card-list">
+        <div v-for="card in reportCards" :key="card.id" class="report-card-row">
+          <span>{{ sessions.find((s) => s.id === card.academicSessionId)?.label ?? card.academicSessionId }}</span>
+          <a :data-testid="`download-${card.id}`" :href="downloadUrl(card.id)" target="_blank" rel="noopener" class="link">
+            Download
+          </a>
+        </div>
+      </div>
+    </template>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.report-cards {
-  max-width: 900px;
-}
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
 }
-.picker-row {
+.picker-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3) var(--space-4);
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-3);
   align-items: flex-end;
   flex-wrap: wrap;
-  margin-bottom: var(--space-4);
 }
 .file-field {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.3rem;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.grades-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.grades-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.grades-table th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+}
+.grades-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
   font-size: var(--font-size-sm);
+  vertical-align: middle;
+}
+.grades-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.subject-name {
+  font-weight: 700;
+}
+.col-final {
+  width: 100px;
+}
+.final-percent {
+  font-weight: 700;
+}
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+  background: var(--color-muted-bg);
+  color: var(--color-text);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  margin: 0.1rem 0.25rem 0.1rem 0;
 }
 .report-card-list {
-  list-style: none;
-  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 .report-card-row {
   display: flex;
   justify-content: space-between;
-  padding: var(--space-2) 0;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
 }
-.empty {
-  color: var(--color-muted);
+.report-card-row:last-child {
+  border-bottom: none;
+}
+.link {
+  color: var(--color-accent);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  text-decoration: none;
 }
 </style>

@@ -6,6 +6,7 @@ import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
+import ListPageCard from '../components/ListPageCard.vue';
 import { useConfirm } from '../lib/useConfirm';
 import { useToast } from '../lib/useToast';
 
@@ -148,15 +149,11 @@ async function onDelete(id: string) {
 </script>
 
 <template>
-  <div class="org-entity">
-    <div class="page-header">
-      <h1>Assessment Categories</h1>
+  <ListPageCard icon="grid" title="Assessment Categories">
+    <template #actions>
       <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
-    </div>
-    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-    <p v-if="weightWarning" class="warning" role="alert">{{ weightWarning }}</p>
-
-    <div class="pickers">
+    </template>
+    <template #toolbar>
       <FormField
         v-model="selectedClassId"
         label="Class"
@@ -173,7 +170,10 @@ async function onDelete(id: string) {
         placeholder="Select term"
         :options="terms.map((t) => ({ value: t.id, label: t.label }))"
       />
-    </div>
+    </template>
+
+    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+    <p v-if="weightWarning" class="warning" role="alert">{{ weightWarning }}</p>
 
     <EntityTable
       :items="categories"
@@ -213,31 +213,20 @@ async function onDelete(id: string) {
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
     </AppModal>
-  </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.org-entity {
-  max-width: 900px;
-}
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
 .error {
   color: var(--color-destructive);
-  margin-bottom: var(--space-3);
 }
 .warning {
-  color: var(--color-warning, #a15c00);
-  margin-bottom: var(--space-3);
-}
-.pickers {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  background: var(--color-status-warning-tint);
+  color: var(--color-late);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
 }
 .inline-form {
   display: flex;
