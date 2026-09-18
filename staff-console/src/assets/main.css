@@ -1,4 +1,5 @@
 @import './base.css';
+@import './patterns.css';
 
 /* #app intentionally has no max-width/centering/grid here — this is an app shell that fills
    the viewport, not a marketing page. Reading-width content (forms, prose) caps its own width

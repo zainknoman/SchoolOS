@@ -313,6 +313,16 @@ describe('EntityTable', () => {
     });
   });
 
+  describe('responsive card-collapse', () => {
+    it('labels each body cell with its column label via data-label, for the sub-768px card layout', () => {
+      const wrapper = mount(EntityTable, {
+        props: { items, columns, rowKey: 'id', editingId: null },
+      });
+      const firstRowCells = wrapper.findAll('tbody tr')[0]!.findAll('td');
+      expect(firstRowCells[0]!.attributes('data-label')).toBe('Name');
+    });
+  });
+
   describe('accessibility', () => {
     it('gives the search input an accessible name', () => {
       const wrapper = mount(EntityTable, {
