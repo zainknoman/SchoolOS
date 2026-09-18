@@ -50,7 +50,7 @@ describe('Historical-record delete restrictions (e2e)', () => {
     });
     const section = await prisma.section.create({ data: { classId: klass.id, name: 'CDR-A' } });
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'cdr-teacher@seeds.edu.pk', passwordHash: 'x', role: 'TEACHER' },
+      data: { identifier: 'cdr-teacher@schoolos.edu.pk', passwordHash: 'x', role: 'TEACHER' },
     });
     const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'CDR Teacher', campusId: campus.id },
@@ -96,7 +96,7 @@ describe('Historical-record delete restrictions (e2e)', () => {
     await prisma.student.deleteMany({ where: { id: studentId } }).catch(() => undefined);
     await prisma.school.deleteMany({ where: { name: 'CDR E2E School' } }).catch(() => undefined);
     await prisma.academicSession.deleteMany({ where: { label: 'CDR' } }).catch(() => undefined);
-    await prisma.user.deleteMany({ where: { identifier: 'cdr-teacher@seeds.edu.pk' } }).catch(() => undefined);
+    await prisma.user.deleteMany({ where: { identifier: 'cdr-teacher@schoolos.edu.pk' } }).catch(() => undefined);
     await app.close();
   });
 

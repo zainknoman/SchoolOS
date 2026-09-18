@@ -1,4 +1,4 @@
-# SEEDS Digital Platform
+# SchoolOS Digital Platform
 
 A school management platform for a multi-school, multi-campus environment: one NestJS + Prisma backend serving a Vue **staff console** and Flutter **parent app**. The Prisma schema supports richer Student, Parent, Staff/Hiring, Admission, Enrollment, timetable, diary, attendance, document, address and medical data. Current implementation status is tracked in [`PROJECT-STATUS.md`](./PROJECT-STATUS.md).
 

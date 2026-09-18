@@ -17,7 +17,7 @@ class ApiException implements Exception {
 /// fail-fast on PAYMENT_STUB_WEBHOOK_SECRET is designed to prevent.
 const stubWebhookSecret = 'dev-only-stub-webhook-secret';
 
-/// Thin wrapper over the shared SEEDS backend — the same `/api/v1` contract the staff console
+/// Thin wrapper over the shared SchoolOS backend — the same `/api/v1` contract the staff console
 /// calls. Takes an injected [http.Client] so tests can supply `MockClient` instead of hitting a
 /// real server.
 class ApiClient {

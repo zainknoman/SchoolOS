@@ -26,7 +26,7 @@ function pkr(amountPaisa: number): string {
 export class FeesPdfService {
   renderVoucherPdf(input: VoucherPdfInput): Promise<Buffer> {
     return this.render((doc) => {
-      doc.fontSize(18).text('The Seeds School — Fee Voucher', { align: 'center' });
+      doc.fontSize(18).text('The SchoolOS School — Fee Voucher', { align: 'center' });
       doc.moveDown();
       doc.fontSize(11);
       doc.text(`Student: ${input.studentName} (${input.grNumber})`);
@@ -43,7 +43,7 @@ export class FeesPdfService {
 
   renderReceiptPdf(input: ReceiptPdfInput): Promise<Buffer> {
     return this.render((doc) => {
-      doc.fontSize(18).text('The Seeds School — Payment Receipt', { align: 'center' });
+      doc.fontSize(18).text('The SchoolOS School — Payment Receipt', { align: 'center' });
       doc.moveDown();
       doc.fontSize(11);
       doc.text(`Receipt No: ${input.receiptNumber}`);

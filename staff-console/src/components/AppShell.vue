@@ -7,6 +7,7 @@ import { api, type NotificationSummary } from '../lib/api';
 import Icon, { type IconName } from './AppIcon.vue';
 import CommandPalette from './CommandPalette.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
+import ToastHost from './ToastHost.vue';
 import { roleInitials } from '../lib/format';
 import { applyTheme, loadThemePreference, saveThemePreference } from '../lib/theme';
 import {
@@ -110,6 +111,7 @@ const roleLabel = computed(() => {
   }
 });
 
+const breadcrumbGroup = computed(() => (route.meta.group as string | undefined) ?? '');
 const breadcrumbTitle = computed(() => (route.meta.title as string | undefined) ?? '');
 
 // --- Notifications (two-tier: numeric badge for actionable, dot for ambient) ---
@@ -227,6 +229,15 @@ const goToItems = computed<CmdkGoTo[]>(() => {
   }
   if (!isAdmin.value) return [];
   const items: CmdkGoTo[] = [{ testid: 'cmdk-dashboard', label: 'Dashboard', icon: 'home', to: '/admin' }];
+  if (canManageAdmissions.value) {
+    items.push({ testid: 'cmdk-admissions', label: 'Admissions', icon: 'users', to: '/admin/admissions' });
+  }
+  if (canManageHiring.value) {
+    items.push({ testid: 'cmdk-hiring', label: 'Hiring', icon: 'users', to: '/admin/hiring' });
+  }
+  if (canManageBulkImport.value) {
+    items.push({ testid: 'cmdk-bulk-import', label: 'Bulk Import', icon: 'grid', to: '/admin/bulk-import' });
+  }
   if (canManageOrgStructure.value) {
     items.push(
       { testid: 'cmdk-schools', label: 'Schools', icon: 'chalkboard', to: '/admin/schools' },
@@ -247,9 +258,6 @@ const goToItems = computed<CmdkGoTo[]>(() => {
       { testid: 'cmdk-staff', label: 'Staff', icon: 'users', to: '/admin/staff' },
       { testid: 'cmdk-parents', label: 'Parents', icon: 'user-circle', to: '/admin/parents' },
     );
-  }
-  if (canManageHiring.value) {
-    items.push({ testid: 'cmdk-hiring', label: 'Hiring', icon: 'users', to: '/admin/hiring' });
   }
   if (canManageTimetable.value) {
     items.push({ testid: 'cmdk-timetable', label: 'Timetable', icon: 'clock', to: '/admin/timetable' });
@@ -302,6 +310,31 @@ const actionItems = computed<CmdkAction[]>(() => {
       query: { focus: 'title' },
     });
   }
+  if (canManageAdmissions.value) {
+    items.push({
+      testid: 'cmdk-action-new-applicant',
+      label: 'New applicant',
+      icon: 'users',
+      to: '/admin/admissions/new',
+    });
+  }
+  if (canManageHiring.value) {
+    items.push({
+      testid: 'cmdk-action-new-candidate',
+      label: 'Add hiring candidate',
+      icon: 'users',
+      to: '/admin/hiring/new',
+    });
+  }
+  if (canManageBulkImport.value) {
+    items.push({
+      testid: 'cmdk-action-bulk-import',
+      label: 'Run a bulk import',
+      icon: 'grid',
+      to: '/admin/bulk-import',
+      query: { focus: 'entity' },
+    });
+  }
   return items;
 });
 
@@ -309,10 +342,27 @@ function onGlobalKeydown(event: KeyboardEvent) {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
     event.preventDefault();
     isPaletteOpen.value = !isPaletteOpen.value;
+    return;
+  }
+  if (event.key === 'Escape' && isNotifOpen.value) {
+    isNotifOpen.value = false;
   }
 }
 onMounted(() => window.addEventListener('keydown', onGlobalKeydown));
 onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
+
+// Click-outside for the notifications dropdown — matches the command palette's own dismiss
+// behavior (Escape above, click outside here); the palette itself doesn't need this since its
+// overlay already closes on a click outside the panel.
+const notifWrapperRef = ref<HTMLElement | null>(null);
+function onDocumentClick(event: MouseEvent) {
+  if (!isNotifOpen.value) return;
+  if (notifWrapperRef.value && !notifWrapperRef.value.contains(event.target as Node)) {
+    isNotifOpen.value = false;
+  }
+}
+onMounted(() => document.addEventListener('click', onDocumentClick));
+onUnmounted(() => document.removeEventListener('click', onDocumentClick));
 </script>
 
 <template>
@@ -331,7 +381,9 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
         <Icon name="grid" :size="18" />
       </button>
       <span class="brand">{{ t('shell.brand') }}</span>
-      <nav class="crumbs" aria-label="Page title" data-testid="breadcrumb">
+      <nav class="crumbs" aria-label="Breadcrumb" data-testid="breadcrumb">
+        <span v-if="breadcrumbGroup" class="crumb-group" data-testid="breadcrumb-group">{{ breadcrumbGroup }}</span>
+        <span v-if="breadcrumbGroup" class="crumb-sep" aria-hidden="true">/</span>
         <b>{{ breadcrumbTitle }}</b>
       </nav>
       <div class="topbar-spacer"></div>
@@ -339,6 +391,8 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
         type="button"
         class="cmdk-trigger"
         data-testid="cmdk-trigger"
+        aria-haspopup="dialog"
+        :aria-expanded="isPaletteOpen"
         @click="isPaletteOpen = true"
       >
         <Icon name="search" :size="15" />
@@ -350,6 +404,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
         class="icon-button"
         data-testid="theme-toggle"
         :aria-label="isDarkActive ? 'Switch to light theme' : 'Switch to dark theme'"
+        :aria-pressed="isDarkActive"
         @click="onToggleTheme"
       >
         <Icon :name="isDarkActive ? 'sun' : 'moon'" :size="18" />
@@ -365,7 +420,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
         <option value="ur">اردو</option>
       </select>
       <div class="topbar-actions">
-        <div class="notif-wrapper">
+        <div ref="notifWrapperRef" class="notif-wrapper">
           <button
             data-testid="notifications"
             class="icon-button"
@@ -457,36 +512,37 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
             >
           </div>
 
-          <div v-if="canManageOrgStructure" class="nav-group">
-            <div class="nav-group-label">Org Structure</div>
-            <RouterLink data-testid="nav-schools" to="/admin/schools"
-              ><Icon name="chalkboard" />{{ t('nav.schools') }}</RouterLink
-            >
-            <RouterLink data-testid="nav-campuses" to="/admin/campuses"><Icon name="grid" />{{ t('nav.campuses') }}</RouterLink>
-            <RouterLink data-testid="nav-academic-sessions" to="/admin/academic-sessions"
-              ><Icon name="calendar" />{{ t('nav.academicSessions') }}</RouterLink
-            >
-            <RouterLink data-testid="nav-classes" to="/admin/classes"><Icon name="grid" />{{ t('nav.classes') }}</RouterLink>
-            <RouterLink data-testid="nav-sections" to="/admin/sections"><Icon name="grid" />{{ t('nav.sections') }}</RouterLink>
-          </div>
-
           <div class="nav-group">
             <div class="nav-group-label">Operations</div>
-            <RouterLink v-if="canManageTimetable" data-testid="nav-timetable" to="/admin/timetable"
-              ><Icon name="clock" />{{ t('nav.timetable') }}</RouterLink
+            <!-- Active-pipeline workflows first (Admissions/Hiring/Bulk Import are the most
+                 frequently-touched Operations items day-to-day), then recurring transactional
+                 tasks (Fees/Leave/Timetable/Report Cards), then periodic/seasonal tasks
+                 (Promotions/Holidays), then rarely-touched per-session setup last (Terms/
+                 Assessment Categories). -->
+            <RouterLink v-if="canManageAdmissions" data-testid="nav-admissions" to="/admin/admissions"
+              ><Icon name="users" />{{ t('nav.admissions') }}</RouterLink
+            >
+            <RouterLink v-if="canManageHiring" data-testid="nav-hiring" to="/admin/hiring"
+              ><Icon name="users" />{{ t('nav.hiring') }}</RouterLink
+            >
+            <RouterLink v-if="canManageBulkImport" data-testid="nav-bulk-import" to="/admin/bulk-import"
+              ><Icon name="grid" />{{ t('nav.bulkImport') }}</RouterLink
             >
             <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />{{ t('nav.fees') }}</RouterLink>
             <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"
               ><Icon name="calendar" />{{ t('nav.leave') }}</RouterLink
+            >
+            <RouterLink v-if="canManageTimetable" data-testid="nav-timetable" to="/admin/timetable"
+              ><Icon name="clock" />{{ t('nav.timetable') }}</RouterLink
+            >
+            <RouterLink v-if="canManageReportCards" data-testid="nav-report-cards" to="/admin/report-cards"
+              ><Icon name="grid" />{{ t('nav.reportCards') }}</RouterLink
             >
             <RouterLink v-if="canManagePromotions" data-testid="nav-promotions" to="/admin/promotions"
               ><Icon name="calendar" />{{ t('nav.promotions') }}</RouterLink
             >
             <RouterLink v-if="canManageHolidays" data-testid="nav-holidays" to="/admin/holidays"
               ><Icon name="calendar" />{{ t('nav.holidays') }}</RouterLink
-            >
-            <RouterLink v-if="canManageReportCards" data-testid="nav-report-cards" to="/admin/report-cards"
-              ><Icon name="grid" />{{ t('nav.reportCards') }}</RouterLink
             >
             <RouterLink v-if="canManageGradebook" data-testid="nav-terms" to="/admin/terms"
               ><Icon name="calendar" />{{ t('nav.terms') }}</RouterLink
@@ -497,24 +553,30 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
               to="/admin/assessment-categories"
               ><Icon name="grid" />{{ t('nav.assessmentCategories') }}</RouterLink
             >
-            <RouterLink v-if="canManageAdmissions" data-testid="nav-admissions" to="/admin/admissions"
-              ><Icon name="users" />{{ t('nav.admissions') }}</RouterLink
-            >
-            <RouterLink v-if="canManageHiring" data-testid="nav-hiring" to="/admin/hiring"
-              ><Icon name="users" />{{ t('nav.hiring') }}</RouterLink
-            >
-            <RouterLink v-if="canManageBulkImport" data-testid="nav-bulk-import" to="/admin/bulk-import"
-              ><Icon name="grid" />{{ t('nav.bulkImport') }}</RouterLink
-            >
           </div>
 
           <div class="nav-group">
             <div class="nav-group-label">Communication</div>
+            <RouterLink data-testid="nav-messages" to="/admin/messages"><Icon name="chat" />{{ t('nav.messages') }}</RouterLink>
             <RouterLink v-if="canManageCirculars" data-testid="nav-circulars" to="/admin/circulars"
               ><Icon name="megaphone" />{{ t('nav.circulars') }}</RouterLink
             >
-            <RouterLink data-testid="nav-messages" to="/admin/messages"><Icon name="chat" />{{ t('nav.messages') }}</RouterLink>
             <RouterLink data-testid="nav-complaints" to="/admin/complaints"><Icon name="chat" />{{ t('nav.complaints') }}</RouterLink>
+          </div>
+
+          <div v-if="canManageOrgStructure" class="nav-group">
+            <div class="nav-group-label">Org Structure</div>
+            <!-- Moved to last: one-time-per-session setup (Schools/Campuses/Academic Sessions/
+                 Classes/Sections), the least frequently visited group day-to-day. -->
+            <RouterLink data-testid="nav-schools" to="/admin/schools"
+              ><Icon name="chalkboard" />{{ t('nav.schools') }}</RouterLink
+            >
+            <RouterLink data-testid="nav-campuses" to="/admin/campuses"><Icon name="grid" />{{ t('nav.campuses') }}</RouterLink>
+            <RouterLink data-testid="nav-academic-sessions" to="/admin/academic-sessions"
+              ><Icon name="calendar" />{{ t('nav.academicSessions') }}</RouterLink
+            >
+            <RouterLink data-testid="nav-classes" to="/admin/classes"><Icon name="grid" />{{ t('nav.classes') }}</RouterLink>
+            <RouterLink data-testid="nav-sections" to="/admin/sections"><Icon name="grid" />{{ t('nav.sections') }}</RouterLink>
           </div>
         </template>
       </nav>
@@ -531,6 +593,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
       @close="isPaletteOpen = false"
     />
     <ConfirmDialog />
+    <ToastHost />
   </div>
 </template>
 
@@ -550,7 +613,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
   background: var(--color-accent);
   color: var(--color-on-primary);
   border-radius: var(--radius-sm);
-  transition: top var(--transition-fast, 0.15s);
+  transition: top var(--transition-fast);
 }
 .skip-link:focus {
   top: var(--space-2);
@@ -589,6 +652,9 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
 .crumbs b {
   color: var(--color-text);
   font-weight: 600;
+}
+.crumb-sep {
+  margin: 0 var(--space-1);
 }
 
 .topbar-spacer {
@@ -698,7 +764,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: var(--space-0);
   padding: var(--space-3);
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
@@ -729,12 +795,12 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
     inset: 0 25% 0 0;
     z-index: 150;
     transform: translateX(-100%);
-    transition: transform var(--transition-fast, 0.15s);
+    transition: transform var(--transition-fast);
     box-shadow: 0 0 0 transparent;
   }
   .sidenav.open {
     transform: translateX(0);
-    box-shadow: 20px 0 40px -20px rgba(15, 23, 42, 0.35);
+    box-shadow: 20px 0 40px -20px rgb(var(--shadow-color) / 0.35);
   }
   .sidenav-backdrop {
     position: fixed;
@@ -747,19 +813,19 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
 .nav-group {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: var(--space-0);
   margin-top: var(--space-3);
 }
 .nav-group:first-child {
   margin-top: 0;
 }
 .nav-group-label {
-  font-size: 0.68rem;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-muted);
-  padding: 0.3rem 0.7rem 0.15rem;
+  padding: var(--space-0-5) 0.7rem var(--space-0);
 }
 
 .sidenav a {
@@ -797,8 +863,8 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
   right: -4px;
   background: var(--color-destructive);
   color: white;
-  border-radius: 999px;
-  font-size: 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-2xs);
   min-width: 1.1rem;
   height: 1.1rem;
   display: flex;
@@ -824,7 +890,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -859,7 +925,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
 .notif-item-text {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: var(--space-0-5);
   min-width: 0;
 }
 .notif-item.unread strong {

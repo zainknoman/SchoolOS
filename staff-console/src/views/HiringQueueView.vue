@@ -7,7 +7,9 @@ import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
+import ErrorRetry from '../components/ErrorRetry.vue';
 import HiringCandidateIntakeView from './HiringCandidateIntakeView.vue';
+import { useToast } from '../lib/useToast';
 
 const STATUS_OPTIONS = [
   { value: 'SUBMITTED', label: 'Submitted' },
@@ -18,10 +20,12 @@ const STATUS_OPTIONS = [
 ];
 
 const auth = useAuthStore();
+const toast = useToast();
 
 const campuses = ref<CampusSummary[]>([]);
 const applications = ref<HiringApplicationSummary[]>([]);
 const errorMessage = ref<string | null>(null);
+const isLoading = ref(false);
 
 const selectedCampusId = ref('');
 const selectedStatus = ref('');
@@ -38,6 +42,7 @@ async function loadCampuses() {
 async function loadApplications() {
   if (!auth.accessToken) return;
   errorMessage.value = null;
+  isLoading.value = true;
   try {
     applications.value = await api.listHiringApplications(auth.accessToken, {
       campusId: selectedCampusId.value || undefined,
@@ -45,6 +50,8 @@ async function loadApplications() {
     });
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load hiring applications.';
+  } finally {
+    isLoading.value = false;
   }
 }
 
@@ -58,6 +65,10 @@ const showAddModal = ref(false);
 watch(showAddModal, (isOpen) => {
   if (!isOpen) loadApplications();
 });
+
+function onCandidateCreated() {
+  toast.success('Hiring candidate added.');
+}
 </script>
 
 <template>
@@ -66,7 +77,7 @@ watch(showAddModal, (isOpen) => {
       <h1>Hiring</h1>
       <Button data-testid="open-add-form" @click="showAddModal = true">+ Add New</Button>
     </div>
-    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+    <ErrorRetry v-if="errorMessage" :message="errorMessage" @retry="loadApplications" />
 
     <div class="filter-row">
       <FormField
@@ -98,6 +109,12 @@ watch(showAddModal, (isOpen) => {
       ]"
       row-key="id"
       :editing-id="null"
+      :loading="isLoading"
+      empty-icon="users"
+      empty-title="No hiring applications yet"
+      empty-message="Applications will show up here once you add a candidate."
+      empty-cta-label="+ Add New"
+      @empty-cta="showAddModal = true"
     >
       <template #actions="{ item }">
         <RouterLink :data-testid="`view-application-${item.id}`" :to="`/admin/hiring/${item.id}`">
@@ -107,7 +124,7 @@ watch(showAddModal, (isOpen) => {
     </EntityTable>
 
     <AppModal v-model="showAddModal" title="Add Hiring Candidate">
-      <HiringCandidateIntakeView />
+      <HiringCandidateIntakeView @created="onCandidateCreated" />
     </AppModal>
   </div>
 </template>
@@ -120,10 +137,6 @@ watch(showAddModal, (isOpen) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
-.error {
-  color: var(--color-destructive);
   margin-bottom: var(--space-3);
 }
 .filter-row {

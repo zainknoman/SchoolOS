@@ -65,11 +65,11 @@ describe('SchoolService', () => {
   it('creates a school (with address/phone/email) and audit-logs it', async () => {
     prisma.school.create.mockResolvedValue({
       id: 's1',
-      name: 'The Seeds School',
+      name: 'The SchoolOS School',
       ...NEW_PROFILE_FIELDS,
       address: '123 Main St',
       phone: '021-111',
-      email: 'info@seeds.edu',
+      email: 'info@schoolos.edu',
     });
     prisma.campus.count.mockResolvedValue(2);
     prisma.enrollment.count.mockResolvedValue(40);
@@ -77,21 +77,21 @@ describe('SchoolService', () => {
 
     const result = await service.create(
       {
-        name: 'The Seeds School',
+        name: 'The SchoolOS School',
         address: '123 Main St',
         phone: '021-111',
-        email: 'info@seeds.edu',
+        email: 'info@schoolos.edu',
       },
       'admin-1',
     );
 
     expect(result).toEqual({
       id: 's1',
-      name: 'The Seeds School',
+      name: 'The SchoolOS School',
       ...NEW_PROFILE_FIELDS,
       address: '123 Main St',
       phone: '021-111',
-      email: 'info@seeds.edu',
+      email: 'info@schoolos.edu',
       campusCount: 2,
       studentCount: 40,
       staffCount: 5,
@@ -173,7 +173,7 @@ describe('SchoolService', () => {
     prisma.school.findMany.mockResolvedValue([
       {
         id: 's1',
-        name: 'The Seeds School',
+        name: 'The SchoolOS School',
         ...NEW_PROFILE_FIELDS,
         address: null,
         phone: null,
@@ -187,7 +187,7 @@ describe('SchoolService', () => {
     expect(await service.list()).toEqual([
       {
         id: 's1',
-        name: 'The Seeds School',
+        name: 'The SchoolOS School',
         ...NEW_PROFILE_FIELDS,
         address: null,
         phone: null,
@@ -202,7 +202,7 @@ describe('SchoolService', () => {
   it('updates a school and audit-logs it', async () => {
     prisma.school.findUnique.mockResolvedValue({
       id: 's1',
-      name: 'The Seeds School',
+      name: 'The SchoolOS School',
       ...NEW_PROFILE_FIELDS,
       address: null,
       phone: null,
@@ -245,7 +245,7 @@ describe('SchoolService', () => {
   it('update() with only { name } does not touch any new profile field', async () => {
     prisma.school.findUnique.mockResolvedValue({
       id: 's1',
-      name: 'The Seeds School',
+      name: 'The SchoolOS School',
       ...NEW_PROFILE_FIELDS,
       address: null,
       phone: null,
@@ -280,11 +280,11 @@ describe('SchoolService', () => {
   it('deletes a school and audit-logs it', async () => {
     prisma.school.findUnique.mockResolvedValue({
       id: 's1',
-      name: 'The Seeds School',
+      name: 'The SchoolOS School',
     });
     prisma.school.delete.mockResolvedValue({
       id: 's1',
-      name: 'The Seeds School',
+      name: 'The SchoolOS School',
     });
 
     await service.delete('s1', 'admin-1');
@@ -312,7 +312,7 @@ describe('SchoolService', () => {
   it('translates a foreign-key violation on delete into a BadRequestException', async () => {
     prisma.school.findUnique.mockResolvedValue({
       id: 's1',
-      name: 'The Seeds School',
+      name: 'The SchoolOS School',
     });
     prisma.school.delete.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError(

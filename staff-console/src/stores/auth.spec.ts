@@ -37,7 +37,7 @@ describe('auth store', () => {
     });
 
     const store = useAuthStore();
-    await store.login('teacher@seeds.edu.pk', 'ChangeMe123!');
+    await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
 
     expect(store.isAuthenticated).toBe(true);
     expect(store.role).toBe('TEACHER');
@@ -52,7 +52,7 @@ describe('auth store', () => {
     });
 
     const store = useAuthStore();
-    await store.login('admin@seeds.edu.pk', 'ChangeMe123!');
+    await store.login('admin@schoolos.edu.pk', 'ChangeMe123!');
 
     // Simulate a fresh page load: new Pinia instance, store re-reads from localStorage.
     setActivePinia(createPinia());
@@ -66,7 +66,7 @@ describe('auth store', () => {
     vi.mocked(api.login).mockRejectedValue(new ApiError('Invalid credentials', 401));
 
     const store = useAuthStore();
-    await expect(store.login('teacher@seeds.edu.pk', 'wrong')).rejects.toThrow('Invalid credentials');
+    await expect(store.login('teacher@schoolos.edu.pk', 'wrong')).rejects.toThrow('Invalid credentials');
     expect(store.isAuthenticated).toBe(false);
   });
 
@@ -78,12 +78,12 @@ describe('auth store', () => {
     });
 
     const store = useAuthStore();
-    await store.login('teacher@seeds.edu.pk', 'ChangeMe123!');
+    await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
     store.logout();
 
     expect(store.isAuthenticated).toBe(false);
     expect(store.role).toBeNull();
-    expect(localStorage.getItem('seeds.auth')).toBeNull();
+    expect(localStorage.getItem('schoolos.auth')).toBeNull();
   });
 
   it('refreshSession() exchanges the stored refresh token for a new session and persists it', async () => {
@@ -99,14 +99,14 @@ describe('auth store', () => {
     });
 
     const store = useAuthStore();
-    await store.login('teacher@seeds.edu.pk', 'ChangeMe123!');
+    await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
 
     const newAccessToken = await store.refreshSession();
 
     expect(newAccessToken).toBe('token-new');
     expect(store.accessToken).toBe('token-new');
     expect(store.refreshToken).toBe('refresh-new');
-    expect(JSON.parse(localStorage.getItem('seeds.auth')!).accessToken).toBe('token-new');
+    expect(JSON.parse(localStorage.getItem('schoolos.auth')!).accessToken).toBe('token-new');
   });
 
   it('refreshSession() logs out and returns null when the refresh call itself fails', async () => {
@@ -118,13 +118,13 @@ describe('auth store', () => {
     vi.mocked(api.refresh).mockRejectedValue(new ApiError('Invalid credentials', 401));
 
     const store = useAuthStore();
-    await store.login('teacher@seeds.edu.pk', 'ChangeMe123!');
+    await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
 
     const result = await store.refreshSession();
 
     expect(result).toBeNull();
     expect(store.isAuthenticated).toBe(false);
-    expect(localStorage.getItem('seeds.auth')).toBeNull();
+    expect(localStorage.getItem('schoolos.auth')).toBeNull();
   });
 
   it('refreshSession() returns null immediately when there is no refresh token to use', async () => {
@@ -148,7 +148,7 @@ describe('auth store', () => {
     );
 
     const store = useAuthStore();
-    await store.login('teacher@seeds.edu.pk', 'ChangeMe123!');
+    await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
 
     const call1 = store.refreshSession();
     const call2 = store.refreshSession();

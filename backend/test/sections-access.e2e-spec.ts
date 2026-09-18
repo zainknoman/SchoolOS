@@ -47,7 +47,7 @@ describe('Sections cross-campus access (e2e)', () => {
 
     const passwordHash = await argon2.hash('ChangeMe123!');
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'sa-teacher-b@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'sa-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     await prisma.teacher.create({ data: { userId: teacherBUser.id, name: 'SA Teacher B', campusId: campusB.id } });
   });
@@ -67,7 +67,7 @@ describe('Sections cross-campus access (e2e)', () => {
   it("denies a teacher reading another campus section's roster", async () => {
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ identifier: 'sa-teacher-b@seeds.edu.pk', password: 'ChangeMe123!' })
+      .send({ identifier: 'sa-teacher-b@schoolos.edu.pk', password: 'ChangeMe123!' })
       .expect(201);
     const teacherBToken = loginRes.body.accessToken as string;
 

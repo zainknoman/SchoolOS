@@ -147,7 +147,7 @@ export class AuthService {
     try {
       await this.mail.send(
         user.identifier,
-        'Reset your SchoolPortal password',
+        'Reset your SchoolOS password',
         `Use this link to reset your password (expires in ${PASSWORD_RESET_TOKEN_TTL_HOURS} hour): ${resetLink}`,
       );
     } catch (err) {

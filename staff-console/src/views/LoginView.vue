@@ -121,7 +121,7 @@ input {
 input:focus-visible {
   outline: none;
   border-color: var(--color-ring);
-  box-shadow: 0 0 0 3px rgb(3 105 161 / 0.15);
+  box-shadow: 0 0 0 3px var(--color-ring-glow);
 }
 button {
   margin-top: var(--space-1);

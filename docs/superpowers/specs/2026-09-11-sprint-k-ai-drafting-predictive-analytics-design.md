@@ -3,7 +3,7 @@
 Status: approved (design), ready for implementation planning.
 As of commit `32d6e26` on `main` (latest `main` commit — Sprint H's WhatsApp/SMS/digest work is
 merged; working tree carries 3 unrelated untracked doc files, no modified tracked files).
-Spec source: `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, §4 "Sprint K —
+Spec source: `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, §4 "Sprint K —
 Differentiation Kickoff: AI Drafting + Predictive Analytics (Phase 7–8)":
 - `AiDraftingService` — "Suggest draft" on circulars/diary compose
 - `AttendanceRiskService` — early-warning panel on the admin dashboard

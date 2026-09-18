@@ -1,4 +1,4 @@
-# SEEDS Staff Console — Design System (Master)
+# SchoolOS Staff Console — Design System (Master)
 
 Generated via ui-ux-pro-max, curated by hand across three targeted queries (the combined
 `--design-system` pass on "education"-flavored keywords misrouted to a kids-app pattern —
@@ -87,3 +87,51 @@ megaphone (circulars), receipt (fees), logout`.
   submit button shows a loading state, never just disables silently.
 - **Buttons**: primary = accent background + white text; radius `--radius`; hover darkens
   ~8%; disabled = 60% opacity, `cursor:not-allowed`.
+
+## 2026-09-17 addendum
+
+This doc hadn't been updated since the Sprint 2 baseline above; a lot has shipped since. Folding
+it in now rather than letting doc/code drift continue.
+
+**Dark mode** (shipped, not reflected above): a complete second token set, applied either by OS
+`prefers-color-scheme: dark` or an explicit toggle (`data-theme` attribute on `<html>`, persisted).
+Every color token gets a dark-mode value in `base.css` — never assume the light-mode hex above is
+the only value a token resolves to.
+
+**Status tint tokens** (shipped, not listed above): `--color-status-{success,warning,critical,
+info,neutral}` + `-tint` variants, deliberately separate from `--color-accent` — used only by
+`StatusPill.vue` and anywhere a status (not a brand action) needs color-coding. Each has a
+dark-mode value.
+
+**Typography addition**: `IBM Plex Mono` (`--font-family-mono`) for tabular/numeric data (`.tabular`
+utility class) — not in the original single-family spec above.
+
+**Shell additions**: breadcrumb-style page title, a command palette (`Ctrl/Cmd+K`, indexes routes +
+4 deep-linked actions), two-tier notification badges (numeric for actionable / dot for ambient), a
+responsive off-canvas sidebar below 768px (hamburger toggle, backdrop, `Escape` + Tab-cycle
+containment), and a role-frequency-ordered nav (Overview → People → Operations → Communication →
+Org Structure; Operations leads with Admissions/Hiring/Bulk Import — see `AppShell.vue`).
+
+**Component library** (shipped, not in the original single-file-per-screen assumption above):
+`components/` now has `EntityTable`, `Button`, `FormField`, `AppModal`, `AppTabs`, `StatusPill`,
+`ConfirmDialog`, `AppIcon`, `TrendsSparkline` — each with its own spec. Native `window.confirm()`
+is fully eliminated app-wide and enforced by a standing regression test
+(`src/noWindowConfirm.spec.ts`); `ConfirmDialog.vue` is the only destructive-action confirm path.
+
+**Token hardening (2026-09-17, UI Sprint 1)**:
+- `--shadow-sm/-md/-lg`: hue-tinted (never pure black) via a `--shadow-color` RGB-triple token that
+  itself changes per theme, so every shadow using them re-tints in dark mode automatically instead
+  of reading as a flat seam.
+- `--radius-full` (9999px) replaces the hand-rolled `999px` pill radius.
+- `--space-0` (0.15rem) / `--space-0-5` (0.3rem): the sub-`--space-1` micro-gaps that recur across
+  the shell (badge padding, nav-group spacing) now have names instead of being scattered literals.
+- `--font-size-2xs` (0.68rem): the smallest recurring label size (nav-group labels, notif badge)
+  unified under one token.
+- `--color-ring-glow`: the login input's focus-ring glow is now theme-aware (previously hardcoded
+  to the light-mode accent color and unreadable against the dark surface).
+- `--duration-fast/-base/-slow` + `--ease-standard`/`--ease-spring`: a named motion-token layer.
+  `--transition-fast`/`--transition-base` (already used app-wide) are now built from these rather
+  than being their own literals, so every existing `var(--transition-fast)` call site picked up the
+  new `--ease-standard` curve (`cubic-bezier(0.16, 1, 0.3, 1)`, matching the design-taste baseline's
+  MOTION 4–7 guidance) with no call-site changes required. `--ease-spring` is reserved for the
+  upcoming toast/skeleton/staggered-reveal work (UI Sprints 3–4).

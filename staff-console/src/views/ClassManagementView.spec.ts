@@ -28,7 +28,7 @@ describe('ClassManagementView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listCampuses).mockResolvedValue([
-      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The Seeds School', code: null, campusType: null, logoFileId: null, principalName: null, principalPhone: null, principalEmail: null, openingDate: null, capacity: null, latitude: null, longitude: null, status: 'ACTIVE' as const, departments: [], alternatePhone: null, addressId: null, address: null, phone: null, email: null, studentCount: 0, staffCount: 0 },
+      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The SchoolOS School', code: null, campusType: null, logoFileId: null, principalName: null, principalPhone: null, principalEmail: null, openingDate: null, capacity: null, latitude: null, longitude: null, status: 'ACTIVE' as const, departments: [], alternatePhone: null, addressId: null, address: null, phone: null, email: null, studentCount: 0, staffCount: 0 },
     ]);
     vi.mocked(api.listAcademicSessions).mockResolvedValue([
       { id: 'as1', label: '2026-2027', startDate: '2026-08-01', endDate: '2027-06-30', isActive: true },

@@ -82,7 +82,7 @@ describe('HolidaysView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listCampuses).mockResolvedValue([
-      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The Seeds School' },
+      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The SchoolOS School' },
     ]);
     vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
@@ -971,13 +971,13 @@ Expected: all green, no regressions introduced by this sprint's new test files.
 
 - [ ] **Step 2: Update the roadmap doc's Implementation Checklist**
 
-In `docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, check off Sprint M's box
+In `docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, check off Sprint M's box
 and its sub-items, noting the merge commit range and date, per this project's established
 Implementation Checklist convention (see Sprints A-L's entries for the exact format).
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md
+git add docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md
 git commit -m "docs: mark Sprint M complete in the roadmap checklist"
 ```

@@ -28,7 +28,7 @@ student?") before touching Prisma.
 The full platform is three applications sharing one schema — building all fourteen features across all
 three surfaces in a single unattended pass would mean dozens of subagents writing a huge, unreviewed
 amount of code before the user (or anyone) looks at any of it. That's exactly the failure mode the
-validated MVP plan (`Seeds/apk/MVP-Plan-V3.md`) was written to avoid — vertical slices, checked in at
+validated MVP plan (`SchoolOS/apk/MVP-Plan-V3.md`) was written to avoid — vertical slices, checked in at
 sprint boundaries, not a big-bang delivery.
 
 This run therefore builds the foundation every later feature depends on:

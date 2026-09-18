@@ -1,8 +1,8 @@
 # Sprint D — Staff Console Component Extraction (UI Sprint 2)
 
 Status: draft, approved in chat by product owner 2026-09-10.
-Source: `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` §4 Sprint D, informed by
-`SchoolPortal-UIUX-Audit-Modernization-Roadmap-2026-09-08.md` (UI Sprint 2 section, breadcrumb
+Source: `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md` §4 Sprint D, informed by
+`SchoolOS-UIUX-Audit-Modernization-Roadmap-2026-09-08.md` (UI Sprint 2 section, breadcrumb
 finding).
 
 ## Context

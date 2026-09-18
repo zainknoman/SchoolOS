@@ -80,7 +80,7 @@ function onKeydown(event: KeyboardEvent, index: number) {
   white-space: nowrap;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: color var(--transition-fast, 0.15s), border-color var(--transition-fast, 0.15s);
+  transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 .tab-trigger:hover {
   color: var(--color-text);

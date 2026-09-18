@@ -1870,7 +1870,7 @@ git commit -m "feat(gradebook): integrate structured grades into report-card scr
 
 ### Task 11: Full-suite verification and roadmap update
 
-**Files:** `docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` (roadmap checklist only).
+**Files:** `docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md` (roadmap checklist only).
 
 - [ ] **Step 1: Run every suite**
 
@@ -1884,12 +1884,12 @@ Expected: all green, clean build/lint.
 - [ ] **Step 2: Update the roadmap doc's Implementation Checklist**
 
 Check off Sprint N's box and sub-items in
-`docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, noting the merge commit range
+`docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, noting the merge commit range
 and date, matching the established format from Sprints A-M.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md
+git add docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md
 git commit -m "docs: mark Sprint N complete in the roadmap checklist"
 ```

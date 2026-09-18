@@ -23,11 +23,15 @@ withDefaults(
   color: var(--color-on-primary);
   font-weight: 600;
   cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 .btn.secondary {
   background: transparent;
   color: var(--color-destructive);
   border: 1px solid var(--color-destructive);
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 .btn:disabled {
   opacity: 0.6;

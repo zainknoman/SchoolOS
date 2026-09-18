@@ -37,7 +37,7 @@ describe('AuthService', () => {
 
   const baseUser = {
     id: 'user-1',
-    identifier: 'parent@seeds.edu.pk',
+    identifier: 'parent@schoolos.edu.pk',
     role: 'PARENT',
     isLocked: false,
     lockedUntil: null as Date | null,
@@ -89,7 +89,7 @@ describe('AuthService', () => {
     prisma.user.update.mockResolvedValue({});
     prisma.refreshToken.create.mockResolvedValue({});
 
-    const result = await service.login('parent@seeds.edu.pk', 'correct-horse');
+    const result = await service.login('parent@schoolos.edu.pk', 'correct-horse');
 
     expect(result.accessToken).toBe('signed-access-token');
     expect(typeof result.refreshToken).toBe('string');
@@ -107,7 +107,7 @@ describe('AuthService', () => {
     prisma.user.findUnique.mockResolvedValue(null);
 
     await expect(
-      service.login('nobody@seeds.edu.pk', 'whatever'),
+      service.login('nobody@schoolos.edu.pk', 'whatever'),
     ).rejects.toThrow(GENERIC_AUTH_ERROR);
   });
 
@@ -117,7 +117,7 @@ describe('AuthService', () => {
     prisma.user.update.mockResolvedValue({});
 
     await expect(
-      service.login('parent@seeds.edu.pk', 'wrong-password'),
+      service.login('parent@schoolos.edu.pk', 'wrong-password'),
     ).rejects.toThrow(GENERIC_AUTH_ERROR);
   });
 
@@ -131,7 +131,7 @@ describe('AuthService', () => {
     prisma.user.update.mockResolvedValue({});
 
     await expect(
-      service.login('parent@seeds.edu.pk', 'wrong-password'),
+      service.login('parent@schoolos.edu.pk', 'wrong-password'),
     ).rejects.toThrow(ACCOUNT_LOCKED_ERROR);
 
     expect(prisma.user.update).toHaveBeenCalledWith(
@@ -156,7 +156,7 @@ describe('AuthService', () => {
     });
 
     await expect(
-      service.login('parent@seeds.edu.pk', 'correct-horse'),
+      service.login('parent@schoolos.edu.pk', 'correct-horse'),
     ).rejects.toThrow(ACCOUNT_LOCKED_ERROR);
   });
 
@@ -173,7 +173,7 @@ describe('AuthService', () => {
     prisma.user.update.mockResolvedValue({});
     prisma.refreshToken.create.mockResolvedValue({});
 
-    const result = await service.login('parent@seeds.edu.pk', 'correct-horse');
+    const result = await service.login('parent@schoolos.edu.pk', 'correct-horse');
     expect(result.accessToken).toBe('signed-access-token');
   });
 
@@ -183,7 +183,7 @@ describe('AuthService', () => {
     prisma.user.update.mockResolvedValue({});
     prisma.refreshToken.create.mockResolvedValue({});
 
-    const result = await service.login('parent@seeds.edu.pk', 'correct-horse');
+    const result = await service.login('parent@schoolos.edu.pk', 'correct-horse');
 
     expect(JSON.stringify(result)).not.toContain(passwordHash);
     expect(JSON.stringify(result)).not.toContain('correct-horse');
@@ -266,7 +266,7 @@ describe('AuthService', () => {
       prisma.passwordResetToken.create.mockResolvedValue({});
       mailAdapter.send.mockResolvedValue(undefined);
 
-      await service.forgotPassword('parent@seeds.edu.pk');
+      await service.forgotPassword('parent@schoolos.edu.pk');
 
       expect(prisma.passwordResetToken.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -278,7 +278,7 @@ describe('AuthService', () => {
         }),
       );
       expect(mailAdapter.send).toHaveBeenCalledWith(
-        'parent@seeds.edu.pk',
+        'parent@schoolos.edu.pk',
         expect.stringContaining('Reset your'),
         expect.stringContaining('reset-password?token='),
       );
@@ -288,7 +288,7 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.forgotPassword('nobody@seeds.edu.pk'),
+        service.forgotPassword('nobody@schoolos.edu.pk'),
       ).resolves.toBeUndefined();
 
       expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
@@ -301,7 +301,7 @@ describe('AuthService', () => {
       mailAdapter.send.mockRejectedValue(new Error('smtp down'));
 
       await expect(
-        service.forgotPassword('parent@seeds.edu.pk'),
+        service.forgotPassword('parent@schoolos.edu.pk'),
       ).resolves.toBeUndefined();
     });
   });

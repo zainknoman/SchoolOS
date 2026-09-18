@@ -41,7 +41,7 @@ describe('HiringApplicationDetailView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listCampuses).mockResolvedValue([
-      { id: 'cam1', name: 'PECHS Campus', schoolId: 'sch1', schoolName: 'Seeds School', code: null, campusType: null, logoFileId: null, principalName: null, principalPhone: null, principalEmail: null, openingDate: null, capacity: null, latitude: null, longitude: null, status: 'ACTIVE' as const, departments: [], alternatePhone: null, addressId: null, address: null, phone: null, email: null, studentCount: 0, staffCount: 0 },
+      { id: 'cam1', name: 'PECHS Campus', schoolId: 'sch1', schoolName: 'SchoolOS School', code: null, campusType: null, logoFileId: null, principalName: null, principalPhone: null, principalEmail: null, openingDate: null, capacity: null, latitude: null, longitude: null, status: 'ACTIVE' as const, departments: [], alternatePhone: null, addressId: null, address: null, phone: null, email: null, studentCount: 0, staffCount: 0 },
     ]);
   });
 
@@ -117,14 +117,14 @@ describe('HiringApplicationDetailView', () => {
 
     expect(api.approveHiringApplication).not.toHaveBeenCalled();
 
-    await wrapper.find('[data-testid="approve-login-identifier"]').setValue('new.teacher@seeds.edu.pk');
+    await wrapper.find('[data-testid="approve-login-identifier"]').setValue('new.teacher@schoolos.edu.pk');
     await wrapper.find('[data-testid="approve-login-password"]').setValue('InitialPass1!');
     await wrapper.find('[data-testid="approve-submit"]').trigger('click');
     await flushPromises();
 
     expect(api.approveHiringApplication).toHaveBeenCalledWith('token-1', 'app1', {
       dateOfBirth: undefined, cnic: undefined, mobile: undefined, email: undefined, joiningDate: undefined,
-      login: { identifier: 'new.teacher@seeds.edu.pk', password: 'InitialPass1!' },
+      login: { identifier: 'new.teacher@schoolos.edu.pk', password: 'InitialPass1!' },
     });
   });
 

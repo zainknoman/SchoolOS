@@ -11,7 +11,7 @@ describe('Forgot/Reset Password (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   const originalPassword = 'OriginalHorseBattery9!';
-  const userIdentifier = 'apr-user@seeds.edu.pk';
+  const userIdentifier = 'apr-user@schoolos.edu.pk';
   let userId: string;
 
   beforeAll(async () => {
@@ -52,7 +52,7 @@ describe('Forgot/Reset Password (e2e)', () => {
       .expect(201);
     const unknown = await request(app.getHttpServer())
       .post('/api/v1/auth/forgot-password')
-      .send({ identifier: 'nobody-at-all@seeds.edu.pk' })
+      .send({ identifier: 'nobody-at-all@schoolos.edu.pk' })
       .expect(201);
 
     expect(known.body.message).toEqual(unknown.body.message);

@@ -7,9 +7,11 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const toast = useToast();
 
 const academicSessions = ref<AcademicSessionSummary[]>([]);
 const selectedSessionId = ref('');
@@ -74,6 +76,7 @@ async function onAdd() {
     newEndDate.value = '';
     showAddForm.value = false;
     await loadTerms();
+    toast.success('Term added.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this term.';
   } finally {
@@ -105,6 +108,7 @@ async function onSaveEdit(id: string) {
     });
     editingId.value = null;
     await loadTerms();
+    toast.success('Term updated.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not update this term.';
   }
@@ -117,6 +121,7 @@ async function onDelete(id: string) {
   try {
     await api.deleteTerm(auth.accessToken, id);
     await loadTerms();
+    toast.success('Term deleted.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not delete this term.';
   }

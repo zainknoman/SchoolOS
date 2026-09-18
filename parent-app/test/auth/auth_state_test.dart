@@ -71,7 +71,7 @@ void main() {
   test('logs in, stores tokens in the token store, and marks the session authenticated', () async {
     final auth = AuthState(api: okClient(), tokenStore: store);
 
-    await auth.login('parent-a@seeds.edu.pk', 'ChangeMe123!');
+    await auth.login('parent-a@schoolos.edu.pk', 'ChangeMe123!');
 
     expect(auth.isAuthenticated, isTrue);
     expect(auth.role, 'PARENT');
@@ -95,7 +95,7 @@ void main() {
     final auth = AuthState(api: unauthorizedClient(), tokenStore: store);
 
     await expectLater(
-      auth.login('parent-a@seeds.edu.pk', 'wrong'),
+      auth.login('parent-a@schoolos.edu.pk', 'wrong'),
       throwsA(isA<ApiException>().having((e) => e.message, 'message', 'Invalid credentials')),
     );
     expect(auth.isAuthenticated, isFalse);
@@ -103,7 +103,7 @@ void main() {
 
   test('logout clears both in-memory state and the token store', () async {
     final auth = AuthState(api: okClient(), tokenStore: store);
-    await auth.login('parent-a@seeds.edu.pk', 'ChangeMe123!');
+    await auth.login('parent-a@schoolos.edu.pk', 'ChangeMe123!');
 
     await auth.logout();
 
@@ -114,7 +114,7 @@ void main() {
 
   test('refreshSession() exchanges the stored refresh token for a new session and persists it', () async {
     final auth = AuthState(api: refreshingClient(), tokenStore: store);
-    await auth.login('parent-a@seeds.edu.pk', 'ChangeMe123!');
+    await auth.login('parent-a@schoolos.edu.pk', 'ChangeMe123!');
 
     final newAccessToken = await auth.refreshSession();
 
@@ -126,7 +126,7 @@ void main() {
 
   test('refreshSession() logs out and returns null when the refresh call itself fails', () async {
     final auth = AuthState(api: refreshingClient(), tokenStore: store);
-    await auth.login('parent-a@seeds.edu.pk', 'ChangeMe123!');
+    await auth.login('parent-a@schoolos.edu.pk', 'ChangeMe123!');
     // Corrupt the stored refresh token so the mock server rejects it.
     await store.write('refreshToken', 'a-token-the-mock-server-does-not-recognize');
     final authWithBadToken = AuthState(api: refreshingClient(), tokenStore: store);

@@ -191,13 +191,76 @@ describe('EntityTable', () => {
       expect(wrapper.find('[data-testid="entity-pagination-info"]').text()).toBe('Page 1 of 2');
     });
 
-    it('shows an empty table with no pagination controls when items is empty', () => {
+    it('renders EmptyState (not a table) when items is empty, per the empty-state redesign', () => {
       const wrapper = mount(EntityTable, {
         props: { items: [], columns, rowKey: 'id', editingId: null },
       });
 
-      expect(wrapper.find('[data-testid="entity-no-results"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(true);
+      expect(wrapper.find('table').exists()).toBe(false);
       expect(wrapper.find('[data-testid="entity-pagination-info"]').exists()).toBe(false);
+    });
+  });
+
+  describe('loading', () => {
+    it('renders skeleton rows instead of the table when loading is true', () => {
+      const wrapper = mount(EntityTable, {
+        props: { items, columns, rowKey: 'id', editingId: null, loading: true },
+      });
+
+      expect(wrapper.find('[data-testid="entity-table-loading"]').exists()).toBe(true);
+      expect(wrapper.findAll('[data-testid="skeleton"]').length).toBeGreaterThan(0);
+      expect(wrapper.find('[data-testid="entity-search"]').exists()).toBe(false);
+      expect(wrapper.text()).not.toContain('Alpha');
+    });
+
+    it('takes priority over the empty state when both loading and items=[] are true', () => {
+      const wrapper = mount(EntityTable, {
+        props: { items: [], columns, rowKey: 'id', editingId: null, loading: true },
+      });
+
+      expect(wrapper.find('[data-testid="entity-table-loading"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(false);
+    });
+  });
+
+  describe('empty state', () => {
+    it('uses a default title when emptyTitle is not passed', () => {
+      const wrapper = mount(EntityTable, {
+        props: { items: [], columns, rowKey: 'id', editingId: null },
+      });
+      expect(wrapper.text()).toContain('Nothing here yet.');
+    });
+
+    it('passes emptyTitle/emptyMessage/emptyCtaLabel through and emits "empty-cta"', async () => {
+      const wrapper = mount(EntityTable, {
+        props: {
+          items: [],
+          columns,
+          rowKey: 'id',
+          editingId: null,
+          emptyTitle: 'No students yet',
+          emptyMessage: 'Add your first student to get started.',
+          emptyCtaLabel: 'Add student',
+        },
+      });
+
+      expect(wrapper.text()).toContain('No students yet');
+      expect(wrapper.text()).toContain('Add your first student to get started.');
+
+      await wrapper.find('[data-testid="empty-state-cta"]').trigger('click');
+      expect(wrapper.emitted('empty-cta')).toHaveLength(1);
+    });
+
+    it('still shows the in-table "No matching rows" row (not EmptyState) when a search matches nothing', async () => {
+      const wrapper = mount(EntityTable, {
+        props: { items, columns, rowKey: 'id', editingId: null },
+      });
+
+      await wrapper.find('[data-testid="entity-search"]').setValue('nonexistent');
+
+      expect(wrapper.find('[data-testid="entity-no-results"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(false);
     });
   });
 

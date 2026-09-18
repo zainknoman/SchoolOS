@@ -1,13 +1,13 @@
-# SchoolPortal — Gap Analysis & Feature Prioritization
+# SchoolOS — Gap Analysis & Feature Prioritization
 
 **Compiled 2026-09-08.** Synthesizes three prior documents — this is the decision layer, not new
 research:
 
-1. `SchoolPortal-Repo-Audit-2026-09-08.md` — verified state of the actual codebase (36/100 maturity,
+1. `SchoolOS-Repo-Audit-2026-09-08.md` — verified state of the actual codebase (36/100 maturity,
    26/78 capabilities confirmed).
-2. `docs/Seedsapk/MVP-Plan-V3.md` — the validated MVP scope SchoolPortal was built against (six
+2. `docs/Seedsapk/MVP-Plan-V3.md` — the validated MVP scope SchoolOS was built against (six
    two-sprint plan, explicit inclusions/exclusions).
-3. `SchoolPortal-Global-Competitor-Research-2026-09-08.md` — ten global school-platform leaders,
+3. `SchoolOS-Global-Competitor-Research-2026-09-08.md` — ten global school-platform leaders,
    36-category feature taxonomy, evidence-graded.
 
 Published version (interactive): *(added after publish — see bottom of file)*
@@ -161,16 +161,16 @@ just internally decided.
 
 *(Mandatory section — prevents unnecessary redevelopment.)*
 
-Functionality competitors offer where SchoolPortal's existing implementation is already adequate for
+Functionality competitors offer where SchoolOS's existing implementation is already adequate for
 its target market. The gap here is **wiring/polish**, not architecture or rebuild:
 
-| Competitor capability | Why SchoolPortal already has it adequately | What's actually left |
+| Competitor capability | Why SchoolOS already has it adequately | What's actually left |
 |---|---|---|
 | Broadcast announcements (ClassDojo, ParentSquare, Alma) | Circulars is full-stack: scope, attachments, expiry, read/unread tracking, admin delivery stats | Rename the mislabeled "Notifications" nav slot; nothing structural |
 | Attendance visibility for parents (ParentSquare's Attendance Plus, Brightwheel) | History/monthly summary API + parent calendar view already work end-to-end | Fix the Admin/Super-Admin marking bug (Tier 0); add calendar-wide Holiday model |
 | Multi-child switching (table-stakes per competitor research §11) | Real, keyed re-fetch, works today | None |
 | Role-based access architecture (vs. Schoology's thin admin surface, Remind's near-none) | Deny-by-default, server-enforced, genuinely tested | Just needs a management UI (Tier 1), not new architecture |
-| Multi-campus / enrollment-history modeling | **Ahead of most competitors reviewed** — few of the ten model point-in-time campus/section transfer correctly; SchoolPortal fixed this bug in Sprint 6.5 | None — this is closer to a strength than a gap, see §9 |
+| Multi-campus / enrollment-history modeling | **Ahead of most competitors reviewed** — few of the ten model point-in-time campus/section transfer correctly; SchoolOS fixed this bug in Sprint 6.5 | None — this is closer to a strength than a gap, see §9 |
 | Homework/diary distribution (vs. Seesaw, Toddle's homework layer) | Full authoring + viewing loop with genuinely correct Urdu RTL, not a translated shell | None for MVP scope; grading/rubrics is Tier 3+, not a gap against MVP |
 | File attachment infrastructure | Swappable `StorageAdapter`, tested | Add limits/MIME allowlist (Tier 0 hardening) — not a rebuild |
 | One unified backend/client architecture (vs. PowerSchool/Schoology's post-acquisition stitching, which the market is now paying to *undo* via MyPowerHub) | Already the "one backend, two clients" shape the competitor research (§9) shows the market converging toward | None — this is a structural advantage to protect, not a gap to close |
@@ -235,7 +235,7 @@ categories mean no material gap was found beyond what's already listed elsewhere
 
 ### Scoring methodology
 
-Seven factors, each scored **1 (lowest) – 5 (highest)** against SchoolPortal's actual target market
+Seven factors, each scored **1 (lowest) – 5 (highest)** against SchoolOS's actual target market
 (single-campus to small multi-campus Pakistani private schools), not a generic SIS market:
 
 - **Business Value (BV)** — revenue/commercial-credibility impact.
@@ -320,7 +320,7 @@ Not opportunities — prerequisites. Ungated by the scoring model above; sequenc
 
 ### Tier 1 — Commercial Readiness
 
-Required before any credible commercial pilot — closes the gaps that currently make SchoolPortal read
+Required before any credible commercial pilot — closes the gaps that currently make SchoolOS read
 as "a foundation," not a product.
 
 - Admin CRUD: Students, Parents, Teachers, Classes/Sections/Subjects.
@@ -352,18 +352,18 @@ Improves adoption, retention, and per-school value once the Tier 1 baseline is c
 
 ### Tier 3 — Differentiation
 
-Capabilities that can make SchoolPortal meaningfully better than competitors, not just at parity.
+Capabilities that can make SchoolOS meaningfully better than competitors, not just at parity.
 
 - AI-assisted drafting for circulars/diary/report-card comments — the Seesaw/Toddle pattern (AI cuts
   staff admin time), explicitly **not** shipped gated behind hardware the way Teachmint's EduAI is.
 - Predictive/early-warning analytics on attendance and engagement — the Alma BeaconAI pattern, built
-  on data SchoolPortal's schema already captures.
+  on data SchoolOS's schema already captures.
 - EMI-style/installment fee collection — the single most directly transferable idea from the
   competitor research (Teachmint's TeachPay), adapted to JazzCash/EasyPaisa rails instead of UPI/eNACH.
 - Admissions/lottery module with an audit trail — PowerSchool Enrollment's pattern, at a scope that
   fits a single school or small network rather than district-scale.
 - Deepen the multi-campus enrollment model into a visible admin feature (reporting, cross-campus
-  comparisons) — SchoolPortal's schema is already ahead here; this converts a backend strength into a
+  comparisons) — SchoolOS's schema is already ahead here; this converts a backend strength into a
   user-facing one.
 
 ### Tier 4 — Defer
@@ -372,13 +372,13 @@ Explicitly not built yet, with reasons:
 
 | Item | Why deferred |
 |---|---|
-| Full standards-based/mastery gradebook, formal exams/assessments | MVP-Plan-V3 deliberately substituted a static report-card PDF; a live gradebook is a Schoology/Toddle-scale investment with no evidence SchoolPortal's target segment (small private schools) needs it before Fees/Messaging/CRUD exist |
+| Full standards-based/mastery gradebook, formal exams/assessments | MVP-Plan-V3 deliberately substituted a static report-card PDF; a live gradebook is a Schoology/Toddle-scale investment with no evidence SchoolOS's target segment (small private schools) needs it before Fees/Messaging/CRUD exist |
 | Transport, Library, Canteen, Inventory, HR, Payroll | Excluded by MVP-Plan-V3 **and** independently market-validated: none of the ten global leaders researched build these as core product (competitor research §4, the "near-empty Campus operations band") |
 | AI tutor / generative content for students | Explicitly excluded by MVP-Plan-V3; also the clearest "AI as press release, not product" trap the competitor research warns against (Teachmint's EduAI hardware-gating) |
 | Campus-switching admin UI | Deliberately deferred by MVP-Plan-V3 — multi-campus already works as a schema property |
 | Separate Teacher Portal / Admin Portal apps, separate parent web portal | The exact fragmentation the market (PowerSchool, Schoology, Remind/ParentSquare) is now paying multi-year integration cost to undo. Do not re-introduce it. |
-| District-scale compliance reporting (Ed-Fi/SIF), 75+-integration marketplace | PowerSchool/Alma-tier enterprise capability; SchoolPortal's target customer (single school to small network) has no regulatory or procurement need for it yet |
-| Custom drag-and-drop report builder | Named by Alma reviewers as a pain point even at enterprise scale (rigid, CSV-dependent complaints) — high effort, unproven demand at SchoolPortal's scale |
+| District-scale compliance reporting (Ed-Fi/SIF), 75+-integration marketplace | PowerSchool/Alma-tier enterprise capability; SchoolOS's target customer (single school to small network) has no regulatory or procurement need for it yet |
+| Custom drag-and-drop report builder | Named by Alma reviewers as a pain point even at enterprise scale (rigid, CSV-dependent complaints) — high effort, unproven demand at SchoolOS's scale |
 | RFID/biometric attendance, cashless canteen wallet | Excluded by MVP-Plan-V3; hardware-dependent, no evidence of demand ahead of the software layer being credible |
 
 ---
@@ -403,7 +403,7 @@ Explicitly not built yet, with reasons:
 | Multi-campus private schools | Pakistan-specific opportunity, and a strength | Already implemented | Genuinely ahead of most competitors reviewed — see §9 |
 | Parent expectations (bilingual + WhatsApp-reachable + wallet-payable + cash-tolerant, simultaneously) | Pakistan-specific opportunity | Not met as a combination today | No single competitor profile in the research matches this combination — closest is Teachmint, and it's thin on analytics with AI gated behind hardware |
 | School accounting workflows (manual ledgers alongside digital) | Pakistan-specific opportunity | Missing | Same reconciliation-UI head start as cash fees |
-| Local reporting requirements | Not relevant at current target scale | Not relevant | Enterprise-style state/regulatory compliance reporting (PowerSchool's Ed-Fi/SIF) has no Pakistani-private-school-scale equivalent that SchoolPortal's target customer needs yet |
+| Local reporting requirements | Not relevant at current target scale | Not relevant | Enterprise-style state/regulatory compliance reporting (PowerSchool's Ed-Fi/SIF) has no Pakistani-private-school-scale equivalent that SchoolOS's target customer needs yet |
 
 ---
 
@@ -416,11 +416,11 @@ School OS** — rather than any single option on its own.
 
 **Why not the others:**
 - **Pure SIS / School ERP** (PowerSchool/Alma shape) — wrong market. That's an enterprise-district
-  sales motion; SchoolPortal's target customer is a single school or small private network, the exact
+  sales motion; SchoolOS's target customer is a single school or small private network, the exact
   segment the competitor research flags as underserved by district-scale players.
 - **Pure Parent Engagement Platform** (ClassDojo/Remind shape) — leaves the highest-scored
   opportunities (Fees, Admin CRUD, Messaging) stranded; those competitors deliberately don't build SIS
-  depth, and SchoolPortal already has SIS-shaped foundations (Enrollment, RBAC, Prisma schema) that
+  depth, and SchoolOS already has SIS-shaped foundations (Enrollment, RBAC, Prisma schema) that
   would go to waste.
 - **Generic "School Operating System"** (Teachmint shape) without the Pakistan-first qualifier — loses
   the one clear, evidenced differentiation lever: correct bilingual content handling and local payment
@@ -442,7 +442,7 @@ single source of truth for attendance, academics, or campus-level student histor
 - Transparent, small-school-appropriate pricing against an enterprise market that defaults to opaque
   custom quotes (PowerSchool, Toddle, Alma).
 
-**Competitive advantage:** SchoolPortal enters already unified — one backend, two clients — while the
+**Competitive advantage:** SchoolOS enters already unified — one backend, two clients — while the
 market's biggest names (PowerSchool/Schoology, Remind/ParentSquare) are mid-multi-year efforts to undo
 the fragmentation their own acquisitions created. Protecting that architectural choice is itself a
 competitive advantage; see Tier 4.
@@ -515,7 +515,7 @@ Gamified public behavior-points (privacy concerns even in source reviews), AI he
 behind hardware, land-and-expand product fragmentation (separate portals/apps), opaque custom-quote
 pricing, web-only with no native mobile app, and — the clearest cautionary tale in the research —
 shipping without basic account-security hygiene (no-MFA support access, thin log retention) the way
-PowerSchool's 2025 breach did, which SchoolPortal's own audit already flags analogous versions of
+PowerSchool's 2025 breach did, which SchoolOS's own audit already flags analogous versions of
 (hardcoded JWT fallback, wide-open CORS).
 
 ### Top 20 Post-MVP Features
@@ -536,7 +536,7 @@ vouchers and Messaging recipients are scoped against.
 
 ---
 
-## If SchoolPortal shipped nothing except the top 10, which 10 create the largest jump in maturity and commercial value?
+## If SchoolOS shipped nothing except the top 10, which 10 create the largest jump in maturity and commercial value?
 
 1. **CI/CD pipeline** — not a feature, but everything after it is untrustworthy without it.
 2. **Refresh-token flow + 401 handling** — the single highest-impact fix to make "the app randomly
@@ -552,7 +552,7 @@ vouchers and Messaging recipients are scoped against.
    built; this is the highest business-value gap with the least design risk, since the shape is already
    proven by Teachmint/Brightwheel in the competitor research.
 7. **Messaging module (two-way, server-scoped)** — competitor research's global table-stakes list
-   names two-way messaging explicitly; SchoolPortal is currently a placeholder string away from it.
+   names two-way messaging explicitly; SchoolOS is currently a placeholder string away from it.
 8. **Push notifications (FCM)** — named table-stakes by every competitor reviewed; currently absent
    from both clients entirely.
 9. **JazzCash/EasyPaisa payment gateway** — the single most Pakistan-specific, most directly
@@ -567,7 +567,7 @@ converges on independently.
 
 ---
 
-*Compiled 2026-09-08. Synthesizes `SchoolPortal-Repo-Audit-2026-09-08.md`,
-`docs/Seedsapk/MVP-Plan-V3.md`, and `SchoolPortal-Global-Competitor-Research-2026-09-08.md`. No new
+*Compiled 2026-09-08. Synthesizes `SchoolOS-Repo-Audit-2026-09-08.md`,
+`docs/Seedsapk/MVP-Plan-V3.md`, and `SchoolOS-Global-Competitor-Research-2026-09-08.md`. No new
 research performed — all classifications, scores, and tiers are judgment calls built transparently on
 those three sources' already-verified evidence.*

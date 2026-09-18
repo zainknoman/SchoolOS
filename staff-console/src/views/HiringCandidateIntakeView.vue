@@ -29,6 +29,8 @@ const applicationCampusId = ref('');
 const isSavingApplication = ref(false);
 const applicationCreated = ref(false);
 
+const emit = defineEmits<{ created: [] }>();
+
 async function loadOptions() {
   if (!auth.accessToken) return;
   try {
@@ -87,6 +89,7 @@ async function onCreateApplication() {
       campusId: applicationCampusId.value,
     });
     applicationCreated.value = true;
+    emit('created');
   } catch (err) {
     applicationErrorMessage.value = err instanceof Error ? err.message : 'Could not create this application.';
   } finally {

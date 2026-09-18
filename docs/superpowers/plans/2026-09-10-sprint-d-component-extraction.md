@@ -1142,7 +1142,7 @@ describe('SchoolManagementView', () => {
     const auth = useAuthStore();
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
-    vi.mocked(api.listSchools).mockResolvedValue([{ id: 's1', name: 'The Seeds School' }]);
+    vi.mocked(api.listSchools).mockResolvedValue([{ id: 's1', name: 'The SchoolOS School' }]);
     vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
@@ -1152,7 +1152,7 @@ describe('SchoolManagementView', () => {
     const wrapper = mount(SchoolManagementView);
     await flushPromises();
 
-    expect(wrapper.text()).toContain('The Seeds School');
+    expect(wrapper.text()).toContain('The SchoolOS School');
 
     await wrapper.find('[data-testid="add-name"]').setValue('Second School');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');

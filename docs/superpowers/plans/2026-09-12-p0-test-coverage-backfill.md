@@ -899,7 +899,7 @@ Add this at the end of the file, before the closing `});` of the outer `describe
       prisma.passwordResetToken.create.mockResolvedValue({});
       mailAdapter.send.mockResolvedValue(undefined);
 
-      await service.forgotPassword('parent@seeds.edu.pk');
+      await service.forgotPassword('parent@schoolos.edu.pk');
 
       expect(prisma.passwordResetToken.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -911,7 +911,7 @@ Add this at the end of the file, before the closing `});` of the outer `describe
         }),
       );
       expect(mailAdapter.send).toHaveBeenCalledWith(
-        'parent@seeds.edu.pk',
+        'parent@schoolos.edu.pk',
         expect.stringContaining('Reset your'),
         expect.stringContaining('reset-password?token='),
       );
@@ -920,7 +920,7 @@ Add this at the end of the file, before the closing `});` of the outer `describe
     it('silently no-ops for an unknown identifier — never reveals whether an account exists', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.forgotPassword('nobody@seeds.edu.pk')).resolves.toBeUndefined();
+      await expect(service.forgotPassword('nobody@schoolos.edu.pk')).resolves.toBeUndefined();
 
       expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
       expect(mailAdapter.send).not.toHaveBeenCalled();
@@ -931,7 +931,7 @@ Add this at the end of the file, before the closing `});` of the outer `describe
       prisma.passwordResetToken.create.mockResolvedValue({});
       mailAdapter.send.mockRejectedValue(new Error('smtp down'));
 
-      await expect(service.forgotPassword('parent@seeds.edu.pk')).resolves.toBeUndefined();
+      await expect(service.forgotPassword('parent@schoolos.edu.pk')).resolves.toBeUndefined();
     });
   });
 
@@ -1248,7 +1248,7 @@ git commit -m "test(backend): add TimetableService scheduling-conflict unit cove
 ### Task 10: e2e — extend `timetable-attendance.e2e-spec.ts` with bulk attendance, timetable-conflict, and attendance-risk RBAC/parent-isolation
 
 **Files:**
-- Modify: `backend/test/timetable-attendance.e2e-spec.ts` (reuses the existing `tta-*` fixture: `ids.school/section/childA/childB/teacher`, `tta-teacher@seeds.edu.pk`, `tta-admin@seeds.edu.pk`, `tta-parent-a@seeds.edu.pk`, `tta-parent-b@seeds.edu.pk`, all created in the existing `beforeAll`)
+- Modify: `backend/test/timetable-attendance.e2e-spec.ts` (reuses the existing `tta-*` fixture: `ids.school/section/childA/childB/teacher`, `tta-teacher@schoolos.edu.pk`, `tta-admin@schoolos.edu.pk`, `tta-parent-a@schoolos.edu.pk`, `tta-parent-b@schoolos.edu.pk`, all created in the existing `beforeAll`)
 
 **Interfaces:**
 - Consumes: `POST /api/v1/attendance/bulk`, `POST /api/v1/timetable`, `GET /api/v1/students/:id/attendance-risk`, `GET /api/v1/attendance-risk` — routes already defined in `AttendanceController`/`TimetableController`/`AttendanceRiskController`.
@@ -1259,7 +1259,7 @@ Add these before the final closing `});` of the file's outer `describe(...)`:
 
 ```typescript
   it('a Teacher can bulk-mark attendance for a whole section in one call', async () => {
-    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('tta-teacher@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     await request(app.getHttpServer())
@@ -1274,7 +1274,7 @@ Add these before the final closing `});` of the file's outer `describe(...)`:
       })
       .expect(201);
 
-    const parentAToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('tta-parent-a@schoolos.edu.pk');
     const month = today.slice(0, 7);
     const res = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/attendance?month=${month}`)
@@ -1285,7 +1285,7 @@ Add these before the final closing `});` of the file's outer `describe(...)`:
   });
 
   it('a PARENT cannot bulk-mark attendance', async () => {
-    const parentToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('tta-parent-a@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     await request(app.getHttpServer())
@@ -1296,7 +1296,7 @@ Add these before the final closing `});` of the file's outer `describe(...)`:
   });
 
   it('creating a second timetable entry for the same teacher+day+period is rejected as a scheduling conflict', async () => {
-    const adminToken = await loginAs('tta-admin@seeds.edu.pk');
+    const adminToken = await loginAs('tta-admin@schoolos.edu.pk');
 
     // ids.teacher already has a Mon/period-1 slot from beforeAll (day 1, period 1).
     await request(app.getHttpServer())
@@ -1327,7 +1327,7 @@ Add these before the final closing `});` of the file's outer `describe(...)`:
       update: { absenceRate: 0.4, flagged: true },
     });
 
-    const parentAToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('tta-parent-a@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/attendance-risk`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -1336,7 +1336,7 @@ Add these before the final closing `});` of the file's outer `describe(...)`:
 
     await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/attendance-risk`)
-      .set('Authorization', `Bearer ${await loginAs('tta-parent-b@seeds.edu.pk')}`)
+      .set('Authorization', `Bearer ${await loginAs('tta-parent-b@schoolos.edu.pk')}`)
       .expect(403);
 
     await prisma.attendanceRiskFlag.deleteMany({ where: { studentId: ids.childA } });
@@ -1356,7 +1356,7 @@ Add these before the final closing `});` of the file's outer `describe(...)`:
       update: { absenceRate: 0.5, flagged: true },
     });
 
-    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('tta-teacher@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .get('/api/v1/attendance-risk')
       .set('Authorization', `Bearer ${teacherToken}`)
@@ -1462,18 +1462,18 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'hcr-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'hcr-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'HCR Teacher' } });
     await prisma.user.create({
-      data: { identifier: 'hcr-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
+      data: { identifier: 'hcr-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
     });
 
     const parentAUser = await prisma.user.create({
-      data: { identifier: 'hcr-parent-a@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'hcr-parent-a@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const parentBUser = await prisma.user.create({
-      data: { identifier: 'hcr-parent-b@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'hcr-parent-b@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const parentAProfile = await prisma.parentProfile.create({
       data: { userId: parentAUser.id, name: 'HCR Parent A' },
@@ -1511,10 +1511,10 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         where: {
           identifier: {
             in: [
-              'hcr-teacher@seeds.edu.pk',
-              'hcr-admin@seeds.edu.pk',
-              'hcr-parent-a@seeds.edu.pk',
-              'hcr-parent-b@seeds.edu.pk',
+              'hcr-teacher@schoolos.edu.pk',
+              'hcr-admin@schoolos.edu.pk',
+              'hcr-parent-a@schoolos.edu.pk',
+              'hcr-parent-b@schoolos.edu.pk',
             ],
           },
         },
@@ -1525,7 +1525,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
 
   describe('Holidays', () => {
     it('a SCHOOL_ADMIN can create a holiday; any authenticated user (including a parent) can read it', async () => {
-      const adminToken = await loginAs('hcr-admin@seeds.edu.pk');
+      const adminToken = await loginAs('hcr-admin@schoolos.edu.pk');
 
       const created = await request(app.getHttpServer())
         .post('/api/v1/holidays')
@@ -1534,7 +1534,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         .expect(201);
       ids.holiday = created.body.id;
 
-      const parentToken = await loginAs('hcr-parent-a@seeds.edu.pk');
+      const parentToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
       const res = await request(app.getHttpServer())
         .get(`/api/v1/holidays?campusId=${ids.campus}`)
         .set('Authorization', `Bearer ${parentToken}`)
@@ -1544,7 +1544,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('a TEACHER cannot create, update, or delete a holiday', async () => {
-      const teacherToken = await loginAs('hcr-teacher@seeds.edu.pk');
+      const teacherToken = await loginAs('hcr-teacher@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .post('/api/v1/holidays')
@@ -1567,7 +1567,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
 
   describe('Complaints', () => {
     it('a TEACHER can raise a complaint for a student, and the linked parent can read it', async () => {
-      const teacherToken = await loginAs('hcr-teacher@seeds.edu.pk');
+      const teacherToken = await loginAs('hcr-teacher@schoolos.edu.pk');
 
       const created = await request(app.getHttpServer())
         .post('/api/v1/complaints')
@@ -1577,7 +1577,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
       ids.complaint = created.body.id;
       expect(created.body.status).toBe('open');
 
-      const parentAToken = await loginAs('hcr-parent-a@seeds.edu.pk');
+      const parentAToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
       const res = await request(app.getHttpServer())
         .get(`/api/v1/complaints?studentId=${ids.childA}`)
         .set('Authorization', `Bearer ${parentAToken}`)
@@ -1586,7 +1586,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it("a parent CANNOT read another parent's child's complaints", async () => {
-      const parentBToken = await loginAs('hcr-parent-b@seeds.edu.pk');
+      const parentBToken = await loginAs('hcr-parent-b@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .get(`/api/v1/complaints?studentId=${ids.childA}`)
@@ -1595,7 +1595,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('a PARENT cannot create or update a complaint — read-only for parents', async () => {
-      const parentToken = await loginAs('hcr-parent-a@seeds.edu.pk');
+      const parentToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .post('/api/v1/complaints')
@@ -1611,7 +1611,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('a SCHOOL_ADMIN can update a complaint\'s status', async () => {
-      const adminToken = await loginAs('hcr-admin@seeds.edu.pk');
+      const adminToken = await loginAs('hcr-admin@schoolos.edu.pk');
 
       const res = await request(app.getHttpServer())
         .patch(`/api/v1/complaints/${ids.complaint}`)
@@ -1625,7 +1625,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
 
   describe('Report Cards', () => {
     it('a TEACHER can upload a report card; the linked parent can list and download it', async () => {
-      const teacherToken = await loginAs('hcr-teacher@seeds.edu.pk');
+      const teacherToken = await loginAs('hcr-teacher@schoolos.edu.pk');
 
       const uploadRes = await request(app.getHttpServer())
         .post('/api/v1/report-cards')
@@ -1636,7 +1636,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         .expect(201);
       ids.reportCard = uploadRes.body.id;
 
-      const parentAToken = await loginAs('hcr-parent-a@seeds.edu.pk');
+      const parentAToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
       const listRes = await request(app.getHttpServer())
         .get(`/api/v1/report-cards?studentId=${ids.childA}`)
         .set('Authorization', `Bearer ${parentAToken}`)
@@ -1650,7 +1650,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it("a parent CANNOT download another parent's child's report card", async () => {
-      const parentBToken = await loginAs('hcr-parent-b@seeds.edu.pk');
+      const parentBToken = await loginAs('hcr-parent-b@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .get(`/api/v1/report-cards/${ids.reportCard}/pdf`)
@@ -1659,7 +1659,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('uploading a second report card for the same student+session is rejected as a conflict', async () => {
-      const teacherToken = await loginAs('hcr-teacher@seeds.edu.pk');
+      const teacherToken = await loginAs('hcr-teacher@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .post('/api/v1/report-cards')
@@ -1671,7 +1671,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('a PARENT cannot upload a report card', async () => {
-      const parentToken = await loginAs('hcr-parent-a@seeds.edu.pk');
+      const parentToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .post('/api/v1/report-cards')
@@ -1723,7 +1723,7 @@ describe('Forgot/Reset Password (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   const originalPassword = 'OriginalHorseBattery9!';
-  const userIdentifier = 'apr-user@seeds.edu.pk';
+  const userIdentifier = 'apr-user@schoolos.edu.pk';
   let userId: string;
 
   beforeAll(async () => {
@@ -1756,7 +1756,7 @@ describe('Forgot/Reset Password (e2e)', () => {
       .expect(201);
     const unknown = await request(app.getHttpServer())
       .post('/api/v1/auth/forgot-password')
-      .send({ identifier: 'nobody-at-all@seeds.edu.pk' })
+      .send({ identifier: 'nobody-at-all@schoolos.edu.pk' })
       .expect(201);
 
     expect(known.body.message).toEqual(unknown.body.message);
@@ -1848,4 +1848,4 @@ git commit -m "test(backend): add forgot/reset-password e2e coverage"
 
 - [ ] Run the full backend suite: `cd backend && npm run lint && npm run build && npm test && npm run test:e2e` — all must be clean/green.
 - [ ] Update `PROJECT-STATUS.md`: replace the Sprint I/J/K "Known gap" bullet (the one starting "none of the five new backend modules... have their own spec file") with a note that this plan closed it, listing the new spec file paths and the final test counts (unit + e2e), following this doc's own established format for a sprint close-out entry.
-- [ ] Update the roadmap's Implementation Checklist (`docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`) is NOT required — this work backfills existing shipped features' test coverage, it does not close a new roadmap sprint item.
+- [ ] Update the roadmap's Implementation Checklist (`docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`) is NOT required — this work backfills existing shipped features' test coverage, it does not close a new roadmap sprint item.

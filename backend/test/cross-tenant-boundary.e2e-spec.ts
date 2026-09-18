@@ -63,7 +63,7 @@ describe('Cross-tenant boundary (e2e)', () => {
     });
     const sectionA = await prisma.section.create({ data: { classId: classA.id, name: 'CTB-A' } });
     const teacherAUser = await prisma.user.create({
-      data: { identifier: 'ctb-teacher-a@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'ctb-teacher-a@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     await prisma.teacher.create({ data: { userId: teacherAUser.id, name: 'CTB Teacher A', campusId: campusA.id } });
 
@@ -78,14 +78,14 @@ describe('Cross-tenant boundary (e2e)', () => {
     });
     const sectionB = await prisma.section.create({ data: { classId: classB.id, name: 'CTB-B' } });
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'ctb-teacher-b@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'ctb-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     await prisma.teacher.create({ data: { userId: teacherBUser.id, name: 'CTB Teacher B', campusId: campusB.id } });
 
     // --- School A's staff: SCHOOL_ADMIN and ACCOUNTS, both scoped to School A ---
     const schoolAdminUser = await prisma.user.create({
       data: {
-        identifier: 'ctb-school-admin@seeds.edu.pk',
+        identifier: 'ctb-school-admin@schoolos.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
         schoolId: schoolA.id,
@@ -93,7 +93,7 @@ describe('Cross-tenant boundary (e2e)', () => {
     });
     const accountsUser = await prisma.user.create({
       data: {
-        identifier: 'ctb-accounts@seeds.edu.pk',
+        identifier: 'ctb-accounts@schoolos.edu.pk',
         passwordHash,
         role: 'ACCOUNTS',
         schoolId: schoolA.id,
@@ -145,7 +145,7 @@ describe('Cross-tenant boundary (e2e)', () => {
   });
 
   it("a SCHOOL_ADMIN reads their own school's student attendance (200)", async () => {
-    const token = await loginAs('ctb-school-admin@seeds.edu.pk');
+    const token = await loginAs('ctb-school-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.studentA}/attendance`)
@@ -154,7 +154,7 @@ describe('Cross-tenant boundary (e2e)', () => {
   });
 
   it("a SCHOOL_ADMIN is denied another school's student attendance (403) — the real cross-tenant proof", async () => {
-    const token = await loginAs('ctb-school-admin@seeds.edu.pk');
+    const token = await loginAs('ctb-school-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.studentB}/attendance`)
@@ -163,7 +163,7 @@ describe('Cross-tenant boundary (e2e)', () => {
   });
 
   it("an ACCOUNTS user reads their own school's student attendance (200)", async () => {
-    const token = await loginAs('ctb-accounts@seeds.edu.pk');
+    const token = await loginAs('ctb-accounts@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.studentA}/attendance`)
@@ -172,7 +172,7 @@ describe('Cross-tenant boundary (e2e)', () => {
   });
 
   it("an ACCOUNTS user is denied another school's student attendance (403)", async () => {
-    const token = await loginAs('ctb-accounts@seeds.edu.pk');
+    const token = await loginAs('ctb-accounts@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.studentB}/attendance`)
@@ -181,7 +181,7 @@ describe('Cross-tenant boundary (e2e)', () => {
   });
 
   it('GET /api/v1/campuses as a SCHOOL_ADMIN returns only their own school campus(es), never another tenant\'s', async () => {
-    const token = await loginAs('ctb-school-admin@seeds.edu.pk');
+    const token = await loginAs('ctb-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get('/api/v1/campuses')
@@ -194,13 +194,13 @@ describe('Cross-tenant boundary (e2e)', () => {
   });
 
   it('a SCHOOL_ADMIN creating a teacher in another school\'s campus is rejected (403)', async () => {
-    const token = await loginAs('ctb-school-admin@seeds.edu.pk');
+    const token = await loginAs('ctb-school-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        identifier: 'ctb-cross-tenant-teacher@seeds.edu.pk',
+        identifier: 'ctb-cross-tenant-teacher@schoolos.edu.pk',
         password,
         name: 'Should Not Be Created',
         campusId: ids.campusB,

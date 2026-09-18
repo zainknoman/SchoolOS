@@ -63,18 +63,18 @@ describe('Fees (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const adminUser = await prisma.user.create({
-      data: { identifier: 'fee-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
+      data: { identifier: 'fee-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
     });
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'fee-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'fee-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'FEE Teacher', campusId: campus.id } });
 
     const parentAUser = await prisma.user.create({
-      data: { identifier: 'fee-parent-a@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'fee-parent-a@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const parentBUser = await prisma.user.create({
-      data: { identifier: 'fee-parent-b@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'fee-parent-b@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const parentAProfile = await prisma.parentProfile.create({
       data: { userId: parentAUser.id, name: 'FEE Parent A' },
@@ -122,7 +122,7 @@ describe('Fees (e2e)', () => {
       .deleteMany({
         where: {
           identifier: {
-            in: ['fee-admin@seeds.edu.pk', 'fee-teacher@seeds.edu.pk', 'fee-parent-a@seeds.edu.pk', 'fee-parent-b@seeds.edu.pk'],
+            in: ['fee-admin@schoolos.edu.pk', 'fee-teacher@schoolos.edu.pk', 'fee-parent-a@schoolos.edu.pk', 'fee-parent-b@schoolos.edu.pk'],
           },
         },
       })
@@ -131,7 +131,7 @@ describe('Fees (e2e)', () => {
   });
 
   it('a TEACHER cannot issue vouchers — issuance is Admin/Accounts only', async () => {
-    const teacherToken = await loginAs('fee-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('fee-teacher@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/fee-vouchers')
@@ -141,7 +141,7 @@ describe('Fees (e2e)', () => {
   });
 
   it('an admin issues a voucher, a second issue for the same student+month is rejected, and the owning parent sees a server-computed amountDue', async () => {
-    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const adminToken = await loginAs('fee-admin@schoolos.edu.pk');
 
     const issued = await request(app.getHttpServer())
       .post('/api/v1/fee-vouchers')
@@ -156,7 +156,7 @@ describe('Fees (e2e)', () => {
       .send({ studentIds: [ids.childA], month: '2026-09', dueDate: '2026-09-25', feeStructureIds: [ids.structure] })
       .expect(400);
 
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
     const fees = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/fees`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -167,7 +167,7 @@ describe('Fees (e2e)', () => {
       ]),
     );
 
-    const parentBToken = await loginAs('fee-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('fee-parent-b@schoolos.edu.pk');
     await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childB}/fees`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -180,7 +180,7 @@ describe('Fees (e2e)', () => {
   });
 
   it("a parent cannot pay another parent's child's voucher", async () => {
-    const parentBToken = await loginAs('fee-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('fee-parent-b@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${ids.voucher}/pay`)
@@ -190,7 +190,7 @@ describe('Fees (e2e)', () => {
   });
 
   it('a parent pays a voucher end-to-end via the stub gateway webhook, and can then download the receipt PDF', async () => {
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
 
     const initiated = await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${ids.voucher}/pay`)
@@ -229,7 +229,7 @@ describe('Fees (e2e)', () => {
   });
 
   it('a repeated webhook call for an already-completed payment is a no-op', async () => {
-    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const adminToken = await loginAs('fee-admin@schoolos.edu.pk');
     const issued = await request(app.getHttpServer())
       .post('/api/v1/fee-vouchers')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -237,7 +237,7 @@ describe('Fees (e2e)', () => {
       .expect(201);
     const voucherId = issued.body[0].id;
 
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
     const initiated = await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${voucherId}/pay`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -265,7 +265,7 @@ describe('Fees (e2e)', () => {
   });
 
   it('an unsigned webhook call is rejected and does not mutate payment state', async () => {
-    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const adminToken = await loginAs('fee-admin@schoolos.edu.pk');
     const issued = await request(app.getHttpServer())
       .post('/api/v1/fee-vouchers')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -273,7 +273,7 @@ describe('Fees (e2e)', () => {
       .expect(201);
     const voucherId = issued.body[0].id;
 
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
     const initiated = await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${voucherId}/pay`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -295,7 +295,7 @@ describe('Fees (e2e)', () => {
   });
 
   it('the old client-callable confirm route no longer exists', async () => {
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post('/api/v1/fee-payments/some-id/confirm')
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -303,7 +303,7 @@ describe('Fees (e2e)', () => {
   });
 
   it('staff records a cash payment against a voucher, and it appears completed with a receipt', async () => {
-    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const adminToken = await loginAs('fee-admin@schoolos.edu.pk');
     const issued = await request(app.getHttpServer())
       .post('/api/v1/fee-vouchers')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -318,7 +318,7 @@ describe('Fees (e2e)', () => {
       .expect(201);
     expect(reconciled.body).toEqual(expect.objectContaining({ status: 'completed', method: 'cash' }));
 
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
     const fees = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/fees`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -329,7 +329,7 @@ describe('Fees (e2e)', () => {
   });
 
   it("reconciling more than a voucher's remaining balance is rejected", async () => {
-    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const adminToken = await loginAs('fee-admin@schoolos.edu.pk');
     const issued = await request(app.getHttpServer())
       .post('/api/v1/fee-vouchers')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -345,7 +345,7 @@ describe('Fees (e2e)', () => {
   });
 
   it('a TEACHER cannot reconcile a payment', async () => {
-    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const adminToken = await loginAs('fee-admin@schoolos.edu.pk');
     const issued = await request(app.getHttpServer())
       .post('/api/v1/fee-vouchers')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -353,7 +353,7 @@ describe('Fees (e2e)', () => {
       .expect(201);
     const voucherId = issued.body[0].id;
 
-    const teacherToken = await loginAs('fee-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('fee-teacher@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${voucherId}/reconcile`)
       .set('Authorization', `Bearer ${teacherToken}`)
@@ -362,7 +362,7 @@ describe('Fees (e2e)', () => {
   });
 
   it('a voucher PDF is downloadable by the owning parent via the ?access_token= fallback', async () => {
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get(`/api/v1/fee-vouchers/${ids.voucher}/pdf?access_token=${parentAToken}`)

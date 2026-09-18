@@ -56,10 +56,10 @@ describe('People CRUD (e2e)', () => {
     const passwordHash = await argon2.hash(password);
     const school = await prisma.school.create({ data: { name: 'PC E2E School' } });
     const schoolAdminUser = await prisma.user.create({
-      data: { identifier: 'pc-school-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
+      data: { identifier: 'pc-school-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
     });
     const parentUser = await prisma.user.create({
-      data: { identifier: 'pc-non-admin-parent@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'pc-non-admin-parent@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
 
     const campus = await prisma.campus.create({ data: { schoolId: school.id, name: 'Main' } });
@@ -89,17 +89,17 @@ describe('People CRUD (e2e)', () => {
   });
 
   it('a PARENT (not SCHOOL_ADMIN/SUPER_ADMIN) is blocked from every write route in this plan', async () => {
-    const parentToken = await loginAs('pc-non-admin-parent@seeds.edu.pk');
+    const parentToken = await loginAs('pc-non-admin-parent@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${parentToken}`)
-      .send({ identifier: 'blocked@seeds.edu.pk', password, name: 'Blocked' })
+      .send({ identifier: 'blocked@schoolos.edu.pk', password, name: 'Blocked' })
       .expect(403);
     await request(app.getHttpServer())
       .post('/api/v1/admin/parents')
       .set('Authorization', `Bearer ${parentToken}`)
-      .send({ identifier: 'blocked2@seeds.edu.pk', password, name: 'Blocked' })
+      .send({ identifier: 'blocked2@schoolos.edu.pk', password, name: 'Blocked' })
       .expect(403);
     await request(app.getHttpServer())
       .post('/api/v1/admin/students')
@@ -109,36 +109,36 @@ describe('People CRUD (e2e)', () => {
   });
 
   it('a SCHOOL_ADMIN can create a Teacher, and that Teacher can immediately log in with the password just set', async () => {
-    const adminToken = await loginAs('pc-school-admin@seeds.edu.pk');
+    const adminToken = await loginAs('pc-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-teacher@seeds.edu.pk', password: 'BrandNewPass1!', name: 'PC Teacher', campusId: ids.campus })
+      .send({ identifier: 'pc-new-teacher@schoolos.edu.pk', password: 'BrandNewPass1!', name: 'PC Teacher', campusId: ids.campus })
       .expect(201);
     ids.teacher = res.body.id;
-    expect(res.body).toEqual({ id: ids.teacher, identifier: 'pc-new-teacher@seeds.edu.pk', name: 'PC Teacher' });
+    expect(res.body).toEqual({ id: ids.teacher, identifier: 'pc-new-teacher@schoolos.edu.pk', name: 'PC Teacher' });
 
-    await loginAs('pc-new-teacher@seeds.edu.pk', 'BrandNewPass1!');
+    await loginAs('pc-new-teacher@schoolos.edu.pk', 'BrandNewPass1!');
   });
 
   it('creating a Teacher with an identifier already in use is rejected with a 400, not a 500', async () => {
-    const adminToken = await loginAs('pc-school-admin@seeds.edu.pk');
+    const adminToken = await loginAs('pc-school-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-teacher@seeds.edu.pk', password: 'AnotherPass1!', name: 'Duplicate', campusId: ids.campus })
+      .send({ identifier: 'pc-new-teacher@schoolos.edu.pk', password: 'AnotherPass1!', name: 'Duplicate', campusId: ids.campus })
       .expect(400);
   });
 
   it('deleting a Teacher who has marked attendance is blocked with a 400, real DB constraint', async () => {
-    const adminToken = await loginAs('pc-school-admin@seeds.edu.pk');
+    const adminToken = await loginAs('pc-school-admin@schoolos.edu.pk');
 
     const parentRes = await request(app.getHttpServer())
       .post('/api/v1/admin/parents')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-parent@seeds.edu.pk', password: 'ParentPass1!', name: 'PC Parent' })
+      .send({ identifier: 'pc-new-parent@schoolos.edu.pk', password: 'ParentPass1!', name: 'PC Parent' })
       .expect(201);
     ids.parentProfile = parentRes.body.id;
 
@@ -164,7 +164,7 @@ describe('People CRUD (e2e)', () => {
   });
 
   it('creating a Student with a brand-new parent works end to end, and that parent can log in', async () => {
-    const adminToken = await loginAs('pc-school-admin@seeds.edu.pk');
+    const adminToken = await loginAs('pc-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/admin/students')
@@ -173,12 +173,12 @@ describe('People CRUD (e2e)', () => {
         grNumber: 'PC-1002',
         name: 'PC Student Two',
         sectionId: ids.section,
-        newParent: { identifier: 'pc-inline-parent@seeds.edu.pk', password: 'InlineParent1!', name: 'Inline Parent' },
+        newParent: { identifier: 'pc-inline-parent@schoolos.edu.pk', password: 'InlineParent1!', name: 'Inline Parent' },
       })
       .expect(201);
 
     expect(res.body.parentNames).toEqual(['Inline Parent']);
-    await loginAs('pc-inline-parent@seeds.edu.pk', 'InlineParent1!');
+    await loginAs('pc-inline-parent@schoolos.edu.pk', 'InlineParent1!');
 
     await request(app.getHttpServer())
       .delete(`/api/v1/admin/students/${res.body.id}`)

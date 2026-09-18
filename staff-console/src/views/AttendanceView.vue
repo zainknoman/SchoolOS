@@ -369,7 +369,7 @@ select {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   min-width: 6rem;

@@ -8,7 +8,7 @@ describe('LocalDiskStorageAdapter', () => {
   let adapter: LocalDiskStorageAdapter;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'seeds-storage-'));
+    dir = mkdtempSync(join(tmpdir(), 'schoolos-storage-'));
     process.env.UPLOADS_DIR = dir;
     adapter = new LocalDiskStorageAdapter();
   });

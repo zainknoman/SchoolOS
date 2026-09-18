@@ -150,7 +150,7 @@ matches each teacher's existing section assignment exactly.)
 ```ts
 const adminUser = await prisma.user.create({
   data: {
-    identifier: 'admin@seeds.edu.pk',
+    identifier: 'admin@schoolos.edu.pk',
     passwordHash: await argon2.hash('ChangeMe123!'),
     role: 'SCHOOL_ADMIN',
     schoolId: school.id,
@@ -159,7 +159,7 @@ const adminUser = await prisma.user.create({
 
 const accountsUser = await prisma.user.create({
   data: {
-    identifier: 'accounts@seeds.edu.pk',
+    identifier: 'accounts@schoolos.edu.pk',
     passwordHash: await argon2.hash('ChangeMe123!'),
     role: 'ACCOUNTS',
     schoolId: school.id,
@@ -174,7 +174,7 @@ unrestricted-within-role" fail-closed rule, `principalUser` needs `schoolId` too
 ```ts
 const principalUser = await prisma.user.create({
   data: {
-    identifier: 'principal@seeds.edu.pk',
+    identifier: 'principal@schoolos.edu.pk',
     passwordHash: await argon2.hash('ChangeMe123!'),
     role: 'SCHOOL_ADMIN',
     isPrincipal: true,
@@ -307,17 +307,17 @@ test's body (it must now pass `campusId` and assert it's forwarded):
 
 ```ts
   it('creates a Teacher (User + Teacher) with a campus assignment, audit-logged without leaking the password', async () => {
-    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'teacher-x@seeds.edu.pk' });
+    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'teacher-x@schoolos.edu.pk' });
     tx.teacher.create.mockResolvedValue({ id: 't1', name: 'New Teacher' });
 
     const result = await service.create(
-      { identifier: 'teacher-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-1' },
+      { identifier: 'teacher-x@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-1' },
       'admin-1',
     );
 
-    expect(result).toEqual({ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' });
+    expect(result).toEqual({ id: 't1', identifier: 'teacher-x@schoolos.edu.pk', name: 'New Teacher' });
     expect(tx.user.create).toHaveBeenCalledWith({
-      data: { identifier: 'teacher-x@seeds.edu.pk', passwordHash: 'hashed-password', role: 'TEACHER' },
+      data: { identifier: 'teacher-x@schoolos.edu.pk', passwordHash: 'hashed-password', role: 'TEACHER' },
     });
     expect(tx.teacher.create).toHaveBeenCalledWith({
       data: { userId: 'u1', name: 'New Teacher', campusId: 'campus-1' },
@@ -871,7 +871,7 @@ after the existing `teacher`/`teacherUser` creation (around line 113):
     });
     const teacherBUser = await prisma.user.create({
       data: {
-        identifier: 'tta-teacher-b@seeds.edu.pk',
+        identifier: 'tta-teacher-b@schoolos.edu.pk',
         passwordHash,
         role: 'TEACHER',
       },
@@ -882,7 +882,7 @@ after the existing `teacher`/`teacherUser` creation (around line 113):
 ```
 
 Add `campusB: campusB.id, teacherB: teacherB.id` to the existing `Object.assign(ids, {...})` call.
-Add `'tta-teacher-b@seeds.edu.pk'` to the `afterAll`'s `prisma.user.deleteMany({ where: { identifier:
+Add `'tta-teacher-b@schoolos.edu.pk'` to the `afterAll`'s `prisma.user.deleteMany({ where: { identifier:
 { in: [...] } } })` list (Campus cascades from School's delete, so `campusB` needs no separate
 cleanup).
 
@@ -890,7 +890,7 @@ Then add the new tests, using the file's existing `loginAs()` helper:
 
 ```ts
   it('denies a teacher reading another campus section\'s attendance roster', async () => {
-    const token = await loginAs('tta-teacher-b@seeds.edu.pk');
+    const token = await loginAs('tta-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .get(`/api/v1/sections/${ids.section}/attendance`)
       .set('Authorization', `Bearer ${token}`);
@@ -898,7 +898,7 @@ Then add the new tests, using the file's existing `loginAs()` helper:
   });
 
   it('denies a teacher marking attendance for a student outside their campus', async () => {
-    const token = await loginAs('tta-teacher-b@seeds.edu.pk');
+    const token = await loginAs('tta-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/attendance')
       .set('Authorization', `Bearer ${token}`)
@@ -907,7 +907,7 @@ Then add the new tests, using the file's existing `loginAs()` helper:
   });
 
   it('denies a bulk-attendance call when any mark targets a student outside the caller\'s campus', async () => {
-    const token = await loginAs('tta-teacher-b@seeds.edu.pk');
+    const token = await loginAs('tta-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/attendance/bulk')
       .set('Authorization', `Bearer ${token}`)
@@ -1011,7 +1011,7 @@ teacher, same pattern as Task 5, right after the existing `teacher` creation (li
       data: { schoolId: school.id, name: 'DC Campus B' },
     });
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'dc-teacher-b@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'dc-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     const teacherB = await prisma.teacher.create({
       data: { userId: teacherBUser.id, name: 'DC Teacher B', campusId: campusB.id },
@@ -1028,14 +1028,14 @@ Also fix the existing `teacher` creation two lines above to satisfy the now-requ
     });
 ```
 
-Add `'dc-teacher-b@seeds.edu.pk'` to the `afterAll`'s teardown identifier list (mirror however the
-existing `'dc-teacher@seeds.edu.pk'` entry is deleted there).
+Add `'dc-teacher-b@schoolos.edu.pk'` to the `afterAll`'s teardown identifier list (mirror however the
+existing `'dc-teacher@schoolos.edu.pk'` entry is deleted there).
 
 Then add the new tests:
 
 ```ts
   it('denies a teacher creating a diary entry for a section outside their campus', async () => {
-    const token = await loginAs('dc-teacher-b@seeds.edu.pk');
+    const token = await loginAs('dc-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/diary')
       .set('Authorization', `Bearer ${token}`)
@@ -1044,7 +1044,7 @@ Then add the new tests:
   });
 
   it('denies a teacher reading another campus section\'s diary', async () => {
-    const token = await loginAs('dc-teacher-b@seeds.edu.pk');
+    const token = await loginAs('dc-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .get(`/api/v1/sections/${ids.sectionA}/diary`)
       .query({ month: '2026-09' })
@@ -1119,7 +1119,7 @@ git commit -m "fix(backend): enforce campus scoping on diary create/section-read
 - [ ] **Step 1: Write the failing e2e test**
 
 Add the same second-campus/teacher fixture used in Tasks 5/6 to this file's `beforeAll` (right after
-the existing `hcr-teacher@seeds.edu.pk` teacher creation at line 97-99), and fix that existing call for
+the existing `hcr-teacher@schoolos.edu.pk` teacher creation at line 97-99), and fix that existing call for
 the now-required `campusId`:
 
 ```ts
@@ -1130,18 +1130,18 @@ the now-required `campusId`:
       data: { schoolId: school.id, name: 'HCR Campus B' },
     });
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'hcr-teacher-b@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'hcr-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     await prisma.teacher.create({
       data: { userId: teacherBUser.id, name: 'HCR Teacher B', campusId: campusB.id },
     });
 ```
 
-Add `'hcr-teacher-b@seeds.edu.pk'` to this file's `afterAll` teardown identifier list. Then:
+Add `'hcr-teacher-b@schoolos.edu.pk'` to this file's `afterAll` teardown identifier list. Then:
 
 ```ts
   it('denies a teacher raising a complaint about a student outside their campus', async () => {
-    const token = await loginAs('hcr-teacher-b@seeds.edu.pk');
+    const token = await loginAs('hcr-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/complaints')
       .set('Authorization', `Bearer ${token}`)
@@ -1198,14 +1198,14 @@ git commit -m "fix(backend): enforce campus/tenant scoping on complaint creation
 
 - [ ] **Step 1: Write the failing e2e test**
 
-Reuses the `hcr-teacher-b@seeds.edu.pk` fixture Task 7 already added to this same file — no new
+Reuses the `hcr-teacher-b@schoolos.edu.pk` fixture Task 7 already added to this same file — no new
 fixture setup needed here, just the test (requires `supertest`'s `.field()`/`.attach()` for the
 multipart upload, matching whatever this file's existing report-card upload test already uses for
 that — copy its exact `.attach()` call shape):
 
 ```ts
   it('denies a teacher uploading a report card for a student outside their campus', async () => {
-    const token = await loginAs('hcr-teacher-b@seeds.edu.pk');
+    const token = await loginAs('hcr-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/report-cards')
       .set('Authorization', `Bearer ${token}`)
@@ -1318,13 +1318,13 @@ describe('Sections cross-campus access (e2e)', () => {
 
     const passwordHash = await argon2.hash('ChangeMe123!');
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'sa-teacher-b@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'sa-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     await prisma.teacher.create({ data: { userId: teacherBUser.id, name: 'SA Teacher B', campusId: campusBId } });
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ identifier: 'sa-teacher-b@seeds.edu.pk', password: 'ChangeMe123!' });
+      .send({ identifier: 'sa-teacher-b@schoolos.edu.pk', password: 'ChangeMe123!' });
     teacherBToken = loginRes.body.accessToken;
   });
 
@@ -1491,7 +1491,7 @@ New test:
     await flushPromises();
 
     await wrapper.get('[data-testid="open-add-form"]').trigger('click');
-    await wrapper.get('[data-testid="add-identifier"]').setValue('new-teacher@seeds.edu.pk');
+    await wrapper.get('[data-testid="add-identifier"]').setValue('new-teacher@schoolos.edu.pk');
     await wrapper.get('[data-testid="add-password"]').setValue('ChangeMe123!');
     await wrapper.get('[data-testid="add-name"]').setValue('New Teacher');
     await wrapper.get('[data-testid="add-campus"]').setValue('campus-1');
@@ -1499,7 +1499,7 @@ New test:
     await flushPromises();
 
     expect(api.createTeacher).toHaveBeenCalledWith('token-1', {
-      identifier: 'new-teacher@seeds.edu.pk',
+      identifier: 'new-teacher@schoolos.edu.pk',
       password: 'ChangeMe123!',
       name: 'New Teacher',
       campusId: 'campus-1',
@@ -1635,7 +1635,7 @@ git commit -m "feat(staff-console): require a campus selection when adding a tea
 
 **Files:**
 - Modify: `build/PROJECT-STATUS.md`
-- Modify: `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` (check off Sprint L)
+- Modify: `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md` (check off Sprint L)
 - Modify: `build/MASTER-PROMPT-TRACKER.md` (update the Sprint L row)
 
 - [ ] **Step 1: Run everything**
@@ -1659,7 +1659,7 @@ coverage), the verified test counts from Step 1, and an explicit note that this 
 
 - [ ] **Step 3: Check off Sprint L in the roadmap doc**
 
-In `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s Implementation Checklist, change
+In `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`'s Implementation Checklist, change
 Sprint L's `- [ ]` to `- [x]`, add the merge commit range and date, and note the scope grew mid-sprint
 to include tenant (`schoolId`) scoping per the user's explicit direction (not just campus scoping as
 originally spec'd) — mirroring how other sprints in that file document scope changes found during

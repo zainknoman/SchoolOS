@@ -144,8 +144,8 @@ describe('ConversationsService', () => {
         id: 'conv-1',
         recipientType: 'CLASS_TEACHER',
         studentId: 'student-1',
-        parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
-        staffUser: { identifier: 'teacher@seeds.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+        parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
+        staffUser: { identifier: 'teacher@schoolos.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
         parentReadAt: new Date('2026-08-01T00:00:00.000Z'),
         staffReadAt: null,
         lastMessageAt: new Date('2026-08-02T00:00:00.000Z'),
@@ -172,8 +172,8 @@ describe('ConversationsService', () => {
         id: 'conv-1',
         recipientType: 'CLASS_TEACHER',
         studentId: 'student-1',
-        parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
-        staffUser: { identifier: 'teacher@seeds.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+        parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
+        staffUser: { identifier: 'teacher@schoolos.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
         parentReadAt: new Date(),
         staffReadAt: new Date(),
         lastMessageAt: new Date('2026-08-02T00:00:00.000Z'),
@@ -237,8 +237,8 @@ describe('ConversationsService', () => {
       recipientType: 'CLASS_TEACHER',
       studentId: 'student-1',
       messages: [],
-      parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
-      staffUser: { identifier: 'teacher@seeds.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+      parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
+      staffUser: { identifier: 'teacher@schoolos.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
     });
 
     await expect(
@@ -262,8 +262,8 @@ describe('ConversationsService', () => {
         { id: 'm1', senderId: 'parent-1', body: 'Hi', createdAt: new Date('2026-08-29T00:00:00.000Z') },
         { id: 'm2', senderId: 'teacher-user-1', body: 'Sure', createdAt: new Date('2026-08-29T01:00:00.000Z') },
       ],
-      parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
-      staffUser: { identifier: 'teacher@seeds.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+      parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
+      staffUser: { identifier: 'teacher@schoolos.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
     });
 
     const result = await service.getById('conv-1', { id: 'parent-1', role: 'PARENT' });
@@ -284,14 +284,14 @@ describe('ConversationsService', () => {
       messages: [
         { id: 'm1', senderId: 'admin-user-1', body: 'Hi', createdAt: new Date('2026-08-29T00:00:00.000Z') },
       ],
-      parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
-      staffUser: { identifier: 'admin@seeds.edu.pk', teacher: null },
+      parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
+      staffUser: { identifier: 'admin@schoolos.edu.pk', teacher: null },
     });
 
     const result = await service.getById('conv-1', { id: 'parent-1', role: 'PARENT' });
 
     expect(result.messages[0]).toEqual(
-      expect.objectContaining({ senderName: 'admin@seeds.edu.pk' }),
+      expect.objectContaining({ senderName: 'admin@schoolos.edu.pk' }),
     );
   });
 });

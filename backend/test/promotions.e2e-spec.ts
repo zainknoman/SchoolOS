@@ -115,7 +115,7 @@ describe('Promotions (e2e)', () => {
 
     const schoolAdminUser = await prisma.user.create({
       data: {
-        identifier: 'promo-school-admin@seeds.edu.pk',
+        identifier: 'promo-school-admin@schoolos.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
         schoolId: schoolA.id,
@@ -163,7 +163,7 @@ describe('Promotions (e2e)', () => {
     });
     const schoolAdminBUser = await prisma.user.create({
       data: {
-        identifier: 'promo-school-admin-b@seeds.edu.pk',
+        identifier: 'promo-school-admin-b@schoolos.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
         schoolId: schoolB.id,
@@ -211,7 +211,7 @@ describe('Promotions (e2e)', () => {
   });
 
   it('GET /api/v1/promotions/preview returns the seeded ACTIVE student suggested as PROMOTED', async () => {
-    const token = await loginAs('promo-school-admin@seeds.edu.pk');
+    const token = await loginAs('promo-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get(`/api/v1/promotions/preview?sourceSectionId=${ids.sourceSection}`)
@@ -230,7 +230,7 @@ describe('Promotions (e2e)', () => {
   });
 
   it('POST /api/v1/promotions/execute promotes the student into the target session, closing the old enrollment and opening a new ACTIVE one', async () => {
-    const token = await loginAs('promo-school-admin@seeds.edu.pk');
+    const token = await loginAs('promo-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/promotions/execute')
@@ -288,7 +288,7 @@ describe('Promotions (e2e)', () => {
   });
 
   it('re-running the exact same execute call 400s (no ACTIVE enrollment left in the source session) and writes no duplicate rows', async () => {
-    const token = await loginAs('promo-school-admin@seeds.edu.pk');
+    const token = await loginAs('promo-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/promotions/execute')
@@ -322,7 +322,7 @@ describe('Promotions (e2e)', () => {
   });
 
   it('GET /api/v1/admin/students/:studentId/promotion-history returns exactly one PROMOTED row with from/to labels populated', async () => {
-    const token = await loginAs('promo-school-admin@seeds.edu.pk');
+    const token = await loginAs('promo-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get(`/api/v1/admin/students/${ids.student}/promotion-history`)
@@ -346,7 +346,7 @@ describe('Promotions (e2e)', () => {
   });
 
   it("a SCHOOL_ADMIN from another school is denied previewing the first school's section (403)", async () => {
-    const tokenB = await loginAs('promo-school-admin-b@seeds.edu.pk');
+    const tokenB = await loginAs('promo-school-admin-b@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .get(`/api/v1/promotions/preview?sourceSectionId=${ids.sourceSection}`)
@@ -355,7 +355,7 @@ describe('Promotions (e2e)', () => {
   });
 
   it("a SCHOOL_ADMIN from another school is denied executing a promotion for the first school's student (403)", async () => {
-    const tokenB = await loginAs('promo-school-admin-b@seeds.edu.pk');
+    const tokenB = await loginAs('promo-school-admin-b@schoolos.edu.pk');
 
     // The student's current ACTIVE enrollment (post earlier tests) is in `targetSession` — use
     // that as the (correct) source so the request fails on the cross-tenant check, not on an

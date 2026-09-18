@@ -22,14 +22,14 @@ vi.mock('../lib/useConfirm', () => ({
 
 const FULL_SCHOOL = {
   id: 's1',
-  name: 'The Seeds School',
+  name: 'The SchoolOS School',
   code: 'TSS',
   registrationNumber: 'REG-001',
-  website: 'https://seeds.edu.pk',
+  website: 'https://schoolos.edu.pk',
   logoFileId: 'file-logo-1',
   principalName: 'Dr. Amina Khan',
   principalPhone: '021-555-0001',
-  principalEmail: 'principal@seeds.edu.pk',
+  principalEmail: 'principal@schoolos.edu.pk',
   establishedDate: '1998-04-01',
   schoolType: 'K-12',
   educationBoard: 'Cambridge',
@@ -40,7 +40,7 @@ const FULL_SCHOOL = {
   addressId: null,
   address: '1 Main Rd',
   phone: '021-111',
-  email: 'info@seeds.edu.pk',
+  email: 'info@schoolos.edu.pk',
   campusCount: 2,
   studentCount: 120,
   staffCount: 15,
@@ -61,7 +61,7 @@ describe('SchoolManagementView', () => {
     const wrapper = mount(SchoolManagementView);
     await flushPromises();
 
-    expect(wrapper.text()).toContain('The Seeds School');
+    expect(wrapper.text()).toContain('The SchoolOS School');
     expect(wrapper.text()).toContain('TSS');
     expect(wrapper.text()).toContain('Active');
     expect(wrapper.text()).toContain('1 Main Rd');
@@ -86,7 +86,7 @@ describe('SchoolManagementView', () => {
     await wrapper.find('[data-testid="field-address"]').setValue('2 Second Rd');
     await wrapper.find('[data-testid="field-phone"]').setValue('021-222');
     await wrapper.find('[data-testid="field-alternate-phone"]').setValue('021-223');
-    await wrapper.find('[data-testid="field-email"]').setValue('second@seeds.edu.pk');
+    await wrapper.find('[data-testid="field-email"]').setValue('second@schoolos.edu.pk');
     await wrapper.find('[data-testid="field-website"]').setValue('https://second.edu.pk');
     await wrapper.find('[data-testid="field-principal-name"]').setValue('Mr. Bilal');
     await wrapper.find('[data-testid="field-principal-phone"]').setValue('021-224');
@@ -119,7 +119,7 @@ describe('SchoolManagementView', () => {
       alternatePhone: '021-223',
       address: '2 Second Rd',
       phone: '021-222',
-      email: 'second@seeds.edu.pk',
+      email: 'second@schoolos.edu.pk',
     });
     expect(api.listSchools).toHaveBeenCalledTimes(2);
     expect(wrapper.find('[data-testid="field-name"]').exists()).toBe(false);
@@ -160,14 +160,14 @@ describe('SchoolManagementView', () => {
 
     await wrapper.find('[data-testid="edit-s1"]').trigger('click');
 
-    expect((wrapper.find('[data-testid="field-name"]').element as HTMLInputElement).value).toBe('The Seeds School');
+    expect((wrapper.find('[data-testid="field-name"]').element as HTMLInputElement).value).toBe('The SchoolOS School');
     expect((wrapper.find('[data-testid="field-code"]').element as HTMLInputElement).value).toBe('TSS');
     expect((wrapper.find('[data-testid="field-status"]').element as HTMLSelectElement).value).toBe('ACTIVE');
     expect((wrapper.find('[data-testid="field-address"]').element as HTMLInputElement).value).toBe('1 Main Rd');
     expect((wrapper.find('[data-testid="field-phone"]').element as HTMLInputElement).value).toBe('021-111');
     expect((wrapper.find('[data-testid="field-alternate-phone"]').element as HTMLInputElement).value).toBe('021-111-9999');
-    expect((wrapper.find('[data-testid="field-email"]').element as HTMLInputElement).value).toBe('info@seeds.edu.pk');
-    expect((wrapper.find('[data-testid="field-website"]').element as HTMLInputElement).value).toBe('https://seeds.edu.pk');
+    expect((wrapper.find('[data-testid="field-email"]').element as HTMLInputElement).value).toBe('info@schoolos.edu.pk');
+    expect((wrapper.find('[data-testid="field-website"]').element as HTMLInputElement).value).toBe('https://schoolos.edu.pk');
     expect((wrapper.find('[data-testid="field-principal-name"]').element as HTMLInputElement).value).toBe('Dr. Amina Khan');
     expect((wrapper.find('[data-testid="field-registration-number"]').element as HTMLInputElement).value).toBe('REG-001');
     expect((wrapper.find('[data-testid="field-established-date"]').element as HTMLInputElement).value).toBe('1998-04-01');
@@ -184,11 +184,11 @@ describe('SchoolManagementView', () => {
       name: 'Renamed School',
       code: 'TSS',
       registrationNumber: 'REG-001',
-      website: 'https://seeds.edu.pk',
+      website: 'https://schoolos.edu.pk',
       logoFileId: 'file-logo-1',
       principalName: 'Dr. Amina Khan',
       principalPhone: '021-555-0001',
-      principalEmail: 'principal@seeds.edu.pk',
+      principalEmail: 'principal@schoolos.edu.pk',
       establishedDate: '1998-04-01',
       schoolType: 'K-12',
       educationBoard: 'Cambridge',
@@ -198,7 +198,7 @@ describe('SchoolManagementView', () => {
       alternatePhone: '021-111-9999',
       address: '1 Main Rd',
       phone: '021-111',
-      email: 'info@seeds.edu.pk',
+      email: 'info@schoolos.edu.pk',
     });
   });
 

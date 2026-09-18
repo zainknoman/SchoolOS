@@ -1,6 +1,6 @@
 # Full Data Model Audit (Phase 1)
 
-Read-only audit of the current SchoolApp/SchoolPortal ("SEEDS Digital Platform") data model, as
+Read-only audit of the current SchoolApp/SchoolOS ("SchoolOS Digital Platform") data model, as
 requested ahead of extending Student/Parent/Teacher/Admission into a production-ready school
 management data model. No schema, code, or data was changed while producing this document.
 

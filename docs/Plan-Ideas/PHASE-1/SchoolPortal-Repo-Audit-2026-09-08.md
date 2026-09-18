@@ -1,8 +1,8 @@
-# SchoolPortal — MVP Repo Audit & Feature Verification
+# SchoolOS — MVP Repo Audit & Feature Verification
 
 **Independent repository audit, compiled 2026-09-08.**
 Baseline for comparison: `docs/Seedsapk/MVP-Plan-V3.md` (validated MVP scope, six two-sprint build).
-Subject: `github.com/zainknoman/SchoolPortal` — one NestJS/Prisma backend, a Vue 3 staff console, and a
+Subject: `github.com/zainknoman/SchoolOS` — one NestJS/Prisma backend, a Vue 3 staff console, and a
 Flutter parent app. Every finding below is sourced from the actual source tree at commit `1e74697` (main),
 not from `PROJECT-STATUS.md`'s own claims, which were independently re-verified against code. No code was
 executed; no vulnerabilities were exploited.
@@ -16,7 +16,7 @@ Published version (interactive, with full evidence table): https://claude.ai/cod
 
 ## 1. Executive Summary
 
-SchoolPortal is a two-day-old (77 commits, 2026-08-27 → 2026-08-29), AI-agent-built codebase implementing
+SchoolOS is a two-day-old (77 commits, 2026-08-27 → 2026-08-29), AI-agent-built codebase implementing
 roughly one third of the MVP scope defined in `MVP-Plan-V3.md`. What is built is built well — real RBAC, a
 genuinely enforced parent/student isolation layer, meaningful end-to-end tests, and a thoughtful Prisma
 schema. What is *not* built is not a matter of polish: Fees, Messaging, Notifications, Leave Applications,
@@ -517,6 +517,6 @@ checkmarks.
 
 ---
 
-*Compiled by static source review of `github.com/zainknoman/SchoolPortal` at commit `1e74697` against
+*Compiled by static source review of `github.com/zainknoman/SchoolOS` at commit `1e74697` against
 `docs/Seedsapk/MVP-Plan-V3.md`. No code was executed; no vulnerabilities were exploited. Scope: baseline
 verification only — no feature roadmap proposed.*

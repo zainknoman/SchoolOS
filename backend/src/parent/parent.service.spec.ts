@@ -34,15 +34,15 @@ describe('ParentService', () => {
   });
 
   it('creates a Parent (User + ParentProfile) and audit-logs it without leaking the password', async () => {
-    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'parent-x@seeds.edu.pk' });
+    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'parent-x@schoolos.edu.pk' });
     tx.parentProfile.create.mockResolvedValue({ id: 'p1', name: 'New Parent', phone: null });
 
     const result = await service.create(
-      { identifier: 'parent-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Parent' },
+      { identifier: 'parent-x@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Parent' },
       'admin-1',
     );
 
-    expect(result).toEqual({ id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'New Parent', phone: null, childrenCount: 0 });
+    expect(result).toEqual({ id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'New Parent', phone: null, childrenCount: 0 });
     const auditCall = prisma.auditLog.create.mock.calls[0][0];
     expect(auditCall.data.action).toBe('parent.create');
     expect(auditCall.data.entityId).toBe('p1');
@@ -55,19 +55,19 @@ describe('ParentService', () => {
     );
 
     await expect(
-      service.create({ identifier: 'dupe@seeds.edu.pk', password: 'ChangeMe123!', name: 'X' }, 'admin-1'),
+      service.create({ identifier: 'dupe@schoolos.edu.pk', password: 'ChangeMe123!', name: 'X' }, 'admin-1'),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('lists every parent with their linked-children count for a SUPER_ADMIN', async () => {
     prisma.parentProfile.findMany.mockResolvedValue([
-      { id: 'p1', name: 'New Parent', phone: null, user: { identifier: 'parent-x@seeds.edu.pk' }, _count: { children: 2 } },
+      { id: 'p1', name: 'New Parent', phone: null, user: { identifier: 'parent-x@schoolos.edu.pk' }, _count: { children: 2 } },
     ]);
 
     const result = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
 
     expect(result).toEqual([
-      { id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'New Parent', phone: null, childrenCount: 2 },
+      { id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'New Parent', phone: null, childrenCount: 2 },
     ]);
     expect(prisma.parentProfile.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: undefined }));
   });
@@ -101,7 +101,7 @@ describe('ParentService', () => {
   it('updates name/phone without touching the password', async () => {
     prisma.parentProfile.findUnique.mockResolvedValue({ id: 'p1', userId: 'u1' });
     prisma.parentProfile.update.mockResolvedValue({
-      id: 'p1', name: 'Renamed', phone: '0300-9999999', user: { identifier: 'parent-x@seeds.edu.pk' }, _count: { children: 0 },
+      id: 'p1', name: 'Renamed', phone: '0300-9999999', user: { identifier: 'parent-x@schoolos.edu.pk' }, _count: { children: 0 },
     });
 
     const result = await service.update('p1', { name: 'Renamed', phone: '0300-9999999' }, 'admin-1');
@@ -113,7 +113,7 @@ describe('ParentService', () => {
   it('updates the password (hashed) when one is given', async () => {
     prisma.parentProfile.findUnique.mockResolvedValue({ id: 'p1', userId: 'u1' });
     prisma.parentProfile.update.mockResolvedValue({
-      id: 'p1', name: 'New Parent', phone: null, user: { identifier: 'parent-x@seeds.edu.pk' }, _count: { children: 0 },
+      id: 'p1', name: 'New Parent', phone: null, user: { identifier: 'parent-x@schoolos.edu.pk' }, _count: { children: 0 },
     });
 
     await service.update('p1', { password: 'NewPass123!' }, 'admin-1');

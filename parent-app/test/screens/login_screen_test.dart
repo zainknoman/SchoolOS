@@ -39,7 +39,7 @@ void main() {
     await tester.pumpWidget(buildTestApp(api: api));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@seeds.edu.pk');
+    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@schoolos.edu.pk');
     await tester.enterText(find.byKey(const Key('passwordField')), 'ChangeMe123!');
     await tester.tap(find.byKey(const Key('submitButton')));
     await tester.pumpAndSettle();
@@ -60,7 +60,7 @@ void main() {
     await tester.pumpWidget(buildTestApp(api: api));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@seeds.edu.pk');
+    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@schoolos.edu.pk');
     await tester.enterText(find.byKey(const Key('passwordField')), 'wrong');
     await tester.tap(find.byKey(const Key('submitButton')));
     await tester.pumpAndSettle();

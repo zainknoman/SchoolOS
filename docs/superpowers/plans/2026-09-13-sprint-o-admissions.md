@@ -427,7 +427,7 @@ school-name/grNumber prefix `ADM-`/`ADM E2E School`. That reference file's seed 
 `ids.school`/`ids.campus`/`ids.session`/`ids.section` but not the class id — add
 `ids.class = klass.id` (`klass` is the local variable its seed already creates the `Class` row
 into) since Tasks 4-5 in this plan need it. Also seed a `TEACHER` login (`adm-teacher`) the same way
-that reference file seeds its teacher user, for the role-gating test below.
+that reference file schoolos its teacher user, for the role-gating test below.
 
 ```ts
 describe('Applicants', () => {
@@ -1202,7 +1202,7 @@ git commit -m "feat(admissions): add application review/reject/approve screen"
 
 ### Task 8: Full-suite verification and roadmap update
 
-**Files:** `docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` (roadmap checklist only).
+**Files:** `docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md` (roadmap checklist only).
 
 - [ ] **Step 1: Run every suite**
 
@@ -1221,6 +1221,6 @@ format from Sprints A-N.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md
+git add docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md
 git commit -m "docs: mark Sprint O complete in the roadmap checklist"
 ```

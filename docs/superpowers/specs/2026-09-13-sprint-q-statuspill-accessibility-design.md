@@ -2,7 +2,7 @@
 
 Status: approved (design), ready for implementation planning.
 As of `main` post-Sprint-L.
-Spec source: `docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, Implementation
+Spec source: `docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, Implementation
 Checklist, Sprint Q. `StatusPill` scope reused as-is from
 `build/docs/superpowers/specs/2026-09-07-staff-console-shell-redesign-design.md:113-116`, confirmed
 still accurate against current code (below).

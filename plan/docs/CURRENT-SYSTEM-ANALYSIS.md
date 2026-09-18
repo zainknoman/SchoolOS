@@ -1,10 +1,10 @@
-# Current System Analysis — The Seeds School
+# Current System Analysis — The SchoolOS School
 
-Findings from a direct teardown of the distributed `seeds-android.apk`, a live browse of
-`https://www.seeds.edu.pk/`, and `Seeds/apk/SchoolDetails.txt` (the school's own screen-by-screen
+Findings from a direct teardown of the distributed `schoolos-android.apk`, a live browse of
+`https://www.schoolos.edu.pk/`, and `SchoolOS/apk/SchoolDetails.txt` (the school's own screen-by-screen
 description of its current parent portal). This stands in for discovery — do not re-run it.
 
-## Existing screens / features (source of truth: `Seeds/apk/SchoolDetails.txt`)
+## Existing screens / features (source of truth: `SchoolOS/apk/SchoolDetails.txt`)
 
 1. **Login** — Email or GR Number + password.
 2. **Dashboard** — month calendar; tapping a date reveals that day's Time Table, Attendance, or Class
@@ -20,7 +20,7 @@ Diary content is already bilingual day-to-day: English entries alongside Urdu (R
 list (e.g. اسلامیات, اردو, اردو حفظ subjects) — RTL correctness is a real, current requirement, not a
 hypothetical one.
 
-## Website (`seeds.edu.pk`)
+## Website (`schoolos.edu.pk`)
 
 - Public marketing site (Montessori → Secondary, Hifz-e-Qur'an, British curriculum) + a login portal on
   the same domain.
@@ -32,7 +32,7 @@ hypothetical one.
   appears to be client-mounted regardless of auth state, just visually hidden. Worth a quick
   access-control check when the real backend is stood up.
 
-## Android app teardown (`com.sigmolabs.seeds`)
+## Android app teardown (`com.sigmolabs.schoolos`)
 
 - **Not listed on the Play Store** (404 on the Play Store listing URL) — distributed as a raw sideloaded
   APK. No auto-updates, no crash visibility for the school, and it trains parents to install unsigned
@@ -43,7 +43,7 @@ hypothetical one.
 - Firebase Cloud Messaging, Analytics, Remote Config, and Installations are all wired in — push
   infrastructure exists, but whether circulars actually arrive as push (vs. requiring a manual refresh)
   was not verifiable from the teardown alone; verify this explicitly during the notifications build.
-- Package name (`com.sigmolabs.seeds`) traces to a vendor distinct from the website's agency — i.e. two
+- Package name (`com.sigmolabs.schoolos`) traces to a vendor distinct from the website's agency — i.e. two
   separate vendors run the web portal and the mobile app today, with no confirmed shared backend.
 
 ## Retain / redesign / remove

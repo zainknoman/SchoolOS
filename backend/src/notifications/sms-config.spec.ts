@@ -15,13 +15,13 @@ describe('resolveSmsConfig', () => {
       fakeConfig({
         NODE_ENV: 'production',
         SMS_GATEWAY_API_KEY: 'api-key-123',
-        SMS_GATEWAY_SENDER_ID: 'SEEDS',
+        SMS_GATEWAY_SENDER_ID: 'SchoolOS',
       }),
     );
 
     expect(result).toEqual({
       apiKey: 'api-key-123',
-      senderId: 'SEEDS',
+      senderId: 'SchoolOS',
     });
   });
 

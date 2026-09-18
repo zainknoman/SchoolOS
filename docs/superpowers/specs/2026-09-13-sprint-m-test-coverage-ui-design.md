@@ -4,7 +4,7 @@ Status: approved (design), ready for implementation planning.
 As of `main` at commit `bb7bd14..67aa03b` (backend half of this same gap already closed
 2026-09-12, plan: `build/docs/superpowers/plans/2026-09-12-p0-test-coverage-backfill.md`) plus
 Sprint L (`cross-tenant access control) merged on top.
-Spec source: `docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, Implementation
+Spec source: `docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, Implementation
 Checklist, Sprint M:
 - Staff-console spec coverage for `HolidaysView`, `ComplaintsPageView`/`ComplaintsQueueView`,
   `ReportCardsView`/`ReportCardsPageView`/`TeacherReportCardsView`, the "Suggest draft" button, and

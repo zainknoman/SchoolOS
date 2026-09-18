@@ -9,7 +9,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 describe('Auth (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
-  const testIdentifier = 'e2e-test-user@seeds.edu.pk';
+  const testIdentifier = 'e2e-test-user@schoolos.edu.pk';
   const testPassword = 'CorrectHorseBattery9!';
 
   beforeAll(async () => {

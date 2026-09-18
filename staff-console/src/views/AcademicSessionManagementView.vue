@@ -8,9 +8,11 @@ import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { useConfirm } from '../lib/useConfirm';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const toast = useToast();
 
 const sessions = ref<AcademicSessionSummary[]>([]);
 const errorMessage = ref<string | null>(null);
@@ -55,6 +57,7 @@ async function onAdd() {
     newActive.value = false;
     showAddForm.value = false;
     await load();
+    toast.success('Academic session added.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this academic session.';
   } finally {
@@ -86,6 +89,7 @@ async function onSaveEdit(id: string) {
     });
     editingId.value = null;
     await load();
+    toast.success('Academic session updated.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not update this academic session.';
   }
@@ -101,6 +105,7 @@ async function onDelete(id: string) {
   try {
     await api.deleteAcademicSession(auth.accessToken, id);
     await load();
+    toast.success('Academic session deleted.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not delete this academic session.';
   }

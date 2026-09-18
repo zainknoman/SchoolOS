@@ -519,7 +519,7 @@ git commit -m "fix(a11y): give TrendsSparkline's accessible label real units and
 
 ### Task 5: Full-suite verification and roadmap update
 
-**Files:** `docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` (roadmap checklist only).
+**Files:** `docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md` (roadmap checklist only).
 
 - [ ] **Step 1: Run the full staff-console suite**
 
@@ -536,7 +536,7 @@ project's established closing step for every sprint).
 - [ ] **Step 3: Update the roadmap doc's Implementation Checklist**
 
 Check off Sprint Q's box and sub-items in
-`docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, noting that the dashboard
+`docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, noting that the dashboard
 chart accessible-name item was found already substantially fixed by Sprint J (this sprint only
 tightened the label's wording, not added a missing label from scratch) — matching the established
 "verify against real code, don't assume" format from Sprints A-P.
@@ -544,6 +544,6 @@ tightened the label's wording, not added a missing label from scratch) — match
 - [ ] **Step 4: Commit**
 
 ```bash
-git add docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md
+git add docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md
 git commit -m "docs: mark Sprint Q complete in the roadmap checklist"
 ```

@@ -12,7 +12,7 @@ each was generated independently and disagrees with the others on color palette,
 set (OwnerDashboard: green brand + Inter; FeeReconciliation: default Tailwind blue/gray +
 FontAwesome; TeacherMarkAttendance: default Tailwind indigo/gray; ParentHome: system font stack).
 None of them match the project's actual design system
-(`build/staff-console/design-system/seeds-staff-console/MASTER.md`: navy `#0F172A` / blue accent
+(`build/staff-console/design-system/schoolos-staff-console/MASTER.md`: navy `#0F172A` / blue accent
 `#0369A1`, Plus Jakarta Sans, outline SVG icons — already implemented in both clients' token
 files, `staff-console/src/assets/base.css` and `parent-app/lib/src/theme/app_theme.dart`).
 
@@ -64,7 +64,7 @@ everything (`home_outlined`, `notifications_none`, etc., as `home_shell.dart` al
 entry and no active-route styling. Additive changes, no restructuring of the shell's flex layout:
 
 - Sidebar gets a small logo mark (reuse the layered-diamond glyph style from the wireframes,
-  redrawn as one more `AppIcon` entry or inline SVG) next to the "SEEDS Staff Console" brand text,
+  redrawn as one more `AppIcon` entry or inline SVG) next to the "SchoolOS Staff Console" brand text,
   and — for Admin/Accounts roles — a "Dashboard" `RouterLink` as the first nav item (currently
   missing entirely; admin nav starts at Students).
 - Topbar gains: a notification bell button (`Icon name="bell"`, with a small unread-dot badge —

@@ -10,15 +10,15 @@ Below is the split exactly around your requested section groups.
 
 This prompt should answer one fundamental question:
 
-> **What actually exists in the SchoolPortal repository today, what works, what is partial, and what was only planned?**
+> **What actually exists in the SchoolOS repository today, what works, what is partial, and what was only planned?**
 
-# SchoolPortal — Repo Audit & Feature Verification
+# SchoolOS — Repo Audit & Feature Verification
 
 ## Objective
 
-Perform a complete technical and functional audit of the SchoolPortal GitHub repository:
+Perform a complete technical and functional audit of the SchoolOS GitHub repository:
 
-[https://github.com/zainknoman/SchoolPortal](https://github.com/zainknoman/SchoolPortal)
+[https://github.com/zainknoman/SchoolOS](https://github.com/zainknoman/SchoolOS)
 
 This is an existing MVP. The basic functionality is already implemented and working.
 
@@ -406,15 +406,15 @@ Its job is:
 
 > **What do the best global school platforms actually offer today?**
 
-# SchoolPortal — Global Competitor Research
+# SchoolOS — Global Competitor Research
 
 ## Objective
 
 Conduct a current global competitive analysis of School Management Systems, SIS platforms, parent engagement platforms, and School Operating Systems.
 
-The purpose is to understand what the strongest products currently offer and identify the capabilities that should become the benchmark for SchoolPortal.
+The purpose is to understand what the strongest products currently offer and identify the capabilities that should become the benchmark for SchoolOS.
 
-Do not assume that every feature of a competitor is relevant to SchoolPortal.
+Do not assume that every feature of a competitor is relevant to SchoolOS.
 
 ---
 
@@ -451,7 +451,7 @@ Consider:
 * Mobile experience
 * UX quality
 * Market positioning
-* Relevance to SchoolPortal
+* Relevance to SchoolOS
 
 ---
 
@@ -719,7 +719,7 @@ Produce:
 14. Emerging features
 15. Global table-stakes
 16. Global differentiators
-17. Features that SchoolPortal should avoid copying
+17. Features that SchoolOS should avoid copying
 
 Finally answer:
 
@@ -737,17 +737,17 @@ The key principle:
 
 > **Do not recommend something as a gap if the repository already implements it.**
 
-# SchoolPortal — Gap Analysis & Feature Prioritization
+# SchoolOS — Gap Analysis & Feature Prioritization
 
 ## Objective
 
 Using:
 
-1. The verified SchoolPortal repository audit
+1. The verified SchoolOS repository audit
 2. The previous MVP research
 3. The global competitor research
 
-determine exactly what SchoolPortal should build after MVP.
+determine exactly what SchoolOS should build after MVP.
 
 The goal is not to maximize the number of features.
 
@@ -780,7 +780,7 @@ Create a dedicated section:
 
 ## "Features We Do NOT Need to Build"
 
-List functionality that competitors offer but SchoolPortal already implements adequately.
+List functionality that competitors offer but SchoolOS already implements adequately.
 
 This section is mandatory.
 
@@ -838,7 +838,7 @@ Classify every gap:
 
 ### Critical
 
-Prevents SchoolPortal from being commercially credible.
+Prevents SchoolOS from being commercially credible.
 
 ### High
 
@@ -905,7 +905,7 @@ Features that improve adoption, retention, and school value.
 
 ## Tier 3 — Differentiation
 
-Capabilities that can make SchoolPortal meaningfully better than competitors.
+Capabilities that can make SchoolOS meaningfully better than competitors.
 
 ## Tier 4 — Defer
 
@@ -1003,7 +1003,7 @@ Produce:
 
 Finally answer:
 
-> **If SchoolPortal shipped nothing except the top 10 recommended improvements, which 10 would create the largest increase in product maturity and commercial value?**
+> **If SchoolOS shipped nothing except the top 10 recommended improvements, which 10 would create the largest increase in product maturity and commercial value?**
 
 ---
 
@@ -1017,11 +1017,11 @@ So the prompt should not simply say "redesign the UI."
 
 It should perform a **second-stage professional product UX audit**.
 
-# SchoolPortal — UI/UX Audit & Modernization Roadmap
+# SchoolOS — UI/UX Audit & Modernization Roadmap
 
 ## Objective
 
-Perform a professional UI/UX audit of the current SchoolPortal application.
+Perform a professional UI/UX audit of the current SchoolOS application.
 
 The application has already undergone an initial UI/UX improvement using the `ui-ux-pro-max` approach.
 
@@ -1299,7 +1299,7 @@ Produce:
 
 Finally answer:
 
-> **What would make SchoolPortal look and feel like a premium commercial product rather than an upgraded MVP?**
+> **What would make SchoolOS look and feel like a premium commercial product rather than an upgraded MVP?**
 
 ---
 
@@ -1311,7 +1311,7 @@ This should be the **master synthesis prompt**.
 
 It consumes the outputs of the previous four prompts and produces the actual implementation plan.
 
-# SchoolPortal — Post-MVP Roadmap, Sprints & Implementation Plan
+# SchoolOS — Post-MVP Roadmap, Sprints & Implementation Plan
 
 ## Objective
 
@@ -1322,7 +1322,7 @@ Using the outputs from:
 3. Gap Analysis & Prioritization
 4. UI/UX Audit & Modernization
 
-create the final implementation roadmap for SchoolPortal.
+create the final implementation roadmap for SchoolOS.
 
 The roadmap must be realistic for an existing MVP codebase.
 
@@ -1639,7 +1639,7 @@ Answer these questions directly:
 
 ### Question 1
 
-What prevents SchoolPortal from being considered a credible commercial school-management platform today?
+What prevents SchoolOS from being considered a credible commercial school-management platform today?
 
 List the exact **5–10 most important problems**.
 
@@ -1657,7 +1657,7 @@ What should NOT be built yet?
 
 ### Question 5
 
-What can make SchoolPortal meaningfully better than global competitors rather than merely equivalent?
+What can make SchoolOS meaningfully better than global competitors rather than merely equivalent?
 
 ### Question 6
 

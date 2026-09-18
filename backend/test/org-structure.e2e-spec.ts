@@ -66,7 +66,7 @@ describe('Org Structure (e2e)', () => {
 
     const superAdminUser = await prisma.user.create({
       data: {
-        identifier: 'os-super-admin@seeds.edu.pk',
+        identifier: 'os-super-admin@schoolos.edu.pk',
         passwordHash,
         role: 'SUPER_ADMIN',
       },
@@ -74,7 +74,7 @@ describe('Org Structure (e2e)', () => {
 
     const schoolAdminUser = await prisma.user.create({
       data: {
-        identifier: 'os-school-admin@seeds.edu.pk',
+        identifier: 'os-school-admin@schoolos.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
       },
@@ -82,7 +82,7 @@ describe('Org Structure (e2e)', () => {
 
     const teacherUser = await prisma.user.create({
       data: {
-        identifier: 'os-teacher@seeds.edu.pk',
+        identifier: 'os-teacher@schoolos.edu.pk',
         passwordHash,
         role: 'TEACHER',
       },
@@ -149,9 +149,9 @@ describe('Org Structure (e2e)', () => {
         where: {
           identifier: {
             in: [
-              'os-super-admin@seeds.edu.pk',
-              'os-school-admin@seeds.edu.pk',
-              'os-teacher@seeds.edu.pk',
+              'os-super-admin@schoolos.edu.pk',
+              'os-school-admin@schoolos.edu.pk',
+              'os-teacher@schoolos.edu.pk',
             ],
           },
         },
@@ -162,7 +162,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('a SCHOOL_ADMIN (not SUPER_ADMIN) is blocked from every write route in this plan', async () => {
-    const schoolAdminToken = await loginAs('os-school-admin@seeds.edu.pk');
+    const schoolAdminToken = await loginAs('os-school-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/schools')
@@ -208,7 +208,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('a SCHOOL_ADMIN can read the academic sessions list (write routes stay blocked)', async () => {
-    const schoolAdminToken = await loginAs('os-school-admin@seeds.edu.pk');
+    const schoolAdminToken = await loginAs('os-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get('/api/v1/academic-sessions')
@@ -219,7 +219,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('a TEACHER can read the academic sessions list (needed to pick a session for report card uploads)', async () => {
-    const teacherToken = await loginAs('os-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('os-teacher@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get('/api/v1/academic-sessions')
@@ -230,7 +230,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('a SCHOOL_ADMIN can read the classes list (needed by the gradebook class picker; write routes stay blocked)', async () => {
-    const schoolAdminToken = await loginAs('os-school-admin@seeds.edu.pk');
+    const schoolAdminToken = await loginAs('os-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get('/api/v1/classes')
@@ -241,7 +241,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('a TEACHER can read the classes list (needed by the marks-entry class picker)', async () => {
-    const teacherToken = await loginAs('os-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('os-teacher@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get('/api/v1/classes')
@@ -252,7 +252,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('a SUPER_ADMIN can create the full School -> Campus -> AcademicSession/Class -> Section chain', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const school = await request(app.getHttpServer())
       .post('/api/v1/schools')
@@ -261,7 +261,7 @@ describe('Org Structure (e2e)', () => {
         name: 'OS E2E School',
         address: '1 School Rd',
         phone: '021-000',
-        email: 'os@seeds.edu.pk',
+        email: 'os@schoolos.edu.pk',
       })
       .expect(201);
 
@@ -285,7 +285,7 @@ describe('Org Structure (e2e)', () => {
         name: 'OS Campus',
         address: '2 Campus Rd',
         phone: '021-111',
-        email: 'campus@seeds.edu.pk',
+        email: 'campus@schoolos.edu.pk',
       })
       .expect(201);
 
@@ -354,7 +354,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('creates a School with every extended profile field and round-trips them through GET /schools', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const school = await request(app.getHttpServer())
       .post('/api/v1/schools')
@@ -365,11 +365,11 @@ describe('Org Structure (e2e)', () => {
         address: '100 Extended School Road',
         phone: '021-1000001',
         alternatePhone: '021-1000002',
-        email: 'extended@seeds.edu.pk',
-        website: 'https://extended.seeds.edu.pk',
+        email: 'extended@schoolos.edu.pk',
+        website: 'https://extended.schoolos.edu.pk',
         principalName: 'Ahmed Principal',
         principalPhone: '0300-1000001',
-        principalEmail: 'principal.extended@seeds.edu.pk',
+        principalEmail: 'principal.extended@schoolos.edu.pk',
         registrationNumber: 'REG-OS-001',
         establishedDate: '2010-04-15',
         schoolType: 'PRIVATE',
@@ -387,11 +387,11 @@ describe('Org Structure (e2e)', () => {
     expect(school.body.address).toBe('100 Extended School Road');
     expect(school.body.phone).toBe('021-1000001');
     expect(school.body.alternatePhone).toBe('021-1000002');
-    expect(school.body.email).toBe('extended@seeds.edu.pk');
-    expect(school.body.website).toBe('https://extended.seeds.edu.pk');
+    expect(school.body.email).toBe('extended@schoolos.edu.pk');
+    expect(school.body.website).toBe('https://extended.schoolos.edu.pk');
     expect(school.body.principalName).toBe('Ahmed Principal');
     expect(school.body.principalPhone).toBe('0300-1000001');
-    expect(school.body.principalEmail).toBe('principal.extended@seeds.edu.pk');
+    expect(school.body.principalEmail).toBe('principal.extended@schoolos.edu.pk');
     expect(school.body.registrationNumber).toBe('REG-OS-001');
     expect(new Date(school.body.establishedDate).toISOString()).toBe(
       new Date('2010-04-15').toISOString(),
@@ -418,11 +418,11 @@ describe('Org Structure (e2e)', () => {
     expect(stored.address).toBe('100 Extended School Road');
     expect(stored.phone).toBe('021-1000001');
     expect(stored.alternatePhone).toBe('021-1000002');
-    expect(stored.email).toBe('extended@seeds.edu.pk');
-    expect(stored.website).toBe('https://extended.seeds.edu.pk');
+    expect(stored.email).toBe('extended@schoolos.edu.pk');
+    expect(stored.website).toBe('https://extended.schoolos.edu.pk');
     expect(stored.principalName).toBe('Ahmed Principal');
     expect(stored.principalPhone).toBe('0300-1000001');
-    expect(stored.principalEmail).toBe('principal.extended@seeds.edu.pk');
+    expect(stored.principalEmail).toBe('principal.extended@schoolos.edu.pk');
     expect(stored.registrationNumber).toBe('REG-OS-001');
     expect(new Date(stored.establishedDate).toISOString()).toBe(
       new Date('2010-04-15').toISOString(),
@@ -436,7 +436,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('defaults a newly created School status to ACTIVE when status is omitted', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const school = await request(app.getHttpServer())
       .post('/api/v1/schools')
@@ -453,7 +453,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('allows the same Campus code under different Schools', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const schoolOne = await request(app.getHttpServer())
       .post('/api/v1/schools')
@@ -506,7 +506,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('rejects duplicate Campus code within the same School', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const school = await request(app.getHttpServer())
       .post('/api/v1/schools')
@@ -542,7 +542,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('updates only the requested School field and preserves all other extended fields', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const school = await request(app.getHttpServer())
       .post('/api/v1/schools')
@@ -553,11 +553,11 @@ describe('Org Structure (e2e)', () => {
         address: '200 Preserve Road',
         phone: '021-2000001',
         alternatePhone: '021-2000002',
-        email: 'preserve@seeds.edu.pk',
-        website: 'https://preserve.seeds.edu.pk',
+        email: 'preserve@schoolos.edu.pk',
+        website: 'https://preserve.schoolos.edu.pk',
         principalName: 'Preserve Principal',
         principalPhone: '0300-2000001',
-        principalEmail: 'preserve.principal@seeds.edu.pk',
+        principalEmail: 'preserve.principal@schoolos.edu.pk',
         registrationNumber: 'REG-PRESERVE-001',
         establishedDate: '2012-05-20',
         schoolType: 'PRIVATE',
@@ -591,11 +591,11 @@ describe('Org Structure (e2e)', () => {
     expect(stored.address).toBe('200 Preserve Road');
     expect(stored.phone).toBe('021-2000001');
     expect(stored.alternatePhone).toBe('021-2000002');
-    expect(stored.email).toBe('preserve@seeds.edu.pk');
-    expect(stored.website).toBe('https://preserve.seeds.edu.pk');
+    expect(stored.email).toBe('preserve@schoolos.edu.pk');
+    expect(stored.website).toBe('https://preserve.schoolos.edu.pk');
     expect(stored.principalName).toBe('Preserve Principal');
     expect(stored.principalPhone).toBe('0300-2000001');
-    expect(stored.principalEmail).toBe('preserve.principal@seeds.edu.pk');
+    expect(stored.principalEmail).toBe('preserve.principal@schoolos.edu.pk');
     expect(stored.registrationNumber).toBe('REG-PRESERVE-001');
     expect(new Date(stored.establishedDate).toISOString()).toBe(
       new Date('2012-05-20').toISOString(),
@@ -609,7 +609,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('round-trips Campus departments through create, read and update', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const school = await request(app.getHttpServer())
       .post('/api/v1/schools')
@@ -633,10 +633,10 @@ describe('Org Structure (e2e)', () => {
         address: '300 Departments Road',
         phone: '021-3000001',
         alternatePhone: '021-3000002',
-        email: 'departments@seeds.edu.pk',
+        email: 'departments@schoolos.edu.pk',
         principalName: 'Departments Principal',
         principalPhone: '0300-3000001',
-        principalEmail: 'departments.principal@seeds.edu.pk',
+        principalEmail: 'departments.principal@schoolos.edu.pk',
         latitude: 24.8607,
         longitude: 67.0011,
         capacity: 500,
@@ -695,7 +695,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('deleting a Section with a real Timetable row is blocked with a 400, then succeeds once the row is gone', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const subject = await prisma.subject.create({
       data: { name: 'OS Subject' },
@@ -734,7 +734,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('creating a second active AcademicSession deactivates the first', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .patch(`/api/v1/academic-sessions/${ids.academicSession}`)
@@ -765,7 +765,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('refuses to leave zero active academic sessions, by deactivation or by deletion', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const session = await request(app.getHttpServer())
       .post('/api/v1/academic-sessions')

@@ -14,7 +14,7 @@ import 'package:parent_app/l10n/app_localizations.dart';
 
 /// Builds the same provider/router tree as `ParentApp` (lib/main.dart), but with an injected
 /// [ApiClient] and [TokenStore] instead of a real network client and platform secure storage —
-/// neither of which is available in the widget-test environment. Also seeds an empty
+/// neither of which is available in the widget-test environment. Also schoolos an empty
 /// `shared_preferences` mock store, since FEAT-014's offline cache (`DataCache`) and
 /// `ThemeController` both read/write it and would otherwise hang on the unmocked platform channel.
 ///

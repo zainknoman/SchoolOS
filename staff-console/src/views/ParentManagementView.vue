@@ -8,9 +8,11 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const toast = useToast();
 
 const parents = ref<ParentSummary[]>([]);
 const errorMessage = ref<string | null>(null);
@@ -54,6 +56,7 @@ async function onAdd() {
     newPhone.value = '';
     showAddForm.value = false;
     await load();
+    toast.success('Parent added.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this parent.';
   } finally {
@@ -83,6 +86,7 @@ async function onSaveEdit(id: string) {
     });
     editingId.value = null;
     await load();
+    toast.success('Parent updated.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not update this parent.';
   }
@@ -95,6 +99,7 @@ async function onDelete(id: string) {
   try {
     await api.deleteParent(auth.accessToken, id);
     await load();
+    toast.success('Parent deleted.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not delete this parent.';
   }
@@ -119,6 +124,11 @@ async function onDelete(id: string) {
       ]"
       row-key="id"
       :editing-id="editingId"
+      empty-icon="user-circle"
+      empty-title="No parents yet"
+      empty-message="Parent accounts are usually created while adding a student."
+      empty-cta-label="+ Add New"
+      @empty-cta="showAddForm = true"
     >
       <template #cell-name="{ item, editing }">
         <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />

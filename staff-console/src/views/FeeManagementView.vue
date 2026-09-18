@@ -13,8 +13,13 @@ import { formatPkrFull } from '../lib/format';
 import { useFocusTarget } from '../lib/useFocusTarget';
 import AppModal from '../components/AppModal.vue';
 import StatusPill from '../components/StatusPill.vue';
+import EntityTable from '../components/EntityTable.vue';
+import ErrorRetry from '../components/ErrorRetry.vue';
+import Button from '../components/Button.vue';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
+const toast = useToast();
 
 // --- Fee structures ---
 const structures = ref<FeeStructureSummary[]>([]);
@@ -45,6 +50,7 @@ async function onCreateStructure() {
     newStructureAmount.value = '';
     showAddStructureForm.value = false;
     await loadStructures();
+    toast.success('Fee structure added.');
   } catch (err) {
     structureError.value = err instanceof Error ? err.message : 'Could not create fee structure.';
   }
@@ -124,6 +130,7 @@ const ledgerStudentId = ref('');
 const ledgerVouchers = ref<FeeVoucherSummary[]>([]);
 const ledgerPayments = ref<FeePaymentSummary[]>([]);
 const ledgerError = ref<string | null>(null);
+const isLoadingLedger = ref(false);
 
 const reconcilingVoucherId = ref<string | null>(null);
 const reconcileAmount = ref('');
@@ -150,6 +157,7 @@ async function onReconcile() {
     });
     reconcilingVoucherId.value = null;
     await onLoadLedger();
+    toast.success('Payment recorded.');
   } catch (err) {
     reconcileError.value = err instanceof Error ? err.message : 'Could not record payment.';
   }
@@ -171,11 +179,14 @@ async function onLedgerSectionChange() {
 async function onLoadLedger() {
   if (!auth.accessToken || !ledgerStudentId.value) return;
   ledgerError.value = null;
+  isLoadingLedger.value = true;
   try {
     ledgerVouchers.value = await api.studentFees(auth.accessToken, ledgerStudentId.value);
     ledgerPayments.value = await api.studentFeePayments(auth.accessToken, ledgerStudentId.value);
   } catch (err) {
     ledgerError.value = err instanceof Error ? err.message : "Could not load this student's fee ledger.";
+  } finally {
+    isLoadingLedger.value = false;
   }
 }
 
@@ -191,17 +202,18 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
   <div class="fees">
     <h1>Fees</h1>
 
-    <section class="card">
-      <div class="card-header">
+    <section class="fee-section">
+      <div class="section-header">
         <h2>Fee Structures</h2>
         <button type="button" data-testid="open-add-structure" class="add-toggle" @click="showAddStructureForm = true">
           + Add New
         </button>
       </div>
       <p v-if="structureError" class="error" role="alert">{{ structureError }}</p>
-      <ul class="structures-list">
+      <ul v-if="structures.length" class="structures-list">
         <li v-for="s in structures" :key="s.id">{{ s.name }} — PKR {{ formatPkrFull(s.amount / 100) }}</li>
       </ul>
+      <p v-else class="empty-hint">No fee structures yet — add one to start issuing vouchers.</p>
       <AppModal v-model="showAddStructureForm" title="Add Fee Structure">
         <div class="inline-form">
           <input data-testid="structure-name" v-model="newStructureName" type="text" placeholder="Name" />
@@ -211,7 +223,7 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
       </AppModal>
     </section>
 
-    <section class="card">
+    <section class="fee-section">
       <h2>Issue Vouchers</h2>
       <p v-if="issueMessage" class="success" data-testid="issue-success">{{ issueMessage }}</p>
       <p v-if="issueError" class="error" role="alert">{{ issueError }}</p>
@@ -264,7 +276,7 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
       </button>
     </section>
 
-    <section class="card">
+    <section class="fee-section">
       <h2>Student Ledger</h2>
       <label class="field">
         <span>Section</span>
@@ -282,42 +294,50 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
           </option>
         </select>
       </label>
-      <p v-if="ledgerError" class="error" role="alert">{{ ledgerError }}</p>
+      <ErrorRetry v-if="ledgerError" :message="ledgerError" @retry="onLoadLedger" />
 
-      <table v-if="ledgerVouchers.length" class="ledger-table">
-        <thead>
-          <tr>
-            <th>Month</th>
-            <th>Due</th>
-            <th class="num">Total</th>
-            <th class="num">Paid</th>
-            <th class="num">Due</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="v in ledgerVouchers" :key="v.id">
-            <td>{{ v.month }}</td>
-            <td>{{ v.dueDate }}</td>
-            <td class="num">{{ formatPkrFull(v.totalAmount / 100) }}</td>
-            <td class="num">{{ formatPkrFull(v.amountPaid / 100) }}</td>
-            <td class="num">{{ formatPkrFull(v.amountDue / 100) }}</td>
-            <td><StatusPill :tone="voucherTone(v.status)" :label="v.status" /></td>
-            <td>
-              <button
-                v-if="v.amountDue > 0"
-                :data-testid="`record-payment-${v.id}`"
-                @click="startReconcile(v.id, v.amountDue)"
-              >
-                Record payment
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <EntityTable
+        v-if="ledgerStudentId"
+        :items="ledgerVouchers"
+        :columns="[
+          { key: 'month', label: 'Month' },
+          { key: 'dueDate', label: 'Due' },
+          { key: 'totalAmount', label: 'Total' },
+          { key: 'amountPaid', label: 'Paid' },
+          { key: 'amountDue', label: 'Due' },
+          { key: 'status', label: 'Status' },
+        ]"
+        row-key="id"
+        :editing-id="null"
+        :loading="isLoadingLedger"
+        empty-icon="receipt"
+        empty-title="No vouchers issued yet"
+        empty-message="Vouchers issued to this student will show up here."
+      >
+        <template #cell-totalAmount="{ item }">
+          <span class="num-cell">{{ formatPkrFull(item.totalAmount / 100) }}</span>
+        </template>
+        <template #cell-amountPaid="{ item }">
+          <span class="num-cell">{{ formatPkrFull(item.amountPaid / 100) }}</span>
+        </template>
+        <template #cell-amountDue="{ item }">
+          <span class="num-cell">{{ formatPkrFull(item.amountDue / 100) }}</span>
+        </template>
+        <template #cell-status="{ item }">
+          <StatusPill :tone="voucherTone(item.status)" :label="item.status" />
+        </template>
+        <template #actions="{ item }">
+          <Button
+            v-if="item.amountDue > 0"
+            :data-testid="`record-payment-${item.id}`"
+            @click="startReconcile(item.id, item.amountDue)"
+          >
+            Record payment
+          </Button>
+        </template>
+      </EntityTable>
 
-      <div v-if="reconcilingVoucherId" class="card">
+      <div v-if="reconcilingVoucherId" class="reconcile-panel">
         <h3>Record cash / bank-transfer payment</h3>
         <p v-if="reconcileError" class="error" role="alert">{{ reconcileError }}</p>
         <label class="field">
@@ -360,19 +380,41 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
 .fees {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
   max-width: 760px;
 }
-.card {
+/* Anti-card pass: three logically-grouped workflows on one page, separated by a top border
+   instead of three stacked boxes — no elevation needed since there's nothing to lift above
+   another surface here (Rule 4: cards only when elevation communicates hierarchy). */
+.fee-section {
+  padding: var(--space-5) 0;
+  border-top: 1px solid var(--color-border);
+}
+.fee-section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+.empty-hint {
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-3);
+}
+/* The reconcile form is a contextual action panel breaking out of the list flow — this is the
+   one place in this screen where elevation genuinely communicates hierarchy, so it keeps a card. */
+.reconcile-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: var(--space-4);
+  margin-top: var(--space-3);
 }
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.reconcile-panel h3 {
+  margin-bottom: var(--space-2);
 }
 .add-toggle {
   padding: 0.4rem 0.8rem;
@@ -435,18 +477,8 @@ button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.ledger-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-sm);
-}
-.ledger-table th,
-.ledger-table td {
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
-}
-.num {
+.num-cell {
+  display: block;
   text-align: right;
 }
 </style>

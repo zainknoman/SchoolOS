@@ -13,8 +13,8 @@ defineProps<{
 .status-pill {
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.6rem;
-  border-radius: 999px;
+  padding: var(--space-0) 0.6rem;
+  border-radius: var(--radius-full);
   font-size: var(--font-size-sm);
   font-weight: 600;
   line-height: 1.4;

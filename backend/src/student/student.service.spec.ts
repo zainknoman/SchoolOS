@@ -104,7 +104,7 @@ describe('StudentService', () => {
         {
           grNumber: 'GR-2001', name: 'New Student', sectionId: 'sec1',
           parentProfileId: 'p1',
-          newParent: { identifier: 'x@seeds.edu.pk', password: 'ChangeMe123!', name: 'X' },
+          newParent: { identifier: 'x@schoolos.edu.pk', password: 'ChangeMe123!', name: 'X' },
         },
         'admin-1',
       ),
@@ -155,7 +155,7 @@ describe('StudentService', () => {
 
   it('creates a Student linked to a brand-new parent, via the same createParentWithUser logic, inside the same transaction', async () => {
     tx.student.create.mockResolvedValue({ id: 's2', grNumber: 'GR-2002', name: 'Another Student' });
-    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'new-parent@seeds.edu.pk' });
+    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'new-parent@schoolos.edu.pk' });
     tx.parentProfile.create.mockResolvedValue({ id: 'p-new', name: 'New Parent', phone: null });
     prisma.student.findUniqueOrThrow.mockResolvedValue({
       id: 's2', grNumber: 'GR-2002', name: 'Another Student', enrollments: [], parents: [],
@@ -164,13 +164,13 @@ describe('StudentService', () => {
     await service.create(
       {
         grNumber: 'GR-2002', name: 'Another Student', sectionId: 'sec1',
-        newParent: { identifier: 'new-parent@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Parent' },
+        newParent: { identifier: 'new-parent@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Parent' },
       },
       'admin-1',
     );
 
     expect(tx.user.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ identifier: 'new-parent@seeds.edu.pk', role: 'PARENT' }) }),
+      expect.objectContaining({ data: expect.objectContaining({ identifier: 'new-parent@schoolos.edu.pk', role: 'PARENT' }) }),
     );
     expect(tx.studentParent.create).toHaveBeenCalledWith({ data: { studentId: 's2', parentProfileId: 'p-new' } });
 
@@ -196,7 +196,7 @@ describe('StudentService', () => {
       (call) => call[0].data.action === 'parent.create',
     )![0];
     expect(JSON.parse(parentAuditCall.data.metadata)).toEqual({
-      identifier: 'new-parent@seeds.edu.pk',
+      identifier: 'new-parent@schoolos.edu.pk',
       name: 'New Parent',
     });
   });

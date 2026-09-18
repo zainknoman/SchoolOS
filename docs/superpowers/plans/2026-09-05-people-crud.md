@@ -205,14 +205,14 @@ describe('createParentWithUser', () => {
   it('hashes the password, creates a User with role PARENT, then a linked ParentProfile', async () => {
     jest.mocked(argon2.hash).mockResolvedValue('hashed-password' as never);
     const tx = {
-      user: { create: jest.fn().mockResolvedValue({ id: 'u1', identifier: 'parent-x@seeds.edu.pk' }) },
+      user: { create: jest.fn().mockResolvedValue({ id: 'u1', identifier: 'parent-x@schoolos.edu.pk' }) },
       parentProfile: {
         create: jest.fn().mockResolvedValue({ id: 'p1', name: 'New Parent', phone: '0300-1234567' }),
       },
     };
 
     const result = await createParentWithUser(tx as never, {
-      identifier: 'parent-x@seeds.edu.pk',
+      identifier: 'parent-x@schoolos.edu.pk',
       password: 'ChangeMe123!',
       name: 'New Parent',
       phone: '0300-1234567',
@@ -220,23 +220,23 @@ describe('createParentWithUser', () => {
 
     expect(argon2.hash).toHaveBeenCalledWith('ChangeMe123!');
     expect(tx.user.create).toHaveBeenCalledWith({
-      data: { identifier: 'parent-x@seeds.edu.pk', passwordHash: 'hashed-password', role: 'PARENT' },
+      data: { identifier: 'parent-x@schoolos.edu.pk', passwordHash: 'hashed-password', role: 'PARENT' },
     });
     expect(tx.parentProfile.create).toHaveBeenCalledWith({
       data: { userId: 'u1', name: 'New Parent', phone: '0300-1234567' },
     });
-    expect(result).toEqual({ id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'New Parent', phone: '0300-1234567' });
+    expect(result).toEqual({ id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'New Parent', phone: '0300-1234567' });
   });
 
   it('creates a ParentProfile with no phone when none is given', async () => {
     jest.mocked(argon2.hash).mockResolvedValue('hashed-password' as never);
     const tx = {
-      user: { create: jest.fn().mockResolvedValue({ id: 'u2', identifier: 'parent-y@seeds.edu.pk' }) },
+      user: { create: jest.fn().mockResolvedValue({ id: 'u2', identifier: 'parent-y@schoolos.edu.pk' }) },
       parentProfile: { create: jest.fn().mockResolvedValue({ id: 'p2', name: 'Another Parent', phone: null }) },
     };
 
     await createParentWithUser(tx as never, {
-      identifier: 'parent-y@seeds.edu.pk',
+      identifier: 'parent-y@schoolos.edu.pk',
       password: 'ChangeMe123!',
       name: 'Another Parent',
     });
@@ -342,15 +342,15 @@ describe('ParentService', () => {
   });
 
   it('creates a Parent (User + ParentProfile) and audit-logs it without leaking the password', async () => {
-    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'parent-x@seeds.edu.pk' });
+    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'parent-x@schoolos.edu.pk' });
     tx.parentProfile.create.mockResolvedValue({ id: 'p1', name: 'New Parent', phone: null });
 
     const result = await service.create(
-      { identifier: 'parent-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Parent' },
+      { identifier: 'parent-x@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Parent' },
       'admin-1',
     );
 
-    expect(result).toEqual({ id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'New Parent', phone: null, childrenCount: 0 });
+    expect(result).toEqual({ id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'New Parent', phone: null, childrenCount: 0 });
     const auditCall = prisma.auditLog.create.mock.calls[0][0];
     expect(auditCall.data.action).toBe('parent.create');
     expect(auditCall.data.entityId).toBe('p1');
@@ -363,24 +363,24 @@ describe('ParentService', () => {
     );
 
     await expect(
-      service.create({ identifier: 'dupe@seeds.edu.pk', password: 'ChangeMe123!', name: 'X' }, 'admin-1'),
+      service.create({ identifier: 'dupe@schoolos.edu.pk', password: 'ChangeMe123!', name: 'X' }, 'admin-1'),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('lists parents with their linked-children count', async () => {
     prisma.parentProfile.findMany.mockResolvedValue([
-      { id: 'p1', name: 'New Parent', phone: null, user: { identifier: 'parent-x@seeds.edu.pk' }, _count: { children: 2 } },
+      { id: 'p1', name: 'New Parent', phone: null, user: { identifier: 'parent-x@schoolos.edu.pk' }, _count: { children: 2 } },
     ]);
 
     expect(await service.list()).toEqual([
-      { id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'New Parent', phone: null, childrenCount: 2 },
+      { id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'New Parent', phone: null, childrenCount: 2 },
     ]);
   });
 
   it('updates name/phone without touching the password', async () => {
     prisma.parentProfile.findUnique.mockResolvedValue({ id: 'p1', userId: 'u1' });
     prisma.parentProfile.update.mockResolvedValue({
-      id: 'p1', name: 'Renamed', phone: '0300-9999999', user: { identifier: 'parent-x@seeds.edu.pk' }, _count: { children: 0 },
+      id: 'p1', name: 'Renamed', phone: '0300-9999999', user: { identifier: 'parent-x@schoolos.edu.pk' }, _count: { children: 0 },
     });
 
     const result = await service.update('p1', { name: 'Renamed', phone: '0300-9999999' }, 'admin-1');
@@ -392,7 +392,7 @@ describe('ParentService', () => {
   it('updates the password (hashed) when one is given', async () => {
     prisma.parentProfile.findUnique.mockResolvedValue({ id: 'p1', userId: 'u1' });
     prisma.parentProfile.update.mockResolvedValue({
-      id: 'p1', name: 'New Parent', phone: null, user: { identifier: 'parent-x@seeds.edu.pk' }, _count: { children: 0 },
+      id: 'p1', name: 'New Parent', phone: null, user: { identifier: 'parent-x@schoolos.edu.pk' }, _count: { children: 0 },
     });
 
     await service.update('p1', { password: 'NewPass123!' }, 'admin-1');
@@ -760,17 +760,17 @@ describe('TeacherService', () => {
   });
 
   it('creates a Teacher (User + Teacher) and audit-logs it without leaking the password', async () => {
-    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'teacher-x@seeds.edu.pk' });
+    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'teacher-x@schoolos.edu.pk' });
     tx.teacher.create.mockResolvedValue({ id: 't1', name: 'New Teacher' });
 
     const result = await service.create(
-      { identifier: 'teacher-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher' },
+      { identifier: 'teacher-x@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Teacher' },
       'admin-1',
     );
 
-    expect(result).toEqual({ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' });
+    expect(result).toEqual({ id: 't1', identifier: 'teacher-x@schoolos.edu.pk', name: 'New Teacher' });
     expect(tx.user.create).toHaveBeenCalledWith({
-      data: { identifier: 'teacher-x@seeds.edu.pk', passwordHash: 'hashed-password', role: 'TEACHER' },
+      data: { identifier: 'teacher-x@schoolos.edu.pk', passwordHash: 'hashed-password', role: 'TEACHER' },
     });
     expect(tx.teacher.create).toHaveBeenCalledWith({ data: { userId: 'u1', name: 'New Teacher' } });
     const auditCall = prisma.auditLog.create.mock.calls[0][0];
@@ -784,21 +784,21 @@ describe('TeacherService', () => {
     );
 
     await expect(
-      service.create({ identifier: 'dupe@seeds.edu.pk', password: 'ChangeMe123!', name: 'X' }, 'admin-1'),
+      service.create({ identifier: 'dupe@schoolos.edu.pk', password: 'ChangeMe123!', name: 'X' }, 'admin-1'),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('lists teachers with their login identifier', async () => {
     prisma.teacher.findMany.mockResolvedValue([
-      { id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@seeds.edu.pk' } },
+      { id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@schoolos.edu.pk' } },
     ]);
 
-    expect(await service.list()).toEqual([{ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' }]);
+    expect(await service.list()).toEqual([{ id: 't1', identifier: 'teacher-x@schoolos.edu.pk', name: 'New Teacher' }]);
   });
 
   it('updates the name without touching the password', async () => {
     prisma.teacher.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
-    prisma.teacher.update.mockResolvedValue({ id: 't1', name: 'Renamed', user: { identifier: 'teacher-x@seeds.edu.pk' } });
+    prisma.teacher.update.mockResolvedValue({ id: 't1', name: 'Renamed', user: { identifier: 'teacher-x@schoolos.edu.pk' } });
 
     const result = await service.update('t1', { name: 'Renamed' }, 'admin-1');
 
@@ -808,7 +808,7 @@ describe('TeacherService', () => {
 
   it('updates the password (hashed) when one is given', async () => {
     prisma.teacher.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
-    prisma.teacher.update.mockResolvedValue({ id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@seeds.edu.pk' } });
+    prisma.teacher.update.mockResolvedValue({ id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@schoolos.edu.pk' } });
 
     await service.update('t1', { password: 'NewPass123!' }, 'admin-1');
 
@@ -1178,7 +1178,7 @@ describe('StudentService', () => {
         {
           grNumber: 'GR-2001', name: 'New Student', sectionId: 'sec1',
           parentProfileId: 'p1',
-          newParent: { identifier: 'x@seeds.edu.pk', password: 'ChangeMe123!', name: 'X' },
+          newParent: { identifier: 'x@schoolos.edu.pk', password: 'ChangeMe123!', name: 'X' },
         },
         'admin-1',
       ),
@@ -1225,19 +1225,19 @@ describe('StudentService', () => {
 
   it('creates a Student linked to a brand-new parent, via the same createParentWithUser logic, inside the same transaction', async () => {
     tx.student.create.mockResolvedValue({ id: 's2', grNumber: 'GR-2002', name: 'Another Student' });
-    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'new-parent@seeds.edu.pk' });
+    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'new-parent@schoolos.edu.pk' });
     tx.parentProfile.create.mockResolvedValue({ id: 'p-new', name: 'New Parent', phone: null });
 
     await service.create(
       {
         grNumber: 'GR-2002', name: 'Another Student', sectionId: 'sec1',
-        newParent: { identifier: 'new-parent@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Parent' },
+        newParent: { identifier: 'new-parent@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Parent' },
       },
       'admin-1',
     );
 
     expect(tx.user.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ identifier: 'new-parent@seeds.edu.pk', role: 'PARENT' }) }),
+      expect.objectContaining({ data: expect.objectContaining({ identifier: 'new-parent@schoolos.edu.pk', role: 'PARENT' }) }),
     );
     expect(tx.studentParent.create).toHaveBeenCalledWith({ data: { studentId: 's2', parentProfileId: 'p-new' } });
   });
@@ -1723,10 +1723,10 @@ describe('People CRUD (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const schoolAdminUser = await prisma.user.create({
-      data: { identifier: 'pc-school-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
+      data: { identifier: 'pc-school-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
     });
     const parentUser = await prisma.user.create({
-      data: { identifier: 'pc-non-admin-parent@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'pc-non-admin-parent@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
 
     const school = await prisma.school.create({ data: { name: 'PC E2E School' } });
@@ -1757,17 +1757,17 @@ describe('People CRUD (e2e)', () => {
   });
 
   it('a PARENT (not SCHOOL_ADMIN/SUPER_ADMIN) is blocked from every write route in this plan', async () => {
-    const parentToken = await loginAs('pc-non-admin-parent@seeds.edu.pk');
+    const parentToken = await loginAs('pc-non-admin-parent@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${parentToken}`)
-      .send({ identifier: 'blocked@seeds.edu.pk', password, name: 'Blocked' })
+      .send({ identifier: 'blocked@schoolos.edu.pk', password, name: 'Blocked' })
       .expect(403);
     await request(app.getHttpServer())
       .post('/api/v1/admin/parents')
       .set('Authorization', `Bearer ${parentToken}`)
-      .send({ identifier: 'blocked2@seeds.edu.pk', password, name: 'Blocked' })
+      .send({ identifier: 'blocked2@schoolos.edu.pk', password, name: 'Blocked' })
       .expect(403);
     await request(app.getHttpServer())
       .post('/api/v1/admin/students')
@@ -1777,36 +1777,36 @@ describe('People CRUD (e2e)', () => {
   });
 
   it('a SCHOOL_ADMIN can create a Teacher, and that Teacher can immediately log in with the password just set', async () => {
-    const adminToken = await loginAs('pc-school-admin@seeds.edu.pk');
+    const adminToken = await loginAs('pc-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-teacher@seeds.edu.pk', password: 'BrandNewPass1!', name: 'PC Teacher' })
+      .send({ identifier: 'pc-new-teacher@schoolos.edu.pk', password: 'BrandNewPass1!', name: 'PC Teacher' })
       .expect(201);
     ids.teacher = res.body.id;
-    expect(res.body).toEqual({ id: ids.teacher, identifier: 'pc-new-teacher@seeds.edu.pk', name: 'PC Teacher' });
+    expect(res.body).toEqual({ id: ids.teacher, identifier: 'pc-new-teacher@schoolos.edu.pk', name: 'PC Teacher' });
 
-    await loginAs('pc-new-teacher@seeds.edu.pk', 'BrandNewPass1!');
+    await loginAs('pc-new-teacher@schoolos.edu.pk', 'BrandNewPass1!');
   });
 
   it('creating a Teacher with an identifier already in use is rejected with a 400, not a 500', async () => {
-    const adminToken = await loginAs('pc-school-admin@seeds.edu.pk');
+    const adminToken = await loginAs('pc-school-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-teacher@seeds.edu.pk', password: 'AnotherPass1!', name: 'Duplicate' })
+      .send({ identifier: 'pc-new-teacher@schoolos.edu.pk', password: 'AnotherPass1!', name: 'Duplicate' })
       .expect(400);
   });
 
   it('deleting a Teacher who has marked attendance is blocked with a 400, real DB constraint', async () => {
-    const adminToken = await loginAs('pc-school-admin@seeds.edu.pk');
+    const adminToken = await loginAs('pc-school-admin@schoolos.edu.pk');
 
     const parentRes = await request(app.getHttpServer())
       .post('/api/v1/admin/parents')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-parent@seeds.edu.pk', password: 'ParentPass1!', name: 'PC Parent' })
+      .send({ identifier: 'pc-new-parent@schoolos.edu.pk', password: 'ParentPass1!', name: 'PC Parent' })
       .expect(201);
     ids.parentProfile = parentRes.body.id;
 
@@ -1832,7 +1832,7 @@ describe('People CRUD (e2e)', () => {
   });
 
   it('creating a Student with a brand-new parent works end to end, and that parent can log in', async () => {
-    const adminToken = await loginAs('pc-school-admin@seeds.edu.pk');
+    const adminToken = await loginAs('pc-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/admin/students')
@@ -1841,12 +1841,12 @@ describe('People CRUD (e2e)', () => {
         grNumber: 'PC-1002',
         name: 'PC Student Two',
         sectionId: ids.section,
-        newParent: { identifier: 'pc-inline-parent@seeds.edu.pk', password: 'InlineParent1!', name: 'Inline Parent' },
+        newParent: { identifier: 'pc-inline-parent@schoolos.edu.pk', password: 'InlineParent1!', name: 'Inline Parent' },
       })
       .expect(201);
 
     expect(res.body.parentNames).toEqual(['Inline Parent']);
-    await loginAs('pc-inline-parent@seeds.edu.pk', 'InlineParent1!');
+    await loginAs('pc-inline-parent@schoolos.edu.pk', 'InlineParent1!');
 
     await request(app.getHttpServer())
       .delete(`/api/v1/admin/students/${res.body.id}`)
@@ -2134,7 +2134,7 @@ describe('TeacherManagementView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listAdminTeachers).mockResolvedValue([
-      { id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'Existing Teacher' },
+      { id: 't1', identifier: 'teacher-x@schoolos.edu.pk', name: 'Existing Teacher' },
     ]);
   });
 
@@ -2144,16 +2144,16 @@ describe('TeacherManagementView', () => {
     const wrapper = mount(TeacherManagementView);
     await flushPromises();
 
-    expect(wrapper.text()).toContain('teacher-x@seeds.edu.pk');
+    expect(wrapper.text()).toContain('teacher-x@schoolos.edu.pk');
 
-    await wrapper.find('[data-testid="add-identifier"]').setValue('new-teacher@seeds.edu.pk');
+    await wrapper.find('[data-testid="add-identifier"]').setValue('new-teacher@schoolos.edu.pk');
     await wrapper.find('[data-testid="add-password"]').setValue('ChangeMe123!');
     await wrapper.find('[data-testid="add-name"]').setValue('New Teacher');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
     await flushPromises();
 
     expect(api.createTeacher).toHaveBeenCalledWith('token-1', {
-      identifier: 'new-teacher@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher',
+      identifier: 'new-teacher@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Teacher',
     });
   });
 
@@ -2547,7 +2547,7 @@ describe('ParentManagementView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listAdminParents).mockResolvedValue([
-      { id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'Existing Parent', phone: '0300-1111111', childrenCount: 2 },
+      { id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'Existing Parent', phone: '0300-1111111', childrenCount: 2 },
     ]);
   });
 
@@ -2557,10 +2557,10 @@ describe('ParentManagementView', () => {
     const wrapper = mount(ParentManagementView);
     await flushPromises();
 
-    expect(wrapper.text()).toContain('parent-x@seeds.edu.pk');
+    expect(wrapper.text()).toContain('parent-x@schoolos.edu.pk');
     expect(wrapper.text()).toContain('2');
 
-    await wrapper.find('[data-testid="add-identifier"]').setValue('new-parent@seeds.edu.pk');
+    await wrapper.find('[data-testid="add-identifier"]').setValue('new-parent@schoolos.edu.pk');
     await wrapper.find('[data-testid="add-password"]').setValue('ChangeMe123!');
     await wrapper.find('[data-testid="add-name"]').setValue('New Parent');
     await wrapper.find('[data-testid="add-phone"]').setValue('0300-2222222');
@@ -2568,7 +2568,7 @@ describe('ParentManagementView', () => {
     await flushPromises();
 
     expect(api.createParent).toHaveBeenCalledWith('token-1', {
-      identifier: 'new-parent@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Parent', phone: '0300-2222222',
+      identifier: 'new-parent@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Parent', phone: '0300-2222222',
     });
   });
 
@@ -2578,14 +2578,14 @@ describe('ParentManagementView', () => {
     const wrapper = mount(ParentManagementView);
     await flushPromises();
 
-    await wrapper.find('[data-testid="add-identifier"]').setValue('new-parent@seeds.edu.pk');
+    await wrapper.find('[data-testid="add-identifier"]').setValue('new-parent@schoolos.edu.pk');
     await wrapper.find('[data-testid="add-password"]').setValue('ChangeMe123!');
     await wrapper.find('[data-testid="add-name"]').setValue('New Parent');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
     await flushPromises();
 
     expect(api.createParent).toHaveBeenCalledWith('token-1', {
-      identifier: 'new-parent@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Parent', phone: undefined,
+      identifier: 'new-parent@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Parent', phone: undefined,
     });
   });
 
@@ -2622,7 +2622,7 @@ describe('ParentManagementView', () => {
     const wrapper = mount(ParentManagementView);
     await flushPromises();
 
-    await wrapper.find('[data-testid="add-identifier"]').setValue('dupe@seeds.edu.pk');
+    await wrapper.find('[data-testid="add-identifier"]').setValue('dupe@schoolos.edu.pk');
     await wrapper.find('[data-testid="add-password"]').setValue('ChangeMe123!');
     await wrapper.find('[data-testid="add-name"]').setValue('Dupe');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
@@ -2973,7 +2973,7 @@ describe('StudentManagementView', () => {
       { id: 'sec1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
     ]);
     vi.mocked(api.listAdminParents).mockResolvedValue([
-      { id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'Existing Parent', phone: null, childrenCount: 1 },
+      { id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'Existing Parent', phone: null, childrenCount: 1 },
     ]);
     vi.mocked(api.listAdminStudents).mockResolvedValue([
       {
@@ -3031,7 +3031,7 @@ describe('StudentManagementView', () => {
     await wrapper.find('[data-testid="toggle-new-parent"]').setValue(true);
     await flushPromises();
     expect(wrapper.find('[data-testid="add-parent-select"]').exists()).toBe(false);
-    await wrapper.find('[data-testid="new-parent-identifier"]').setValue('inline-parent@seeds.edu.pk');
+    await wrapper.find('[data-testid="new-parent-identifier"]').setValue('inline-parent@schoolos.edu.pk');
     await wrapper.find('[data-testid="new-parent-password"]').setValue('InlinePass1!');
     await wrapper.find('[data-testid="new-parent-name"]').setValue('Inline Parent');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
@@ -3039,7 +3039,7 @@ describe('StudentManagementView', () => {
 
     expect(api.createStudent).toHaveBeenCalledWith('token-1', {
       grNumber: 'GR-2002', name: 'Another Student', sectionId: 'sec1',
-      newParent: { identifier: 'inline-parent@seeds.edu.pk', password: 'InlinePass1!', name: 'Inline Parent', phone: undefined },
+      newParent: { identifier: 'inline-parent@schoolos.edu.pk', password: 'InlinePass1!', name: 'Inline Parent', phone: undefined },
     });
   });
 

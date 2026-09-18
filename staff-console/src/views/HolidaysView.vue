@@ -7,9 +7,11 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const toast = useToast();
 
 const holidays = ref<HolidaySummary[]>([]);
 const campuses = ref<CampusSummary[]>([]);
@@ -62,6 +64,7 @@ async function onAdd() {
     newCampusId.value = '';
     showAddForm.value = false;
     await load();
+    toast.success('Holiday added.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this holiday.';
   } finally {
@@ -91,6 +94,7 @@ async function onSaveEdit(id: string) {
     });
     editingId.value = null;
     await load();
+    toast.success('Holiday updated.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not update this holiday.';
   }
@@ -103,6 +107,7 @@ async function onDelete(id: string) {
   try {
     await api.deleteHoliday(auth.accessToken, id);
     await load();
+    toast.success('Holiday deleted.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not delete this holiday.';
   }

@@ -34,7 +34,7 @@ describe('Diary + Circulars (e2e)', () => {
     await app.init();
 
     const staleAdmin = await prisma.user.findUnique({
-      where: { identifier: 'dc-admin@seeds.edu.pk' },
+      where: { identifier: 'dc-admin@schoolos.edu.pk' },
     });
     if (staleAdmin) {
       await prisma.circular.deleteMany({ where: { authorId: staleAdmin.id } }).catch(() => undefined);
@@ -81,7 +81,7 @@ describe('Diary + Circulars (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'dc-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'dc-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'DC Teacher', campusId: campus.id },
@@ -97,7 +97,7 @@ describe('Diary + Circulars (e2e)', () => {
       data: { schoolId: school.id, name: 'DC Campus B' },
     });
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'dc-teacher-b@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'dc-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     const teacherB = await prisma.teacher.create({
       data: { userId: teacherBUser.id, name: 'DC Teacher B', campusId: campusB.id },
@@ -105,15 +105,15 @@ describe('Diary + Circulars (e2e)', () => {
     ids.campusB = campusB.id;
     ids.teacherB = teacherB.id;
     const adminUser = await prisma.user.create({
-      data: { identifier: 'dc-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
+      data: { identifier: 'dc-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
     });
     ids.adminUserId = adminUser.id;
 
     const parentAUser = await prisma.user.create({
-      data: { identifier: 'dc-parent-a@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'dc-parent-a@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const parentBUser = await prisma.user.create({
-      data: { identifier: 'dc-parent-b@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'dc-parent-b@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const parentAProfile = await prisma.parentProfile.create({
       data: { userId: parentAUser.id, name: 'DC Parent A' },
@@ -175,11 +175,11 @@ describe('Diary + Circulars (e2e)', () => {
         where: {
           identifier: {
             in: [
-              'dc-teacher@seeds.edu.pk',
-              'dc-teacher-b@seeds.edu.pk',
-              'dc-admin@seeds.edu.pk',
-              'dc-parent-a@seeds.edu.pk',
-              'dc-parent-b@seeds.edu.pk',
+              'dc-teacher@schoolos.edu.pk',
+              'dc-teacher-b@schoolos.edu.pk',
+              'dc-admin@schoolos.edu.pk',
+              'dc-parent-a@schoolos.edu.pk',
+              'dc-parent-b@schoolos.edu.pk',
             ],
           },
         },
@@ -202,7 +202,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it("a teacher posts a diary entry, and it's visible to a parent whose child is in that section", async () => {
-    const teacherToken = await loginAs('dc-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('dc-teacher@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     const post = await request(app.getHttpServer())
@@ -217,7 +217,7 @@ describe('Diary + Circulars (e2e)', () => {
       .expect(201);
     ids.diaryEntry = post.body.id;
 
-    const parentToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('dc-parent-a@schoolos.edu.pk');
     const month = today.slice(0, 7);
     const res = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/diary?month=${month}`)
@@ -232,7 +232,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it("a parent in a different section does NOT see another section's diary entry", async () => {
-    const parentBToken = await loginAs('dc-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('dc-parent-b@schoolos.edu.pk');
     const month = new Date().toISOString().slice(0, 7);
 
     const res = await request(app.getHttpServer())
@@ -244,7 +244,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('a SCHOOL_ADMIN (no Teacher profile row) can post a diary entry end-to-end, authored as themself', async () => {
-    const adminToken = await loginAs('dc-admin@seeds.edu.pk');
+    const adminToken = await loginAs('dc-admin@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     // Uses sectionB/childB (untouched by the other diary tests in this file) so this test is fully
@@ -274,7 +274,7 @@ describe('Diary + Circulars (e2e)', () => {
     );
 
     // And visible to the parent whose child is in that section.
-    const parentBToken = await loginAs('dc-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('dc-parent-b@schoolos.edu.pk');
     const parentView = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childB}/diary?month=${today.slice(0, 7)}`)
       .set('Authorization', `Bearer ${parentBToken}`)
@@ -287,7 +287,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('a PARENT cannot post a diary entry', async () => {
-    const parentToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('dc-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/diary')
@@ -302,7 +302,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('denies a teacher creating a diary entry for a section outside their campus', async () => {
-    const token = await loginAs('dc-teacher-b@seeds.edu.pk');
+    const token = await loginAs('dc-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/diary')
       .set('Authorization', `Bearer ${token}`)
@@ -311,7 +311,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it("denies a teacher reading another campus section's diary", async () => {
-    const token = await loginAs('dc-teacher-b@seeds.edu.pk');
+    const token = await loginAs('dc-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .get(`/api/v1/sections/${ids.sectionA}/diary`)
       .query({ month: '2026-09' })
@@ -320,7 +320,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('an admin publishes a school-wide circular; both parents get it, and stats show delivered/read counts', async () => {
-    const adminToken = await loginAs('dc-admin@seeds.edu.pk');
+    const adminToken = await loginAs('dc-admin@schoolos.edu.pk');
 
     const publish = await request(app.getHttpServer())
       .post('/api/v1/circulars')
@@ -329,7 +329,7 @@ describe('Diary + Circulars (e2e)', () => {
       .expect(201);
     ids.schoolCircular = publish.body.id;
 
-    const parentAToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('dc-parent-a@schoolos.edu.pk');
     const inboxA = await request(app.getHttpServer())
       .get('/api/v1/circulars')
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -340,7 +340,7 @@ describe('Diary + Circulars (e2e)', () => {
 
     // Prove the OTHER fixture parent got it too — not just an aggregate delivered count,
     // which a static seed-data floor could satisfy even if dc-parent-b were never included.
-    const parentBToken = await loginAs('dc-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('dc-parent-b@schoolos.edu.pk');
     const inboxB = await request(app.getHttpServer())
       .get('/api/v1/circulars')
       .set('Authorization', `Bearer ${parentBToken}`)
@@ -363,7 +363,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it("a section-scoped circular only reaches that section's parent", async () => {
-    const adminToken = await loginAs('dc-admin@seeds.edu.pk');
+    const adminToken = await loginAs('dc-admin@schoolos.edu.pk');
 
     const publish = await request(app.getHttpServer())
       .post('/api/v1/circulars')
@@ -376,14 +376,14 @@ describe('Diary + Circulars (e2e)', () => {
       })
       .expect(201);
 
-    const parentAToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('dc-parent-a@schoolos.edu.pk');
     const inboxA = await request(app.getHttpServer())
       .get('/api/v1/circulars')
       .set('Authorization', `Bearer ${parentAToken}`)
       .expect(200);
     expect(inboxA.body.map((c: { id: string }) => c.id)).toContain(publish.body.id);
 
-    const parentBToken = await loginAs('dc-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('dc-parent-b@schoolos.edu.pk');
     const inboxB = await request(app.getHttpServer())
       .get('/api/v1/circulars')
       .set('Authorization', `Bearer ${parentBToken}`)
@@ -392,7 +392,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it("a PARENT cannot publish a circular or read another circular's stats", async () => {
-    const parentToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('dc-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/circulars')
@@ -407,7 +407,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('a file attached to a diary entry is downloadable by an entitled parent (header or query-token auth) and forbidden to an unentitled one', async () => {
-    const teacherToken = await loginAs('dc-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('dc-teacher@schoolos.edu.pk');
 
     const upload = await request(app.getHttpServer())
       .post('/api/v1/files')
@@ -436,7 +436,7 @@ describe('Diary + Circulars (e2e)', () => {
       })
       .expect(201);
 
-    const parentAToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('dc-parent-a@schoolos.edu.pk');
     const download = await request(app.getHttpServer())
       .get(`/api/v1/files/${fileId}`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -454,7 +454,7 @@ describe('Diary + Circulars (e2e)', () => {
       .expect(200);
     expect(viaQuery.text).toBe('worksheet contents');
 
-    const parentBToken = await loginAs('dc-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('dc-parent-b@schoolos.edu.pk');
     await request(app.getHttpServer())
       .get(`/api/v1/files/${fileId}`)
       .set('Authorization', `Bearer ${parentBToken}`)
@@ -462,7 +462,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('rejects a file upload larger than the configured size limit', async () => {
-    const teacherToken = await loginAs('dc-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('dc-teacher@schoolos.edu.pk');
     const oversized = Buffer.alloc(MAX_UPLOAD_BYTES + 1);
 
     await request(app.getHttpServer())
@@ -473,7 +473,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('rejects an upload with a blocked executable extension', async () => {
-    const teacherToken = await loginAs('dc-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('dc-teacher@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/files')
@@ -483,7 +483,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('the ?access_token= query fallback authenticates the files route but not other routes', async () => {
-    const parentAToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('dc-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .get(`/api/v1/me/children?access_token=${parentAToken}`)

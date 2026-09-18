@@ -1,8 +1,8 @@
-# PRODUCT REQUIREMENTS — SEEDS Digital Platform
-Generated: 2026-08-27  ·  Owner: The Seeds School (via user)
+# PRODUCT REQUIREMENTS — SchoolOS Digital Platform
+Generated: 2026-08-27  ·  Owner: The SchoolOS School (via user)
 
 ## 1. Overview
-A replacement for The Seeds School's current two-vendor setup (an unpublished WebView-shell Android app
+A replacement for The SchoolOS School's current two-vendor setup (an unpublished WebView-shell Android app
 from one vendor, a separately-built website portal from another). One backend serves a Flutter parent
 app and a role-gated Vue staff console (Teacher/Admin/Accounts), so parents and staff always see the
 same data. Every screen exists to answer the parent's question: "What do I need to know about my child

@@ -1,4 +1,4 @@
-# DESIGN BRIEF — SEEDS Digital Platform
+# DESIGN BRIEF — SchoolOS Digital Platform
 
 Product type:   mobile app (parent-app) + internal tool (staff-console)
 Industry:       education

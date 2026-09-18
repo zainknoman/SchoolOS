@@ -4,8 +4,14 @@ import { useAuthStore } from '../stores/auth';
 import { api, type BulkImportEntity, type BulkImportPreviewResult } from '../lib/api';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import AppSkeleton from '../components/AppSkeleton.vue';
+import ErrorRetry from '../components/ErrorRetry.vue';
+import { useFocusTarget } from '../lib/useFocusTarget';
 
 const auth = useAuthStore();
+
+const entityFieldRef = ref<{ focus(): void } | null>(null);
+useFocusTarget({ entity: entityFieldRef });
 
 const selectedEntity = ref<BulkImportEntity | ''>('');
 const selectedFile = ref<File | null>(null);
@@ -79,8 +85,8 @@ async function onCommit() {
 <template>
   <div class="bulk-import">
     <h1>Bulk Import</h1>
-    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-    <p v-if="sampleErrorMessage" class="error" role="alert">{{ sampleErrorMessage }}</p>
+    <ErrorRetry v-if="errorMessage" :message="errorMessage" @retry="onPreview" />
+    <ErrorRetry v-if="sampleErrorMessage" :message="sampleErrorMessage" @retry="onDownloadSample" />
     <p v-if="successMessage" class="success" role="status">
       {{ successMessage }}
       <br />
@@ -89,6 +95,7 @@ async function onCommit() {
 
     <div class="picker-row">
       <FormField
+        ref="entityFieldRef"
         v-model="selectedEntity"
         label="Entity"
         type="select"
@@ -114,6 +121,10 @@ async function onCommit() {
       <Button data-testid="commit-submit" :disabled="isBusy || !canCommit" @click="onCommit">Commit</Button>
     </div>
     <p class="hint">Download the sample file for your chosen entity and follow the same column format when uploading.</p>
+
+    <div v-if="isBusy && !preview" class="preview-skeleton" data-testid="preview-skeleton">
+      <AppSkeleton v-for="n in 4" :key="n" height="1.4rem" />
+    </div>
 
     <table v-if="preview" class="preview-table" data-testid="preview-table">
       <thead>
@@ -141,10 +152,6 @@ async function onCommit() {
 .bulk-import {
   max-width: 900px;
 }
-.error {
-  color: var(--color-destructive);
-  margin-bottom: var(--space-3);
-}
 .success {
   color: var(--color-accent);
   margin-bottom: var(--space-3);
@@ -166,6 +173,12 @@ async function onCommit() {
   flex-direction: column;
   gap: 0.2rem;
   font-size: var(--font-size-sm);
+}
+.preview-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 .preview-table {
   width: 100%;

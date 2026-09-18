@@ -35,7 +35,7 @@ added fresh here if not) is the job runner for both Sprint E's future needs and 
 **Tech Stack:** NestJS backend (all-new work) + a one-field settings addition on each client
 (channel dropdown + digest checkbox) — no new client architecture.
 
-**Spec:** `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, Sprint H section (§4, "Sprint
+**Spec:** `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, Sprint H section (§4, "Sprint
 H — Communication Depth: WhatsApp, SMS, Digest Bundling (Phase 4)").
 
 ## Global Constraints

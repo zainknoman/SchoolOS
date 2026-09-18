@@ -38,7 +38,7 @@ export class JazzCashAdapter implements PaymentGatewayAdapter {
       pp_TxnDateTime: formatJazzCashDateTime(now),
       pp_TxnExpiryDateTime: formatJazzCashDateTime(new Date(now.getTime() + 60 * 60 * 1000)),
       pp_BillReference: input.reference,
-      pp_Description: 'SEEDS school fee payment',
+      pp_Description: 'SchoolOS school fee payment',
       pp_ReturnURL: this.config.returnUrl,
     };
     const pp_SecureHash = signer.sign(fields);

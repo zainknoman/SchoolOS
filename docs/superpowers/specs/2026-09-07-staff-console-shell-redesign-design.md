@@ -2,7 +2,7 @@
 
 Status: draft, approved in chat by product owner 2026-09-07.
 Source: `ui-ux-pro-max`-produced mockup artifact (competitive-research-informed), reviewed and
-approved live. Design system baseline: `staff-console/design-system/seeds-staff-console/MASTER.md`
+approved live. Design system baseline: `staff-console/design-system/schoolos-staff-console/MASTER.md`
 (navy `#0F172A` / accent `#0369A1`, Plus Jakarta Sans) — extended, not replaced.
 
 ## Context

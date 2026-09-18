@@ -1,6 +1,6 @@
-# SchoolPortal — Global Competitor Research
+# SchoolOS — Global Competitor Research
 
-**Compiled 2026-09-08.** Companion document to `SchoolPortal-Repo-Audit-2026-09-08.md`.
+**Compiled 2026-09-08.** Companion document to `SchoolOS-Repo-Audit-2026-09-08.md`.
 Published version (interactive, with collapsible profiles and a scrollable matrix):
 https://claude.ai/code/artifact/513ff059-2d0b-49c0-ace6-710627dfeb1a
 
@@ -14,7 +14,7 @@ silently converted to "not supported."
 ## 1. Why these ten
 
 The brief's seed list is a good starting basket. One swap was made — **TalkingPoints out, Teachmint
-in** — because the market moved and because SchoolPortal's own geography changes what "relevant" means.
+in** — because the market moved and because SchoolOS's own geography changes what "relevant" means.
 
 | Product | Why selected |
 |---|---|
@@ -22,17 +22,17 @@ in** — because the market moved and because SchoolPortal's own geography chang
 | **Seesaw** | Category-defining K-6 portfolio platform, and the clearest current example of AI cutting teacher admin time rather than replacing pedagogy. |
 | **Remind** | Proof that a communication tool can win on zero-friction SMS-first adoption alone — relevant where smartphone/data access is uneven. |
 | **ParentSquare** | Now owns Remind; the benchmark for unifying every family-facing channel into one system with digest-style anti-fatigue design. |
-| **Brightwheel** | The billing/payments UX and daily-activity-feed benchmark, even though its early-childhood scope sits outside SchoolPortal's K-12 range. |
-| **Toddle** | The strongest current example of a portfolio-to-report-card pipeline — exactly the gradebook/report-card layer SchoolPortal has not built. |
+| **Brightwheel** | The billing/payments UX and daily-activity-feed benchmark, even though its early-childhood scope sits outside SchoolOS's K-12 range. |
+| **Toddle** | The strongest current example of a portfolio-to-report-card pipeline — exactly the gradebook/report-card layer SchoolOS has not built. |
 | **PowerSchool SIS** | The enterprise ceiling: compliance reporting, admissions/lottery workflows, and — after its 2025 breach — a live cautionary tale on security posture. |
 | **Schoology** | PowerSchool's LMS pillar; the clearest reference for what a real standards-based gradebook looks like at scale. |
 | **Alma** | A modern, well-reviewed SIS core with genuinely predictive analytics (BeaconAI) — and a public lesson in what happens when a strong web product ships no native app. |
-| **Teachmint** | The closest regional and product analog to SchoolPortal itself: South Asian, mobile-first, parent app plus ERP, with a fee-collection fintech layer built for markets like Pakistan's. |
+| **Teachmint** | The closest regional and product analog to SchoolOS itself: South Asian, mobile-first, parent app plus ERP, with a fee-collection fintech layer built for markets like Pakistan's. |
 
 **Swap note:** No TalkingPoints/ParentSquare merger was found. ParentSquare *acquired Remind* in
 November 2023; TalkingPoints remains a smaller, separately-run product outside this top-10 cut.
 Teachmint fills the slot instead — a closer match on global-adoption-in-context, parent experience,
-payments, and direct relevance to SchoolPortal's Pakistan market and mobile-first architecture.
+payments, and direct relevance to SchoolOS's Pakistan market and mobile-first architecture.
 
 ---
 
@@ -84,7 +84,7 @@ Confidence tags: untagged = official-source/high confidence · `(med)` = app sto
   product (take-rate undisclosed).
 
 > **Worth learning:** mass-scale, multilingual, multi-channel broadcast with delivery confirmation —
-> directly transferable to SchoolPortal's unbuilt Messaging module, minus the behavior-points
+> directly transferable to SchoolOS's unbuilt Messaging module, minus the behavior-points
 > gamification.
 
 **Sources:** [classdojo.com/school-leaders](https://www.classdojo.com/school-leaders/) (official) ·
@@ -144,7 +144,7 @@ Confidence tags: untagged = official-source/high confidence · `(med)` = app sto
   scaled back; individual "Seesaw Plus" at $120/year.
 
 > **Worth learning:** AI used to cut teacher administrative burden rather than the full
-> multimodal-portfolio paradigm, which fits early-childhood better than SchoolPortal's broader K-12 scope.
+> multimodal-portfolio paradigm, which fits early-childhood better than SchoolOS's broader K-12 scope.
 
 **Sources:** [seesaw.com/whats-new](https://seesaw.com/whats-new/) (official) ·
 [seesaw.com all-in-one-platform](https://seesaw.com/products/all-in-one-platform/) (official) ·
@@ -317,7 +317,7 @@ Confidence tags: untagged = official-source/high confidence · `(med)` = app sto
   plus 2.9%+$0.30 processing `(med)`.
 
 > **Worth learning:** multi-payer invoice splitting, autopay, self-serve receipts, and a real-time
-> balance dashboard — the transferable shapes for SchoolPortal's fees module, with local payment
+> balance dashboard — the transferable shapes for SchoolOS's fees module, with local payment
 > rails substituted for Brightwheel's ACH/card.
 
 **Sources:** [mybrightwheel.com/features](https://mybrightwheel.com/features/) (official) ·
@@ -378,7 +378,7 @@ Confidence tags: untagged = official-source/high confidence · `(med)` = app sto
 - **Pricing:** Three custom-quoted tiers (Planning Pro, Essentials, Ultimate) `(med)`.
 
 > **Worth learning:** the portfolio-to-report-card pipeline is the strongest reference for the
-> report-card/grading layer SchoolPortal doesn't have at all. Its scope gap (no fees, no admissions,
+> report-card/grading layer SchoolOS doesn't have at all. Its scope gap (no fees, no admissions,
 > no PTM) is a useful negative signal too — those are where a full SIS must differentiate.
 
 **Sources:** [toddleapp.com product overview](https://www.toddleapp.com/product/product-overview/) (official) ·
@@ -444,12 +444,12 @@ Confidence tags: untagged = official-source/high confidence · `(med)` = app sto
   total contracts $20K–$300K+ plus 15–25% first-year implementation `(low)`.
 
 > **Cautionary benchmark:** the PowerSchool breach failure class — support-portal credential without
-> MFA, always-on remote-access tool, thin log retention — is precisely the shape of gap SchoolPortal's
+> MFA, always-on remote-access tool, thin log retention — is precisely the shape of gap SchoolOS's
 > own audit already flags (hardcoded JWT fallback, wide-open CORS, no rate limiting). At enterprise
 > scale, exactly this pattern became a 62M-record breach.
 >
 > **Worth learning (positive):** PowerSchool Enrollment's lottery/audit-log workflow is the clearest
-> "what a mature admissions module looks like" reference — SchoolPortal has zero admissions today.
+> "what a mature admissions module looks like" reference — SchoolOS has zero admissions today.
 
 **Sources:** [powerschool.com SIS](https://www.powerschool.com/products/student-information/sis/) (official) ·
 [powerschool.com Enrollment](https://www.powerschool.com/products/student-information/enrollment/) (official) ·
@@ -522,8 +522,8 @@ Confidence tags: untagged = official-source/high confidence · `(med)` = app sto
   add-on `(low)`.
 
 > **Worth learning:** the mastery-based gradebook and standards-passback design is the strongest
-> reference for a real gradebook/report-card system, which SchoolPortal currently has none of. The
-> SIS-agnostic LTI/OneRoster architecture is far beyond SchoolPortal's current single-backend scope.
+> reference for a real gradebook/report-card system, which SchoolOS currently has none of. The
+> SIS-agnostic LTI/OneRoster architecture is far beyond SchoolOS's current single-backend scope.
 
 **Sources:** [powerschool.com Schoology Learning](https://www.powerschool.com/products/classroom/learning-management/) (official) ·
 [Capterra reviews](https://www.capterra.com/p/128481/Schoology/reviews/) (community)
@@ -586,7 +586,7 @@ Confidence tags: untagged = official-source/high confidence · `(med)` = app sto
 
 > **Worth learning:** BeaconAI's framing — SIS data continuously turned into early-warning views
 > rather than a static dashboard — is the lesson, not "add AI" for its own sake. Its own
-> reporting-rigidity complaints are a useful contrast for SchoolPortal's currently 100%-mock admin
+> reporting-rigidity complaints are a useful contrast for SchoolOS's currently 100%-mock admin
 > dashboard: even a real, data-backed dashboard gets criticized when it isn't actionable enough.
 
 **Sources:** [getalma.com](https://www.getalma.com/) (official) ·
@@ -670,7 +670,7 @@ Confidence tags: untagged = official-source/high confidence · `(med)` = app sto
 
 > **Worth learning:** TeachPay's design — installment/EMI-style payment for parents while the school
 > still gets paid in full upfront, plus multi-bank auto-split settlement and automated reminders — is
-> the single most directly transferable idea in this research for SchoolPortal's unbuilt Fees module.
+> the single most directly transferable idea in this research for SchoolOS's unbuilt Fees module.
 > The mechanism is worth copying; the specific rails (UPI, eNACH) are not — Pakistan needs
 > JazzCash/EasyPaisa substitution.
 
@@ -759,7 +759,7 @@ product. See Section 7.
 | Remind | Zero-friction, SMS-first adoption with no district procurement required | Yes — an SMS fallback channel is directly relevant to lower-connectivity households. |
 | ParentSquare | Unified multi-channel engagement with anti-fatigue digest notifications and translation as core infrastructure | Yes — the digest-bundling and translation-as-infrastructure patterns. |
 | Brightwheel | Parent-facing billing UX: multi-payer invoices, autopay, self-serve receipts, real-time balance dashboard | Yes — the fees-module shape, with local payment rails substituted. |
-| Toddle | Portfolio-to-report-card pipeline with AI-assisted narrative drafting | Yes — the clearest reference for SchoolPortal's missing gradebook/report-card layer. |
+| Toddle | Portfolio-to-report-card pipeline with AI-assisted narrative drafting | Yes — the clearest reference for SchoolOS's missing gradebook/report-card layer. |
 | PowerSchool SIS | Enterprise compliance reporting and audit-logged admissions/lottery workflows | Yes for admissions design — and a cautionary case study on security posture. |
 | Schoology | Standards-based mastery gradebook with SIS-agnostic LTI/OneRoster interoperability | Yes for the gradebook design; the interoperability architecture is out of scope. |
 | Alma | Predictive, early-warning analytics (BeaconAI) built on data the SIS already has | Yes — proactive alerting is the pattern, not the "add AI" headline. |
@@ -834,7 +834,7 @@ class can be run.
 
 **Competitive trends.** Point-solutions are consolidating into single-vendor suites (Remind folding
 into ParentSquare, Schoology folding into PowerSchool's Product Cloud) — the market is converging on
-exactly the "one backend, two clients" bet SchoolPortal has already made, not away from it. AI has
+exactly the "one backend, two clients" bet SchoolOS has already made, not away from it. AI has
 moved from marketing claim to shipped, metered product feature across the leaders in this set within
 the last 12 months.
 
@@ -845,7 +845,7 @@ on-device/local AI aimed at low-connectivity classrooms (Teachmint X).
 
 **Global table-stakes.** Attendance, two-way or read-receipted messaging, native mobile apps for
 parent and staff, push notifications, multi-child switching, at least UI-level localization.
-SchoolPortal already has three of six (attendance, timetable-read, diary/circulars) and is missing
+SchoolOS already has three of six (attendance, timetable-read, diary/circulars) and is missing
 the rest outright per its own audit.
 
 **Global differentiators.** Two-way over one-way communication, standards-based over flat grading,
@@ -854,17 +854,17 @@ AI that provably saves staff time over AI as a press release.
 
 ---
 
-## 10. Features SchoolPortal should avoid copying
+## 10. Features SchoolOS should avoid copying
 
 | From | Don't copy |
 |---|---|
 | **ClassDojo** | Gamified behavior-points / public comparison — reviewers themselves flag privacy discomfort around public behavior callouts; fits elementary classroom culture, not an administrative K-12 SIS. |
 | **Teachmint** | AI marketed as core, shipped only behind hardware — EduAI's headline features are tied to Teachmint X hardware, not confirmed in the software most schools deploy. A credibility risk not to repeat. |
-| **PowerSchool** | Land-and-expand product fragmentation — SIS, Schoology, Naviance, Performance Matters, and Enrollment as separately-branded products created exactly the "too many logins" complaint MyPowerHub had to be built to fix. SchoolPortal's single-backend architecture is the better starting bet, already validated by the market consolidating toward it. |
-| **PowerSchool / Toddle / Alma** | Custom-quote-only, opaque pricing — defensible for enterprise district sales; a poor fit for SchoolPortal's likely single-school-to-small-network customer, who needs pricing clarity to trust the product. |
-| **Seesaw** | Multimodal-first UX for every age — draw/record-first interaction is right for early learners, wrong as a default for SchoolPortal's broader K-12 administrative surface. |
+| **PowerSchool** | Land-and-expand product fragmentation — SIS, Schoology, Naviance, Performance Matters, and Enrollment as separately-branded products created exactly the "too many logins" complaint MyPowerHub had to be built to fix. SchoolOS's single-backend architecture is the better starting bet, already validated by the market consolidating toward it. |
+| **PowerSchool / Toddle / Alma** | Custom-quote-only, opaque pricing — defensible for enterprise district sales; a poor fit for SchoolOS's likely single-school-to-small-network customer, who needs pricing clarity to trust the product. |
+| **Seesaw** | Multimodal-first UX for every age — draw/record-first interaction is right for early learners, wrong as a default for SchoolOS's broader K-12 administrative surface. |
 | **Alma** | Strong web product, no native mobile app — its single most-repeated user complaint. A cautionary example, not a shortcut, especially for a market where mobile is often the only device. |
-| **PowerSchool** | Support-portal access without MFA, thin log retention — the exact failure class behind its 2025 breach of ~62M student records. SchoolPortal's own audit already flags analogous gaps (hardcoded JWT fallback, wide-open CORS) — the clearest evidence for why they're worth fixing before any real pilot. |
+| **PowerSchool** | Support-portal access without MFA, thin log retention — the exact failure class behind its 2025 breach of ~62M student records. SchoolOS's own audit already flags analogous gaps (hardcoded JWT fallback, wide-open CORS) — the clearest evidence for why they're worth fixing before any real pilot. |
 
 ---
 
@@ -887,7 +887,7 @@ increasingly — after 2025's PowerSchool breach touched roughly 62 million stud
 expect the vendor to have taken basic account-security hygiene seriously before the pitch deck ever
 mentions AI.
 
-None of this requires SchoolPortal to build everything in this report. It requires knowing, with
+None of this requires SchoolOS to build everything in this report. It requires knowing, with
 evidence rather than assumption, which gaps in its own audited feature set — Fees, Messaging, admin
 CRUD, a real (not mock) admin dashboard, a working refresh-token loop — are gaps against genuine 2026
 market expectations, and which competitor patterns (TeachPay's fee mechanics, ParentSquare's digest
@@ -898,5 +898,5 @@ the most direct, sourced answers for closing them.
 
 *Compiled 2026-09-08 · Sources: official product sites/documentation (highest confidence), app-store
 listings and reputable press (medium), community/forum reports (supporting, tagged inline) ·
-Baseline: `SchoolPortal-Repo-Audit-2026-09-08.md` · No feature was marked unavailable solely because
+Baseline: `SchoolOS-Repo-Audit-2026-09-08.md` · No feature was marked unavailable solely because
 it could not be found — unverifiable claims are marked Unknown throughout.*

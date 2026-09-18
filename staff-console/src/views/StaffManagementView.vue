@@ -8,8 +8,10 @@ import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
+const toast = useToast();
 
 const staff = ref<StaffAdminSummary[]>([]);
 const campuses = ref<CampusSummary[]>([]);
@@ -92,6 +94,7 @@ async function onAdd() {
     await api.createStaff(auth.accessToken, payload);
     showAddForm.value = false;
     await load();
+    toast.success('Staff member added.');
   } catch (err) {
     addErrorMessage.value = err instanceof Error ? err.message : 'Could not create this staff member.';
   } finally {
@@ -130,6 +133,11 @@ async function onAdd() {
       ]"
       row-key="id"
       :editing-id="null"
+      empty-icon="users"
+      empty-title="No staff yet"
+      empty-message="Add teachers and other staff members to get started."
+      empty-cta-label="+ Add New"
+      @empty-cta="openAddForm"
     >
       <template #actions="{ item }">
         <RouterLink :data-testid="`view-profile-${item.id}`" :to="`/admin/staff/${item.id}`">View Profile</RouterLink>

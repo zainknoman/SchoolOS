@@ -1,11 +1,11 @@
-# SchoolPortal — Post-MVP Roadmap, Sprints & Implementation Plan
+# SchoolOS — Post-MVP Roadmap, Sprints & Implementation Plan
 
 **Compiled 2026-09-08.** Fifth and final document in the `docs/Plan-Ideas/` series. Synthesizes:
 
-1. `SchoolPortal-Repo-Audit-2026-09-08.md` — functional audit at commit `1e74697` (36/100 maturity).
-2. `SchoolPortal-Global-Competitor-Research-2026-09-08.md` — ten global school-platform leaders.
-3. `SchoolPortal-Gap-Analysis-Feature-Prioritization-2026-09-08.md` — gap tiers, scored on the `1e74697` baseline.
-4. `SchoolPortal-UIUX-Audit-Modernization-Roadmap-2026-09-08.md` — UI/UX audit at the **later** commit `988278a`.
+1. `SchoolOS-Repo-Audit-2026-09-08.md` — functional audit at commit `1e74697` (36/100 maturity).
+2. `SchoolOS-Global-Competitor-Research-2026-09-08.md` — ten global school-platform leaders.
+3. `SchoolOS-Gap-Analysis-Feature-Prioritization-2026-09-08.md` — gap tiers, scored on the `1e74697` baseline.
+4. `SchoolOS-UIUX-Audit-Modernization-Roadmap-2026-09-08.md` — UI/UX audit at the **later** commit `988278a`.
 
 No new research was performed. Every claim below traces to one of the four documents above.
 
@@ -47,10 +47,10 @@ No new research was performed. Every claim below traces to one of the four docum
   - [x] Rate limiting (`@nestjs/throttler`) on auth + general routes — global `ThrottlerGuard` + a stricter 5/min override on `POST /auth/login`
   - [x] Resolve the `FeePaymentAllocation` vs `Receipt` `onDelete` policy disagreement — `Receipt.feePayment` is now `onDelete: Restrict`, matching its sibling
 - [x] **Sprint C — Attendance & Access Bug Fixes + Verification Pass** — merged to `main` 2026-09-10 (`b487cee..14428ce`)
-  - [x] Fix Admin/Super-Admin attendance-marking bug (`Teacher.findUnique` role fallthrough) — fixed via class-teacher attribution, mirroring `LeaveService.approve()`'s precedent; verified by e2e test and smoke-tested live against real seed data (`admin@seeds.edu.pk` marking Eshaal Sample present, visible to `parent-a@seeds.edu.pk`)
+  - [x] Fix Admin/Super-Admin attendance-marking bug (`Teacher.findUnique` role fallthrough) — fixed via class-teacher attribution, mirroring `LeaveService.approve()`'s precedent; verified by e2e test and smoke-tested live against real seed data (`admin@schoolos.edu.pk` marking Eshaal Sample present, visible to `parent-a@schoolos.edu.pk`)
   - [x] Fix Circulars nav-role bug (`AppShell.vue`'s `isAdmin` condition) — already closed by the 2026-09-07 Staff Console Shell Redesign's `canManageCirculars` computed, ahead of this sprint being scoped; no new work needed
   - [x] Verify Fees/Messaging enforce the same scoping rigor already proven on Attendance/Diary — Fees already had full coverage; added the one missing Messaging test (a parent can't start a `CLASS_TEACHER` conversation using another parent's child's `studentId`) — passed on the first run, confirming the scoping was already correct
-  - [x] **Found during Sprint C prep (2026-09-10), not originally listed:** parent-app login was unreachable from the only locally-previewable Flutter target (`flutter run -d chrome`, no Android emulator/Windows toolchain in this dev environment) — Sprint B's CORS allow-list didn't include the parent-app's dev-preview origin. Fixed: `buildCorsOriginOption()` accepts any `localhost`/`127.0.0.1` origin in development/test only; staging/production behavior (strict allow-list) is unchanged. Verified live against both `parent-a@seeds.edu.pk` and `parent-b@seeds.edu.pk`.
+  - [x] **Found during Sprint C prep (2026-09-10), not originally listed:** parent-app login was unreachable from the only locally-previewable Flutter target (`flutter run -d chrome`, no Android emulator/Windows toolchain in this dev environment) — Sprint B's CORS allow-list didn't include the parent-app's dev-preview origin. Fixed: `buildCorsOriginOption()` accepts any `localhost`/`127.0.0.1` origin in development/test only; staging/production behavior (strict allow-list) is unchanged. Verified live against both `parent-a@schoolos.edu.pk` and `parent-b@schoolos.edu.pk`.
   - [x] **Found during Sprint C prep (2026-09-10), not originally listed:** `FeeVouchersService`'s status computation (`voucher.dueDate < new Date()`) marked a voucher `overdue` the instant its due date arrived (time-of-day is always past midnight), not after it passed. Fixed: compare against the start of today instead.
   - Plan: `docs/superpowers/plans/2026-09-10-sprint-c-attendance-access-bugfixes.md`. Verified: full backend suite green (239 unit tests, 64 e2e tests), `npm run build` clean.
   - **CI confirmed green on GitHub Actions (2026-09-10):** all three jobs (backend, staff-console,
@@ -969,7 +969,7 @@ with real baselines the moment any pilot school goes live.
   no capability that doesn't already exist.
 - **Separate Teacher Portal / Admin Portal apps, a separate parent web portal** — the exact fragmentation
   the market (PowerSchool, Schoology, Remind/ParentSquare) is now paying multi-year integration cost to
-  undo. SchoolPortal's single-backend, two-client architecture is a protected advantage, not a gap.
+  undo. SchoolOS's single-backend, two-client architecture is a protected advantage, not a gap.
 - **District-scale compliance reporting (Ed-Fi/SIF), a 75+-integration marketplace** — PowerSchool/
   Alma-tier enterprise capability; the target customer (single school to small network) has no
   regulatory or procurement need for it yet.
@@ -985,7 +985,7 @@ with real baselines the moment any pilot school goes live.
 
 # 14. Final Recommendation
 
-### Question 1 — What prevents SchoolPortal from being considered a credible commercial school-management platform today?
+### Question 1 — What prevents SchoolOS from being considered a credible commercial school-management platform today?
 
 1. No CI/CD — a real 45+-file test suite exists and nothing runs it automatically on a PR.
 2. A dead refresh-token loop — every real session degrades to unexplained 401s after 15 minutes.
@@ -1022,7 +1022,7 @@ report builder, and RFID/biometric/cashless-canteen hardware integrations. None 
 competitors reviewed build most of these either — this exclusion list is market-validated, not just
 internally convenient.
 
-### Question 5 — What can make SchoolPortal meaningfully better than global competitors rather than merely equivalent?
+### Question 5 — What can make SchoolOS meaningfully better than global competitors rather than merely equivalent?
 
 The combination the competitor research explicitly says no researched competitor — including the
 closest regional analog, Teachmint — fully matches: correct bilingual (Urdu/English) content handling
@@ -1126,9 +1126,9 @@ evidenced way, not merely equivalent to the ten global leaders it was benchmarke
 
 ---
 
-*Compiled 2026-09-08. Synthesizes `SchoolPortal-Repo-Audit-2026-09-08.md` (commit `1e74697`),
-`SchoolPortal-Global-Competitor-Research-2026-09-08.md`, `SchoolPortal-Gap-Analysis-Feature-
+*Compiled 2026-09-08. Synthesizes `SchoolOS-Repo-Audit-2026-09-08.md` (commit `1e74697`),
+`SchoolOS-Global-Competitor-Research-2026-09-08.md`, `SchoolOS-Gap-Analysis-Feature-
 Prioritization-2026-09-08.md` (built on the `1e74697` baseline), and
-`SchoolPortal-UIUX-Audit-Modernization-Roadmap-2026-09-08.md` (commit `988278a`, the newest evidence).
+`SchoolOS-UIUX-Audit-Modernization-Roadmap-2026-09-08.md` (commit `988278a`, the newest evidence).
 No new research was performed. §0 documents the required reconciliation between the two commit
 snapshots; every phase, sprint, and recommendation above is built on that reconciled picture.*

@@ -1,7 +1,7 @@
 # Sprint R — Student Promotion / Re-Enrollment — Design Spec
 
 **Status: un-deferred 2026-09-17.** `MASTER-PROMPT-TRACKER.md` (Deferred Features, Section 14) and
-`docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` (§13 Defer) both listed
+`docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md` (§13 Defer) both listed
 "promotion/re-enrollment" as intentionally out of scope for the MVP. The project owner explicitly
 requested un-deferring it now that the build is past MVP and moving into a Production-Ready phase
 (see `PROJECT-STATUS.md`'s Phase note and `MASTER-PROMPT-TRACKER.md`'s Production-Ready Backlog

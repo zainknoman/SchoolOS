@@ -139,7 +139,7 @@ First, capture the admin user's id (currently discarded) — change:
   // staff console's RBAC-gated nav.
   await prisma.user.create({
     data: {
-      identifier: 'admin@seeds.edu.pk',
+      identifier: 'admin@schoolos.edu.pk',
       passwordHash: await argon2.hash('ChangeMe123!'),
       role: 'SCHOOL_ADMIN',
     },
@@ -153,7 +153,7 @@ to:
   // staff console's RBAC-gated nav.
   const adminUser = await prisma.user.create({
     data: {
-      identifier: 'admin@seeds.edu.pk',
+      identifier: 'admin@schoolos.edu.pk',
       passwordHash: await argon2.hash('ChangeMe123!'),
       role: 'SCHOOL_ADMIN',
     },
@@ -252,7 +252,7 @@ describe('LocalDiskStorageAdapter', () => {
   let adapter: LocalDiskStorageAdapter;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'seeds-storage-'));
+    dir = mkdtempSync(join(tmpdir(), 'schoolos-storage-'));
     process.env.UPLOADS_DIR = dir;
     adapter = new LocalDiskStorageAdapter();
   });
@@ -1754,21 +1754,21 @@ describe('Diary + Circulars (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'dc-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'dc-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'DC Teacher' },
     });
     const adminUser = await prisma.user.create({
-      data: { identifier: 'dc-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
+      data: { identifier: 'dc-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
     });
     ids.adminUserId = adminUser.id;
 
     const parentAUser = await prisma.user.create({
-      data: { identifier: 'dc-parent-a@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'dc-parent-a@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const parentBUser = await prisma.user.create({
-      data: { identifier: 'dc-parent-b@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'dc-parent-b@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const parentAProfile = await prisma.parentProfile.create({
       data: { userId: parentAUser.id, name: 'DC Parent A' },
@@ -1800,10 +1800,10 @@ describe('Diary + Circulars (e2e)', () => {
         where: {
           identifier: {
             in: [
-              'dc-teacher@seeds.edu.pk',
-              'dc-admin@seeds.edu.pk',
-              'dc-parent-a@seeds.edu.pk',
-              'dc-parent-b@seeds.edu.pk',
+              'dc-teacher@schoolos.edu.pk',
+              'dc-admin@schoolos.edu.pk',
+              'dc-parent-a@schoolos.edu.pk',
+              'dc-parent-b@schoolos.edu.pk',
             ],
           },
         },
@@ -1813,7 +1813,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it("a teacher posts a diary entry, and it's visible to a parent whose child is in that section", async () => {
-    const teacherToken = await loginAs('dc-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('dc-teacher@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     const post = await request(app.getHttpServer())
@@ -1828,7 +1828,7 @@ describe('Diary + Circulars (e2e)', () => {
       .expect(201);
     ids.diaryEntry = post.body.id;
 
-    const parentToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('dc-parent-a@schoolos.edu.pk');
     const month = today.slice(0, 7);
     const res = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/diary?month=${month}`)
@@ -1843,7 +1843,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it("a parent in a different section does NOT see another section's diary entry", async () => {
-    const parentBToken = await loginAs('dc-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('dc-parent-b@schoolos.edu.pk');
     const month = new Date().toISOString().slice(0, 7);
 
     const res = await request(app.getHttpServer())
@@ -1855,7 +1855,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('a PARENT cannot post a diary entry', async () => {
-    const parentToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('dc-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/diary')
@@ -1870,7 +1870,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('an admin publishes a school-wide circular; both parents get it, and stats show delivered/read counts', async () => {
-    const adminToken = await loginAs('dc-admin@seeds.edu.pk');
+    const adminToken = await loginAs('dc-admin@schoolos.edu.pk');
 
     const publish = await request(app.getHttpServer())
       .post('/api/v1/circulars')
@@ -1879,7 +1879,7 @@ describe('Diary + Circulars (e2e)', () => {
       .expect(201);
     ids.schoolCircular = publish.body.id;
 
-    const parentAToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('dc-parent-a@schoolos.edu.pk');
     const inboxA = await request(app.getHttpServer())
       .get('/api/v1/circulars')
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -1901,7 +1901,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it("a section-scoped circular only reaches that section's parent", async () => {
-    const adminToken = await loginAs('dc-admin@seeds.edu.pk');
+    const adminToken = await loginAs('dc-admin@schoolos.edu.pk');
 
     const publish = await request(app.getHttpServer())
       .post('/api/v1/circulars')
@@ -1914,14 +1914,14 @@ describe('Diary + Circulars (e2e)', () => {
       })
       .expect(201);
 
-    const parentAToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('dc-parent-a@schoolos.edu.pk');
     const inboxA = await request(app.getHttpServer())
       .get('/api/v1/circulars')
       .set('Authorization', `Bearer ${parentAToken}`)
       .expect(200);
     expect(inboxA.body.map((c: { id: string }) => c.id)).toContain(publish.body.id);
 
-    const parentBToken = await loginAs('dc-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('dc-parent-b@schoolos.edu.pk');
     const inboxB = await request(app.getHttpServer())
       .get('/api/v1/circulars')
       .set('Authorization', `Bearer ${parentBToken}`)
@@ -1930,7 +1930,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it("a PARENT cannot publish a circular or read another circular's stats", async () => {
-    const parentToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('dc-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/circulars')
@@ -1945,7 +1945,7 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   it('a file attached to a diary entry is downloadable by an entitled parent (header or query-token auth) and forbidden to an unentitled one', async () => {
-    const teacherToken = await loginAs('dc-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('dc-teacher@schoolos.edu.pk');
 
     const upload = await request(app.getHttpServer())
       .post('/api/v1/files')
@@ -1967,7 +1967,7 @@ describe('Diary + Circulars (e2e)', () => {
       })
       .expect(201);
 
-    const parentAToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('dc-parent-a@schoolos.edu.pk');
     const download = await request(app.getHttpServer())
       .get(`/api/v1/files/${fileId}`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -1981,7 +1981,7 @@ describe('Diary + Circulars (e2e)', () => {
       .expect(200);
     expect(viaQuery.text).toBe('worksheet contents');
 
-    const parentBToken = await loginAs('dc-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('dc-parent-b@schoolos.edu.pk');
     await request(app.getHttpServer())
       .get(`/api/v1/files/${fileId}`)
       .set('Authorization', `Bearer ${parentBToken}`)
@@ -3555,7 +3555,7 @@ Modify `parent-app/test/screens/home_shell_test.dart` — add a third test at th
 
     await tester.pumpWidget(buildTestApp(api: api));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@seeds.edu.pk');
+    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@schoolos.edu.pk');
     await tester.enterText(find.byKey(const Key('passwordField')), 'ChangeMe123!');
     await tester.tap(find.byKey(const Key('submitButton')));
     await tester.pumpAndSettle();

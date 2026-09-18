@@ -28,13 +28,14 @@ const actionItems = [
   },
 ];
 
-async function mountPalette(open = true) {
+async function mountPalette(open = true, options: { attach?: boolean } = {}) {
   const router = makeRouter();
   await router.push('/');
   await router.isReady();
   const wrapper = mount(CommandPalette, {
     props: { open, goToItems, actionItems },
     global: { plugins: [router] },
+    ...(options.attach ? { attachTo: document.body } : {}),
   });
   return { wrapper, router };
 }
@@ -109,6 +110,36 @@ describe('CommandPalette', () => {
     await flushPromises();
 
     expect(router.currentRoute.value.path).toBe('/admin/students');
+  });
+
+  it('traps Tab focus inside the dialog — wraps from the last item back to the input', async () => {
+    const { wrapper } = await mountPalette(true, { attach: true });
+    const input = wrapper.find('[data-testid="cmdk-input"]').element as HTMLInputElement;
+    const items = wrapper.findAll('.cmdk-item');
+    const lastItem = items[items.length - 1]!.element as HTMLElement;
+
+    lastItem.focus();
+    expect(document.activeElement).toBe(lastItem);
+
+    await wrapper.find('.cmdk').trigger('keydown', { key: 'Tab' });
+
+    expect(document.activeElement).toBe(input);
+    wrapper.unmount();
+  });
+
+  it('traps Shift+Tab focus inside the dialog — wraps from the input back to the last item', async () => {
+    const { wrapper } = await mountPalette(true, { attach: true });
+    const input = wrapper.find('[data-testid="cmdk-input"]').element as HTMLInputElement;
+    const items = wrapper.findAll('.cmdk-item');
+    const lastItem = items[items.length - 1]!.element as HTMLElement;
+
+    input.focus();
+    expect(document.activeElement).toBe(input);
+
+    await wrapper.find('.cmdk').trigger('keydown', { key: 'Tab', shiftKey: true });
+
+    expect(document.activeElement).toBe(lastItem);
+    wrapper.unmount();
   });
 
   it('resets the query when reopened', async () => {

@@ -1,7 +1,7 @@
 # Sprint 5-6 — Diary/Homework + Circulars (FEAT-008, FEAT-009)
 
 Status: approved, ready for implementation planning.
-Spec source: `Seeds/apk/MVP-Plan-V3.md` → `plan/docs/FEATURES.txt` (FEAT-008, FEAT-009).
+Spec source: `SchoolOS/apk/MVP-Plan-V3.md` → `plan/docs/FEATURES.txt` (FEAT-008, FEAT-009).
 
 ## Goal
 

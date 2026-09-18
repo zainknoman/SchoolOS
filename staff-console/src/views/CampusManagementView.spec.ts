@@ -25,13 +25,13 @@ const FULL_CAMPUS = {
   id: 'c1',
   name: 'Gulistan-e-Jauhar',
   schoolId: 's1',
-  schoolName: 'The Seeds School',
+  schoolName: 'The SchoolOS School',
   code: 'GEJ',
   campusType: 'Main',
   logoFileId: 'file-logo-1',
   principalName: 'Ms. Sara',
   principalPhone: '021-777-0001',
-  principalEmail: 'sara@seeds.edu.pk',
+  principalEmail: 'sara@schoolos.edu.pk',
   openingDate: '2010-08-15',
   capacity: 500,
   latitude: 24.9056,
@@ -42,7 +42,7 @@ const FULL_CAMPUS = {
   addressId: null,
   address: '10 Campus Rd',
   phone: '021-333',
-  email: 'gej@seeds.edu.pk',
+  email: 'gej@schoolos.edu.pk',
   studentCount: 60,
   staffCount: 8,
 };
@@ -55,7 +55,7 @@ describe('CampusManagementView', () => {
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.filePreviewUrl).mockImplementation((_token: string, fileId: string) => `https://files.example/${fileId}`);
     vi.mocked(api.listSchools).mockResolvedValue([
-      { id: 's1', name: 'The Seeds School', code: null, registrationNumber: null, website: null, logoFileId: null, principalName: null, principalPhone: null, principalEmail: null, establishedDate: null, schoolType: null, educationBoard: null, status: 'ACTIVE' as const, timezone: null, currency: null, alternatePhone: null, addressId: null, address: null, phone: null, email: null, campusCount: 1, studentCount: 0, staffCount: 0 },
+      { id: 's1', name: 'The SchoolOS School', code: null, registrationNumber: null, website: null, logoFileId: null, principalName: null, principalPhone: null, principalEmail: null, establishedDate: null, schoolType: null, educationBoard: null, status: 'ACTIVE' as const, timezone: null, currency: null, alternatePhone: null, addressId: null, address: null, phone: null, email: null, campusCount: 1, studentCount: 0, staffCount: 0 },
     ]);
     vi.mocked(api.listCampuses).mockResolvedValue([FULL_CAMPUS]);
     vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
@@ -69,7 +69,7 @@ describe('CampusManagementView', () => {
     expect(wrapper.text()).toContain('GEJ');
     expect(wrapper.text()).toContain('Active');
     expect(wrapper.text()).toContain('Main');
-    expect(wrapper.text()).toContain('The Seeds School');
+    expect(wrapper.text()).toContain('The SchoolOS School');
     expect(wrapper.text()).toContain('10 Campus Rd');
     expect(wrapper.text()).toContain('021-333');
     expect(wrapper.text()).toContain('60');
@@ -94,10 +94,10 @@ describe('CampusManagementView', () => {
     await wrapper.find('[data-testid="field-address"]').setValue('20 New Rd');
     await wrapper.find('[data-testid="field-phone"]').setValue('021-444');
     await wrapper.find('[data-testid="field-alternate-phone"]').setValue('021-445');
-    await wrapper.find('[data-testid="field-email"]').setValue('gulshan@seeds.edu.pk');
+    await wrapper.find('[data-testid="field-email"]').setValue('gulshan@schoolos.edu.pk');
     await wrapper.find('[data-testid="field-principal-name"]').setValue('Mr. Tariq');
     await wrapper.find('[data-testid="field-principal-phone"]').setValue('021-446');
-    await wrapper.find('[data-testid="field-principal-email"]').setValue('tariq@seeds.edu.pk');
+    await wrapper.find('[data-testid="field-principal-email"]').setValue('tariq@schoolos.edu.pk');
     await wrapper.find('[data-testid="field-latitude"]').setValue('24.8');
     await wrapper.find('[data-testid="field-longitude"]').setValue('67.1');
     await wrapper.find('[data-testid="field-capacity"]').setValue('300');
@@ -115,7 +115,7 @@ describe('CampusManagementView', () => {
       logoFileId: undefined,
       principalName: 'Mr. Tariq',
       principalPhone: '021-446',
-      principalEmail: 'tariq@seeds.edu.pk',
+      principalEmail: 'tariq@schoolos.edu.pk',
       openingDate: '2020-01-01',
       capacity: 300,
       latitude: 24.8,
@@ -125,7 +125,7 @@ describe('CampusManagementView', () => {
       alternatePhone: '021-445',
       address: '20 New Rd',
       phone: '021-444',
-      email: 'gulshan@seeds.edu.pk',
+      email: 'gulshan@schoolos.edu.pk',
     });
     expect(api.listCampuses).toHaveBeenCalledTimes(2);
     expect(wrapper.find('[data-testid="field-name"]').exists()).toBe(false);
@@ -175,10 +175,10 @@ describe('CampusManagementView', () => {
     expect((wrapper.find('[data-testid="field-address"]').element as HTMLInputElement).value).toBe('10 Campus Rd');
     expect((wrapper.find('[data-testid="field-phone"]').element as HTMLInputElement).value).toBe('021-333');
     expect((wrapper.find('[data-testid="field-alternate-phone"]').element as HTMLInputElement).value).toBe('021-333-9999');
-    expect((wrapper.find('[data-testid="field-email"]').element as HTMLInputElement).value).toBe('gej@seeds.edu.pk');
+    expect((wrapper.find('[data-testid="field-email"]').element as HTMLInputElement).value).toBe('gej@schoolos.edu.pk');
     expect((wrapper.find('[data-testid="field-principal-name"]').element as HTMLInputElement).value).toBe('Ms. Sara');
     expect((wrapper.find('[data-testid="field-principal-phone"]').element as HTMLInputElement).value).toBe('021-777-0001');
-    expect((wrapper.find('[data-testid="field-principal-email"]').element as HTMLInputElement).value).toBe('sara@seeds.edu.pk');
+    expect((wrapper.find('[data-testid="field-principal-email"]').element as HTMLInputElement).value).toBe('sara@schoolos.edu.pk');
     expect((wrapper.find('[data-testid="field-latitude"]').element as HTMLInputElement).value).toBe('24.9056');
     expect((wrapper.find('[data-testid="field-longitude"]').element as HTMLInputElement).value).toBe('67.0822');
     expect((wrapper.find('[data-testid="field-capacity"]').element as HTMLInputElement).value).toBe('500');
@@ -196,7 +196,7 @@ describe('CampusManagementView', () => {
       logoFileId: 'file-logo-1',
       principalName: 'Ms. Sara',
       principalPhone: '021-777-0001',
-      principalEmail: 'sara@seeds.edu.pk',
+      principalEmail: 'sara@schoolos.edu.pk',
       openingDate: '2010-08-15',
       capacity: 500,
       latitude: 24.9056,
@@ -206,7 +206,7 @@ describe('CampusManagementView', () => {
       alternatePhone: '021-333-9999',
       address: '10 Campus Rd',
       phone: '021-333',
-      email: 'gej@seeds.edu.pk',
+      email: 'gej@schoolos.edu.pk',
     });
     expect(api.updateCampus).not.toHaveBeenCalledWith('token-1', 'c1', expect.objectContaining({ schoolId: expect.anything() }));
   });
@@ -255,7 +255,7 @@ describe('CampusManagementView', () => {
         id: 'c2',
         name: 'Bare Campus',
         schoolId: 's1',
-        schoolName: 'The Seeds School',
+        schoolName: 'The SchoolOS School',
         code: null,
         campusType: null,
         logoFileId: null,

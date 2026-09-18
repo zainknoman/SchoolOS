@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { api } from '../lib/api';
 
-const STORAGE_KEY = 'seeds.auth';
+const STORAGE_KEY = 'schoolos.auth';
 
 // Teacher and Admin/Accounts share this one console, gated by role — not two deployable apps.
 export type StaffRole = 'TEACHER' | 'SCHOOL_ADMIN' | 'ACCOUNTS' | 'SUPER_ADMIN';

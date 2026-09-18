@@ -8,7 +8,7 @@ Description:  PostgreSQL schema (Prisma) covering users, roles, schools, campuse
               messages(+recipients+attachments), notifications, fee_structures, fee_vouchers,
               fee_items, fee_payments, receipts, files, audit_logs, device_tokens. UUID PKs,
               created_at/updated_at, FKs + indexes. Campus is a first-class column from day one
-              (Seeds already runs two campuses).
+              (SchoolOS already runs two campuses).
 User stories:
   - As a backend engineer, I want a normalized schema with migrations, so every later feature has a
     stable data layer to build against.

@@ -1,4 +1,4 @@
-const THEME_STORAGE_KEY = 'seeds.theme';
+const THEME_STORAGE_KEY = 'schoolos.theme';
 
 export type ThemePreference = 'light' | 'dark' | null;
 

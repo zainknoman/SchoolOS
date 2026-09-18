@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue';
 import AppShell from '../components/AppShell.vue';
 import Icon from '../components/AppIcon.vue';
 import TrendsSparkline from '../components/TrendsSparkline.vue';
+import AppSkeleton from '../components/AppSkeleton.vue';
+import ErrorRetry from '../components/ErrorRetry.vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type DashboardSummary, type AttendanceRiskSummary } from '../lib/api';
 import { formatPkrShort, formatPkrFull } from '../lib/format';
@@ -22,8 +24,9 @@ function formatTimeAgo(iso: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-onMounted(async () => {
+async function loadDashboard() {
   if (!auth.accessToken) return;
+  errorMessage.value = null;
   try {
     summary.value = await api.dashboardSummary(auth.accessToken);
   } catch (err) {
@@ -34,7 +37,8 @@ onMounted(async () => {
   } catch {
     // Non-critical — the rest of the dashboard still renders without the early-warning panel.
   }
-});
+}
+onMounted(loadDashboard);
 
 const trendLabels = computed(() => summary.value?.weeklyTrend.map((d) => d.day) ?? []);
 const maxFees = computed(
@@ -59,8 +63,23 @@ const trendSeries = computed(() => [
 
 <template>
   <AppShell>
-    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-    <div v-else-if="!summary" class="loading">Loading…</div>
+    <ErrorRetry v-if="errorMessage" :message="errorMessage" @retry="loadDashboard" />
+    <div v-else-if="!summary" class="dashboard" data-testid="dashboard-skeleton">
+      <div class="stat-grid">
+        <div v-for="n in 4" :key="n" class="stat-card">
+          <AppSkeleton width="60%" height="0.8rem" />
+          <AppSkeleton width="40%" height="1.8rem" />
+        </div>
+      </div>
+      <div class="lower-grid">
+        <div class="trends-panel">
+          <AppSkeleton width="100%" height="180px" />
+        </div>
+        <div class="alerts-panel skeleton-stack">
+          <AppSkeleton v-for="n in 3" :key="n" height="1rem" />
+        </div>
+      </div>
+    </div>
     <div v-else class="dashboard">
       <div class="dashboard-header">
         <h1>Dashboard</h1>
@@ -139,13 +158,10 @@ const trendSeries = computed(() => [
   gap: var(--space-5);
   max-width: 1200px;
 }
-.loading {
-  color: var(--color-muted);
-  padding: var(--space-5);
-}
-.error {
-  color: var(--color-destructive);
-  padding: var(--space-5);
+.skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .stat-grid {
@@ -169,6 +185,9 @@ const trendSeries = computed(() => [
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 .stat-label {
   color: var(--color-muted);

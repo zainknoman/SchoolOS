@@ -8,6 +8,7 @@ import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { useConfirm } from '../lib/useConfirm';
+import { useToast } from '../lib/useToast';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -70,6 +71,7 @@ function parseDepartments(raw: string): string[] | undefined {
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const toast = useToast();
 
 const schools = ref<SchoolSummary[]>([]);
 const campuses = ref<CampusSummary[]>([]);
@@ -206,8 +208,10 @@ async function onSubmit() {
     } else {
       await api.createCampus(auth.accessToken, { schoolId: form.schoolId, ...buildPayload() });
     }
+    const wasEdit = modalMode.value === 'edit';
     closeModal();
     await load();
+    toast.success(wasEdit ? 'Campus updated.' : 'Campus added.');
   } catch (err) {
     errorMessage.value =
       err instanceof Error ? err.message : `Could not ${modalMode.value === 'edit' ? 'update' : 'create'} this campus.`;
@@ -223,6 +227,7 @@ async function onDelete(id: string) {
   try {
     await api.deleteCampus(auth.accessToken, id);
     await load();
+    toast.success('Campus deleted.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not delete this campus.';
   }

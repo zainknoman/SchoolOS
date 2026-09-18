@@ -6,8 +6,10 @@ import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
+const toast = useToast();
 
 const sections = ref<SectionSummary[]>([]);
 const selectedSectionId = ref('');
@@ -74,6 +76,7 @@ async function onAdd() {
     newDescription.value = '';
     showAddForm.value = false;
     await loadComplaints();
+    toast.success('Complaint raised.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not raise this complaint.';
   } finally {
@@ -87,6 +90,7 @@ async function onUpdateStatus(id: string, status: string) {
   try {
     await api.updateComplaintStatus(auth.accessToken, id, status);
     await loadComplaints();
+    toast.success('Status updated.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not update this complaint.';
   } finally {

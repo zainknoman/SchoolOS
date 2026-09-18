@@ -63,7 +63,7 @@ describe('Messages + Notifications (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'mn-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'mn-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'MN Teacher', campusId: campus.id },
@@ -72,16 +72,16 @@ describe('Messages + Notifications (e2e)', () => {
     ids.teacherUserId = teacherUser.id;
 
     const otherTeacherUser = await prisma.user.create({
-      data: { identifier: 'mn-other-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'mn-other-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     ids.otherTeacherUserId = otherTeacherUser.id;
 
     // createdAt is pinned to the epoch so this fixture admin is always the oldest `isPrincipal`
     // row — resolveStaffUserId() for PRINCIPAL picks `orderBy: { createdAt: 'asc' }`, and this
-    // dev.db already has a seeded principal (admin@seeds.edu.pk) created before this test runs.
+    // dev.db already has a seeded principal (admin@schoolos.edu.pk) created before this test runs.
     const adminUser = await prisma.user.create({
       data: {
-        identifier: 'mn-admin@seeds.edu.pk',
+        identifier: 'mn-admin@schoolos.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
         schoolId: school.id,
@@ -92,10 +92,10 @@ describe('Messages + Notifications (e2e)', () => {
     ids.adminUserId = adminUser.id;
 
     const parentUser = await prisma.user.create({
-      data: { identifier: 'mn-parent@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'mn-parent@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const otherParentUser = await prisma.user.create({
-      data: { identifier: 'mn-other-parent@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'mn-other-parent@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     ids.otherParentUserId = otherParentUser.id;
     const parentProfile = await prisma.parentProfile.create({
@@ -173,7 +173,7 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('a parent starts a conversation with the class teacher, the teacher sees and replies, and both get notified', async () => {
-    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+    const parentToken = await loginAs('mn-parent@schoolos.edu.pk');
 
     const start = await request(app.getHttpServer())
       .post('/api/v1/conversations')
@@ -182,7 +182,7 @@ describe('Messages + Notifications (e2e)', () => {
       .expect(201);
     ids.conversationId = start.body.id;
 
-    const teacherToken = await loginAs('mn-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('mn-teacher@schoolos.edu.pk');
     const inbox = await request(app.getHttpServer())
       .get('/api/v1/conversations')
       .set('Authorization', `Bearer ${teacherToken}`)
@@ -218,13 +218,13 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('another parent and another teacher cannot read or reply to this conversation', async () => {
-    const otherParentToken = await loginAs('mn-other-parent@seeds.edu.pk');
+    const otherParentToken = await loginAs('mn-other-parent@schoolos.edu.pk');
     await request(app.getHttpServer())
       .get(`/api/v1/conversations/${ids.conversationId}`)
       .set('Authorization', `Bearer ${otherParentToken}`)
       .expect(403);
 
-    const otherTeacherToken = await loginAs('mn-other-teacher@seeds.edu.pk');
+    const otherTeacherToken = await loginAs('mn-other-teacher@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post(`/api/v1/conversations/${ids.conversationId}/messages`)
       .set('Authorization', `Bearer ${otherTeacherToken}`)
@@ -233,7 +233,7 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it("a parent cannot start a CLASS_TEACHER conversation using another parent's child's studentId", async () => {
-    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+    const parentToken = await loginAs('mn-parent@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/conversations')
@@ -243,7 +243,7 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('a TEACHER cannot start a new conversation to a parent', async () => {
-    const teacherToken = await loginAs('mn-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('mn-teacher@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post('/api/v1/conversations')
       .set('Authorization', `Bearer ${teacherToken}`)
@@ -252,14 +252,14 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('a parent can message the Principal, resolved via isPrincipal', async () => {
-    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+    const parentToken = await loginAs('mn-parent@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/conversations')
       .set('Authorization', `Bearer ${parentToken}`)
       .send({ recipientType: 'PRINCIPAL', body: 'A question for the principal.' })
       .expect(201);
 
-    const adminToken = await loginAs('mn-admin@seeds.edu.pk');
+    const adminToken = await loginAs('mn-admin@schoolos.edu.pk');
     const inbox = await request(app.getHttpServer())
       .get('/api/v1/conversations')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -268,7 +268,7 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('starting a CLASS_TEACHER conversation for a section with no class teacher assigned returns 400', async () => {
-    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+    const parentToken = await loginAs('mn-parent@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post('/api/v1/conversations')
       .set('Authorization', `Bearer ${parentToken}`)
@@ -277,7 +277,7 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('a notification can be marked read individually and in bulk', async () => {
-    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+    const parentToken = await loginAs('mn-parent@schoolos.edu.pk');
     const before = await request(app.getHttpServer())
       .get('/api/v1/notifications')
       .set('Authorization', `Bearer ${parentToken}`)

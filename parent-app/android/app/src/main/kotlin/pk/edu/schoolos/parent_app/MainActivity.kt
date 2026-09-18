@@ -1,4 +1,4 @@
-package pk.edu.seeds.parent_app
+package pk.edu.schoolos.parent_app
 
 import io.flutter.embedding.android.FlutterActivity
 

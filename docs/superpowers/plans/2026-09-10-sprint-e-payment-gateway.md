@@ -279,7 +279,7 @@ export class JazzCashAdapter implements PaymentGatewayAdapter {
       pp_TxnDateTime: formatJazzCashDateTime(now),
       pp_TxnExpiryDateTime: formatJazzCashDateTime(new Date(now.getTime() + 60 * 60 * 1000)),
       pp_BillReference: input.reference,
-      pp_Description: 'SEEDS school fee payment',
+      pp_Description: 'SchoolOS school fee payment',
       pp_ReturnURL: this.config.returnUrl,
     };
     const pp_SecureHash = signer.sign(fields);
@@ -1574,7 +1574,7 @@ Modify `backend/test/fees.e2e-spec.ts` — replace the existing `'a parent pays 
 
 ```ts
   it('a parent pays a voucher end-to-end via the stub gateway webhook, and can then download the receipt PDF', async () => {
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
 
     const initiated = await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${ids.voucher}/pay`)
@@ -1613,7 +1613,7 @@ Modify `backend/test/fees.e2e-spec.ts` — replace the existing `'a parent pays 
   });
 
   it('a repeated webhook call for an already-completed payment is a no-op', async () => {
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
     const initiated = await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${ids.voucher2}/pay`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -1641,7 +1641,7 @@ Modify `backend/test/fees.e2e-spec.ts` — replace the existing `'a parent pays 
   });
 
   it('an unsigned webhook call is rejected and does not mutate payment state', async () => {
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
     const initiated = await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${ids.voucher3}/pay`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -1663,7 +1663,7 @@ Modify `backend/test/fees.e2e-spec.ts` — replace the existing `'a parent pays 
   });
 
   it('the old client-callable confirm route no longer exists', async () => {
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post('/api/v1/fee-payments/some-id/confirm')
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -1861,7 +1861,7 @@ Add to `backend/test/fees.e2e-spec.ts`, near the other payment tests:
 
 ```ts
   it('staff records a cash payment against a voucher, and it appears completed with a receipt', async () => {
-    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const adminToken = await loginAs('fee-admin@schoolos.edu.pk');
 
     const reconciled = await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${ids.voucher4}/reconcile`)
@@ -1870,7 +1870,7 @@ Add to `backend/test/fees.e2e-spec.ts`, near the other payment tests:
       .expect(201);
     expect(reconciled.body).toEqual(expect.objectContaining({ status: 'completed', method: 'cash' }));
 
-    const parentAToken = await loginAs('fee-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
     const fees = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/fees`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -1881,7 +1881,7 @@ Add to `backend/test/fees.e2e-spec.ts`, near the other payment tests:
   });
 
   it('reconciling more than a voucher\'s remaining balance is rejected', async () => {
-    const adminToken = await loginAs('fee-admin@seeds.edu.pk');
+    const adminToken = await loginAs('fee-admin@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${ids.voucher5}/reconcile`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -1890,7 +1890,7 @@ Add to `backend/test/fees.e2e-spec.ts`, near the other payment tests:
   });
 
   it('a TEACHER cannot reconcile a payment', async () => {
-    const teacherToken = await loginAs('fee-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('fee-teacher@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post(`/api/v1/fee-vouchers/${ids.voucher5}/reconcile`)
       .set('Authorization', `Bearer ${teacherToken}`)
@@ -2600,7 +2600,7 @@ git commit -m "feat(parent-app): rewire checkout to the webhook-driven confirmat
 
 **Files:**
 - Modify: `build/PROJECT-STATUS.md`
-- Modify: `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`
+- Modify: `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`
 
 **Interfaces:** Consumes nothing new — this is the closing task confirming everything from Tasks 1-9 together.
 
@@ -2616,7 +2616,7 @@ Expected: all clean/green. The backend e2e run happens twice, matching this repo
 
 - [ ] **Step 2: Manual smoke test against the real seed data**
 
-Start all three (`backend: npm run start:dev`, `staff-console: npm run dev`, `parent-app: flutter run -d chrome`). As `admin@seeds.edu.pk`, open `/admin/fees`, load a student's ledger, and use "Record payment" to reconcile a cash payment against a real unpaid voucher — confirm the ledger updates and a receipt PDF downloads. As `parent-a@seeds.edu.pk`, open a voucher with a balance due, tap "Pay Now", complete the stub checkout, and confirm the voucher shows paid and a receipt is downloadable. Note any discrepancy found here before writing the status update below (if none, say so explicitly rather than skipping this step).
+Start all three (`backend: npm run start:dev`, `staff-console: npm run dev`, `parent-app: flutter run -d chrome`). As `admin@schoolos.edu.pk`, open `/admin/fees`, load a student's ledger, and use "Record payment" to reconcile a cash payment against a real unpaid voucher — confirm the ledger updates and a receipt PDF downloads. As `parent-a@schoolos.edu.pk`, open a voucher with a balance due, tap "Pay Now", complete the stub checkout, and confirm the voucher shows paid and a receipt is downloadable. Note any discrepancy found here before writing the status update below (if none, say so explicitly rather than skipping this step).
 
 - [ ] **Step 3: Update `build/PROJECT-STATUS.md`**
 
@@ -2624,11 +2624,11 @@ Add a new `## Sprint E — Payment Gateway & Local Rails ✅ DONE` section, foll
 
 - [ ] **Step 4: Update the roadmap's Implementation Checklist**
 
-Modify `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` lines 53-57 (the Sprint E checklist entry) — check every sub-item box, add the merge commit range/date once merged (leave a placeholder note "merge commit range: TBD at merge time" only if this task runs before merging — replace with the real range immediately after merging, never leave literally as a placeholder in the final committed state), and add the same follow-up notes as the PROJECT-STATUS.md entry (spec-built-not-sandbox-verified gateways, EasyPaisa field-order caveat), matching the terse style every other completed sprint entry in that checklist already uses (see Sprint C/D's entries immediately above for the exact style — inline sub-bullets, not a new prose paragraph).
+Modify `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md` lines 53-57 (the Sprint E checklist entry) — check every sub-item box, add the merge commit range/date once merged (leave a placeholder note "merge commit range: TBD at merge time" only if this task runs before merging — replace with the real range immediately after merging, never leave literally as a placeholder in the final committed state), and add the same follow-up notes as the PROJECT-STATUS.md entry (spec-built-not-sandbox-verified gateways, EasyPaisa field-order caveat), matching the terse style every other completed sprint entry in that checklist already uses (see Sprint C/D's entries immediately above for the exact style — inline sub-bullets, not a new prose paragraph).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add build/PROJECT-STATUS.md docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md
+git add build/PROJECT-STATUS.md docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md
 git commit -m "docs: close out Sprint E — payment gateway, PDF verification, cash reconciliation, signed webhooks"
 ```

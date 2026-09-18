@@ -40,7 +40,7 @@ const sectionsFixture = [
   { id: 'section-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
 ];
 
-const parentsFixture = [{ id: 'parent-1', identifier: 'parent-1@seeds.edu.pk', name: 'Existing Parent', phone: null, childrenCount: 1 }];
+const parentsFixture = [{ id: 'parent-1', identifier: 'parent-1@schoolos.edu.pk', name: 'Existing Parent', phone: null, childrenCount: 1 }];
 
 async function mountView() {
   setActivePinia(createPinia());

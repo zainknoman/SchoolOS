@@ -31,7 +31,7 @@ describe('LoginView', () => {
     expect(wrapper.find('input[name="identifier"]').exists()).toBe(true);
     expect(wrapper.find('input[name="password"]').exists()).toBe(true);
     expect(wrapper.find('button[type="submit"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain('School OS');
+    expect(wrapper.text()).toContain('SchoolOS');
   });
 
   it('redirects a TEACHER to /teacher after a successful login', async () => {
@@ -44,13 +44,13 @@ describe('LoginView', () => {
     vi.spyOn(auth, 'login').mockResolvedValue(undefined);
     auth.role = 'TEACHER';
 
-    await wrapper.find('input[name="identifier"]').setValue('teacher@seeds.edu.pk');
+    await wrapper.find('input[name="identifier"]').setValue('teacher@schoolos.edu.pk');
     await wrapper.find('input[name="password"]').setValue('ChangeMe123!');
     await wrapper.find('form').trigger('submit.prevent');
     await flushPromises();
     await flushPromises();
 
-    expect(auth.login).toHaveBeenCalledWith('teacher@seeds.edu.pk', 'ChangeMe123!');
+    expect(auth.login).toHaveBeenCalledWith('teacher@schoolos.edu.pk', 'ChangeMe123!');
     expect(router.currentRoute.value.name).toBe('teacher-home');
   });
 
@@ -64,7 +64,7 @@ describe('LoginView', () => {
     vi.spyOn(auth, 'login').mockResolvedValue(undefined);
     auth.role = 'SCHOOL_ADMIN';
 
-    await wrapper.find('input[name="identifier"]').setValue('admin@seeds.edu.pk');
+    await wrapper.find('input[name="identifier"]').setValue('admin@schoolos.edu.pk');
     await wrapper.find('input[name="password"]').setValue('ChangeMe123!');
     await wrapper.find('form').trigger('submit.prevent');
     await flushPromises();
@@ -82,7 +82,7 @@ describe('LoginView', () => {
     const auth = useAuthStore();
     vi.spyOn(auth, 'login').mockRejectedValue(new Error('Invalid credentials'));
 
-    await wrapper.find('input[name="identifier"]').setValue('teacher@seeds.edu.pk');
+    await wrapper.find('input[name="identifier"]').setValue('teacher@schoolos.edu.pk');
     await wrapper.find('input[name="password"]').setValue('wrong');
     await wrapper.find('form').trigger('submit.prevent');
     await flushPromises();

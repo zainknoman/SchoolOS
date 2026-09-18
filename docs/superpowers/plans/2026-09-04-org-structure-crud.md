@@ -256,11 +256,11 @@ describe('SchoolService', () => {
   });
 
   it('creates a school and audit-logs it', async () => {
-    prisma.school.create.mockResolvedValue({ id: 's1', name: 'The Seeds School' });
+    prisma.school.create.mockResolvedValue({ id: 's1', name: 'The SchoolOS School' });
 
-    const result = await service.create({ name: 'The Seeds School' }, 'admin-1');
+    const result = await service.create({ name: 'The SchoolOS School' }, 'admin-1');
 
-    expect(result).toEqual({ id: 's1', name: 'The Seeds School' });
+    expect(result).toEqual({ id: 's1', name: 'The SchoolOS School' });
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ action: 'school.create', entity: 'School', entityId: 's1', userId: 'admin-1' }),
@@ -269,13 +269,13 @@ describe('SchoolService', () => {
   });
 
   it('lists schools', async () => {
-    prisma.school.findMany.mockResolvedValue([{ id: 's1', name: 'The Seeds School' }]);
+    prisma.school.findMany.mockResolvedValue([{ id: 's1', name: 'The SchoolOS School' }]);
 
-    expect(await service.list()).toEqual([{ id: 's1', name: 'The Seeds School' }]);
+    expect(await service.list()).toEqual([{ id: 's1', name: 'The SchoolOS School' }]);
   });
 
   it('updates a school and audit-logs it', async () => {
-    prisma.school.findUnique.mockResolvedValue({ id: 's1', name: 'The Seeds School' });
+    prisma.school.findUnique.mockResolvedValue({ id: 's1', name: 'The SchoolOS School' });
     prisma.school.update.mockResolvedValue({ id: 's1', name: 'Renamed School' });
 
     const result = await service.update('s1', { name: 'Renamed School' }, 'admin-1');
@@ -294,8 +294,8 @@ describe('SchoolService', () => {
   });
 
   it('deletes a school and audit-logs it', async () => {
-    prisma.school.findUnique.mockResolvedValue({ id: 's1', name: 'The Seeds School' });
-    prisma.school.delete.mockResolvedValue({ id: 's1', name: 'The Seeds School' });
+    prisma.school.findUnique.mockResolvedValue({ id: 's1', name: 'The SchoolOS School' });
+    prisma.school.delete.mockResolvedValue({ id: 's1', name: 'The SchoolOS School' });
 
     await service.delete('s1', 'admin-1');
 
@@ -313,7 +313,7 @@ describe('SchoolService', () => {
   });
 
   it('translates a foreign-key violation on delete into a BadRequestException', async () => {
-    prisma.school.findUnique.mockResolvedValue({ id: 's1', name: 'The Seeds School' });
+    prisma.school.findUnique.mockResolvedValue({ id: 's1', name: 'The SchoolOS School' });
     prisma.school.delete.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', { code: 'P2003', clientVersion: 'test' }),
     );
@@ -577,12 +577,12 @@ describe('CampusService', () => {
       id: 'c1',
       name: 'Gulistan-e-Jauhar',
       schoolId: 's1',
-      school: { name: 'The Seeds School' },
+      school: { name: 'The SchoolOS School' },
     });
 
     const result = await service.create({ schoolId: 's1', name: 'Gulistan-e-Jauhar' }, 'admin-1');
 
-    expect(result).toEqual({ id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The Seeds School' });
+    expect(result).toEqual({ id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The SchoolOS School' });
     expect(prisma.campus.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: { schoolId: 's1', name: 'Gulistan-e-Jauhar' }, include: withSchool }),
     );
@@ -593,11 +593,11 @@ describe('CampusService', () => {
 
   it('lists campuses with their school name', async () => {
     prisma.campus.findMany.mockResolvedValue([
-      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', school: { name: 'The Seeds School' } },
+      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', school: { name: 'The SchoolOS School' } },
     ]);
 
     expect(await service.list()).toEqual([
-      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The Seeds School' },
+      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The SchoolOS School' },
     ]);
   });
 
@@ -607,7 +607,7 @@ describe('CampusService', () => {
       id: 'c1',
       name: 'New Name',
       schoolId: 's1',
-      school: { name: 'The Seeds School' },
+      school: { name: 'The SchoolOS School' },
     });
 
     const result = await service.update('c1', { name: 'New Name' }, 'admin-1');
@@ -2118,10 +2118,10 @@ describe('Org Structure (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const superAdminUser = await prisma.user.create({
-      data: { identifier: 'os-super-admin@seeds.edu.pk', passwordHash, role: 'SUPER_ADMIN' },
+      data: { identifier: 'os-super-admin@schoolos.edu.pk', passwordHash, role: 'SUPER_ADMIN' },
     });
     const schoolAdminUser = await prisma.user.create({
-      data: { identifier: 'os-school-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
+      data: { identifier: 'os-school-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
     });
 
     Object.assign(ids, { superAdminUser: superAdminUser.id, schoolAdminUser: schoolAdminUser.id });
@@ -2135,13 +2135,13 @@ describe('Org Structure (e2e)', () => {
     if (ids.campus) await prisma.campus.delete({ where: { id: ids.campus } }).catch(() => undefined);
     if (ids.school) await prisma.school.delete({ where: { id: ids.school } }).catch(() => undefined);
     await prisma.user
-      .deleteMany({ where: { identifier: { in: ['os-super-admin@seeds.edu.pk', 'os-school-admin@seeds.edu.pk'] } } })
+      .deleteMany({ where: { identifier: { in: ['os-super-admin@schoolos.edu.pk', 'os-school-admin@schoolos.edu.pk'] } } })
       .catch(() => undefined);
     await app.close();
   });
 
   it('a SCHOOL_ADMIN (not SUPER_ADMIN) is blocked from every write route in this plan', async () => {
-    const schoolAdminToken = await loginAs('os-school-admin@seeds.edu.pk');
+    const schoolAdminToken = await loginAs('os-school-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/schools')
@@ -2171,7 +2171,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('a SUPER_ADMIN can create the full School -> Campus -> AcademicSession/Class -> Section chain', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const school = await request(app.getHttpServer())
       .post('/api/v1/schools')
@@ -2219,7 +2219,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('deleting a Section with a real Timetable row is blocked with a 400, then succeeds once the row is gone', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
     const subject = await prisma.subject.create({ data: { name: 'OS Subject' } });
     const timetableEntry = await prisma.timetable.create({
       data: {
@@ -2248,7 +2248,7 @@ describe('Org Structure (e2e)', () => {
   });
 
   it('creating a second active AcademicSession deactivates the first', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .patch(`/api/v1/academic-sessions/${ids.academicSession}`)
@@ -3014,7 +3014,7 @@ describe('SchoolManagementView', () => {
     const auth = useAuthStore();
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
-    vi.mocked(api.listSchools).mockResolvedValue([{ id: 's1', name: 'The Seeds School' }]);
+    vi.mocked(api.listSchools).mockResolvedValue([{ id: 's1', name: 'The SchoolOS School' }]);
   });
 
   it('lists schools and creates a new one', async () => {
@@ -3023,7 +3023,7 @@ describe('SchoolManagementView', () => {
     const wrapper = mount(SchoolManagementView);
     await flushPromises();
 
-    expect(wrapper.text()).toContain('The Seeds School');
+    expect(wrapper.text()).toContain('The SchoolOS School');
 
     await wrapper.find('[data-testid="add-name"]').setValue('Second School');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
@@ -3374,9 +3374,9 @@ describe('CampusManagementView', () => {
     const auth = useAuthStore();
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
-    vi.mocked(api.listSchools).mockResolvedValue([{ id: 's1', name: 'The Seeds School' }]);
+    vi.mocked(api.listSchools).mockResolvedValue([{ id: 's1', name: 'The SchoolOS School' }]);
     vi.mocked(api.listCampuses).mockResolvedValue([
-      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The Seeds School' },
+      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The SchoolOS School' },
     ]);
   });
 
@@ -3387,7 +3387,7 @@ describe('CampusManagementView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('Gulistan-e-Jauhar');
-    expect(wrapper.text()).toContain('The Seeds School');
+    expect(wrapper.text()).toContain('The SchoolOS School');
 
     await wrapper.find('[data-testid="add-school"]').setValue('s1');
     await wrapper.find('[data-testid="add-name"]').setValue('Gulshan-e-Iqbal');
@@ -4154,7 +4154,7 @@ describe('ClassManagementView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listCampuses).mockResolvedValue([
-      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The Seeds School' },
+      { id: 'c1', name: 'Gulistan-e-Jauhar', schoolId: 's1', schoolName: 'The SchoolOS School' },
     ]);
     vi.mocked(api.listAcademicSessions).mockResolvedValue([
       { id: 'as1', label: '2026-2027', startDate: '2026-08-01', endDate: '2027-06-30', isActive: true },

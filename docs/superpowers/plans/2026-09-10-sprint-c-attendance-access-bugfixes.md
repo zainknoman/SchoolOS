@@ -18,7 +18,7 @@ order — none depends on another.
 **Tech Stack:** NestJS 11, Prisma (Postgres, driver-adapter mode — see Sprint B), Jest (unit + e2e
 via supertest).
 
-**Spec:** `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` §4 "Sprint C — Attendance &
+**Spec:** `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md` §4 "Sprint C — Attendance &
 Access Bug Fixes + Verification Pass" (line ~321) and `build/PROJECT-STATUS.md`'s "Sprint C" section
 (records what's already been found/fixed vs. still open as of 2026-09-10).
 
@@ -353,7 +353,7 @@ block:
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
       data: {
-        identifier: 'tta-teacher@seeds.edu.pk',
+        identifier: 'tta-teacher@schoolos.edu.pk',
         passwordHash,
         role: 'TEACHER',
       },
@@ -368,7 +368,7 @@ and add immediately after it:
 ```typescript
     await prisma.user.create({
       data: {
-        identifier: 'tta-admin@seeds.edu.pk',
+        identifier: 'tta-admin@schoolos.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
       },
@@ -378,7 +378,7 @@ and add immediately after it:
 (Not bound to a variable — nothing downstream needs its id, only its identifier string for login.)
 
 Update the top-of-`beforeAll` self-healing cleanup's identifier prefix match — it already matches
-`tta-` as a prefix (`where: { identifier: { startsWith: 'tta-' } }`), so `tta-admin@seeds.edu.pk`
+`tta-` as a prefix (`where: { identifier: { startsWith: 'tta-' } }`), so `tta-admin@schoolos.edu.pk`
 is automatically covered; no change needed there. Update the `afterAll` user cleanup list to
 include it:
 
@@ -388,10 +388,10 @@ include it:
         where: {
           identifier: {
             in: [
-              'tta-teacher@seeds.edu.pk',
-              'tta-admin@seeds.edu.pk',
-              'tta-parent-a@seeds.edu.pk',
-              'tta-parent-b@seeds.edu.pk',
+              'tta-teacher@schoolos.edu.pk',
+              'tta-admin@schoolos.edu.pk',
+              'tta-parent-a@schoolos.edu.pk',
+              'tta-parent-b@schoolos.edu.pk',
             ],
           },
         },
@@ -417,7 +417,7 @@ visible to the linked parent'` test:
       data: { classTeacherId: ids.teacher },
     });
 
-    const adminToken = await loginAs('tta-admin@seeds.edu.pk');
+    const adminToken = await loginAs('tta-admin@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     await request(app.getHttpServer())
@@ -426,7 +426,7 @@ visible to the linked parent'` test:
       .send({ studentId: ids.childB, date: today, status: 'PRESENT' })
       .expect(201);
 
-    const parentToken = await loginAs('tta-parent-b@seeds.edu.pk');
+    const parentToken = await loginAs('tta-parent-b@schoolos.edu.pk');
     const month = today.slice(0, 7);
     const res = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childB}/attendance?month=${month}`)
@@ -468,7 +468,7 @@ git commit -m "fix: let Admin/Super-Admin mark attendance via class-teacher attr
 
 **Context:** The roadmap calls for verifying that Fees and Messaging enforce the same
 parent-isolation rigor already proven on Attendance/Diary — "must be checked, not assumed"
-(`docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` §0). Reading both modules:
+(`docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md` §0). Reading both modules:
 
 - **Fees** (`backend/src/fees/fees.controller.ts`) already calls
   `StudentAccessService.assertCanAccessStudent` on every parent-facing read (voucher list, payment
@@ -495,7 +495,7 @@ parent-isolation rigor already proven on Attendance/Diary — "must be checked, 
 
 - [ ] **Step 1: Add a real "other parent's own child" fixture**
 
-`mn-other-parent@seeds.edu.pk` (created in `beforeAll`, used as the non-party parent at line ~201)
+`mn-other-parent@schoolos.edu.pk` (created in `beforeAll`, used as the non-party parent at line ~201)
 currently has **no child of their own** in this fixture — it has no `ParentProfile` and no
 `Student` linked to it at all; it's only ever used to prove it *can't* access `mn-parent`'s
 existing conversation. The `orphanChild` fixture (`ids.orphanChildId`) is a red herring for this
@@ -562,7 +562,7 @@ conversation'` test:
 
 ```typescript
   it("a parent cannot start a CLASS_TEACHER conversation using another parent's child's studentId", async () => {
-    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+    const parentToken = await loginAs('mn-parent@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/conversations')
@@ -733,11 +733,11 @@ git commit -m "fix: a fee voucher stays unpaid through its due date, not overdue
 - [ ] Run the full backend suite: `cd backend && npm run build && npm test && npm run test:e2e`
       — expect all green (237+ unit tests, 62+ e2e tests, no failures).
 - [ ] Confirm CI is green on the branch/PR (backend, staff-console, parent-app jobs).
-- [ ] Manually smoke-test in a real running app: log in as `admin@seeds.edu.pk` (or
-      `principal@seeds.edu.pk`, both `SCHOOL_ADMIN`), open the Attendance screen for a section that
+- [ ] Manually smoke-test in a real running app: log in as `admin@schoolos.edu.pk` (or
+      `principal@schoolos.edu.pk`, both `SCHOOL_ADMIN`), open the Attendance screen for a section that
       has a class teacher assigned, and mark a student present — confirm no error and that the
       mark is visible to the linked parent, same as Task 1's e2e test but eyeballed in the browser.
-- [ ] Update `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s Implementation
+- [ ] Update `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`'s Implementation
       Checklist: check Sprint C's remaining two sub-items (attendance fix, Fees/Messaging
       verification) — the Circulars-nav and parent-login-CORS lines are already checked as of
       2026-09-10 — noting the merge commit range and date, per

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Same tokens as the staff console (design-system/seeds-staff-console/MASTER.md) — one brand
+/// Same tokens as the staff console (design-system/schoolos-staff-console/MASTER.md) — one brand
 /// across both clients, adapted to Material for a mobile surface.
 class AppColors {
   static const primary = Color(0xFF0F172A);

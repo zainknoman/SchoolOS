@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build out the parent-app's Home tab (currently a placeholder) and restyle the Calendar tab's Timetable/Attendance/Diary sub-tabs (weekly grid for Timetable, card-wrapped entries for Attendance and Diary), following the `docs/wireframe/` layouts, against the existing SEEDS design tokens.
+**Goal:** Build out the parent-app's Home tab (currently a placeholder) and restyle the Calendar tab's Timetable/Attendance/Diary sub-tabs (weekly grid for Timetable, card-wrapped entries for Attendance and Diary), following the `docs/wireframe/` layouts, against the existing SchoolOS design tokens.
 
 **Architecture:** Flutter/Dart widget changes on top of the existing `AppColors`/`buildAppTheme()` token system in `parent-app/lib/src/theme/app_theme.dart` (kept in sync with the staff-console's CSS tokens — see the companion plan `2026-08-28-staff-console-ui-refresh.md`). Every screen here reads real data from the existing `ApiClient` (`timetable`, `attendance`, `circulars`) — unlike the staff-console plan, nothing here needs mock data, since FEAT-006/007/008/009 (timetable, attendance, diary, circulars) are already built and live.
 

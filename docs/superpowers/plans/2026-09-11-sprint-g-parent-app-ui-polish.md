@@ -17,7 +17,7 @@ tokens into a second `ThemeData`; `activeChildId` threading extends the `provide
 **Tech Stack:** Flutter/Dart (parent-app only — this sprint has no backend or staff-console surface
 per the roadmap's own Features line).
 
-**Spec:** `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, Sprint G section (§4, "Sprint
+**Spec:** `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, Sprint G section (§4, "Sprint
 G — Parent App Second-Pass UI Polish (UI Sprint 3)").
 
 ## Global Constraints
@@ -352,7 +352,7 @@ import 'package:parent_app/src/theme/theme_controller.dart';
 
 /// Builds the same provider/router tree as `ParentApp` (lib/main.dart), but with an injected
 /// [ApiClient] and [TokenStore] instead of a real network client and platform secure storage —
-/// neither of which is available in the widget-test environment. Also seeds an empty
+/// neither of which is available in the widget-test environment. Also schoolos an empty
 /// `shared_preferences` mock store, since FEAT-014's offline cache (`DataCache`) and
 /// `ThemeController` both read/write it and would otherwise hang on the unmocked platform channel.
 ///
@@ -2503,7 +2503,7 @@ git commit -m "feat(parent-app): extend offline caching (loadWithCache/LastUpdat
 ### Task 8: Docs — update the roadmap checklist and `PROJECT-STATUS.md`
 
 **Files:**
-- Modify: `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`
+- Modify: `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`
 - Modify: `build/PROJECT-STATUS.md`
 
 Per [[roadmap-checklist-convention]] — both trackers are updated whenever a sprint ships (verified,
@@ -2511,7 +2511,7 @@ not just merged).
 
 - [ ] **Step 1: Check Sprint G's box and sub-items in the roadmap**
 
-Edit `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` — replace the Sprint G block with
+Edit `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md` — replace the Sprint G block with
 (fill in the actual merge commit range and test counts once Tasks 1-7 are committed and merged —
 do not leave a placeholder in the final edit):
 
@@ -2553,7 +2553,7 @@ counts from the last full `flutter test` run.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md PROJECT-STATUS.md
+git add docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md PROJECT-STATUS.md
 git commit -m "docs: mark Sprint G done in the roadmap checklist and PROJECT-STATUS.md"
 ```
 

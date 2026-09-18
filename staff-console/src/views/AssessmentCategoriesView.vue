@@ -7,9 +7,11 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const toast = useToast();
 
 const classes = ref<ClassSummary[]>([]);
 const terms = ref<TermSummary[]>([]);
@@ -95,6 +97,7 @@ async function onAdd() {
     newWeightPercent.value = '';
     showAddForm.value = false;
     await loadCategories();
+    toast.success('Assessment category added.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this category.';
   } finally {
@@ -124,6 +127,7 @@ async function onSaveEdit(id: string) {
     weightWarning.value = updated.weightTotalWarning ?? null;
     editingId.value = null;
     await loadCategories();
+    toast.success('Assessment category updated.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not update this category.';
   }
@@ -136,6 +140,7 @@ async function onDelete(id: string) {
   try {
     await api.deleteAssessmentCategory(auth.accessToken, id);
     await loadCategories();
+    toast.success('Assessment category deleted.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not delete this category.';
   }

@@ -1,12 +1,13 @@
-# SEEDS Digital Platform — Project Status
+# SchoolOS Digital Platform — Project Status
 
 Living checklist. Update this file (don't just report progress in chat) whenever a feature lands
-or scope changes. Spec source: `Seeds/apk/MVP-Plan-V3.md` (validated MVP plan) → `plan/docs/FEATURES.txt`
+or scope changes. Spec source: `SchoolOS/apk/MVP-Plan-V3.md` (validated MVP plan) → `plan/docs/FEATURES.txt`
 (FEAT-001..014, full detail).
 
-**Architecture:** one NestJS+Prisma backend, two clients — a Vue staff console (Teacher + Admin/
-Accounts, role-gated, one app) and a Flutter parent app. Public website refresh and a parent web
-portal are separate, lower-priority tracks (see Deferred below), not part of this build.
+**Architecture:** one NestJS+Prisma backend, three clients — a Vue staff console (Teacher + Admin/
+Accounts, role-gated, one app), a Flutter parent app, and (as of 2026-09-17, un-deferred) a
+greenfield Next.js/React/Tailwind parent web portal, not yet started. Public website refresh remains
+a separate, lower-priority track (see Deferred below), not part of this build.
 
 ## Phase: MVP → Production-Ready (2026-09-17)
 
@@ -16,7 +17,7 @@ past MVP scope (Staff/Hiring, Admissions, structured Gradebook, Bulk Import, Stu
 the Documentation Sync Gap note below) and is now explicitly in a **Production-Ready hardening and
 expansion phase**, per the project owner's direction on 2026-09-17. See
 `MASTER-PROMPT-TRACKER.md`'s "Production-Ready Backlog" section for the reviewed, prioritized backlog
-this phase draws from, and `docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s
+this phase draws from, and `docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md`'s
 Implementation Checklist for the sprint-by-sprint plan.
 
 ## Documentation Sync Gap (found 2026-09-17)
@@ -56,7 +57,7 @@ any of the six being "done" for planning purposes.
       multi-child switcher wired to the real `/me/children` endpoint, router guards, bottom nav
       shell (Home/Calendar/Notifications/Messages/Fees/More placeholders)
 - [x] Design system (ui-ux-pro-max, curated) applied to both clients — Plus Jakarta Sans,
-      navy/blue-accent palette, one consistent brand (`staff-console/design-system/seeds-staff-console/MASTER.md`)
+      navy/blue-accent palette, one consistent brand (`staff-console/design-system/schoolos-staff-console/MASTER.md`)
 
 ## Sprint 3-4 — Timetable + Attendance ✅ DONE
 
@@ -178,7 +179,7 @@ any of the six being "done" for planning purposes.
 ## UI Refresh — Wireframe-driven Design Pass (2026-08-28/29) ✅ DONE
 
 - [x] Four `docs/wireframe/` mockups (OwnerDashboard, FeeReconciliation, TeacherMarkAttendance,
-      ParentHome) used for layout/UX only — restyled onto the existing SEEDS token system (navy/blue,
+      ParentHome) used for layout/UX only — restyled onto the existing SchoolOS token system (navy/blue,
       Plus Jakarta Sans, no new brand/font/icon library), per
       `docs/superpowers/specs/2026-08-28-wireframe-css-refresh-design.md`. Two parallel
       implementation plans, each independently executed via subagent-driven-development:
@@ -271,8 +272,8 @@ any of the six being "done" for planning purposes.
       resolves `senderName` per party); tapping a message notification opens the specific
       conversation directly in both clients (`?conversationId=` query param in staff-console,
       `MessagesTab.initialConversationId` in parent-app) instead of just landing on the list/tab;
-      principal is now a dedicated `principal@seeds.edu.pk` account (`SCHOOL_ADMIN` + `isPrincipal`),
-      separate from `admin@seeds.edu.pk`, so both are independently testable.
+      principal is now a dedicated `principal@schoolos.edu.pk` account (`SCHOOL_ADMIN` + `isPrincipal`),
+      separate from `admin@schoolos.edu.pk`, so both are independently testable.
 - [x] **Seed data**: 3 classes/sections now exist (3A/4B/5C, split across both campuses), each with
       its own class teacher (`teacher@`/`teacher2@`/`teacher3@`) and a full 30-period timetable +
       10 days of attendance + a diary entry. Parent B's 3 children (Eshaal/Ibrahim/Hania) are split
@@ -678,7 +679,7 @@ Merged to `main` 2026-09-10 (`b487cee..14428ce`). Plan:
       always succeeded). Fixed: `buildCorsOriginOption()` (`backend/src/config/cors.config.ts`)
       accepts any `localhost`/`127.0.0.1` origin, any port, in development/test only; staging/
       production keep the strict `CORS_ORIGINS` allow-list unchanged. Verified live in a real browser
-      session against both `parent-a@seeds.edu.pk` and `parent-b@seeds.edu.pk` (real JWTs issued, Home
+      session against both `parent-a@schoolos.edu.pk` and `parent-b@schoolos.edu.pk` (real JWTs issued, Home
       dashboard rendered with real seeded data). New unit coverage in `cors.config.spec.ts` (10 tests,
       up from 4); full backend suite (237 tests) and `npm run build` clean.
 - [x] **Fee-voucher due-date status off-by-one (found during the same verification pass)** —
@@ -694,8 +695,8 @@ Merged to `main` 2026-09-10 (`b487cee..14428ce`). Plan:
       then 404'd. Fixed the same way `LeaveService.approve()` already solved the identical FK
       problem for admin-approved leave: attribute the write to the student's section's
       `classTeacherId` instead of the acting admin (AuditLog still names the real acting user). New
-      unit + e2e coverage; smoke-tested live against real seed data — `admin@seeds.edu.pk` marked
-      Eshaal Sample (GR-1001, section 3A) present, immediately visible to `parent-a@seeds.edu.pk`.
+      unit + e2e coverage; smoke-tested live against real seed data — `admin@schoolos.edu.pk` marked
+      Eshaal Sample (GR-1001, section 3A) present, immediately visible to `parent-a@schoolos.edu.pk`.
 - [x] Fix Circulars nav-role bug (`AppShell.vue`'s `isAdmin` condition) — already closed by the
       2026-09-07 Staff Console Shell Redesign's `canManageCirculars` computed (ahead of this sprint
       being scoped); confirmed via code read, no new work needed.
@@ -1296,7 +1297,7 @@ same as this sub-project's own plan scoped it.
   timeout occurred during a full-suite run under parallel workers — reproduced as the same
   pre-existing argon2-hashing-load flake documented since Sprint A (20/20 pass in isolation;
   `auth/` is untouched by this branch). Manually smoke-tested end to end against the shared local
-  Postgres dev DB, logged in as the seeded `SCHOOL_ADMIN` (`admin@seeds.edu.pk`): `PATCH profile` with
+  Postgres dev DB, logged in as the seeded `SCHOOL_ADMIN` (`admin@schoolos.edu.pk`): `PATCH profile` with
   a new `permanentAddress` created and linked a new `Address` row; `POST emergency-contacts` appeared
   in the subsequent `GET`; two consecutive `PUT medical-info` calls with different `allergies` values
   updated the same row (same `id`/`createdAt`, only `updatedAt`/`allergies` changed) — no duplicate
@@ -1328,7 +1329,7 @@ same as this sub-project's own plan scoped it.
       timestamp formatting, model JSON round-trips, 3 widget-level offline-fallback tests) — 54/54
       parent-app tests passing, `flutter analyze` clean (same 2 pre-existing info lints as before);
       manually smoke-tested in a real running app (`flutter run -d web-server` + backend), logged in
-      as `parent-a@seeds.edu.pk`, confirmed the banner renders on all four screens.
+      as `parent-a@schoolos.edu.pk`, confirmed the banner renders on all four screens.
 - [ ] **FEAT-014 (remaining)** — security review pass, Play Store submission (own developer
       account, not sideloaded)
 - [ ] Switch Prisma datasource from SQLite (local dev) to PostgreSQL before any staging/production
@@ -1394,7 +1395,7 @@ own implementer + task review, plus this manual verification task.
     same file (no reset between them) — fixed with an `afterEach` mock reset.
 - Verified: 180/180 staff-console tests passing (26 files), `npm run lint` and `npm run build`
   (type-check) both clean, manually smoke-tested in a real running app (`npm run start:dev` +
-  `npm run dev`) logged in as `admin@seeds.edu.pk` (SCHOOL_ADMIN) and `accounts@seeds.edu.pk`
+  `npm run dev`) logged in as `admin@schoolos.edu.pk` (SCHOOL_ADMIN) and `accounts@schoolos.edu.pk`
   (ACCOUNTS) — confirmed grouped nav, breadcrumb, command palette (open via button and via
   `Ctrl+K`, filtered search, navigation), two-tier notification badge/dot, light↔dark toggle
   (including persistence across a reload), and the Circulars/Timetable role-gating fix, all
@@ -1476,9 +1477,134 @@ own implementer + task review, plus this manual verification task.
     than one really exists — worth a decision on whether sessions should be global or per-school
     before touching this further.
 
+## UI Sprint 1 — Staff console token & motion hardening ✅ DONE (2026-09-17)
+
+Per the sprint plan in `docs/Plan-Ideas/PHASE-1/` (see UI upgrade plan doc, un-deferred the parent
+web portal — moved from Deferred below to an active greenfield track, not yet started).
+
+- [x] **Nav reorder**: `AppShell.vue` admin sidebar re-sequenced by usage frequency, not insertion
+      order. Nav-group order: Overview → People → Operations → Communication → Org Structure
+      (was …→ Org Structure → Operations → Communication). Operations sub-items: Admissions/Hiring/
+      Bulk Import now lead (were last), followed by Fees/Leave/Timetable/Report Cards (recurring),
+      then Promotions/Holidays (seasonal), then Terms/Assessment Categories (per-session setup,
+      last). Communication: Messages now before Circulars (daily two-way vs. periodic broadcast).
+- [x] **Token hardening** (`assets/base.css`): added `--shadow-sm/-md/-lg` (hue-tinted via a
+      `--shadow-color` RGB-triple that swaps per theme — never pure black, dark-mode-aware by
+      construction), `--radius-full`, `--space-0`/`--space-0-5` (the recurring sub-`--space-1`
+      micro-gaps), `--font-size-2xs`, `--color-ring-glow` (theme-aware — login's focus glow no
+      longer hardcoded to the light-mode accent), and a motion-token layer (`--duration-fast/-base/
+      -slow`, `--ease-standard`, `--ease-spring`) that `--transition-fast`/`--transition-base` now
+      build on, so every existing call site picked up the design-taste `cubic-bezier(0.16, 1, 0.3, 1)`
+      curve with zero call-site changes.
+- [x] Repointed every hand-rolled `box-shadow`/`999px` radius/pure-black-shadow/off-scale spacing
+      literal found in a full-repo grep (`AppModal`, `CommandPalette`, `ConfirmDialog`,
+      `AttendanceView`, `AppShell`, `AppTabs`, `StatusPill`, `LoginView`) onto the new tokens.
+- [x] `MASTER.md` addendum: folded in everything shipped since the Sprint 2 baseline doc that was
+      never recorded there (dark mode, status tints, mono font, shell/nav additions, the component
+      library, today's token layer) — the doc was several sprints behind the code.
+- Verified: staff-console **389/389** tests, `vue-tsc --build` clean, `lint` (oxlint + eslint) clean,
+  production `build` clean.
+- **Current-state findings this sprint surfaced** (grep-verified against the code, not assumed):
+  component-extraction and native-`window.confirm()`-elimination work often still owed elsewhere is
+  already done here (`EntityTable`/`Button`/`FormField`/`AppModal`/`AppTabs`/`StatusPill`/
+  `ConfirmDialog` all exist, each with a spec; `noWindowConfirm.spec.ts` enforces the latter
+  app-wide) and the responsive shell (hamburger + off-canvas sidebar below 768px) already exists.
+  Real remaining gaps for later UI sprints: no toast/snackbar system anywhere, only 3/~39 views have
+  an explicit loading state and no skeleton pattern exists, `EntityTable` adoption is 18/39 views,
+  no dedicated empty-state component/pattern found.
+
+## UI Sprints 2–4 — States, feedback, and motion polish ✅ DONE (2026-09-17)
+
+Combined into one pass since they share the same primitives. Scope judgment call vs. the written
+plan: rather than migrating every non-`EntityTable` screen onto it (many aren't table-shaped — see
+below), the empty-state and loading work was built **into `EntityTable.vue` itself** so all 18
+consuming screens benefit with zero or near-zero per-screen changes, which is more leverage than a
+literal per-screen migration and matches the actual "systemize once" goal behind the ask.
+
+- [x] **Four new shared primitives**, each with its own spec: `EmptyState.vue` (icon+title+message+
+      optional CTA), `AppSkeleton.vue` (shimmer block, shape-matched not spinner), `ErrorRetry.vue`
+      (inline error + retry action), `useToast.ts`/`ToastHost.vue` (singleton-queue toast system
+      mirroring the existing `useConfirm`/`ConfirmDialog` pattern, mounted once in `AppShell.vue`).
+- [x] **`EntityTable.vue` hardened** (benefits all 18 consuming screens): a `loading` prop renders
+      shape-matched skeleton rows instead of the table; `items.length === 0` now renders `EmptyState`
+      (customizable via `emptyTitle`/`emptyMessage`/`emptyIcon`/`emptyCtaLabel`, generic default
+      "Nothing here yet." when a screen doesn't customize it) instead of the old bare "No matching
+      rows." row — that in-table message is kept, but only for the distinct case of a search
+      matching nothing; rows now waterfall-reveal on mount (staggered, capped, respects
+      `prefers-reduced-motion` via the existing global rule). One pre-existing test's expectation
+      was deliberately updated to match (`EntityTable.spec.ts`, the empty-items case).
+- [x] **`Button.vue` tactile feedback**: `:active` micro-press (`scale(0.97)`) — benefits every
+      `<Button>` call site app-wide from one file.
+- [x] **5 priority screens fully wired** (loading + empty-state copy + `ErrorRetry` + toast, per the
+      plan's own priority list): Admissions, Hiring, Bulk Import, Fees, Admin Dashboard.
+      `ApplicantIntakeView`/`HiringCandidateIntakeView` gained a real `created` event (was silently
+      reloading on any modal close, which would have false-positived a success toast on a mere
+      cancel — fixed properly instead of papering over it).
+- [x] **Fee Management anti-card pass + ledger migration**: the 3 stacked `.card` sections
+      (Structures/Issue Vouchers/Student Ledger) now separated by a top border instead of 3 boxes
+      (Rule 4 — cards only when elevation communicates hierarchy; the reconcile sub-form keeps a
+      card, since that one genuinely is a break-out action panel). The ledger table migrated from a
+      hand-rolled `<table>` onto `EntityTable`.
+- [x] **Toast success-feedback wired into 16 of 18 `EntityTable`-based CRUD screens'** previously-
+      silent add/edit/delete mutations: Students, Parents, Staff, Campuses, Schools, Classes,
+      Sections, Academic Sessions, Assessment Categories, Terms, Holidays, Complaints (both admin
+      and teacher queues), Promotions (the execute-batch action had **zero** success confirmation
+      before this — a consequential, irreversible action that used to complete silently).
+      `StaffProfileView`/`StudentProfileView` were deferred out of this pass (886/1019 lines each,
+      multiple nested sub-forms) — completed below, in UI Sprints 5–6.
+- Verified: staff-console **406/406** tests (58 files), `vue-tsc --build` clean, `lint` (oxlint +
+  eslint) clean — one rule fix needed (`Skeleton` → `AppSkeleton`, single-word component name),
+  production `build` clean.
+
+## UI Sprints 5–6 — Command palette/navigation polish + accessibility sweep ✅ DONE (2026-09-17)
+
+Also closed out the `StaffProfileView`/`StudentProfileView` toast wiring deferred from Sprints 2–4.
+Several items in the written plan turned out to already be fixed (verified against the live code,
+not assumed) — flagged below rather than redone.
+
+- [x] **Command palette action index extended**: 3 new actions (`New applicant` →
+      `/admin/admissions/new`, `Add hiring candidate` → `/admin/hiring/new`, `Run a bulk import` →
+      `/admin/bulk-import?focus=entity`), plus Admissions/Bulk Import added to the "Go to" list
+      (previously unreachable via the palette entirely). `BulkImportView.vue`'s entity picker
+      gained real `useFocusTarget` wiring to make its deep link land somewhere.
+- [x] **Focus trap on the command palette — already implemented**, contrary to the plan's own text
+      (Tab/Shift+Tab cycling between the input and the last item already existed in `onKeydown`);
+      verified, not rebuilt, and backed with 2 new regression tests since none existed before.
+- [x] **Real breadcrumb trail**: every admin route in `router/index.ts` now carries a `meta.group`
+      matching its Sprint-1-reordered nav group (Overview/People/Operations/Communication/Org
+      Structure); `AppShell.vue`'s breadcrumb renders `Group/Title` when a route has one, falling
+      back to the old single-title label otherwise (teacher routes, unchanged).
+- [x] **Notifications dropdown**: click-outside and `Escape` now close it, matching the command
+      palette's own dismiss behavior (previously neither existed).
+- [x] **Accessibility sweep**:
+  - Skip-to-content link audited — correctly `AppShell`-scoped already; the 3 non-`AppShell` routes
+    (login/forgot-password/reset-password) have no nav to skip past, so no fix was needed there.
+  - `cmdk-trigger` was missing `aria-haspopup`/`aria-expanded` entirely — fixed. Theme toggle gained
+    `aria-pressed` (it's a state toggle, not a disclosure, so this is the correct ARIA role for it
+    rather than `aria-expanded`). Notif bell and the sidebar hamburger already had correct
+    `aria-haspopup`/`aria-expanded`.
+  - `TrendsSparkline`'s accessible name — **already implemented** (`role="img"` + a real
+    data-derived `aria-label`, already covered by its own test) — the plan's claim here was stale.
+  - `lang="ur"` alongside `dir="rtl"` — **already correct everywhere** RTL content renders
+    (`DirectionalText.vue`, `CircularsView.vue`, `DiaryView.vue` all pair `detectDirection`/
+    `detectLang` consistently) — verified by grep across every `:dir=` binding in the app, no gap
+    found, no fix needed.
+- [x] **Deferred toast wiring closed out**: `StaffProfileView` (12 mutation points — profile,
+      photo, emergency contacts add/edit/delete, experience add/edit/delete, documents add/verify,
+      teacher-login reset/delete) and `StudentProfileView` (10 mutation points — profile, photo,
+      enrollment, previous school, emergency contacts add/edit/delete, medical info, documents
+      add/verify) — every previously-silent mutation on both profile pages now confirms.
+- Verified: staff-console **418/418** tests (58 files), `vue-tsc --build` clean, `lint` clean,
+  production `build` clean.
+
+**Staff console UI upgrade track (Sprints 1–6): complete.** Remaining open work is the greenfield
+parent web portal (see Deferred below, now an active un-started track) and the plan's own open
+items (web auth/session strategy, payment gateway, analytics, app-chrome localization).
+
 ## Deferred (explicitly out of this build's scope)
 
-- [ ] Parent **web** portal (Phase 2 — same backend, zero rework, just not built alongside mobile)
+- [ ] ~~Parent **web** portal~~ — **un-deferred 2026-09-17**, see UI upgrade sprint plan doc; a
+      greenfield Next.js/React/Tailwind build against the existing backend API, not yet started
 - [ ] Public website refresh (separate, lower-priority track)
 - [x] ~~WhatsApp integration~~ — done, Sprint H (above); not live-verified against a real sandbox
       (no credentials in this environment)
@@ -1510,7 +1636,7 @@ Sprint A's Follow-up above). What's left from Sprint A is not code: turning on b
 requiring the CI workflow before merge needs the repo owner's action. Sprints N (structured
 gradebook), O (admissions/enrollment pipeline), P (bulk import/export), and Q (StatusPill + remaining
 accessibility) are sequenced in
-`docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s Implementation Checklist and
+`docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`'s Implementation Checklist and
 `build/MASTER-PROMPT-TRACKER.md`, none spec'd yet. The Sprint I/J/K test-coverage gap (both backend
 and UI halves) is now fully closed: backend closed 2026-09-12 (51 new backend unit tests, 19 new e2e
 tests across the five previously-untested modules plus forgotPassword/resetPassword, bulk attendance,

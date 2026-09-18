@@ -144,7 +144,7 @@ Change the admin creation to also flag `isPrincipal` (the single admin doubles a
 ```ts
   const adminUser = await prisma.user.create({
     data: {
-      identifier: 'admin@seeds.edu.pk',
+      identifier: 'admin@schoolos.edu.pk',
       passwordHash: await argon2.hash('ChangeMe123!'),
       role: 'SCHOOL_ADMIN',
       isPrincipal: true,
@@ -157,7 +157,7 @@ Right after that block, add a new accounts user:
 ```ts
   const accountsUser = await prisma.user.create({
     data: {
-      identifier: 'accounts@seeds.edu.pk',
+      identifier: 'accounts@schoolos.edu.pk',
       passwordHash: await argon2.hash('ChangeMe123!'),
       role: 'ACCOUNTS',
     },
@@ -769,8 +769,8 @@ describe('ConversationsService', () => {
         id: 'conv-1',
         recipientType: 'CLASS_TEACHER',
         studentId: 'student-1',
-        parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
-        staffUser: { identifier: 'teacher@seeds.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+        parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
+        staffUser: { identifier: 'teacher@schoolos.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
         parentReadAt: new Date('2026-08-01T00:00:00.000Z'),
         staffReadAt: null,
         lastMessageAt: new Date('2026-08-02T00:00:00.000Z'),
@@ -797,8 +797,8 @@ describe('ConversationsService', () => {
         id: 'conv-1',
         recipientType: 'CLASS_TEACHER',
         studentId: 'student-1',
-        parentUser: { identifier: 'parent-a@seeds.edu.pk', parentProfile: { name: 'Parent A' } },
-        staffUser: { identifier: 'teacher@seeds.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+        parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
+        staffUser: { identifier: 'teacher@schoolos.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
         parentReadAt: new Date(),
         staffReadAt: new Date(),
         lastMessageAt: new Date('2026-08-02T00:00:00.000Z'),
@@ -1552,7 +1552,7 @@ describe('Messages + Notifications (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'mn-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'mn-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'MN Teacher' },
@@ -1561,20 +1561,20 @@ describe('Messages + Notifications (e2e)', () => {
     ids.teacherUserId = teacherUser.id;
 
     const otherTeacherUser = await prisma.user.create({
-      data: { identifier: 'mn-other-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'mn-other-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     ids.otherTeacherUserId = otherTeacherUser.id;
 
     const adminUser = await prisma.user.create({
-      data: { identifier: 'mn-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', isPrincipal: true },
+      data: { identifier: 'mn-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', isPrincipal: true },
     });
     ids.adminUserId = adminUser.id;
 
     const parentUser = await prisma.user.create({
-      data: { identifier: 'mn-parent@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'mn-parent@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const otherParentUser = await prisma.user.create({
-      data: { identifier: 'mn-other-parent@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'mn-other-parent@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     ids.otherParentUserId = otherParentUser.id;
     const parentProfile = await prisma.parentProfile.create({
@@ -1625,7 +1625,7 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('a parent starts a conversation with the class teacher, the teacher sees and replies, and both get notified', async () => {
-    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+    const parentToken = await loginAs('mn-parent@schoolos.edu.pk');
 
     const start = await request(app.getHttpServer())
       .post('/api/v1/conversations')
@@ -1634,7 +1634,7 @@ describe('Messages + Notifications (e2e)', () => {
       .expect(201);
     ids.conversationId = start.body.id;
 
-    const teacherToken = await loginAs('mn-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('mn-teacher@schoolos.edu.pk');
     const inbox = await request(app.getHttpServer())
       .get('/api/v1/conversations')
       .set('Authorization', `Bearer ${teacherToken}`)
@@ -1670,13 +1670,13 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('another parent and another teacher cannot read or reply to this conversation', async () => {
-    const otherParentToken = await loginAs('mn-other-parent@seeds.edu.pk');
+    const otherParentToken = await loginAs('mn-other-parent@schoolos.edu.pk');
     await request(app.getHttpServer())
       .get(`/api/v1/conversations/${ids.conversationId}`)
       .set('Authorization', `Bearer ${otherParentToken}`)
       .expect(403);
 
-    const otherTeacherToken = await loginAs('mn-other-teacher@seeds.edu.pk');
+    const otherTeacherToken = await loginAs('mn-other-teacher@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post(`/api/v1/conversations/${ids.conversationId}/messages`)
       .set('Authorization', `Bearer ${otherTeacherToken}`)
@@ -1685,7 +1685,7 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('a TEACHER cannot start a new conversation to a parent', async () => {
-    const teacherToken = await loginAs('mn-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('mn-teacher@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post('/api/v1/conversations')
       .set('Authorization', `Bearer ${teacherToken}`)
@@ -1694,14 +1694,14 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('a parent can message the Principal, resolved via isPrincipal', async () => {
-    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+    const parentToken = await loginAs('mn-parent@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/conversations')
       .set('Authorization', `Bearer ${parentToken}`)
       .send({ recipientType: 'PRINCIPAL', body: 'A question for the principal.' })
       .expect(201);
 
-    const adminToken = await loginAs('mn-admin@seeds.edu.pk');
+    const adminToken = await loginAs('mn-admin@schoolos.edu.pk');
     const inbox = await request(app.getHttpServer())
       .get('/api/v1/conversations')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -1710,7 +1710,7 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('starting a CLASS_TEACHER conversation for a section with no class teacher assigned returns 400', async () => {
-    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+    const parentToken = await loginAs('mn-parent@schoolos.edu.pk');
     await request(app.getHttpServer())
       .post('/api/v1/conversations')
       .set('Authorization', `Bearer ${parentToken}`)
@@ -1719,7 +1719,7 @@ describe('Messages + Notifications (e2e)', () => {
   });
 
   it('a notification can be marked read individually and in bulk', async () => {
-    const parentToken = await loginAs('mn-parent@seeds.edu.pk');
+    const parentToken = await loginAs('mn-parent@schoolos.edu.pk');
     const before = await request(app.getHttpServer())
       .get('/api/v1/notifications')
       .set('Authorization', `Bearer ${parentToken}`)

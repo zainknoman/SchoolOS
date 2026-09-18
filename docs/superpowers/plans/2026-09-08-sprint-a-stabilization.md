@@ -8,7 +8,7 @@
 
 **Tech Stack:** NestJS 11 + Prisma 7 + SQLite (backend, Jest), Vue 3 + Pinia (staff-console, Vitest), Flutter + Provider (parent-app, `flutter test`), GitHub Actions.
 
-**Spec:** `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` §4 "Sprint A — Stabilization I: Session, CI, Data" — the acceptance criteria below are copied verbatim from that section, verified against the actual current code (not assumed) before this plan was written.
+**Spec:** `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md` §4 "Sprint A — Stabilization I: Session, CI, Data" — the acceptance criteria below are copied verbatim from that section, verified against the actual current code (not assumed) before this plan was written.
 
 ## Global Constraints
 
@@ -30,7 +30,7 @@
 - `backend/src/auth/auth.module.ts`'s `jwtModuleFactory` and `backend/src/auth/strategies/jwt.strategy.ts` both independently fall back to the literal string `'dev-only-change-me-access'` when `JWT_ACCESS_SECRET` is unset — no fail-fast exists in either place.
 - No `.github/` directory exists anywhere in the repo — zero CI today.
 - `staff-console/src/lib/api.ts` (~960 lines) has ~60 exported functions, each calling global `fetch` directly with `authHeaders(accessToken)` — no shared request wrapper, no interceptor.
-- `staff-console/src/stores/auth.ts` (Pinia) holds `accessToken`/`refreshToken`/`role`, persisted to `localStorage['seeds.auth']`. No `refreshSession` action exists.
+- `staff-console/src/stores/auth.ts` (Pinia) holds `accessToken`/`refreshToken`/`role`, persisted to `localStorage['schoolos.auth']`. No `refreshSession` action exists.
 - `parent-app/lib/src/api/api_client.dart` (~250 lines) takes a `http.Client` via constructor DI (already used by tests via `MockClient`) — a clean seam to wrap.
 - `parent-app/lib/src/auth/auth_state.dart` persists `accessToken`/`refreshToken`/`role` to secure storage on login, but only re-loads `accessToken`/`role` in `restoreSession()` — `refreshToken` is written but never read back into memory. No `refreshSession` method exists.
 - `parent-app/lib/main.dart` constructs `ApiClient`/`AuthState` as `late final` fields in declaration order (`_api` → `_auth` → `_router`), which this plan's wiring must preserve.
@@ -492,14 +492,14 @@ Then add, inside the existing `describe('auth store', ...)` block:
     });
 
     const store = useAuthStore();
-    await store.login('teacher@seeds.edu.pk', 'ChangeMe123!');
+    await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
 
     const newAccessToken = await store.refreshSession();
 
     expect(newAccessToken).toBe('token-new');
     expect(store.accessToken).toBe('token-new');
     expect(store.refreshToken).toBe('refresh-new');
-    expect(JSON.parse(localStorage.getItem('seeds.auth')!).accessToken).toBe('token-new');
+    expect(JSON.parse(localStorage.getItem('schoolos.auth')!).accessToken).toBe('token-new');
   });
 
   it('refreshSession() logs out and returns null when the refresh call itself fails', async () => {
@@ -511,13 +511,13 @@ Then add, inside the existing `describe('auth store', ...)` block:
     vi.mocked(api.refresh).mockRejectedValue(new ApiError('Invalid credentials', 401));
 
     const store = useAuthStore();
-    await store.login('teacher@seeds.edu.pk', 'ChangeMe123!');
+    await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
 
     const result = await store.refreshSession();
 
     expect(result).toBeNull();
     expect(store.isAuthenticated).toBe(false);
-    expect(localStorage.getItem('seeds.auth')).toBeNull();
+    expect(localStorage.getItem('schoolos.auth')).toBeNull();
   });
 
   it('refreshSession() returns null immediately when there is no refresh token to use', async () => {
@@ -541,7 +541,7 @@ Then add, inside the existing `describe('auth store', ...)` block:
     );
 
     const store = useAuthStore();
-    await store.login('teacher@seeds.edu.pk', 'ChangeMe123!');
+    await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
 
     const call1 = store.refreshSession();
     const call2 = store.refreshSession();
@@ -568,7 +568,7 @@ Replace the full contents of `staff-console/src/stores/auth.ts` with:
 import { defineStore } from 'pinia';
 import { api } from '../lib/api';
 
-const STORAGE_KEY = 'seeds.auth';
+const STORAGE_KEY = 'schoolos.auth';
 
 // Teacher and Admin/Accounts share this one console, gated by role — not two deployable apps.
 export type StaffRole = 'TEACHER' | 'SCHOOL_ADMIN' | 'ACCOUNTS' | 'SUPER_ADMIN';
@@ -921,7 +921,7 @@ Then add these test cases:
 ```dart
   test('refreshSession() exchanges the stored refresh token for a new session and persists it', () async {
     final auth = AuthState(api: refreshingClient(), tokenStore: store);
-    await auth.login('parent-a@seeds.edu.pk', 'ChangeMe123!');
+    await auth.login('parent-a@schoolos.edu.pk', 'ChangeMe123!');
 
     final newAccessToken = await auth.refreshSession();
 
@@ -933,7 +933,7 @@ Then add these test cases:
 
   test('refreshSession() logs out and returns null when the refresh call itself fails', () async {
     final auth = AuthState(api: refreshingClient(), tokenStore: store);
-    await auth.login('parent-a@seeds.edu.pk', 'ChangeMe123!');
+    await auth.login('parent-a@schoolos.edu.pk', 'ChangeMe123!');
     // Corrupt the stored refresh token so the mock server rejects it.
     await store.write('refreshToken', 'a-token-the-mock-server-does-not-recognize');
     final authWithBadToken = AuthState(api: refreshingClient(), tokenStore: store);

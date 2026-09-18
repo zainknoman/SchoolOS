@@ -89,7 +89,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
       data: {
-        identifier: 'hcr-teacher@seeds.edu.pk',
+        identifier: 'hcr-teacher@schoolos.edu.pk',
         passwordHash,
         role: 'TEACHER',
       },
@@ -108,14 +108,14 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
       data: { schoolId: school.id, name: 'HCR Campus B' },
     });
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'hcr-teacher-b@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'hcr-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     await prisma.teacher.create({
       data: { userId: teacherBUser.id, name: 'HCR Teacher B', campusId: campusB.id },
     });
     await prisma.user.create({
       data: {
-        identifier: 'hcr-admin@seeds.edu.pk',
+        identifier: 'hcr-admin@schoolos.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
         schoolId: school.id,
@@ -124,14 +124,14 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
 
     const parentAUser = await prisma.user.create({
       data: {
-        identifier: 'hcr-parent-a@seeds.edu.pk',
+        identifier: 'hcr-parent-a@schoolos.edu.pk',
         passwordHash,
         role: 'PARENT',
       },
     });
     const parentBUser = await prisma.user.create({
       data: {
-        identifier: 'hcr-parent-b@seeds.edu.pk',
+        identifier: 'hcr-parent-b@schoolos.edu.pk',
         passwordHash,
         role: 'PARENT',
       },
@@ -190,11 +190,11 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         where: {
           identifier: {
             in: [
-              'hcr-teacher@seeds.edu.pk',
-              'hcr-teacher-b@seeds.edu.pk',
-              'hcr-admin@seeds.edu.pk',
-              'hcr-parent-a@seeds.edu.pk',
-              'hcr-parent-b@seeds.edu.pk',
+              'hcr-teacher@schoolos.edu.pk',
+              'hcr-teacher-b@schoolos.edu.pk',
+              'hcr-admin@schoolos.edu.pk',
+              'hcr-parent-a@schoolos.edu.pk',
+              'hcr-parent-b@schoolos.edu.pk',
             ],
           },
         },
@@ -205,7 +205,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
 
   describe('Holidays', () => {
     it('a SCHOOL_ADMIN can create a holiday; any authenticated user (including a parent) can read it', async () => {
-      const adminToken = await loginAs('hcr-admin@seeds.edu.pk');
+      const adminToken = await loginAs('hcr-admin@schoolos.edu.pk');
 
       const created = await request(app.getHttpServer())
         .post('/api/v1/holidays')
@@ -219,7 +219,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         .expect(201);
       ids.holiday = created.body.id;
 
-      const parentToken = await loginAs('hcr-parent-a@seeds.edu.pk');
+      const parentToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
       const res = await request(app.getHttpServer())
         .get(`/api/v1/holidays?campusId=${ids.campus}`)
         .set('Authorization', `Bearer ${parentToken}`)
@@ -231,7 +231,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('a TEACHER cannot create, update, or delete a holiday', async () => {
-      const teacherToken = await loginAs('hcr-teacher@seeds.edu.pk');
+      const teacherToken = await loginAs('hcr-teacher@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .post('/api/v1/holidays')
@@ -258,7 +258,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
 
   describe('Complaints', () => {
     it('a TEACHER can raise a complaint for a student, and the linked parent can read it', async () => {
-      const teacherToken = await loginAs('hcr-teacher@seeds.edu.pk');
+      const teacherToken = await loginAs('hcr-teacher@schoolos.edu.pk');
 
       const created = await request(app.getHttpServer())
         .post('/api/v1/complaints')
@@ -272,7 +272,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
       ids.complaint = created.body.id;
       expect(created.body.status).toBe('open');
 
-      const parentAToken = await loginAs('hcr-parent-a@seeds.edu.pk');
+      const parentAToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
       const res = await request(app.getHttpServer())
         .get(`/api/v1/complaints?studentId=${ids.childA}`)
         .set('Authorization', `Bearer ${parentAToken}`)
@@ -283,7 +283,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it("a parent CANNOT read another parent's child's complaints", async () => {
-      const parentBToken = await loginAs('hcr-parent-b@seeds.edu.pk');
+      const parentBToken = await loginAs('hcr-parent-b@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .get(`/api/v1/complaints?studentId=${ids.childA}`)
@@ -292,7 +292,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('a PARENT cannot create or update a complaint — read-only for parents', async () => {
-      const parentToken = await loginAs('hcr-parent-a@seeds.edu.pk');
+      const parentToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .post('/api/v1/complaints')
@@ -308,7 +308,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it("a SCHOOL_ADMIN can update a complaint's status", async () => {
-      const adminToken = await loginAs('hcr-admin@seeds.edu.pk');
+      const adminToken = await loginAs('hcr-admin@schoolos.edu.pk');
 
       const res = await request(app.getHttpServer())
         .patch(`/api/v1/complaints/${ids.complaint}`)
@@ -320,7 +320,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('denies a teacher raising a complaint about a student outside their campus', async () => {
-      const token = await loginAs('hcr-teacher-b@seeds.edu.pk');
+      const token = await loginAs('hcr-teacher-b@schoolos.edu.pk');
       const res = await request(app.getHttpServer())
         .post('/api/v1/complaints')
         .set('Authorization', `Bearer ${token}`)
@@ -331,7 +331,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
 
   describe('Report Cards', () => {
     it('a TEACHER can upload a report card; the linked parent can list and download it', async () => {
-      const teacherToken = await loginAs('hcr-teacher@seeds.edu.pk');
+      const teacherToken = await loginAs('hcr-teacher@schoolos.edu.pk');
 
       const uploadRes = await request(app.getHttpServer())
         .post('/api/v1/report-cards')
@@ -342,7 +342,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         .expect(201);
       ids.reportCard = uploadRes.body.id;
 
-      const parentAToken = await loginAs('hcr-parent-a@seeds.edu.pk');
+      const parentAToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
       const listRes = await request(app.getHttpServer())
         .get(`/api/v1/report-cards?studentId=${ids.childA}`)
         .set('Authorization', `Bearer ${parentAToken}`)
@@ -358,7 +358,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it("a parent CANNOT download another parent's child's report card", async () => {
-      const parentBToken = await loginAs('hcr-parent-b@seeds.edu.pk');
+      const parentBToken = await loginAs('hcr-parent-b@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .get(`/api/v1/report-cards/${ids.reportCard}/pdf`)
@@ -367,7 +367,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('uploading a second report card for the same student+session is rejected as a conflict', async () => {
-      const teacherToken = await loginAs('hcr-teacher@seeds.edu.pk');
+      const teacherToken = await loginAs('hcr-teacher@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .post('/api/v1/report-cards')
@@ -379,7 +379,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('a PARENT cannot upload a report card', async () => {
-      const parentToken = await loginAs('hcr-parent-a@seeds.edu.pk');
+      const parentToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .post('/api/v1/report-cards')
@@ -391,7 +391,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
     });
 
     it('denies a teacher uploading a report card for a student outside their campus', async () => {
-      const token = await loginAs('hcr-teacher-b@seeds.edu.pk');
+      const token = await loginAs('hcr-teacher-b@schoolos.edu.pk');
       const res = await request(app.getHttpServer())
         .post('/api/v1/report-cards')
         .set('Authorization', `Bearer ${token}`)

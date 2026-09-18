@@ -103,7 +103,7 @@ describe('Timetable + Attendance (e2e)', () => {
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
       data: {
-        identifier: 'tta-teacher@seeds.edu.pk',
+        identifier: 'tta-teacher@schoolos.edu.pk',
         passwordHash,
         role: 'TEACHER',
       },
@@ -117,7 +117,7 @@ describe('Timetable + Attendance (e2e)', () => {
     });
     const teacherBUser = await prisma.user.create({
       data: {
-        identifier: 'tta-teacher-b@seeds.edu.pk',
+        identifier: 'tta-teacher-b@schoolos.edu.pk',
         passwordHash,
         role: 'TEACHER',
       },
@@ -128,7 +128,7 @@ describe('Timetable + Attendance (e2e)', () => {
 
     await prisma.user.create({
       data: {
-        identifier: 'tta-admin@seeds.edu.pk',
+        identifier: 'tta-admin@schoolos.edu.pk',
         passwordHash,
         role: 'SCHOOL_ADMIN',
         schoolId: school.id,
@@ -137,14 +137,14 @@ describe('Timetable + Attendance (e2e)', () => {
 
     const parentAUser = await prisma.user.create({
       data: {
-        identifier: 'tta-parent-a@seeds.edu.pk',
+        identifier: 'tta-parent-a@schoolos.edu.pk',
         passwordHash,
         role: 'PARENT',
       },
     });
     const parentBUser = await prisma.user.create({
       data: {
-        identifier: 'tta-parent-b@seeds.edu.pk',
+        identifier: 'tta-parent-b@schoolos.edu.pk',
         passwordHash,
         role: 'PARENT',
       },
@@ -237,11 +237,11 @@ describe('Timetable + Attendance (e2e)', () => {
         where: {
           identifier: {
             in: [
-              'tta-teacher@seeds.edu.pk',
-              'tta-teacher-b@seeds.edu.pk',
-              'tta-admin@seeds.edu.pk',
-              'tta-parent-a@seeds.edu.pk',
-              'tta-parent-b@seeds.edu.pk',
+              'tta-teacher@schoolos.edu.pk',
+              'tta-teacher-b@schoolos.edu.pk',
+              'tta-admin@schoolos.edu.pk',
+              'tta-parent-a@schoolos.edu.pk',
+              'tta-parent-b@schoolos.edu.pk',
             ],
           },
         },
@@ -251,7 +251,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it("a parent sees their own child's timetable", async () => {
-    const token = await loginAs('tta-parent-a@seeds.edu.pk');
+    const token = await loginAs('tta-parent-a@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/timetable`)
@@ -269,7 +269,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it("a parent CANNOT see another parent's child's timetable", async () => {
-    const token = await loginAs('tta-parent-a@seeds.edu.pk');
+    const token = await loginAs('tta-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childB}/timetable`)
@@ -278,7 +278,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('a teacher can mark attendance, and it is then visible to the linked parent', async () => {
-    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('tta-teacher@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     await request(app.getHttpServer())
@@ -287,7 +287,7 @@ describe('Timetable + Attendance (e2e)', () => {
       .send({ studentId: ids.childA, date: today, status: 'PRESENT' })
       .expect(201);
 
-    const parentToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('tta-parent-a@schoolos.edu.pk');
     const month = today.slice(0, 7);
     const res = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/attendance?month=${month}`)
@@ -306,7 +306,7 @@ describe('Timetable + Attendance (e2e)', () => {
       data: { classTeacherId: ids.teacher },
     });
 
-    const adminToken = await loginAs('tta-admin@seeds.edu.pk');
+    const adminToken = await loginAs('tta-admin@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     await request(app.getHttpServer())
@@ -315,7 +315,7 @@ describe('Timetable + Attendance (e2e)', () => {
       .send({ studentId: ids.childB, date: today, status: 'PRESENT' })
       .expect(201);
 
-    const parentToken = await loginAs('tta-parent-b@seeds.edu.pk');
+    const parentToken = await loginAs('tta-parent-b@schoolos.edu.pk');
     const month = today.slice(0, 7);
     const res = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childB}/attendance?month=${month}`)
@@ -328,7 +328,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('staff can list every section (to pick which one to manage)', async () => {
-    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('tta-teacher@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get('/api/v1/sections')
@@ -343,7 +343,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('staff can list the students in a section (to pick who to mark attendance for)', async () => {
-    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('tta-teacher@schoolos.edu.pk');
 
     const students = await request(app.getHttpServer())
       .get(`/api/v1/sections/${ids.section}/students`)
@@ -357,7 +357,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('a PARENT cannot list section students — this is a staff-only tool', async () => {
-    const parentToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('tta-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .get('/api/v1/sections')
@@ -366,7 +366,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('a PARENT cannot mark attendance — attendance is immutable from the parent side', async () => {
-    const parentToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('tta-parent-a@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     await request(app.getHttpServer())
@@ -377,7 +377,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('a Teacher can bulk-mark attendance for a whole section in one call', async () => {
-    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('tta-teacher@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     await request(app.getHttpServer())
@@ -392,7 +392,7 @@ describe('Timetable + Attendance (e2e)', () => {
       })
       .expect(201);
 
-    const parentAToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('tta-parent-a@schoolos.edu.pk');
     const month = today.slice(0, 7);
     const res = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/attendance?month=${month}`)
@@ -405,7 +405,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('a PARENT cannot bulk-mark attendance', async () => {
-    const parentToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('tta-parent-a@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);
 
     await request(app.getHttpServer())
@@ -419,7 +419,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('creating a second timetable entry for the same teacher+day+period is rejected as a scheduling conflict', async () => {
-    const adminToken = await loginAs('tta-admin@seeds.edu.pk');
+    const adminToken = await loginAs('tta-admin@schoolos.edu.pk');
     const subject = await prisma.subject.findFirst({
       where: { name: 'TTA English' },
     });
@@ -453,14 +453,14 @@ describe('Timetable + Attendance (e2e)', () => {
       update: { absenceRate: 0.4, flagged: true },
     });
 
-    const parentAToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('tta-parent-a@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/attendance-risk`)
       .set('Authorization', `Bearer ${parentAToken}`)
       .expect(200);
     expect(res.body.flagged).toBe(true);
 
-    const parentBToken = await loginAs('tta-parent-b@seeds.edu.pk');
+    const parentBToken = await loginAs('tta-parent-b@schoolos.edu.pk');
     await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/attendance-risk`)
       .set('Authorization', `Bearer ${parentBToken}`)
@@ -488,7 +488,7 @@ describe('Timetable + Attendance (e2e)', () => {
       update: { absenceRate: 0.5, flagged: true },
     });
 
-    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('tta-teacher@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .get('/api/v1/attendance-risk')
       .set('Authorization', `Bearer ${teacherToken}`)
@@ -504,7 +504,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('denies a teacher reading another campus section\'s attendance roster', async () => {
-    const token = await loginAs('tta-teacher-b@seeds.edu.pk');
+    const token = await loginAs('tta-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .get(`/api/v1/sections/${ids.section}/attendance`)
       .set('Authorization', `Bearer ${token}`);
@@ -512,7 +512,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('denies a teacher marking attendance for a student outside their campus', async () => {
-    const token = await loginAs('tta-teacher-b@seeds.edu.pk');
+    const token = await loginAs('tta-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/attendance')
       .set('Authorization', `Bearer ${token}`)
@@ -521,7 +521,7 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   it('denies a bulk-attendance call when any mark targets a student outside the caller\'s campus', async () => {
-    const token = await loginAs('tta-teacher-b@seeds.edu.pk');
+    const token = await loginAs('tta-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/attendance/bulk')
       .set('Authorization', `Bearer ${token}`)

@@ -1,7 +1,7 @@
 # Sprint L — Cross-Tenant/Cross-Campus Access Control (Security)
 
 Status: approved (design), ready for implementation planning.
-Spec source: `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s Implementation Checklist,
+Spec source: `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`'s Implementation Checklist,
 Sprint L; confirmed finding recorded in `build/MASTER-PROMPT-TRACKER.md`.
 
 ## Problem (confirmed via direct code inspection, 2026-09-12)

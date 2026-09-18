@@ -15,9 +15,11 @@ import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import { useConfirm } from '../lib/useConfirm';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const toast = useToast();
 
 const classes = ref<ClassSummary[]>([]);
 const sections = ref<SectionSummary[]>([]);
@@ -192,6 +194,7 @@ async function onExecute() {
       decisions,
     });
     bulkTargetSectionId.value = '';
+    toast.success(`${decisions.length} student(s) promoted into ${targetSessionLabel.value}.`);
     // Re-fetch — the batch just closed every ACTIVE enrollment in the source section, so this
     // should now come back empty, confirming the batch closed.
     await onLoadStudents();

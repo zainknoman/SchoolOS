@@ -38,17 +38,17 @@ describe('TeacherService', () => {
   });
 
   it('creates a Teacher (User + Teacher) with a campus assignment, audit-logged without leaking the password', async () => {
-    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'teacher-x@seeds.edu.pk' });
+    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'teacher-x@schoolos.edu.pk' });
     tx.teacher.create.mockResolvedValue({ id: 't1', name: 'New Teacher' });
 
     const result = await service.create(
-      { identifier: 'teacher-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-1' },
+      { identifier: 'teacher-x@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-1' },
       { id: 'admin-1', role: 'SCHOOL_ADMIN' },
     );
 
-    expect(result).toEqual({ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' });
+    expect(result).toEqual({ id: 't1', identifier: 'teacher-x@schoolos.edu.pk', name: 'New Teacher' });
     expect(tx.user.create).toHaveBeenCalledWith({
-      data: { identifier: 'teacher-x@seeds.edu.pk', passwordHash: 'hashed-password', role: 'TEACHER' },
+      data: { identifier: 'teacher-x@schoolos.edu.pk', passwordHash: 'hashed-password', role: 'TEACHER' },
     });
     expect(tx.teacher.create).toHaveBeenCalledWith({
       data: { userId: 'u1', name: 'New Teacher', campusId: 'campus-1' },
@@ -65,7 +65,7 @@ describe('TeacherService', () => {
 
     await expect(
       service.create(
-        { identifier: 'dupe@seeds.edu.pk', password: 'ChangeMe123!', name: 'X', campusId: 'campus-1' },
+        { identifier: 'dupe@schoolos.edu.pk', password: 'ChangeMe123!', name: 'X', campusId: 'campus-1' },
         { id: 'admin-1', role: 'SCHOOL_ADMIN' },
       ),
     ).rejects.toThrow(BadRequestException);
@@ -77,7 +77,7 @@ describe('TeacherService', () => {
 
     await expect(
       service.create(
-        { identifier: 'teacher-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-2' },
+        { identifier: 'teacher-x@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-2' },
         { id: 'admin-1', role: 'SCHOOL_ADMIN' },
       ),
     ).rejects.toThrow(ForbiddenException);
@@ -85,39 +85,39 @@ describe('TeacherService', () => {
   });
 
   it('allows a SUPER_ADMIN to create a teacher in any campus without any school lookup', async () => {
-    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'teacher-x@seeds.edu.pk' });
+    tx.user.create.mockResolvedValue({ id: 'u1', identifier: 'teacher-x@schoolos.edu.pk' });
     tx.teacher.create.mockResolvedValue({ id: 't1', name: 'New Teacher' });
 
     const result = await service.create(
-      { identifier: 'teacher-x@seeds.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-2' },
+      { identifier: 'teacher-x@schoolos.edu.pk', password: 'ChangeMe123!', name: 'New Teacher', campusId: 'campus-2' },
       { id: 'super-1', role: 'SUPER_ADMIN' },
     );
 
-    expect(result).toEqual({ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' });
+    expect(result).toEqual({ id: 't1', identifier: 'teacher-x@schoolos.edu.pk', name: 'New Teacher' });
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
     expect(prisma.campus.findUnique).not.toHaveBeenCalled();
   });
 
   it('lists every teacher for a SUPER_ADMIN without a schoolId lookup', async () => {
     prisma.teacher.findMany.mockResolvedValue([
-      { id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@seeds.edu.pk' } },
+      { id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@schoolos.edu.pk' } },
     ]);
 
     const result = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
 
-    expect(result).toEqual([{ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' }]);
+    expect(result).toEqual([{ id: 't1', identifier: 'teacher-x@schoolos.edu.pk', name: 'New Teacher' }]);
     expect(prisma.teacher.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: undefined }));
   });
 
   it("scopes a SCHOOL_ADMIN's teacher list to their own school", async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
     prisma.teacher.findMany.mockResolvedValue([
-      { id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@seeds.edu.pk' } },
+      { id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@schoolos.edu.pk' } },
     ]);
 
     const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
 
-    expect(result).toEqual([{ id: 't1', identifier: 'teacher-x@seeds.edu.pk', name: 'New Teacher' }]);
+    expect(result).toEqual([{ id: 't1', identifier: 'teacher-x@schoolos.edu.pk', name: 'New Teacher' }]);
     expect(prisma.teacher.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { campus: { schoolId: 'school-1' } } }),
     );
@@ -134,7 +134,7 @@ describe('TeacherService', () => {
 
   it('updates the name without touching the password', async () => {
     prisma.teacher.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
-    prisma.teacher.update.mockResolvedValue({ id: 't1', name: 'Renamed', user: { identifier: 'teacher-x@seeds.edu.pk' } });
+    prisma.teacher.update.mockResolvedValue({ id: 't1', name: 'Renamed', user: { identifier: 'teacher-x@schoolos.edu.pk' } });
 
     const result = await service.update('t1', { name: 'Renamed' }, 'admin-1');
 
@@ -144,7 +144,7 @@ describe('TeacherService', () => {
 
   it('updates the password (hashed) when one is given', async () => {
     prisma.teacher.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
-    prisma.teacher.update.mockResolvedValue({ id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@seeds.edu.pk' } });
+    prisma.teacher.update.mockResolvedValue({ id: 't1', name: 'New Teacher', user: { identifier: 'teacher-x@schoolos.edu.pk' } });
 
     await service.update('t1', { password: 'NewPass123!' }, 'admin-1');
 

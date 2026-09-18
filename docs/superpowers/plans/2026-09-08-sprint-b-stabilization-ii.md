@@ -8,7 +8,7 @@
 
 **Tech Stack:** NestJS 11, Prisma 7 (driver-adapter mode — `@prisma/adapter-better-sqlite3` today, `@prisma/adapter-pg` added by this plan), Jest (unit + e2e via supertest), `@nestjs/throttler`.
 
-**Spec:** `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` §4 "Sprint B — Stabilization II: Database & Hardening" (line ~302) and `build/PROJECT-STATUS.md` (the Sprint 11-12 / "onDelete policy disagreement" follow-up notes, and the "PostgreSQL/Docker — not available on this machine" line under "Environment / one-time setup").
+**Spec:** `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md` §4 "Sprint B — Stabilization II: Database & Hardening" (line ~302) and `build/PROJECT-STATUS.md` (the Sprint 11-12 / "onDelete policy disagreement" follow-up notes, and the "PostgreSQL/Docker — not available on this machine" line under "Environment / one-time setup").
 
 ## Global Constraints
 
@@ -56,7 +56,7 @@ In `backend/test/fees.e2e-spec.ts`, find the `describe('Fees (e2e)', ...)` block
 
 ```typescript
   it('refuses to delete a FeePayment that has a Receipt (financial record, not silently droppable)', async () => {
-    const adminToken = await loginAs('fees-accounts@seeds.edu.pk');
+    const adminToken = await loginAs('fees-accounts@schoolos.edu.pk');
     const voucher = await request(app.getHttpServer())
       .post('/api/v1/fees/vouchers')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -506,7 +506,7 @@ describe('Rate limiting (e2e)', () => {
     const attempts = Array.from({ length: 6 }, () =>
       request(app.getHttpServer())
         .post('/api/v1/auth/login')
-        .send({ identifier: 'nonexistent@seeds.edu.pk', password: 'wrong-password' }),
+        .send({ identifier: 'nonexistent@schoolos.edu.pk', password: 'wrong-password' }),
     );
     const responses = await Promise.all(attempts.map((req) => req.then((res) => res.status)));
 
@@ -568,7 +568,7 @@ cd backend && npm uninstall @prisma/adapter-better-sqlite3 && npm install @prism
 In `backend/prisma/schema.prisma`, replace the header comment and datasource block:
 
 ```prisma
-// SEEDS Digital Platform — data model (FEAT-001)
+// SchoolOS Digital Platform — data model (FEAT-001)
 // Postgres in every environment as of Sprint B (2026-09-08) — see docs/superpowers/plans/
 // 2026-09-08-sprint-b-stabilization-ii.md for the SQLite -> Postgres migration this schema is
 // part of. DATABASE_URL must point at a reachable Postgres instance in every environment,
@@ -741,5 +741,5 @@ git commit -m "feat: migrate Prisma datasource from SQLite to Postgres; add Post
 - [ ] Run the full backend suite: `cd backend && npm run build && npm test`
 - [ ] Confirm CI is green on the branch (this is the real Postgres-backed verification — see Task 4 Step 8): backend, staff-console, and parent-app jobs all pass.
 - [ ] Confirm the pre-existing upload-limit tests (`backend/test/diary-circulars.e2e-spec.ts`'s "rejects a file upload larger than..."/"rejects an upload with a blocked executable extension" tests, from `2026-09-05-security-hardening-pass.md`) still pass — this plan does not touch `files.controller.ts`, so this is a pure regression check confirming Sprint B's "Upload limits" checklist item is genuinely already satisfied.
-- [ ] Update `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s Implementation Checklist: check Sprint B's box and all five sub-items (including "Upload limits," satisfied by the prior security-hardening-pass, not new work in this plan), noting the merge commit range and date — per [[roadmap-checklist-convention]].
+- [ ] Update `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`'s Implementation Checklist: check Sprint B's box and all five sub-items (including "Upload limits," satisfied by the prior security-hardening-pass, not new work in this plan), noting the merge commit range and date — per [[roadmap-checklist-convention]].
 - [ ] Update `build/PROJECT-STATUS.md`: move Sprint B from "next piece of Tier-0 stabilization" prose into a dated `✅ DONE` entry (matching Sprint A's format), and update the "PostgreSQL/Docker — not available on this machine" line under "Environment / one-time setup" to reflect that Postgres is now required for local dev (not merely tracked-but-deferred) and note whichever local-Postgres option was actually chosen (or that it's still open, if this merges before that decision is made).

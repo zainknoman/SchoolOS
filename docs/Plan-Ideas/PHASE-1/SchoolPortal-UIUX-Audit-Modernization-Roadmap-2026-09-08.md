@@ -1,12 +1,12 @@
-# SchoolPortal — UI/UX Audit & Modernization Roadmap
+# SchoolOS — UI/UX Audit & Modernization Roadmap
 
 **Compiled 2026-09-08.** Fourth in the series (`docs/Plan-Ideas/`), covering original sections 14–19 of
 `MasterPrompt.md`. Companion documents:
 
-1. `SchoolPortal-Repo-Audit-2026-09-08.md` — functional/technical baseline (commit `1e74697`, since
+1. `SchoolOS-Repo-Audit-2026-09-08.md` — functional/technical baseline (commit `1e74697`, since
    superseded — see note below).
-2. `SchoolPortal-Global-Competitor-Research-2026-09-08.md` — ten global school-platform leaders.
-3. `SchoolPortal-Gap-Analysis-Feature-Prioritization-2026-09-08.md` — feature gaps and priority tiers.
+2. `SchoolOS-Global-Competitor-Research-2026-09-08.md` — ten global school-platform leaders.
+3. `SchoolOS-Gap-Analysis-Feature-Prioritization-2026-09-08.md` — feature gaps and priority tiers.
 
 **Repo state note:** the repo audit above was compiled against commit `1e74697`, which predates a large
 amount of shipped work. This document is compiled against the current tip, `988278a`
@@ -30,7 +30,7 @@ sections explicitly call out what is already strong enough that no further work 
 
 ## 0. Objective, restated
 
-Move SchoolPortal from **Good MVP UI → polished commercial SaaS / premium school platform UI**, across
+Move SchoolOS from **Good MVP UI → polished commercial SaaS / premium school platform UI**, across
 both the staff/admin web console (Vue 3) and the parent mobile app (Flutter). Do not recommend
 redesigning what already works.
 
@@ -296,7 +296,7 @@ a convention for this — `PROJECT-STATUS.md`'s dated section headers).
 Per the brief: extract *principles*, not visual style, from Linear/Notion/Stripe/Slack/Apple/Google,
 plus the education-specific benchmarks already sourced in the competitor-research document.
 
-| Principle | Exemplar | SchoolPortal today | Gap / Action |
+| Principle | Exemplar | SchoolOS today | Gap / Action |
 |---|---|---|---|
 | **A command palette as a first-class navigation layer, not a search afterthought** | Linear, Notion, Slack (Ctrl+K everywhere) | Staff console has this, and it indexes actions with deep-linked field focus — genuinely close to the benchmark already | Extend to index more actions (currently only 4); no equivalent exists on the parent app (mobile doesn't need one — correct scope call) |
 | **Calm interfaces — low visual noise, generous whitespace, no unnecessary chrome** | Notion, Linear | Staff console's token discipline and 8px rhythm largely achieve this; undermined by the 8 CRUD screens' bare unstyled tables with no breathing room around empty states | Give the empty-state and loading-state work (§6, §7) a "calm" treatment — a designed empty state, not just a blank table |
@@ -306,10 +306,10 @@ plus the education-specific benchmarks already sourced in the competitor-researc
 | **Fast, keyboard-first workflows for power users (staff), while the mobile app stays touch-optimized and shallow** | Linear (keyboard-driven), Google/Apple mobile HIG (thumb-reachable primary actions) | Staff console's command palette + Attendance's segmented control already reflect this well; parent app's IA (no loop past 2 taps) reflects the mobile principle well too | Both platforms already embody this — call out as a strength, not a gap |
 | **Accessibility as infrastructure, not an afterthought toggle** | Apple, Google (both ship platform-level a11y APIs as load-bearing) | `prefers-reduced-motion` handled once globally — genuinely infrastructural. Everything else (skip links, focus traps, Semantics) is missing rather than deliberately deferred | UI Sprint 6 |
 | **Consistent elevation/shadow language that communicates hierarchy** | Apple (Human Interface Guidelines' materials/depth), Stripe | No shadow tokens exist on either client; the 4 hand-rolled shadow values on staff console aren't dark-mode-aware | UI Sprint 1 |
-| **Localization as a first-class product surface, not a translated shell** | Google, ClassDojo/ParentSquare (from the competitor-research doc — real content translation, not chrome-only) | SchoolPortal's content-level RTL is *already ahead* of most reviewed competitors (most only translate UI chrome, not user content) — a genuine, evidenced strength worth protecting. App-chrome localization is the missing half. | UI Sprint 6 |
+| **Localization as a first-class product surface, not a translated shell** | Google, ClassDojo/ParentSquare (from the competitor-research doc — real content translation, not chrome-only) | SchoolOS's content-level RTL is *already ahead* of most reviewed competitors (most only translate UI chrome, not user content) — a genuine, evidenced strength worth protecting. App-chrome localization is the missing half. | UI Sprint 6 |
 | **Portfolio-to-outcome pipelines and predictive/early-warning surfaces (from the education-specific benchmark)** | Toddle, Alma (BeaconAI) | Out of this audit's UI scope — a feature gap, already tracked in the Gap Analysis doc's Tier 3 | No UI action needed here; noted for completeness |
 
-The takeaway that should anchor the roadmap: **SchoolPortal is not missing design principles — it has
+The takeaway that should anchor the roadmap: **SchoolOS is not missing design principles — it has
 already internalized several of the right ones (command palette, token discipline, content-level
 localization, role-gated navigation).** What's missing is *systemization* (turning proven one-off
 patterns into shared components) and *finishing* (states, feedback, accessibility infrastructure) —
@@ -480,7 +480,7 @@ third of the total gap.
 
 ---
 
-## What would make SchoolPortal look and feel like a premium commercial product rather than an upgraded MVP?
+## What would make SchoolOS look and feel like a premium commercial product rather than an upgraded MVP?
 
 Five things, in order of leverage:
 
@@ -513,10 +513,10 @@ Five things, in order of leverage:
 
 ---
 
-*Compiled 2026-09-08 by static source review of the SchoolPortal repository at
+*Compiled 2026-09-08 by static source review of the SchoolOS repository at
 `D:/Personal/Projects/SchoolApp/build`, commit `988278a`. No code was executed; no app was run in a
 browser or emulator. Synthesizes three parallel static audits (staff-console design system/shell,
 staff-console workflow screens, parent Flutter app) against the brief in `docs/Plan-Ideas/MasterPrompt.md`
-§4. Companion baseline: `SchoolPortal-Gap-Analysis-Feature-Prioritization-2026-09-08.md` (feature gaps,
-separate from this document's UI/UX-specific scope) and `SchoolPortal-Global-Competitor-Research-2026-09-08.md`
+§4. Companion baseline: `SchoolOS-Gap-Analysis-Feature-Prioritization-2026-09-08.md` (feature gaps,
+separate from this document's UI/UX-specific scope) and `SchoolOS-Global-Competitor-Research-2026-09-08.md`
 (education-platform benchmarks referenced in §5).*

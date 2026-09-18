@@ -1,7 +1,7 @@
-# SchoolPortal — Production-Grade UI/UX Upgrade
+# SchoolOS — Production-Grade UI/UX Upgrade
 You are working directly inside the GitHub repository:
-https://github.com/zainknoman/SchoolPortal
-The application is already functional. Your task is to upgrade the **visual design, CSS, UX, layout, and frontend component quality** of the SchoolPortal application to a professional, production-grade school management platform.
+https://github.com/zainknoman/SchoolOS
+The application is already functional. Your task is to upgrade the **visual design, CSS, UX, layout, and frontend component quality** of the SchoolOS application to a professional, production-grade school management platform.
 ## PRIMARY OBJECTIVE
 Transform the current simple-looking UI into a polished, modern, production-quality school management application.
 The target design should combine:
@@ -16,7 +16,7 @@ Use the following products only as DESIGN INSPIRATION:
 * Veracross — enterprise school-management/data patterns
 * ClassDojo — friendly parent/education UX patterns
 DO NOT copy their branding, assets, source code, layouts, or proprietary visual identity.
-Create a distinct **SchoolPortal design language**.
+Create a distinct **SchoolOS design language**.
 ---
 # CRITICAL SAFETY RULES
 This is an existing working application.
@@ -162,7 +162,7 @@ Prioritize:
 ---
 # COLOR SYSTEM
 Do not randomly assign colors to individual pages.
-Create a coherent SchoolPortal palette.
+Create a coherent SchoolOS palette.
 Use:
 * Primary brand color
 * Primary hover/active color
@@ -240,7 +240,7 @@ The application shell is one of the highest-priority areas.
 Improve:
 ## Sidebar
 Create a modern professional sidebar with:
-* SchoolPortal branding
+* SchoolOS branding
 * Clear navigation hierarchy
 * Icons
 * Active state
@@ -340,7 +340,7 @@ Do not change backend fields as part of this task.
 Only improve presentation of existing fields.
 ---
 # TABLE DESIGN
-Tables are extremely important for SchoolPortal.
+Tables are extremely important for SchoolOS.
 Create a professional enterprise table experience.
 Improve:
 * Header
@@ -535,7 +535,7 @@ Ensure:
 Do not sacrifice accessibility for visual appearance.
 ---
 # RTL / URDU
-SchoolPortal may contain Urdu/Arabic content.
+SchoolOS may contain Urdu/Arabic content.
 Do not break RTL behavior.
 Verify:
 * Text alignment
@@ -773,6 +773,6 @@ List any UI improvements that should be handled in a future iteration.
 # MOST IMPORTANT INSTRUCTION
 Do not interpret this task as "make the colors prettier."
 Treat it as a **production-grade design-system and UX modernization project**.
-Inspect the existing SchoolPortal implementation first, preserve the application's functionality, then systematically upgrade the frontend visual system, reusable components, layouts, pages, responsiveness, accessibility, and overall polish.
+Inspect the existing SchoolOS implementation first, preserve the application's functionality, then systematically upgrade the frontend visual system, reusable components, layouts, pages, responsiveness, accessibility, and overall polish.
 Start with the audit now.
 Do not ask me to describe the existing frontend structure — inspect the repository yourself.

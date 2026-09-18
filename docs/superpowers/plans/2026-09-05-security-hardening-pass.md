@@ -281,11 +281,11 @@ Expected: PASS (3 tests)
 
 - [ ] **Step 5: Add an e2e assertion that the query fallback no longer works off the files route**
 
-In `backend/test/diary-circulars.e2e-spec.ts`, find the existing test `'a file attached to a diary entry is downloadable by an entitled parent (header or query-token auth) and forbidden to an unentitled one'` (it already logs in `dc-parent-a@seeds.edu.pk` as `parentAToken` and asserts the `?access_token=` fallback works on `/api/v1/files/:id`). Add a new test directly after it:
+In `backend/test/diary-circulars.e2e-spec.ts`, find the existing test `'a file attached to a diary entry is downloadable by an entitled parent (header or query-token auth) and forbidden to an unentitled one'` (it already logs in `dc-parent-a@schoolos.edu.pk` as `parentAToken` and asserts the `?access_token=` fallback works on `/api/v1/files/:id`). Add a new test directly after it:
 
 ```typescript
   it('the ?access_token= query fallback authenticates the files route but not other routes', async () => {
-    const parentAToken = await loginAs('dc-parent-a@seeds.edu.pk');
+    const parentAToken = await loginAs('dc-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .get(`/api/v1/me/children?access_token=${parentAToken}`)
@@ -330,7 +330,7 @@ Add these two tests directly after the existing `'a file attached to a diary ent
 
 ```typescript
   it('rejects a file upload larger than the configured size limit', async () => {
-    const teacherToken = await loginAs('dc-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('dc-teacher@schoolos.edu.pk');
     const oversized = Buffer.alloc(MAX_UPLOAD_BYTES + 1);
 
     await request(app.getHttpServer())
@@ -341,7 +341,7 @@ Add these two tests directly after the existing `'a file attached to a diary ent
   });
 
   it('rejects an upload with a blocked executable extension', async () => {
-    const teacherToken = await loginAs('dc-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('dc-teacher@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/files')
@@ -950,7 +950,7 @@ In `backend/test/org-structure.e2e-spec.ts`, add a new test at the end of the `d
 
 ```typescript
   it('refuses to leave zero active academic sessions, by deactivation or by deletion', async () => {
-    const token = await loginAs('os-super-admin@seeds.edu.pk');
+    const token = await loginAs('os-super-admin@schoolos.edu.pk');
 
     const session = await request(app.getHttpServer())
       .post('/api/v1/academic-sessions')

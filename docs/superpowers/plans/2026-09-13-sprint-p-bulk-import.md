@@ -1076,7 +1076,7 @@ git commit -m "feat(bulk-import): add BulkImportView (preview-then-commit UI)"
 
 ### Task 7: Full-suite verification and roadmap update
 
-**Files:** `docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` (roadmap checklist only).
+**Files:** `docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md` (roadmap checklist only).
 
 - [ ] **Step 1: Run every suite**
 
@@ -1094,6 +1094,6 @@ sprint (a separate, smaller follow-up), matching the established format from Spr
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md
+git add docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md
 git commit -m "docs: mark Sprint P complete in the roadmap checklist"
 ```

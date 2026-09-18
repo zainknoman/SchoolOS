@@ -3,13 +3,13 @@ import { applyTheme, loadThemePreference, saveThemePreference } from './theme';
 
 afterEach(() => {
   document.documentElement.removeAttribute('data-theme');
-  localStorage.removeItem('seeds.theme');
+  localStorage.removeItem('schoolos.theme');
   vi.restoreAllMocks();
 });
 
 describe('loadThemePreference', () => {
   it('returns a valid stored value', () => {
-    localStorage.setItem('seeds.theme', 'dark');
+    localStorage.setItem('schoolos.theme', 'dark');
     expect(loadThemePreference()).toBe('dark');
   });
 
@@ -18,7 +18,7 @@ describe('loadThemePreference', () => {
   });
 
   it('returns null for an invalid stored value', () => {
-    localStorage.setItem('seeds.theme', 'not-a-theme');
+    localStorage.setItem('schoolos.theme', 'not-a-theme');
     expect(loadThemePreference()).toBeNull();
   });
 
@@ -51,7 +51,7 @@ describe('applyTheme', () => {
 describe('saveThemePreference', () => {
   it('writes to localStorage', () => {
     saveThemePreference('dark');
-    expect(localStorage.getItem('seeds.theme')).toBe('dark');
+    expect(localStorage.getItem('schoolos.theme')).toBe('dark');
   });
 
   it('does not throw if localStorage access throws', () => {

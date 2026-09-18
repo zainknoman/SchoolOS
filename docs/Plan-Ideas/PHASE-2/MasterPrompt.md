@@ -1,12 +1,12 @@
-# SchoolPortal — Master Implementation & Validation Prompt
+# SchoolOS — Master Implementation & Validation Prompt
 
-You are working directly inside the existing **SchoolPortal** repository.
+You are working directly inside the existing **SchoolOS** repository.
 
 ## ROLE
 
 Act as a senior full-stack engineer, solution architect, QA engineer, and UI/UX engineer.
 
-Your job is to improve the EXISTING SchoolPortal application.
+Your job is to improve the EXISTING SchoolOS application.
 
 Do NOT rebuild the application.
 
@@ -85,7 +85,7 @@ Do not blindly follow an old roadmap if the repository has already implemented p
 
 # 3. CURRENT PRODUCT
 
-SchoolPortal is a Pakistan-first school management and parent engagement platform.
+SchoolOS is a Pakistan-first school management and parent engagement platform.
 
 Current major areas include:
 
@@ -154,7 +154,7 @@ Prefer:
 
 # 5. UI/UX OBJECTIVE
 
-Improve the existing SchoolPortal UI rather than redesigning it from scratch.
+Improve the existing SchoolOS UI rather than redesigning it from scratch.
 
 Maintain consistency across:
 

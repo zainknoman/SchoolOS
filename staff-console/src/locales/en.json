@@ -29,7 +29,7 @@
     "bulkImport": "Bulk Import"
   },
   "shell": {
-    "brand": "School OS Staff Console",
+    "brand": "SchoolOS Staff Console",
     "skipToContent": "Skip to content",
     "notifications": "Notifications",
     "search": "Jump to a screen or run an action…",
@@ -42,7 +42,7 @@
     "confirm": "Confirm"
   },
   "login": {
-    "title": "School OS Staff Console",
+    "title": "SchoolOS Staff Console",
     "subtitle": "Sign in with your school account",
     "identifier": "Email or GR number",
     "password": "Password",

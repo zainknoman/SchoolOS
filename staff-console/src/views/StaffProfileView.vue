@@ -12,6 +12,7 @@ import EntityTable from '../components/EntityTable.vue';
 import { useConfirm } from '../lib/useConfirm';
 import StatusPill from '../components/StatusPill.vue';
 import AppModal from '../components/AppModal.vue';
+import { useToast } from '../lib/useToast';
 
 const PROFILE_TABS = [
   { id: 'profile', label: 'Profile' },
@@ -24,6 +25,7 @@ const activeTab = ref('profile');
 const auth = useAuthStore();
 const route = useRoute();
 const { confirm } = useConfirm();
+const toast = useToast();
 const staffId = route.params.id as string;
 
 const profile = ref<StaffProfileDetail | null>(null);
@@ -111,6 +113,7 @@ async function onSaveProfile() {
     });
     await load();
     isEditingProfile.value = false;
+    toast.success('Profile updated.');
   } catch (err) {
     profileErrorMessage.value = err instanceof Error ? err.message : 'Could not save this profile.';
   } finally {
@@ -149,6 +152,7 @@ async function onPhotoFileSelected(event: Event) {
     const uploaded = await api.uploadFile(auth.accessToken, file);
     await api.updateStaffProfile(auth.accessToken, staffId, { profilePhotoFileId: uploaded.id });
     await load();
+    toast.success('Photo updated.');
   } catch (err) {
     photoErrorMessage.value = err instanceof Error ? err.message : 'Could not upload this photo.';
   } finally {
@@ -193,6 +197,7 @@ async function onAddContact() {
     resetNewContact();
     showAddContactModal.value = false;
     await load();
+    toast.success('Emergency contact added.');
   } catch (err) {
     contactsErrorMessage.value = err instanceof Error ? err.message : 'Could not add this contact.';
   } finally {
@@ -238,6 +243,7 @@ async function onSaveContact(contactId: string) {
     });
     editingContactId.value = null;
     await load();
+    toast.success('Emergency contact updated.');
   } catch (err) {
     contactsErrorMessage.value = err instanceof Error ? err.message : 'Could not save this contact.';
   }
@@ -250,6 +256,7 @@ async function onDeleteContact(contactId: string) {
   try {
     await api.deleteStaffEmergencyContact(auth.accessToken, staffId, contactId);
     await load();
+    toast.success('Emergency contact deleted.');
   } catch (err) {
     contactsErrorMessage.value = err instanceof Error ? err.message : 'Could not delete this contact.';
   }
@@ -284,6 +291,7 @@ async function onAddExperience() {
     resetNewExperience();
     showAddExperienceModal.value = false;
     await load();
+    toast.success('Experience entry added.');
   } catch (err) {
     experienceErrorMessage.value = err instanceof Error ? err.message : 'Could not add this experience entry.';
   } finally {
@@ -325,6 +333,7 @@ async function onSaveExperience(experienceId: string) {
     });
     editingExperienceId.value = null;
     await load();
+    toast.success('Experience entry updated.');
   } catch (err) {
     experienceErrorMessage.value = err instanceof Error ? err.message : 'Could not save this experience entry.';
   }
@@ -337,6 +346,7 @@ async function onDeleteExperience(experienceId: string) {
   try {
     await api.deleteStaffExperience(auth.accessToken, staffId, experienceId);
     await load();
+    toast.success('Experience entry deleted.');
   } catch (err) {
     experienceErrorMessage.value = err instanceof Error ? err.message : 'Could not delete this experience entry.';
   }
@@ -376,6 +386,7 @@ async function onAddDocument() {
     resetNewDocument();
     showAddDocumentModal.value = false;
     await load();
+    toast.success('Document added.');
   } catch (err) {
     documentsErrorMessage.value = err instanceof Error ? err.message : 'Could not add this document.';
   } finally {
@@ -400,6 +411,7 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
   try {
     await api.verifyStaffDocument(auth.accessToken, staffId, documentId, verified);
     await load();
+    toast.success(verified ? 'Document verified.' : 'Document verification cleared.');
   } catch (err) {
     documentsErrorMessage.value = err instanceof Error ? err.message : 'Could not update this document.';
   }
@@ -418,6 +430,7 @@ async function onResetLoginPassword() {
   try {
     await api.updateTeacher(auth.accessToken, teacherId, { password: newLoginPassword.value });
     newLoginPassword.value = '';
+    toast.success('Login password reset.');
   } catch (err) {
     loginErrorMessage.value = err instanceof Error ? err.message : 'Could not reset this password.';
   } finally {
@@ -441,6 +454,7 @@ async function onDeleteLogin() {
   try {
     await api.deleteTeacher(auth.accessToken, teacherId);
     await load();
+    toast.success('Login deleted.');
   } catch (err) {
     loginErrorMessage.value = err instanceof Error ? err.message : 'Could not delete this login.';
   }

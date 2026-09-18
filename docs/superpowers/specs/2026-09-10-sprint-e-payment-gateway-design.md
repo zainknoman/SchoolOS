@@ -1,7 +1,7 @@
 # Sprint E — Payment Gateway & Local Rails (Phase 2)
 
 Status: approved (design), ready for implementation planning.
-Spec source: `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, Implementation Checklist
+Spec source: `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, Implementation Checklist
 lines 53-57 ("Sprint E — Payment Gateway & Local Rails (Phase 2)"):
 - `PaymentGateway` adapter interface + JazzCash/EasyPaisa implementation
 - PDF voucher generation

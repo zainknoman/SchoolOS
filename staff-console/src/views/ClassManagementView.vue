@@ -8,9 +8,11 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const toast = useToast();
 
 const campuses = ref<CampusSummary[]>([]);
 const academicSessions = ref<AcademicSessionSummary[]>([]);
@@ -53,6 +55,7 @@ async function onAdd() {
     newName.value = '';
     showAddForm.value = false;
     await load();
+    toast.success('Class added.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this class.';
   } finally {
@@ -76,6 +79,7 @@ async function onSaveEdit(id: string) {
     await api.updateClass(auth.accessToken, id, { name: editName.value.trim() });
     editingId.value = null;
     await load();
+    toast.success('Class updated.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not update this class.';
   }
@@ -88,6 +92,7 @@ async function onDelete(id: string) {
   try {
     await api.deleteClass(auth.accessToken, id);
     await load();
+    toast.success('Class deleted.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not delete this class.';
   }

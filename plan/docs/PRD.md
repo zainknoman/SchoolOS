@@ -1,4 +1,4 @@
-# SEEDS Digital Platform — MVP Build Plan (v3, validated)
+# SchoolOS Digital Platform — MVP Build Plan (v3, validated)
 
 This supersedes `MVP-Prompt.txt` and `MVP-Plan-V1.txt` for scope, and merges the good parts of
 `MVP-Plan-V2.txt` in. It is written to be handed directly to a coding agent (Claude Code /
@@ -15,7 +15,7 @@ agentic-app-builder / Cursor) as the build brief.
   is too tight once you account for a real backend + RBAC + bilingual RTL, but the *shape* is correct.
 - **This document** takes V2's shape, V1's technical rigor, and adds what neither had: the actual APK
   teardown findings (current login is Email/GR-Number, app is an unpublished WebView-shell, two vendors
-  today) and a data-migration step, since Seeds already has live student/parent/attendance/fee records —
+  today) and a data-migration step, since SchoolOS already has live student/parent/attendance/fee records —
   this is not a greenfield build.
 
 Discovery is already done — don't re-run it. The prior report (current-system audit + market validation)
@@ -112,9 +112,9 @@ into a 4–6 month build.
   data being captured from day one matters far more than an admin screen to browse it in week 1.
 - RBAC roles, trimmed for actual current org size: `SUPER_ADMIN`, `SCHOOL_ADMIN`, `TEACHER`, `ACCOUNTS`,
   `PARENT`. (Drop `CAMPUS_ADMIN` / `CLASS_COORDINATOR` from MVP — one school admin role can cover both of
-  Seeds' two campuses at current scale; add the finer-grained roles later if the org actually needs them.)
+  SchoolOS' two campuses at current scale; add the finer-grained roles later if the org actually needs them.)
 - Multi-campus is a **schema property from day one** (`campus_id` on student/class/section), not a UI
-  toggle — Seeds already runs Gulistan-e-Jauhar and Gulshan-e-Iqbal today, so this can't be an afterthought
+  toggle — SchoolOS already runs Gulistan-e-Jauhar and Gulshan-e-Iqbal today, so this can't be an afterthought
   even though there's no "switch active campus" admin feature in MVP.
 - Versioned REST API (`/api/v1/...`), the endpoint list from the original draft is fine as a starting
   point (auth, `/me`, `/students/:id/{timetable,attendance,diary}`, `/circulars`, `/messages`, `/fees`,

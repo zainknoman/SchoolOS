@@ -2,7 +2,7 @@
 
 Status: approved (design), ready for implementation planning.
 As of `main` post-Sprint-L (cross-tenant access control merged).
-Spec source: `docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, Implementation
+Spec source: `docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, Implementation
 Checklist, Sprint N — "structured gradebook: subjects, weighted assessment categories
 (assignments/quizzes/midterm/final), marks + max-marks entry, term, calculated final grade."
 

@@ -3,7 +3,7 @@
 Status: approved (design), ready for implementation planning.
 As of commit `32d6e26` on `main` (latest at the time this spec was written; working tree carries 3
 unrelated untracked doc files, no modified tracked files).
-Spec source: `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, Implementation Checklist +
+Spec source: `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, Implementation Checklist +
 §4 "Sprint I — Remaining Feature Gaps (Phase 5)":
 - Report cards (static PDF upload/view)
 - Calendar-wide `Holiday` model (replaces per-student-per-day pattern)

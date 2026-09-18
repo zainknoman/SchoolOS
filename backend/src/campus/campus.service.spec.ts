@@ -72,8 +72,8 @@ describe('CampusService', () => {
       ...NEW_PROFILE_FIELDS,
       address: '45 Main Rd',
       phone: '021-222',
-      email: 'gulistan@seeds.edu',
-      school: { name: 'The Seeds School' },
+      email: 'gulistan@schoolos.edu',
+      school: { name: 'The SchoolOS School' },
     });
     prisma.enrollment.count.mockResolvedValue(80);
     prisma.staff.count.mockResolvedValue(6);
@@ -84,7 +84,7 @@ describe('CampusService', () => {
         name: 'Gulistan-e-Jauhar',
         address: '45 Main Rd',
         phone: '021-222',
-        email: 'gulistan@seeds.edu',
+        email: 'gulistan@schoolos.edu',
       },
       'admin-1',
     );
@@ -93,11 +93,11 @@ describe('CampusService', () => {
       id: 'c1',
       name: 'Gulistan-e-Jauhar',
       schoolId: 's1',
-      schoolName: 'The Seeds School',
+      schoolName: 'The SchoolOS School',
       ...NEW_PROFILE_FIELDS,
       address: '45 Main Rd',
       phone: '021-222',
-      email: 'gulistan@seeds.edu',
+      email: 'gulistan@schoolos.edu',
       studentCount: 80,
       staffCount: 6,
     });
@@ -114,7 +114,7 @@ describe('CampusService', () => {
           name: 'Gulistan-e-Jauhar',
           address: '45 Main Rd',
           phone: '021-222',
-          email: 'gulistan@seeds.edu',
+          email: 'gulistan@schoolos.edu',
         },
         include: withSchool,
       }),
@@ -155,7 +155,7 @@ describe('CampusService', () => {
       id: 'c2',
       ...dto,
       openingDate: new Date('2010-08-15'),
-      school: { name: 'The Seeds School' },
+      school: { name: 'The SchoolOS School' },
     });
 
     await service.create(dto, 'admin-1');
@@ -239,7 +239,7 @@ describe('CampusService', () => {
         address: null,
         phone: null,
         email: null,
-        school: { name: 'The Seeds School' },
+        school: { name: 'The SchoolOS School' },
       },
     ]);
 
@@ -250,7 +250,7 @@ describe('CampusService', () => {
         id: 'c1',
         name: 'Gulistan-e-Jauhar',
         schoolId: 's1',
-        schoolName: 'The Seeds School',
+        schoolName: 'The SchoolOS School',
         ...NEW_PROFILE_FIELDS,
         address: null,
         phone: null,
@@ -276,7 +276,7 @@ describe('CampusService', () => {
         address: null,
         phone: null,
         email: null,
-        school: { name: 'The Seeds School' },
+        school: { name: 'The SchoolOS School' },
       },
     ]);
 
@@ -287,7 +287,7 @@ describe('CampusService', () => {
         id: 'c1',
         name: 'Gulistan-e-Jauhar',
         schoolId: 's1',
-        schoolName: 'The Seeds School',
+        schoolName: 'The SchoolOS School',
         ...NEW_PROFILE_FIELDS,
         address: null,
         phone: null,
@@ -328,7 +328,7 @@ describe('CampusService', () => {
       address: 'New Address',
       phone: null,
       email: null,
-      school: { name: 'The Seeds School' },
+      school: { name: 'The SchoolOS School' },
     });
 
     const result = await service.update(
@@ -365,7 +365,7 @@ describe('CampusService', () => {
       address: null,
       phone: null,
       email: null,
-      school: { name: 'The Seeds School' },
+      school: { name: 'The SchoolOS School' },
     });
 
     await service.update('c1', { name: 'New Name' }, 'admin-1');

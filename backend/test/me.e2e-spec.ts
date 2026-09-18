@@ -47,7 +47,7 @@ describe('Me / children (e2e)', () => {
       .deleteMany({
         where: {
           identifier: {
-            in: ['me2e-parent-a@seeds.edu.pk', 'me2e-parent-b@seeds.edu.pk'],
+            in: ['me2e-parent-a@schoolos.edu.pk', 'me2e-parent-b@schoolos.edu.pk'],
           },
         },
       })
@@ -101,14 +101,14 @@ describe('Me / children (e2e)', () => {
     const [parentAUser, parentBUser] = await Promise.all([
       prisma.user.create({
         data: {
-          identifier: 'me2e-parent-a@seeds.edu.pk',
+          identifier: 'me2e-parent-a@schoolos.edu.pk',
           passwordHash,
           role: 'PARENT',
         },
       }),
       prisma.user.create({
         data: {
-          identifier: 'me2e-parent-b@seeds.edu.pk',
+          identifier: 'me2e-parent-b@schoolos.edu.pk',
           passwordHash,
           role: 'PARENT',
         },
@@ -178,7 +178,7 @@ describe('Me / children (e2e)', () => {
       .deleteMany({
         where: {
           identifier: {
-            in: ['me2e-parent-a@seeds.edu.pk', 'me2e-parent-b@seeds.edu.pk'],
+            in: ['me2e-parent-a@schoolos.edu.pk', 'me2e-parent-b@schoolos.edu.pk'],
           },
         },
       })
@@ -193,7 +193,7 @@ describe('Me / children (e2e)', () => {
   });
 
   it("returns only the authenticated parent's own child, never the other parent's", async () => {
-    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+    const tokenA = await loginAs('me2e-parent-a@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .get('/api/v1/me/children')
@@ -210,7 +210,7 @@ describe('Me / children (e2e)', () => {
   });
 
   it('registers a device token for the authenticated user, upserting on repeat calls', async () => {
-    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+    const tokenA = await loginAs('me2e-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/me/device-tokens')
@@ -241,7 +241,7 @@ describe('Me / children (e2e)', () => {
   });
 
   it('rejects an invalid platform value', async () => {
-    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+    const tokenA = await loginAs('me2e-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post('/api/v1/me/device-tokens')
@@ -258,7 +258,7 @@ describe('Me / children (e2e)', () => {
   });
 
   it('updates notification preferences and persists both fields', async () => {
-    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+    const tokenA = await loginAs('me2e-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .patch('/api/v1/me/notification-preferences')
@@ -267,20 +267,20 @@ describe('Me / children (e2e)', () => {
       .expect(200);
 
     const parentAUser = await prisma.user.findUnique({
-      where: { identifier: 'me2e-parent-a@seeds.edu.pk' },
+      where: { identifier: 'me2e-parent-a@schoolos.edu.pk' },
     });
     expect(parentAUser?.notificationChannel).toBe('WHATSAPP');
     expect(parentAUser?.digestEnabled).toBe(true);
 
     // Reset for any later test relying on the default.
     await prisma.user.update({
-      where: { identifier: 'me2e-parent-a@seeds.edu.pk' },
+      where: { identifier: 'me2e-parent-a@schoolos.edu.pk' },
       data: { notificationChannel: 'PUSH', digestEnabled: false },
     });
   });
 
   it('rejects an invalid channel value (proves ValidationPipe is active in this test app)', async () => {
-    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+    const tokenA = await loginAs('me2e-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .patch('/api/v1/me/notification-preferences')
@@ -290,7 +290,7 @@ describe('Me / children (e2e)', () => {
   });
 
   it('succeeds setting channel WHATSAPP even with no ParentProfile.phone on file (no-op lives in the adapter, not the write)', async () => {
-    const tokenA = await loginAs('me2e-parent-a@seeds.edu.pk');
+    const tokenA = await loginAs('me2e-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .patch('/api/v1/me/notification-preferences')
@@ -299,7 +299,7 @@ describe('Me / children (e2e)', () => {
       .expect(200);
 
     await prisma.user.update({
-      where: { identifier: 'me2e-parent-a@seeds.edu.pk' },
+      where: { identifier: 'me2e-parent-a@schoolos.edu.pk' },
       data: { notificationChannel: 'PUSH' },
     });
   });

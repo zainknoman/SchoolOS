@@ -13,6 +13,7 @@ import Tabs from '../components/AppTabs.vue';
 import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
 import { initialsFromName } from '../lib/format';
+import { useToast } from '../lib/useToast';
 
 const PROFILE_TABS = [
   { id: 'profile', label: 'Profile' },
@@ -27,6 +28,7 @@ const activeTab = ref('profile');
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const toast = useToast();
 const route = useRoute();
 const studentId = route.params.id as string;
 
@@ -124,6 +126,7 @@ async function onSaveProfile() {
     });
     await load();
     isEditingProfile.value = false;
+    toast.success('Profile updated.');
   } catch (err) {
     profileErrorMessage.value = err instanceof Error ? err.message : 'Could not save this profile.';
   } finally {
@@ -165,6 +168,7 @@ async function onPhotoFileSelected(event: Event) {
     const uploaded = await api.uploadFile(auth.accessToken, file);
     await api.updateStudentProfile(auth.accessToken, studentId, { profilePhotoFileId: uploaded.id });
     await load();
+    toast.success('Photo updated.');
   } catch (err) {
     photoErrorMessage.value = err instanceof Error ? err.message : 'Could not upload this photo.';
   } finally {
@@ -206,6 +210,7 @@ async function onSaveEnrollment() {
     });
     await load();
     isEditingEnrollment.value = false;
+    toast.success('Enrollment updated.');
   } catch (err) {
     enrollmentErrorMessage.value = err instanceof Error ? err.message : 'Could not save the enrollment.';
   } finally {
@@ -303,6 +308,7 @@ async function onSavePreviousSchool() {
     });
     await load();
     isEditingPreviousSchool.value = false;
+    toast.success('Previous school updated.');
   } catch (err) {
     previousSchoolErrorMessage.value = err instanceof Error ? err.message : 'Could not save the previous school.';
   } finally {
@@ -343,6 +349,7 @@ async function onAddContact() {
     resetNewContact();
     showAddContactModal.value = false;
     await load();
+    toast.success('Emergency contact added.');
   } catch (err) {
     contactsErrorMessage.value = err instanceof Error ? err.message : 'Could not add this contact.';
   } finally {
@@ -388,6 +395,7 @@ async function onSaveContact(contactId: string) {
     });
     editingContactId.value = null;
     await load();
+    toast.success('Emergency contact updated.');
   } catch (err) {
     contactsErrorMessage.value = err instanceof Error ? err.message : 'Could not save this contact.';
   }
@@ -400,6 +408,7 @@ async function onDeleteContact(contactId: string) {
   try {
     await api.deleteStudentEmergencyContact(auth.accessToken, studentId, contactId);
     await load();
+    toast.success('Emergency contact deleted.');
   } catch (err) {
     contactsErrorMessage.value = err instanceof Error ? err.message : 'Could not delete this contact.';
   }
@@ -446,6 +455,7 @@ async function onSaveMedicalInfo() {
     });
     await load();
     isEditingMedicalInfo.value = false;
+    toast.success('Medical info updated.');
   } catch (err) {
     medicalInfoErrorMessage.value = err instanceof Error ? err.message : 'Could not save medical info.';
   } finally {
@@ -487,6 +497,7 @@ async function onAddDocument() {
     resetNewDocument();
     showAddDocumentModal.value = false;
     await load();
+    toast.success('Document added.');
   } catch (err) {
     documentsErrorMessage.value = err instanceof Error ? err.message : 'Could not add this document.';
   } finally {
@@ -511,6 +522,7 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
   try {
     await api.verifyStudentDocument(auth.accessToken, studentId, documentId, verified);
     await load();
+    toast.success(verified ? 'Document verified.' : 'Document verification cleared.');
   } catch (err) {
     documentsErrorMessage.value = err instanceof Error ? err.message : 'Could not update this document.';
   }

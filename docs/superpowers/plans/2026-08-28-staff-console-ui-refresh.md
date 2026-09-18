@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild the staff-console's Dashboard, Attendance roster, AppShell chrome, and a new Fee Reconciliation screen against the existing SEEDS design-system tokens, following the layouts in `docs/wireframe/`.
+**Goal:** Rebuild the staff-console's Dashboard, Attendance roster, AppShell chrome, and a new Fee Reconciliation screen against the existing SchoolOS design-system tokens, following the layouts in `docs/wireframe/`.
 
 **Architecture:** Pure Vue 3 SFC + scoped CSS changes on top of the existing token system in `staff-console/src/assets/base.css` — no new npm dependencies. Dashboard and Fee Reconciliation read from small local mock-data modules (`lib/mockDashboard.ts`, `lib/mockFees.ts`) instead of a real backend, since neither has a supporting API yet; both are isolated behind a single function so a later backend-wiring pass is a one-function swap, matching the pattern `AttendanceView.vue` already uses for its real `api.*` calls.
 
@@ -424,7 +424,7 @@ async function onLogout() {
 <template>
   <div class="shell">
     <header class="topbar">
-      <span class="brand">SEEDS Staff Console</span>
+      <span class="brand">SchoolOS Staff Console</span>
       <div class="topbar-actions">
         <button data-testid="notifications" class="icon-button" aria-label="Notifications">
           <Icon name="bell" :size="18" />

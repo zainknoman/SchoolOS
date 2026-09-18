@@ -44,7 +44,7 @@ describe('StudentManagementView', () => {
       { id: 'sec1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
     ]);
     vi.mocked(api.listAdminParents).mockResolvedValue([
-      { id: 'p1', identifier: 'parent-x@seeds.edu.pk', name: 'Existing Parent', phone: null, childrenCount: 1 },
+      { id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'Existing Parent', phone: null, childrenCount: 1 },
     ]);
     vi.mocked(api.listAdminStudents).mockResolvedValue([
       {
@@ -127,7 +127,7 @@ describe('StudentManagementView', () => {
     await wrapper.find('[data-testid="toggle-new-parent"]').setValue(true);
     await flushPromises();
     expect(wrapper.find('[data-testid="add-parent-select"]').exists()).toBe(false);
-    await wrapper.find('[data-testid="new-parent-identifier"]').setValue('inline-parent@seeds.edu.pk');
+    await wrapper.find('[data-testid="new-parent-identifier"]').setValue('inline-parent@schoolos.edu.pk');
     await wrapper.find('[data-testid="new-parent-password"]').setValue('InlinePass1!');
     await wrapper.find('[data-testid="new-parent-name"]').setValue('Inline Parent');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
@@ -135,7 +135,7 @@ describe('StudentManagementView', () => {
 
     expect(api.createStudent).toHaveBeenCalledWith('token-1', {
       grNumber: 'GR-2002', name: 'Another Student', sectionId: 'sec1',
-      newParent: { identifier: 'inline-parent@seeds.edu.pk', password: 'InlinePass1!', name: 'Inline Parent', phone: undefined },
+      newParent: { identifier: 'inline-parent@schoolos.edu.pk', password: 'InlinePass1!', name: 'Inline Parent', phone: undefined },
     });
   });
 

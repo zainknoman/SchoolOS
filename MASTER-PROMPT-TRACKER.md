@@ -1,12 +1,12 @@
-# SchoolPortal — Master Validation Prompt Tracker
+# SchoolOS — Master Validation Prompt Tracker
 
-Tracks progress against the "SchoolPortal — Master Implementation & Validation Prompt" given
+Tracks progress against the "SchoolOS — Master Implementation & Validation Prompt" given
 2026-09-12 (repo audit → validate → implement → test → document workflow, sections 1–23).
 
 This is a **different axis** from the other two living trackers in this repo — keep all three in sync,
 don't let this one replace them:
 - `PROJECT-STATUS.md` — detailed per-feature build history (what was built, sprint by sprint).
-- `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md` — roadmap-level sprint checklist (Sprint A–K+).
+- `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md` — roadmap-level sprint checklist (Sprint A–K+).
 - **This file** — checklist against the master prompt's own P0/P1 priority list and validation asks.
 
 Status vocabulary (per the master prompt's own Section 1 classification, use precisely, never overclaim):
@@ -21,7 +21,7 @@ just flip a checkbox — note the commit/date/evidence).
 ## Sequenced Implementation Plan (added 2026-09-12)
 
 Every gap below is tracked as its own numbered sprint in
-`docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s living Implementation Checklist
+`docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`'s living Implementation Checklist
 (Sprints L–Q), in priority order. None have a spec yet — per this repo's own workflow
 ([[project-dev-workflow]]) and the `writing-plans` skill's scope-check rule, each is an independent
 subsystem and gets its own brainstorm → spec → plan cycle before any bite-sized TDD implementation
@@ -64,7 +64,7 @@ request.
 
 | Item | Status | Evidence |
 |---|---|---|
-| Locate actual app repo | Done | `build/` is the real SchoolPortal repo (NestJS backend, Vue staff-console, Flutter parent-app); the parent `D:\Personal\Projects\SchoolApp` is an unrelated agentic-suite scaffold — see [[project-dev-workflow]] memory |
+| Locate actual app repo | Done | `build/` is the real SchoolOS repo (NestJS backend, Vue staff-console, Flutter parent-app); the parent `D:\Personal\Projects\SchoolApp` is an unrelated agentic-suite scaffold — see [[project-dev-workflow]] memory |
 | Git state at audit start | Done | `main`, clean, up to date with origin @ `b726199` (2026-09-12) |
 | Latest completed sprint | Done | Sprint I/J/K (remaining feature gaps, accessibility/localization, AI drafting + predictive analytics), plus follow-ups: Report Cards teacher upload, Teacher Complaints section-scoping, `Modal.vue`→`AppModal.vue` rename |
 | Full roadmap-checklist cross-check (§ of the roadmap doc still open) | Done | Read in full; Sprints A–K are all shipped and verified. The old unscoped "Phase 8 remainder" line has been replaced with fully-scoped Sprints L–Q (see Sequenced Implementation Plan above) |
@@ -166,7 +166,7 @@ early-stage schema and recommended rebuilding substantial parts of what this rep
 recommendation was checked against the actual current code (not assumed) before being filed below.
 This also marks the project's own phase transition: **MVP is complete; the project is now in a
 Production-Ready hardening/expansion phase** (mirrored in `PROJECT-STATUS.md`'s phase note and
-`docs/Plan-Ideas/PHASE-1/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s Product Maturity Roadmap).
+`docs/Plan-Ideas/PHASE-1/SchoolOS-PostMVP-Roadmap-2026-09-08.md`'s Product Maturity Roadmap).
 
 | Recommendation | Source | Disposition | Why |
 |---|---|---|---|
@@ -191,7 +191,7 @@ Production-Ready hardening/expansion phase** (mirrored in `PROJECT-STATUS.md`'s 
   not implemented (not just undocumented).
 - **2026-09-12 (cont'd)** — Added a **Sequenced Implementation Plan** (see section above) covering every
   gap found in this audit, and mirrored it into
-  `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`'s living Implementation Checklist as
+  `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`'s living Implementation Checklist as
   Sprints L (security fix), M (UI test coverage), N (gradebook), O (admissions), P (bulk import), Q
   (StatusPill/accessibility) — none spec'd yet, priority order set, ready to brainstorm one at a time.
 - **2026-09-12 (cont'd)** — Sprint L brainstormed, spec'd, planned, and implemented in a git worktree

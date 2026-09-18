@@ -1,7 +1,7 @@
 # Sprint 7-8 — Messages + Notifications (FEAT-010, FEAT-011)
 
 Status: approved, ready for implementation planning.
-Spec source: `Seeds/apk/MVP-Plan-V3.md` → `plan/docs/FEATURES.txt` (FEAT-010, FEAT-011 — now fully
+Spec source: `SchoolOS/apk/MVP-Plan-V3.md` → `plan/docs/FEATURES.txt` (FEAT-010, FEAT-011 — now fully
 detailed there, matching the FEAT-001..005 format).
 
 ## Goal

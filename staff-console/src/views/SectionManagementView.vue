@@ -8,9 +8,11 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import { useConfirm } from '../lib/useConfirm';
+import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const toast = useToast();
 
 const classes = ref<ClassSummary[]>([]);
 const teachers = ref<TeacherSummary[]>([]);
@@ -55,6 +57,7 @@ async function onAdd() {
     newTeacherId.value = '';
     showAddForm.value = false;
     await load();
+    toast.success('Section added.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not create this section.';
   } finally {
@@ -82,6 +85,7 @@ async function onSaveEdit(id: string) {
     });
     editingId.value = null;
     await load();
+    toast.success('Section updated.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not update this section.';
   }
@@ -94,6 +98,7 @@ async function onDelete(id: string) {
   try {
     await api.deleteSection(auth.accessToken, id);
     await load();
+    toast.success('Section deleted.');
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not delete this section.';
   }

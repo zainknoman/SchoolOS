@@ -62,7 +62,7 @@ Future<void> _loginWithTwoChildren(WidgetTester tester) async {
 
   await tester.pumpWidget(buildTestApp(api: api));
   await tester.pumpAndSettle();
-  await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@seeds.edu.pk');
+  await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@schoolos.edu.pk');
   await tester.enterText(find.byKey(const Key('passwordField')), 'ChangeMe123!');
   await tester.tap(find.byKey(const Key('submitButton')));
   await tester.pumpAndSettle();
@@ -142,7 +142,7 @@ void main() {
 
     await tester.pumpWidget(buildTestApp(api: api));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@seeds.edu.pk');
+    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@schoolos.edu.pk');
     await tester.enterText(find.byKey(const Key('passwordField')), 'ChangeMe123!');
     await tester.tap(find.byKey(const Key('submitButton')));
     await tester.pumpAndSettle();
@@ -180,7 +180,7 @@ void main() {
 
     await tester.pumpWidget(buildTestApp(api: api, deviceTokenRegistrar: registrar));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@seeds.edu.pk');
+    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@schoolos.edu.pk');
     await tester.enterText(find.byKey(const Key('passwordField')), 'ChangeMe123!');
     await tester.tap(find.byKey(const Key('submitButton')));
     await tester.pumpAndSettle();
@@ -210,7 +210,7 @@ void main() {
     final api = ApiClient(baseUrl: 'http://test', client: client);
     await tester.pumpWidget(buildTestApp(api: api));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@seeds.edu.pk');
+    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@schoolos.edu.pk');
     await tester.enterText(find.byKey(const Key('passwordField')), 'ChangeMe123!');
     await tester.tap(find.byKey(const Key('submitButton')));
     await tester.pumpAndSettle();
@@ -289,7 +289,7 @@ void main() {
 
     await tester.pumpWidget(buildTestApp(api: api, deviceTokenRegistrar: registrar));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@seeds.edu.pk');
+    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@schoolos.edu.pk');
     await tester.enterText(find.byKey(const Key('passwordField')), 'ChangeMe123!');
     await tester.tap(find.byKey(const Key('submitButton')));
     await tester.pumpAndSettle();
@@ -308,7 +308,7 @@ void main() {
     final api = ApiClient(baseUrl: 'http://test', client: client);
     await tester.pumpWidget(buildTestApp(api: api));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@seeds.edu.pk');
+    await tester.enterText(find.byKey(const Key('identifierField')), 'parent-a@schoolos.edu.pk');
     await tester.enterText(find.byKey(const Key('passwordField')), 'ChangeMe123!');
     await tester.tap(find.byKey(const Key('submitButton')));
     await tester.pumpAndSettle();

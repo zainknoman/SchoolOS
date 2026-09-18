@@ -71,7 +71,7 @@ Nastaliq Urdu one:
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <title>SEEDS Staff Console</title>
+    <title>SchoolOS Staff Console</title>
 ```
 
 - [ ] **Step 2: Replace `base.css` with the token-extended version**
@@ -79,7 +79,7 @@ Nastaliq Urdu one:
 Replace the full contents of `staff-console/src/assets/base.css` with:
 
 ```css
-/* SEEDS Staff Console — design tokens (see design-system/seeds-staff-console/MASTER.md) */
+/* SchoolOS Staff Console — design tokens (see design-system/schoolos-staff-console/MASTER.md) */
 :root {
   --color-primary: #0f172a;
   --color-on-primary: #ffffff;
@@ -1397,7 +1397,7 @@ async function onLogout() {
 }
 
 // --- Theme toggle (persisted; falls back to OS prefers-color-scheme when unset) ---
-const THEME_STORAGE_KEY = 'seeds.theme';
+const THEME_STORAGE_KEY = 'schoolos.theme';
 const themeOverride = ref<'light' | 'dark' | null>(null);
 
 function loadThemePreference(): 'light' | 'dark' | null {
@@ -1543,7 +1543,7 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
 <template>
   <div class="shell">
     <header class="topbar">
-      <span class="brand">SEEDS Staff Console</span>
+      <span class="brand">SchoolOS Staff Console</span>
       <nav class="crumbs" aria-label="Breadcrumb" data-testid="breadcrumb">
         <b>{{ breadcrumbTitle }}</b>
       </nav>
@@ -2446,7 +2446,7 @@ describe('AppShell (theme toggle)', () => {
     await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-    expect(localStorage.getItem('seeds.theme')).toBe('dark');
+    expect(localStorage.getItem('schoolos.theme')).toBe('dark');
   });
 
   it('toggles back to light on a second click', async () => {
@@ -2456,11 +2456,11 @@ describe('AppShell (theme toggle)', () => {
     await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
-    expect(localStorage.getItem('seeds.theme')).toBe('light');
+    expect(localStorage.getItem('schoolos.theme')).toBe('light');
   });
 
   it('reads a persisted preference back on mount', async () => {
-    localStorage.setItem('seeds.theme', 'dark');
+    localStorage.setItem('schoolos.theme', 'dark');
 
     await mountAsRole('SCHOOL_ADMIN');
 
@@ -2546,7 +2546,7 @@ to /admin on click. Both are now gated by the same role check as their route gua
 Run (separate terminals): `cd backend && npm run start:dev` (port 3000), then
 `cd staff-console && npm run dev` (port 5173).
 
-- [ ] **Step 2: Log in as `admin@seeds.edu.pk` and verify the redesigned shell**
+- [ ] **Step 2: Log in as `admin@schoolos.edu.pk` and verify the redesigned shell**
 
 Open `http://localhost:5173`, log in as `SCHOOL_ADMIN`. Confirm:
 - Sidebar shows grouped labels (Overview / People / Operations / Communication — no Org Structure
@@ -2565,7 +2565,7 @@ Open `http://localhost:5173`, log in as `SCHOOL_ADMIN`. Confirm:
   those previously had no explicit background color.
 - Reload the page — the dark theme choice persists.
 
-- [ ] **Step 3: Log in as `accounts@seeds.edu.pk` (ACCOUNTS role) and verify the bug fix**
+- [ ] **Step 3: Log in as `accounts@schoolos.edu.pk` (ACCOUNTS role) and verify the bug fix**
 
 Confirm the sidebar does **not** show Circulars or Timetable, and the command palette's "Go to"
 list also excludes them (previously the nav showed both, and clicking either silently bounced back

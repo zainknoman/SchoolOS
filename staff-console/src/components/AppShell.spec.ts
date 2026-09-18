@@ -38,14 +38,27 @@ function makeRouter() {
       { path: '/admin/classes', name: 'admin-classes', component: { template: '<div>classes</div>' } },
       { path: '/admin/sections', name: 'admin-sections', component: { template: '<div>sections</div>' } },
       { path: '/admin/parents', name: 'admin-parents', component: { template: '<div>parents</div>' } },
-      { path: '/admin/students', name: 'admin-students', component: { template: '<div>students</div>' } },
+      {
+        path: '/admin/students',
+        name: 'admin-students',
+        component: { template: '<div>students</div>' },
+        meta: { title: 'Students', group: 'People' },
+      },
       { path: '/admin/hiring', name: 'admin-hiring', component: { template: '<div>hiring</div>' } },
-      { path: '/admin/staff', name: 'admin-staff', component: { template: '<div>staff</div>' } }
+      { path: '/admin/hiring/new', name: 'admin-hiring-new', component: { template: '<div>hiring-new</div>' } },
+      { path: '/admin/staff', name: 'admin-staff', component: { template: '<div>staff</div>' } },
+      { path: '/admin/admissions', name: 'admin-admissions', component: { template: '<div>admissions</div>' } },
+      {
+        path: '/admin/admissions/new',
+        name: 'admin-admissions-new',
+        component: { template: '<div>admissions-new</div>' },
+      },
+      { path: '/admin/bulk-import', name: 'admin-bulk-import', component: { template: '<div>bulk-import</div>' } },
     ],
   });
 }
 
-async function mountAsRole(role: string) {
+async function mountAsRole(role: string, options: { attach?: boolean } = {}) {
   setActivePinia(createPinia());
   const auth = useAuthStore();
   auth.role = role;
@@ -53,7 +66,10 @@ async function mountAsRole(role: string) {
   const router = makeRouter();
   await router.push('/login');
   await router.isReady();
-  const wrapper = mount(AppShell, { global: { plugins: [router] } });
+  const wrapper = mount(AppShell, {
+    global: { plugins: [router] },
+    ...(options.attach ? { attachTo: document.body } : {}),
+  });
   await flushPromises();
   return wrapper;
 }
@@ -411,13 +427,23 @@ describe('AppShell (role-gated nav)', () => {
 });
 
 describe('AppShell (breadcrumb)', () => {
-  it("renders the current route's meta.title in the breadcrumb, with a Page title aria-label", async () => {
+  it("renders the current route's meta.title alone when there's no meta.group, with a Breadcrumb aria-label", async () => {
     const wrapper = await mountAsRole('SCHOOL_ADMIN');
     await wrapper.vm.$router.push('/admin');
     await flushPromises();
 
     expect(wrapper.find('[data-testid="breadcrumb"]').text()).toBe('Dashboard');
-    expect(wrapper.find('[data-testid="breadcrumb"]').attributes('aria-label')).toBe('Page title');
+    expect(wrapper.find('[data-testid="breadcrumb-group"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="breadcrumb"]').attributes('aria-label')).toBe('Breadcrumb');
+  });
+
+  it('renders a real Group / Title trail when the route carries meta.group', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+    await wrapper.vm.$router.push('/admin/students');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="breadcrumb-group"]').text()).toBe('People');
+    expect(wrapper.find('[data-testid="breadcrumb"]').text()).toBe('People/Students');
   });
 });
 
@@ -473,6 +499,43 @@ describe('AppShell (two-tier notifications)', () => {
     expect(wrapper.find('[data-testid="notif-badge"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="notif-dot"]').exists()).toBe(false);
   });
+
+  it('closes the notifications dropdown on Escape, matching the command palette', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN', { attach: true });
+
+    await wrapper.find('[data-testid="notifications"]').trigger('click');
+    expect(wrapper.find('[data-testid="notif-dropdown"]').exists()).toBe(true);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="notif-dropdown"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('closes the notifications dropdown on a click outside it', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN', { attach: true });
+
+    await wrapper.find('[data-testid="notifications"]').trigger('click');
+    expect(wrapper.find('[data-testid="notif-dropdown"]').exists()).toBe(true);
+
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="notif-dropdown"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('does not close the notifications dropdown on a click inside it', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN', { attach: true });
+
+    await wrapper.find('[data-testid="notifications"]').trigger('click');
+    await wrapper.find('[data-testid="notif-dropdown"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="notif-dropdown"]').exists()).toBe(true);
+    wrapper.unmount();
+  });
 });
 
 describe('AppShell (theme toggle)', () => {
@@ -488,7 +551,7 @@ describe('AppShell (theme toggle)', () => {
     await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-    expect(localStorage.getItem('seeds.theme')).toBe('dark');
+    expect(localStorage.getItem('schoolos.theme')).toBe('dark');
   });
 
   it('toggles back to light on a second click', async () => {
@@ -498,15 +561,25 @@ describe('AppShell (theme toggle)', () => {
     await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
-    expect(localStorage.getItem('seeds.theme')).toBe('light');
+    expect(localStorage.getItem('schoolos.theme')).toBe('light');
   });
 
   it('reads a persisted preference back on mount', async () => {
-    localStorage.setItem('seeds.theme', 'dark');
+    localStorage.setItem('schoolos.theme', 'dark');
 
     await mountAsRole('SCHOOL_ADMIN');
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+  });
+
+  it('reflects the active theme via aria-pressed for assistive tech', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    expect(wrapper.find('[data-testid="theme-toggle"]').attributes('aria-pressed')).toBe('false');
+
+    await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="theme-toggle"]').attributes('aria-pressed')).toBe('true');
   });
 });
 
@@ -519,6 +592,18 @@ describe('AppShell (command palette)', () => {
     await wrapper.find('[data-testid="cmdk-trigger"]').trigger('click');
 
     expect(wrapper.find('[data-testid="cmdk-overlay"]').exists()).toBe(true);
+  });
+
+  it('advertises the trigger as a dialog-opening disclosure via aria-haspopup/aria-expanded', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+    const trigger = wrapper.find('[data-testid="cmdk-trigger"]');
+
+    expect(trigger.attributes('aria-haspopup')).toBe('dialog');
+    expect(trigger.attributes('aria-expanded')).toBe('false');
+
+    await trigger.trigger('click');
+
+    expect(wrapper.find('[data-testid="cmdk-trigger"]').attributes('aria-expanded')).toBe('true');
   });
 
   it('opens the palette on Ctrl+K and closes it on a second Ctrl+K', async () => {
@@ -551,5 +636,38 @@ describe('AppShell (command palette)', () => {
 
     expect(wrapper.vm.$router.currentRoute.value.path).toBe('/admin/students');
     expect(wrapper.vm.$router.currentRoute.value.query.focus).toBe('gr-number');
+  });
+
+  it('lists Admissions and Bulk Import as Go-to entries, and the newer-module actions', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    await wrapper.find('[data-testid="cmdk-trigger"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="cmdk-admissions"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="cmdk-bulk-import"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="cmdk-action-new-applicant"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="cmdk-action-new-candidate"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="cmdk-action-bulk-import"]').exists()).toBe(true);
+  });
+
+  it("navigates to /admin/hiring/new for the 'Add hiring candidate' action", async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    await wrapper.find('[data-testid="cmdk-trigger"]').trigger('click');
+    await wrapper.find('[data-testid="cmdk-action-new-candidate"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/admin/hiring/new');
+  });
+
+  it("navigates to /admin/bulk-import with ?focus=entity for the 'Run a bulk import' action", async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+
+    await wrapper.find('[data-testid="cmdk-trigger"]').trigger('click');
+    await wrapper.find('[data-testid="cmdk-action-bulk-import"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/admin/bulk-import');
+    expect(wrapper.vm.$router.currentRoute.value.query.focus).toBe('entity');
   });
 });

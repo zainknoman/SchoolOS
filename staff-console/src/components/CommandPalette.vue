@@ -209,7 +209,7 @@ function onKeydown(event: KeyboardEvent) {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  box-shadow: 0 20px 60px -12px rgba(15, 23, 42, 0.35);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 .cmdk-input-row {

@@ -2,7 +2,7 @@
 
 Status: approved (design), ready for implementation planning.
 As of commit `32d6e26` on `main`.
-Spec source: `docs/Plan-Ideas/SchoolPortal-PostMVP-Roadmap-2026-09-08.md`, §4 "Sprint J —
+Spec source: `docs/Plan-Ideas/SchoolOS-PostMVP-Roadmap-2026-09-08.md`, §4 "Sprint J —
 Accessibility & Localization Scope Decision + Build-Out (Phase 6)".
 
 **Scope decisions made by the user (not silently by engineering), per the roadmap's own explicit

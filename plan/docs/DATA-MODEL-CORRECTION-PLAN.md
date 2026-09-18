@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix three data-model gaps in the SEEDS backend before Sprint 7-8 (Messages/Notifications) and Sprint 9-10 (Fees) build more on top of them: no enrollment history (student→section is a direct FK, so a mid-year section change silently rewrites past months), no fee-payment allocation (a payment can't span multiple vouchers), and cascading deletes on historical records (deleting a student wipes their attendance/fee/leave history).
+**Goal:** Fix three data-model gaps in the SchoolOS backend before Sprint 7-8 (Messages/Notifications) and Sprint 9-10 (Fees) build more on top of them: no enrollment history (student→section is a direct FK, so a mid-year section change silently rewrites past months), no fee-payment allocation (a payment can't span multiple vouchers), and cascading deletes on historical records (deleting a student wipes their attendance/fee/leave history).
 
 **Architecture:** Introduce an `Enrollment` model between `Student` and `Section`/`Campus`/`AcademicSession` (student's current/past placement becomes a dated relation, not a field on `Student`); add a shared `EnrollmentService` (same pattern as the existing `StudentAccessService`) as the one place every module resolves "what section is this student in"; add `FeePaymentAllocation` so one payment can be split across vouchers; flip `onDelete: Cascade` → `Restrict` on `Student→Attendance/FeeVoucher/LeaveRequest`. No multi-tenancy, RLS, or full accounting ledger (Invoice/Refund/Reconciliation) — out of scope, this project is a single-school platform per `docs/Seedsapk/MVP-Plan-V3.md`, not a multi-tenant SaaS product.
 
@@ -237,7 +237,7 @@ afterAll(async () => {
     .deleteMany({
       where: {
         identifier: {
-          in: ['me2e-parent-a@seeds.edu.pk', 'me2e-parent-b@seeds.edu.pk'],
+          in: ['me2e-parent-a@schoolos.edu.pk', 'me2e-parent-b@schoolos.edu.pk'],
         },
       },
     })
@@ -1180,7 +1180,7 @@ describe('Historical-record delete restrictions (e2e)', () => {
     });
     const section = await prisma.section.create({ data: { classId: klass.id, name: 'CDR-A' } });
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'cdr-teacher@seeds.edu.pk', passwordHash: 'x', role: 'TEACHER' },
+      data: { identifier: 'cdr-teacher@schoolos.edu.pk', passwordHash: 'x', role: 'TEACHER' },
     });
     const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'CDR Teacher' },
@@ -1206,7 +1206,7 @@ describe('Historical-record delete restrictions (e2e)', () => {
     await prisma.attendance.deleteMany({ where: { studentId } }).catch(() => undefined);
     await prisma.student.deleteMany({ where: { id: studentId } }).catch(() => undefined);
     await prisma.school.deleteMany({ where: { name: 'CDR E2E School' } }).catch(() => undefined);
-    await prisma.user.deleteMany({ where: { identifier: 'cdr-teacher@seeds.edu.pk' } }).catch(() => undefined);
+    await prisma.user.deleteMany({ where: { identifier: 'cdr-teacher@schoolos.edu.pk' } }).catch(() => undefined);
     await app.close();
   });
 

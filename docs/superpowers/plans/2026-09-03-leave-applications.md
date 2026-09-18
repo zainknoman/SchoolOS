@@ -593,7 +593,7 @@ describe('Leave applications (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'lv-teacher@seeds.edu.pk', passwordHash, role: 'TEACHER' },
+      data: { identifier: 'lv-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
     });
     const teacher = await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'LV Teacher' } });
 
@@ -602,14 +602,14 @@ describe('Leave applications (e2e)', () => {
     });
 
     const adminUser = await prisma.user.create({
-      data: { identifier: 'lv-admin@seeds.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
+      data: { identifier: 'lv-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN' },
     });
 
     const parentAUser = await prisma.user.create({
-      data: { identifier: 'lv-parent-a@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'lv-parent-a@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const parentBUser = await prisma.user.create({
-      data: { identifier: 'lv-parent-b@seeds.edu.pk', passwordHash, role: 'PARENT' },
+      data: { identifier: 'lv-parent-b@schoolos.edu.pk', passwordHash, role: 'PARENT' },
     });
     const parentAProfile = await prisma.parentProfile.create({
       data: { userId: parentAUser.id, name: 'LV Parent A' },
@@ -666,7 +666,7 @@ describe('Leave applications (e2e)', () => {
       .deleteMany({
         where: {
           identifier: {
-            in: ['lv-teacher@seeds.edu.pk', 'lv-admin@seeds.edu.pk', 'lv-parent-a@seeds.edu.pk', 'lv-parent-b@seeds.edu.pk'],
+            in: ['lv-teacher@schoolos.edu.pk', 'lv-admin@schoolos.edu.pk', 'lv-parent-a@schoolos.edu.pk', 'lv-parent-b@schoolos.edu.pk'],
           },
         },
       })
@@ -675,7 +675,7 @@ describe('Leave applications (e2e)', () => {
   });
 
   it('a parent can submit a leave request for their own child, but not for another parent\'s child', async () => {
-    const tokenA = await loginAs('lv-parent-a@seeds.edu.pk');
+    const tokenA = await loginAs('lv-parent-a@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/leave-requests')
@@ -694,7 +694,7 @@ describe('Leave applications (e2e)', () => {
   });
 
   it('a PARENT cannot approve a leave request', async () => {
-    const tokenA = await loginAs('lv-parent-a@seeds.edu.pk');
+    const tokenA = await loginAs('lv-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post(`/api/v1/leave-requests/${ids.leaveRequest}/approve`)
@@ -703,7 +703,7 @@ describe('Leave applications (e2e)', () => {
   });
 
   it('a TEACHER cannot approve a leave request', async () => {
-    const teacherToken = await loginAs('lv-teacher@seeds.edu.pk');
+    const teacherToken = await loginAs('lv-teacher@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post(`/api/v1/leave-requests/${ids.leaveRequest}/approve`)
@@ -712,7 +712,7 @@ describe('Leave applications (e2e)', () => {
   });
 
   it('SCHOOL_ADMIN can list, approve, and it reflects on the attendance calendar (except the pre-existing HOLIDAY day)', async () => {
-    const adminToken = await loginAs('lv-admin@seeds.edu.pk');
+    const adminToken = await loginAs('lv-admin@schoolos.edu.pk');
 
     const pending = await request(app.getHttpServer())
       .get('/api/v1/leave-requests?status=pending')
@@ -726,7 +726,7 @@ describe('Leave applications (e2e)', () => {
       .expect(201);
     expect(approved.body.status).toBe('approved');
 
-    const parentToken = await loginAs('lv-parent-a@seeds.edu.pk');
+    const parentToken = await loginAs('lv-parent-a@schoolos.edu.pk');
     const attendance = await request(app.getHttpServer())
       .get(`/api/v1/students/${ids.childA}/attendance?month=2026-09`)
       .set('Authorization', `Bearer ${parentToken}`)
@@ -742,7 +742,7 @@ describe('Leave applications (e2e)', () => {
   });
 
   it('cannot approve or reject a leave request that has already been decided', async () => {
-    const adminToken = await loginAs('lv-admin@seeds.edu.pk');
+    const adminToken = await loginAs('lv-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())
       .post(`/api/v1/leave-requests/${ids.leaveRequest}/reject`)
