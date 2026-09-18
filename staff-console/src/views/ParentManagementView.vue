@@ -7,6 +7,7 @@ import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
+import ListPageCard from '../components/ListPageCard.vue';
 import { useConfirm } from '../lib/useConfirm';
 import { useToast } from '../lib/useToast';
 
@@ -107,11 +108,10 @@ async function onDelete(id: string) {
 </script>
 
 <template>
-  <div class="org-entity">
-    <div class="page-header">
-      <h1>Parents</h1>
+  <ListPageCard icon="user-circle" title="Parents">
+    <template #actions>
       <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
-    </div>
+    </template>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <EntityTable
@@ -167,19 +167,10 @@ async function onDelete(id: string) {
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
     </AppModal>
-  </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.org-entity {
-  max-width: 960px;
-}
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
 .error {
   color: var(--color-destructive);
   margin-bottom: var(--space-3);

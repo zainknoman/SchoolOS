@@ -8,6 +8,7 @@ import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
+import ListPageCard from '../components/ListPageCard.vue';
 import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
@@ -104,11 +105,10 @@ async function onAdd() {
 </script>
 
 <template>
-  <div class="org-entity">
-    <div class="page-header">
-      <h1>Staff</h1>
+  <ListPageCard icon="briefcase" title="Staff">
+    <template #actions>
       <Button data-testid="open-add-form" @click="openAddForm">+ Add New</Button>
-    </div>
+    </template>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
     <div class="filter-row">
@@ -196,19 +196,10 @@ async function onAdd() {
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
     </AppModal>
-  </div>
+  </ListPageCard>
 </template>
 
 <style scoped>
-.org-entity {
-  max-width: 1100px;
-}
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
 .error {
   color: var(--color-destructive);
   margin-bottom: var(--space-3);
