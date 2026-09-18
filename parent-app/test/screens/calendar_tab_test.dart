@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -82,7 +83,9 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: makeClient())),
+          home: Scaffold(
+            body: CalendarTab(studentId: 's1', accessToken: 'tok', api: makeClient()),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -117,7 +120,9 @@ void main() {
   testWidgets('Attendance tab shows the percentage and today\'s status', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: makeClient())),
+        home: Scaffold(
+          body: CalendarTab(studentId: 's1', accessToken: 'tok', api: makeClient()),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -158,7 +163,7 @@ void main() {
             jsonEncode([
               {
                 'id': 'd1',
-                'date': '2026-08-27',
+                'date': DateTime.now().toIso8601String().substring(0, 10),
                 'dueDate': '2026-08-29',
                 'subject': 'Urdu',
                 'text': 'کتاب لائیں',
@@ -178,7 +183,11 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: api))),
+      MaterialApp(
+        home: Scaffold(
+          body: CalendarTab(studentId: 's1', accessToken: 'tok', api: api),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -190,83 +199,153 @@ void main() {
     expect(find.byKey(const Key('diaryEntryd1')), findsOneWidget);
   });
 
-  testWidgets(
-    'Timetable tab falls back to cached data with a Last updated timestamp when the '
-    'live fetch fails, instead of going blank',
-    (tester) async {
-      final cachedAt = DateTime.now().subtract(const Duration(hours: 2));
-      SharedPreferences.setMockInitialValues({
-        'cache:timetable:s1': jsonEncode({
-          'fetchedAt': cachedAt.toIso8601String(),
-          'data': [
-            {
-              'dayOfWeek': 1,
-              'period': 1,
-              'startTime': '08:00',
-              'endTime': '08:40',
-              'subject': 'Cached Subject',
-              'teacher': null,
-              'room': null,
-            },
-          ],
-        }),
-      });
-      final api = ApiClient(
-        baseUrl: 'http://test',
-        client: MockClient((request) async => http.Response('server down', 500)),
-      );
+  testWidgets('Diary tab shows a calendar and filters entries to the selected day', (tester) async {
+    final now = DateTime.now();
+    String iso(DateTime d) => d.toIso8601String().substring(0, 10);
+    final today = DateTime(now.year, now.month, now.day);
+    final other = DateTime(now.year, now.month, now.day == 1 ? 2 : 1);
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        if (request.url.path == '/api/v1/students/s1/diary') {
+          return http.Response(
+            jsonEncode([
+              {
+                'id': 'a',
+                'date': iso(today),
+                'subject': 'Subject A',
+                'text': 'Today text',
+                'attachments': [],
+              },
+              {
+                'id': 'b',
+                'date': iso(other),
+                'subject': 'Subject B',
+                'text': 'Other text',
+                'attachments': [],
+              },
+            ]),
+            200,
+          );
+        }
+        return http.Response(jsonEncode([]), 200);
+      }),
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: api))),
-      );
-      await tester.pumpAndSettle();
-      // The cached entry is a Monday period; select Monday (the default day is today).
-      await tester.tap(find.byKey(const Key('timetableDay1')));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CalendarTab(studentId: 's1', accessToken: 'tok', api: api),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Diary'));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Cached Subject'), findsOneWidget);
-      expect(find.textContaining('Last updated'), findsOneWidget);
-    },
-  );
+    // Calendar on top, a dot on each day with entries, and only today's entry shown by default.
+    expect(find.byKey(const Key('diaryCalendar')), findsOneWidget);
+    expect(find.byKey(Key('diaryDot${iso(today)}')), findsOneWidget);
+    expect(find.byKey(Key('diaryDot${iso(other)}')), findsOneWidget);
+    expect(find.byKey(const Key('diaryEntrya')), findsOneWidget);
+    expect(find.byKey(const Key('diaryEntryb')), findsNothing);
 
-  testWidgets(
-    'Attendance tab falls back to cached data with a Last updated timestamp when the '
-    'live fetch fails',
-    (tester) async {
-      final cachedAt = DateTime.now().subtract(const Duration(hours: 1));
-      SharedPreferences.setMockInitialValues({
-        'cache:attendance:s1:${DateTime.now().toIso8601String().substring(0, 7)}': jsonEncode({
-          'fetchedAt': cachedAt.toIso8601String(),
-          'data': {
-            'days': [
-              {'date': '2026-08-27', 'status': 'PRESENT'},
-            ],
-            'summary': {
-              'present': 5,
-              'absent': 0,
-              'late': 0,
-              'holiday': 0,
-              'leave': 0,
-              'attendancePercentage': 100,
-            },
+    // Selecting the other day swaps to that day's entries.
+    await tester.tap(find.byKey(Key('diaryDay${iso(other)}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('diaryEntrya')), findsNothing);
+    expect(find.byKey(const Key('diaryEntryb')), findsOneWidget);
+
+    // A day without entries shows the empty message.
+    final empty = DateTime(
+      now.year,
+      now.month,
+      [3, 4, 5].firstWhere((d) => d != today.day && d != other.day),
+    );
+    await tester.tap(find.byKey(Key('diaryDay${iso(empty)}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('diaryNoEntries')), findsOneWidget);
+  });
+
+  testWidgets('Timetable tab falls back to cached data with a Last updated timestamp when the '
+      'live fetch fails, instead of going blank', (tester) async {
+    final cachedAt = DateTime.now().subtract(const Duration(hours: 2));
+    SharedPreferences.setMockInitialValues({
+      'cache:timetable:s1': jsonEncode({
+        'fetchedAt': cachedAt.toIso8601String(),
+        'data': [
+          {
+            'dayOfWeek': 1,
+            'period': 1,
+            'startTime': '08:00',
+            'endTime': '08:40',
+            'subject': 'Cached Subject',
+            'teacher': null,
+            'room': null,
           },
-        }),
-      });
-      final api = ApiClient(
-        baseUrl: 'http://test',
-        client: MockClient((request) async => http.Response('server down', 500)),
-      );
+        ],
+      }),
+    });
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async => http.Response('server down', 500)),
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: api))),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CalendarTab(studentId: 's1', accessToken: 'tok', api: api),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // The cached entry is a Monday period; select Monday (the default day is today).
+    await tester.tap(find.byKey(const Key('timetableDay1')));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Attendance'));
-      await tester.pumpAndSettle();
+    expect(find.text('Cached Subject'), findsOneWidget);
+    expect(find.textContaining('Last updated'), findsOneWidget);
+  });
 
-      expect(find.textContaining('100%'), findsOneWidget);
-      expect(find.textContaining('Last updated'), findsOneWidget);
-    },
-  );
+  testWidgets('Attendance tab falls back to cached data with a Last updated timestamp when the '
+      'live fetch fails', (tester) async {
+    final cachedAt = DateTime.now().subtract(const Duration(hours: 1));
+    SharedPreferences.setMockInitialValues({
+      'cache:attendance:s1:${DateTime.now().toIso8601String().substring(0, 7)}': jsonEncode({
+        'fetchedAt': cachedAt.toIso8601String(),
+        'data': {
+          'days': [
+            {'date': '2026-08-27', 'status': 'PRESENT'},
+          ],
+          'summary': {
+            'present': 5,
+            'absent': 0,
+            'late': 0,
+            'holiday': 0,
+            'leave': 0,
+            'attendancePercentage': 100,
+          },
+        },
+      }),
+    });
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async => http.Response('server down', 500)),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CalendarTab(studentId: 's1', accessToken: 'tok', api: api),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Attendance'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('100%'), findsOneWidget);
+    expect(find.textContaining('Last updated'), findsOneWidget);
+  });
 }

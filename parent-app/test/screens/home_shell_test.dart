@@ -277,7 +277,7 @@ void main() {
           jsonEncode([
             {
               'id': 'd1',
-              'date': '2026-08-29',
+              'date': DateTime.now().toIso8601String().substring(0, 10),
               'dueDate': null,
               'subject': 'Math',
               'text': 'Complete exercise 4.',
@@ -490,7 +490,7 @@ void main() {
           jsonEncode([
             {
               'id': 'd1',
-              'date': '2026-08-29',
+              'date': DateTime.now().toIso8601String().substring(0, 10),
               'dueDate': null,
               'subject': 'Math',
               'text': 'Complete exercise 4.',

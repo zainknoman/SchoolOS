@@ -40,6 +40,29 @@ const _fullMonthNames = [
 /// `TimetableEntry.dayOfWeek` is 0 = Sunday).
 const _chipDays = [1, 2, 3, 4, 5, 6, 0];
 
+/// Small bordered chevron button used by the Attendance and Diary month selectors.
+Widget _monthArrowButton(BuildContext context, IconData icon, Key key, VoidCallback? onTap) {
+  final theme = Theme.of(context);
+  return InkWell(
+    key: key,
+    borderRadius: BorderRadius.circular(8),
+    onTap: onTap,
+    child: Opacity(
+      opacity: onTap == null ? 0.35 : 1,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Icon(icon, size: 16),
+      ),
+    ),
+  );
+}
+
 String _monthKey(DateTime m) => '${m.year}-${m.month.toString().padLeft(2, '0')}';
 
 String _titleCase(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
@@ -846,11 +869,23 @@ class _DiaryTab extends StatefulWidget {
   State<_DiaryTab> createState() => _DiaryTabState();
 }
 
+String _isoDate(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+/// Diary: a month calendar on top (a dot marks days with entries; like the timetable's day chips,
+/// the selected day fills with the accent) and, below it, the diary cards for just that day.
 class _DiaryTabState extends State<_DiaryTab> {
   List<DiaryEntry>? _entries;
   String? _error;
   DateTime? _lastUpdated;
   bool _stale = false;
+  late DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  late DateTime _selected = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+
+  bool get _isCurrentMonth {
+    final now = DateTime.now();
+    return _month.year == now.year && _month.month == now.month;
+  }
 
   @override
   void initState() {
@@ -859,7 +894,7 @@ class _DiaryTabState extends State<_DiaryTab> {
   }
 
   Future<void> _load() async {
-    final month = DateTime.now().toIso8601String().substring(0, 7);
+    final month = _monthKey(_month);
     final cache = await DataCache.open();
     await loadWithCache<List<DiaryEntry>>(
       cache: cache,
@@ -870,7 +905,8 @@ class _DiaryTabState extends State<_DiaryTab> {
           .map((e) => DiaryEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
       onData: (data, lastUpdated, {required stale}) {
-        if (mounted) {
+        // Ignore a slow response for a month the user has already navigated away from.
+        if (mounted && month == _monthKey(_month)) {
           setState(() {
             _entries = data;
             _lastUpdated = lastUpdated;
@@ -880,83 +916,263 @@ class _DiaryTabState extends State<_DiaryTab> {
         }
       },
       onError: (message) {
-        if (mounted) setState(() => _error = message);
+        if (mounted && month == _monthKey(_month)) setState(() => _error = message);
       },
     );
   }
 
+  void _shiftMonth(int delta) {
+    final next = DateTime(_month.year, _month.month + delta);
+    final now = DateTime.now();
+    setState(() {
+      _month = next;
+      // Land on today when returning to the current month, otherwise on the 1st.
+      _selected = (next.year == now.year && next.month == now.month)
+          ? DateTime(now.year, now.month, now.day)
+          : next;
+      _entries = null;
+      _error = null;
+    });
+    _load();
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_error != null) return Center(child: Text(_error!));
-    if (_entries == null) return const Center(child: CircularProgressIndicator());
-    if (_entries!.isEmpty) return const Center(child: Text('No diary entries yet.'));
-
     final theme = Theme.of(context);
     final tones = Tones.of(context);
-    final now = DateTime.now();
+    final entries = _entries ?? const <DiaryEntry>[];
+    final datesWithEntries = {
+      for (final e in entries) e.date.length < 10 ? e.date : e.date.substring(0, 10),
+    };
+    final selectedIso = _isoDate(_selected);
+    final dayEntries = entries.where((e) => e.date.startsWith(selectedIso)).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
       children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _monthArrowButton(
+              context,
+              Icons.chevron_left,
+              const Key('diaryPrevMonth'),
+              () => _shiftMonth(-1),
+            ),
+            Text(
+              '${_fullMonthNames[_month.month - 1]} ${_month.year}',
+              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            _monthArrowButton(
+              context,
+              Icons.chevron_right,
+              const Key('diaryNextMonth'),
+              _isCurrentMonth ? null : () => _shiftMonth(1),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _calendar(context, datesWithEntries),
+        if (_error == null && _entries != null) ...[
+          const SizedBox(height: 4),
+          LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
+        ],
+        const SizedBox(height: 10),
         Text(
-          '${_fullMonthNames[now.month - 1]} ${now.year}'.toUpperCase(),
+          '${_fullDayNames[_selected.weekday % 7]}, ${_selected.day} ${_fullMonthNames[_selected.month - 1]}'
+              .toUpperCase(),
           style: theme.textTheme.labelMedium?.copyWith(
             fontWeight: FontWeight.w700,
             color: tones.muted,
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 2),
-        LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
         const SizedBox(height: 10),
-        for (final e in _entries!)
+        if (_error != null)
+          Center(child: Text(_error!))
+        else if (_entries == null)
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (dayEntries.isEmpty)
           Card(
-            key: Key('diaryEntry${e.id}'),
-            margin: const EdgeInsets.only(bottom: 12),
+            key: const Key('diaryNoEntries'),
+            margin: EdgeInsets.zero,
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Expanded(
-                        child: DirectionalText(
-                          e.subject,
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      Text(
-                        formatShortDate(e.date),
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: tones.muted,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  DirectionalText(e.text),
-                  if (e.dueDate != null || e.attachments.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (e.dueDate != null)
-                          TonePill(label: 'Due ${formatShortDate(e.dueDate!)}', color: tones.late),
-                        for (final a in e.attachments) _attachmentChip(context, a),
-                      ],
-                    ),
-                  ],
-                ],
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'No diary entries for this day.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: tones.muted, fontSize: 12),
               ),
             ),
-          ),
+          )
+        else
+          for (final e in dayEntries) _entryCard(context, e),
       ],
+    );
+  }
+
+  Widget _calendar(BuildContext context, Set<String> datesWithEntries) {
+    final theme = Theme.of(context);
+    final muted = Tones.of(context).muted;
+    final accent = theme.colorScheme.primary;
+    final first = DateTime(_month.year, _month.month);
+    final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
+    final leading = (first.weekday + 6) % 7; // Monday-first grid
+    final cells = <DateTime?>[
+      for (var i = 0; i < leading; i++) null,
+      for (var d = 1; d <= daysInMonth; d++) DateTime(_month.year, _month.month, d),
+    ];
+    while (cells.length % 7 != 0) {
+      cells.add(null);
+    }
+    final today = DateTime.now();
+
+    return Card(
+      key: const Key('diaryCalendar'),
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                for (final d in const ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'])
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        d,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: muted),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            for (var r = 0; r < cells.length ~/ 7; r++)
+              Row(
+                children: [
+                  for (var c = 0; c < 7; c++)
+                    Expanded(
+                      child: _dayCell(context, cells[r * 7 + c], datesWithEntries, accent, today),
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dayCell(
+    BuildContext context,
+    DateTime? day,
+    Set<String> datesWithEntries,
+    Color accent,
+    DateTime today,
+  ) {
+    if (day == null) return const SizedBox(height: 40);
+    final iso = _isoDate(day);
+    final selected = iso == _isoDate(_selected);
+    final isToday = iso == _isoDate(today);
+    final hasEntries = datesWithEntries.contains(iso);
+    final fg = selected ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    return Padding(
+      padding: const EdgeInsets.all(2),
+      child: InkWell(
+        key: Key('diaryDay$iso'),
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => setState(() => _selected = day),
+        child: Container(
+          height: 36,
+          decoration: BoxDecoration(
+            color: selected ? accent : null,
+            borderRadius: BorderRadius.circular(10),
+            border: (isToday && !selected) ? Border.all(color: accent) : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${day.day}',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected || isToday ? FontWeight.w800 : FontWeight.w600,
+                  color: fg,
+                ),
+              ),
+              SizedBox(
+                height: 6,
+                child: hasEntries
+                    ? Container(
+                        key: Key('diaryDot$iso'),
+                        width: 5,
+                        height: 5,
+                        margin: const EdgeInsets.only(top: 1),
+                        decoration: BoxDecoration(
+                          color: selected ? Colors.white : accent,
+                          shape: BoxShape.circle,
+                        ),
+                      )
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _entryCard(BuildContext context, DiaryEntry e) {
+    final theme = Theme.of(context);
+    final tones = Tones.of(context);
+    return Card(
+      key: Key('diaryEntry${e.id}'),
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Expanded(
+                  child: DirectionalText(
+                    e.subject,
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Text(
+                  formatShortDate(e.date),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: tones.muted,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            DirectionalText(e.text),
+            if (e.dueDate != null || e.attachments.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (e.dueDate != null)
+                    TonePill(label: 'Due ${formatShortDate(e.dueDate!)}', color: tones.late),
+                  for (final a in e.attachments) _attachmentChip(context, a),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
