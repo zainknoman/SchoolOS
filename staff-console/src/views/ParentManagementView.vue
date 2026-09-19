@@ -1,7 +1,6 @@
 <!-- staff-console/src/views/ParentManagementView.vue -->
 <script setup lang="ts">
 import { ref } from 'vue';
-import { RouterLink } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type ParentSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
@@ -151,7 +150,7 @@ async function onDelete(id: string) {
           <Button variant="secondary" @click="cancelEdit">Cancel</Button>
         </template>
         <template v-else>
-          <RouterLink :data-testid="`view-profile-${item.id}`" :to="`/admin/parents/${item.id}`">View</RouterLink>
+          <Button :data-testid="`view-profile-${item.id}`" :to="`/admin/parents/${item.id}`">View</Button>
           <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
           <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
             Delete

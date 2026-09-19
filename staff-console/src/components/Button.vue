@@ -1,15 +1,22 @@
 <script setup lang="ts">
+import { RouterLink, type RouteLocationRaw } from 'vue-router';
+
 withDefaults(
   defineProps<{
     variant?: 'primary' | 'secondary';
     disabled?: boolean;
+    /** Renders a router link styled as a button, for actions that navigate. */
+    to?: RouteLocationRaw;
   }>(),
   { variant: 'primary', disabled: false },
 );
 </script>
 
 <template>
-  <button type="button" class="btn" :class="variant" :disabled="disabled">
+  <RouterLink v-if="to" :to="to" class="btn" :class="variant">
+    <slot />
+  </RouterLink>
+  <button v-else type="button" class="btn" :class="variant" :disabled="disabled">
     <slot />
   </button>
 </template>
@@ -26,6 +33,7 @@ withDefaults(
   color: var(--color-on-primary);
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
 .btn.secondary {

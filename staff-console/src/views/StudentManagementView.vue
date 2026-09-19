@@ -1,7 +1,7 @@
 <!-- staff-console/src/views/StudentManagementView.vue -->
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRoute, RouterLink } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type ParentSummary, type StudentAdminSummary } from '../lib/api';
 import { useFocusTarget } from '../lib/useFocusTarget';
@@ -187,7 +187,7 @@ async function onDelete(id: string) {
           <Button variant="secondary" @click="cancelEdit">Cancel</Button>
         </template>
         <template v-else>
-          <RouterLink :data-testid="`view-profile-${item.id}`" :to="`/admin/students/${item.id}`">View Profile</RouterLink>
+          <Button :data-testid="`view-profile-${item.id}`" :to="`/admin/students/${item.id}`">View Profile</Button>
           <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
           <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
             Delete

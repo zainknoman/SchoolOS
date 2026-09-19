@@ -142,9 +142,9 @@ const activeSessionLabel = computed(
         <StatusPill :tone="statusTone(item.status)" :label="statusLabel(item.status)" />
       </template>
       <template #actions="{ item }">
-        <RouterLink :data-testid="`view-application-${item.id}`" :to="`/admin/admissions/${item.id}`">
+        <Button :data-testid="`view-application-${item.id}`" :to="`/admin/admissions/${item.id}`">
           View
-        </RouterLink>
+        </Button>
       </template>
     </EntityTable>
 

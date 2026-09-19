@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { RouterLink } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type CampusSummary, type HiringApplicationSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
@@ -138,9 +137,9 @@ function onCandidateCreated() {
         <StatusPill :tone="statusTone(item.status)" :label="statusLabel(item.status)" />
       </template>
       <template #actions="{ item }">
-        <RouterLink :data-testid="`view-application-${item.id}`" :to="`/admin/hiring/${item.id}`">
+        <Button :data-testid="`view-application-${item.id}`" :to="`/admin/hiring/${item.id}`">
           View
-        </RouterLink>
+        </Button>
       </template>
     </EntityTable>
 
