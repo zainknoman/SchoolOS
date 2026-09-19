@@ -1,9 +1,10 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { Public } from './decorators/public.decorator';
 import { Throttle } from '@nestjs/throttler';
 import {
@@ -59,5 +60,18 @@ export class AuthController {
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto.token, dto.newPassword);
     return { message: 'Your password has been reset. Please log in again.' };
+  }
+
+  // Authenticated (global JWT guard, no @Public). A wrong-current-password endpoint is an online
+  // guessing surface for a stolen access token, so it gets the same throttle as login.
+  @Throttle({
+    default: {
+      limit: AUTH_LOGIN_THROTTLE_LIMIT,
+      ttl: THROTTLE_TTL_MS,
+    },
+  })
+  @Post('change-password')
+  async changePassword(@Req() req: { user: { id: string } }, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(req.user.id, dto.currentPassword, dto.newPassword);
   }
 }

@@ -46,6 +46,8 @@ describe('Auth (e2e)', () => {
     expect(res.body.accessToken).toEqual(expect.any(String));
     expect(res.body.refreshToken).toEqual(expect.any(String));
     expect(res.body.role).toBe('PARENT');
+    expect(res.body.mustChangePassword).toBe(false);
+    expect(res.body.campusId).toBeNull();
   });
 
   it('rejects a wrong password with a generic 401, revealing nothing about which field was wrong', async () => {
@@ -83,6 +85,8 @@ describe('Auth (e2e)', () => {
     expect(res.body.refreshToken).toEqual(expect.any(String));
     expect(res.body.refreshToken).not.toBe(loginRes.body.refreshToken);
     expect(res.body.role).toBe('PARENT');
+    expect(res.body.mustChangePassword).toBe(false);
+    expect(res.body.campusId).toBeNull();
   });
 
   it('rejects reuse of an already-redeemed refresh token (rotation-on-use)', async () => {
@@ -107,5 +111,69 @@ describe('Auth (e2e)', () => {
       .post('/api/v1/auth/refresh')
       .send({ refreshToken: 'not-a-real-token' })
       .expect(401);
+  });
+
+  describe('change-password', () => {
+    const cpIdentifier = 'e2e-change-pw@schoolos.edu.pk';
+    const oldPw = 'OldPassword123!';
+    const newPw = 'NewPassword456!';
+
+    beforeAll(async () => {
+      await prisma.user.create({
+        data: {
+          identifier: cpIdentifier,
+          passwordHash: await argon2.hash(oldPw),
+          role: 'PARENT',
+          mustChangePassword: true,
+        },
+      });
+    });
+
+    afterAll(async () => {
+      await prisma.refreshToken.deleteMany({ where: { user: { identifier: cpIdentifier } } });
+      await prisma.user.delete({ where: { identifier: cpIdentifier } }).catch(() => undefined);
+    });
+
+    it('requires authentication', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/change-password')
+        .send({ currentPassword: oldPw, newPassword: newPw })
+        .expect(401);
+    });
+
+    it('changes the password, clears the flag, revokes old refresh tokens and returns a fresh session', async () => {
+      const login = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ identifier: cpIdentifier, password: oldPw })
+        .expect(201);
+      expect(login.body.mustChangePassword).toBe(true);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${login.body.accessToken}`)
+        .send({ currentPassword: 'wrong-password', newPassword: newPw })
+        .expect(401);
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${login.body.accessToken}`)
+        .send({ currentPassword: oldPw, newPassword: newPw })
+        .expect(201);
+      expect(res.body.mustChangePassword).toBe(false);
+      expect(res.body.accessToken).toEqual(expect.any(String));
+
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: login.body.refreshToken })
+        .expect(401);
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: res.body.refreshToken })
+        .expect(201);
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ identifier: cpIdentifier, password: newPw })
+        .expect(201);
+    });
   });
 });

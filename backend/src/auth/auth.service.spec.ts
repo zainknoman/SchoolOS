@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -41,6 +41,8 @@ describe('AuthService', () => {
     role: 'PARENT',
     isLocked: false,
     isPrincipal: false,
+    mustChangePassword: false,
+    campusId: null as string | null,
     lockedUntil: null as Date | null,
     failedLoginCount: 0,
   };
@@ -95,6 +97,8 @@ describe('AuthService', () => {
     expect(result.accessToken).toBe('signed-access-token');
     expect(typeof result.refreshToken).toBe('string');
     expect(result.role).toBe('PARENT');
+    expect(result.mustChangePassword).toBe(false);
+    expect(result.campusId).toBeNull();
     // failed-login counter resets on success
     expect(prisma.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -202,6 +206,80 @@ describe('AuthService', () => {
     ).not.toThrow();
   });
 
+  it('reports mustChangePassword and campusId on login', async () => {
+    const passwordHash = await argon2.hash('Temp1234!x');
+    prisma.user.findUnique.mockResolvedValue({
+      ...baseUser,
+      passwordHash,
+      mustChangePassword: true,
+      isPrincipal: true,
+      campusId: 'campus-1',
+    });
+    prisma.user.update.mockResolvedValue({});
+    prisma.refreshToken.create.mockResolvedValue({});
+
+    const session = await service.login('head@school.test', 'Temp1234!x');
+    expect(session.mustChangePassword).toBe(true);
+    expect(session.campusId).toBe('campus-1');
+  });
+
+  describe('changePassword', () => {
+    let passwordHash: string;
+    beforeEach(async () => {
+      passwordHash = await argon2.hash('Right1234!');
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        id: 'u1',
+        passwordHash,
+        mustChangePassword: true,
+        campusId: 'campus-1',
+      });
+      prisma.user.update.mockResolvedValue({});
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+      prisma.refreshToken.create.mockResolvedValue({});
+    });
+
+    it('rejects a wrong current password', async () => {
+      await expect(
+        service.changePassword('u1', 'Wrong1234!', 'NewPass123!'),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing user with the generic error', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      await expect(
+        service.changePassword('ghost', 'Right1234!', 'NewPass123!'),
+      ).rejects.toThrow(GENERIC_AUTH_ERROR);
+    });
+
+    it('rejects reusing the current password', async () => {
+      await expect(
+        service.changePassword('u1', 'Right1234!', 'Right1234!'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('stores a new hash, clears mustChangePassword, revokes refresh tokens and returns a fresh session', async () => {
+      const session = await service.changePassword('u1', 'Right1234!', 'NewPass123!');
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'u1' },
+          data: expect.objectContaining({ mustChangePassword: false }),
+        }),
+      );
+      expect(prisma.user.update.mock.calls[0][0].data.passwordHash).not.toBe(passwordHash);
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'u1', revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(prisma.refreshToken.create).toHaveBeenCalled();
+      expect(session.mustChangePassword).toBe(false);
+      expect(session.campusId).toBe('campus-1');
+      expect(session.accessToken).toBe('signed-access-token');
+      expect(JSON.stringify(session)).not.toContain('NewPass123!');
+    });
+  });
+
   describe('refresh', () => {
     const storedToken = {
       id: 'rt-1',
@@ -222,6 +300,8 @@ describe('AuthService', () => {
       expect(result.accessToken).toBe('signed-access-token');
       expect(typeof result.refreshToken).toBe('string');
       expect(result.role).toBe('PARENT');
+      expect(result.mustChangePassword).toBe(false);
+      expect(result.campusId).toBeNull();
       // the presented token is revoked as part of the same exchange (rotation-on-use)
       expect(prisma.refreshToken.update).toHaveBeenCalledWith({
         where: { id: 'rt-1' },

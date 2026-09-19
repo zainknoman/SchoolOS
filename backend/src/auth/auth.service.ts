@@ -22,6 +22,8 @@ export type SessionResult = {
   refreshToken: string;
   role: string;
   isPrincipal: boolean;
+  mustChangePassword: boolean;
+  campusId: string | null;
 };
 
 function hashToken(token: string): string {
@@ -93,7 +95,13 @@ export class AuthService {
       data: { failedLoginCount: 0, lockedUntil: null },
     });
 
-    return this.issueSession(user.id, user.role, user.isPrincipal);
+    return this.issueSession(
+      user.id,
+      user.role,
+      user.isPrincipal,
+      user.mustChangePassword,
+      user.campusId,
+    );
   }
 
   async refresh(refreshToken: string): Promise<SessionResult> {
@@ -126,7 +134,13 @@ export class AuthService {
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }
 
-    return this.issueSession(user.id, user.role, user.isPrincipal);
+    return this.issueSession(
+      user.id,
+      user.role,
+      user.isPrincipal,
+      user.mustChangePassword,
+      user.campusId,
+    );
   }
 
   /**
@@ -190,10 +204,45 @@ export class AuthService {
     ]);
   }
 
+  /**
+   * Authenticated password change. Ends every existing session (all active refresh tokens are
+   * revoked) and returns a fresh one so the calling client keeps working. Clears the
+   * provisioned-account `mustChangePassword` flag.
+   */
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<SessionResult> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !(await argon2.verify(user.passwordHash, currentPassword))) {
+      throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+    }
+    if (currentPassword === newPassword) {
+      throw new BadRequestException('New password must differ from the current password.');
+    }
+
+    const passwordHash = await argon2.hash(newPassword);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash, mustChangePassword: false },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    return this.issueSession(user.id, user.role, user.isPrincipal, false, user.campusId);
+  }
+
   private async issueSession(
     userId: string,
     role: string,
     isPrincipal: boolean,
+    mustChangePassword: boolean,
+    campusId: string | null,
   ): Promise<SessionResult> {
     const accessToken = this.jwt.sign({ sub: userId, role });
 
@@ -208,6 +257,6 @@ export class AuthService {
       },
     });
 
-    return { accessToken, refreshToken, role, isPrincipal };
+    return { accessToken, refreshToken, role, isPrincipal, mustChangePassword, campusId };
   }
 }
