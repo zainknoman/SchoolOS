@@ -19,6 +19,7 @@ describe('SectionsService', () => {
     auditLog: { create: jest.Mock };
     user: { findUnique: jest.Mock };
     teacher: { findUnique: jest.Mock };
+    class: { findUnique: jest.Mock };
   };
   let studentAccess: { getTeacherSectionIds: jest.Mock };
 
@@ -53,7 +54,8 @@ describe('SectionsService', () => {
       enrollment: { findMany: jest.fn() },
       auditLog: { create: jest.fn() },
       user: { findUnique: jest.fn() },
-      teacher: { findUnique: jest.fn() },
+      teacher: { findUnique: jest.fn().mockResolvedValue({ campusId: 'c1' }) },
+      class: { findUnique: jest.fn().mockResolvedValue({ campusId: 'c1' }) },
     };
     studentAccess = { getTeacherSectionIds: jest.fn() };
     const moduleRef = await Test.createTestingModule({
@@ -189,6 +191,7 @@ describe('SectionsService', () => {
       id: 'sec1',
       name: '3A',
       classId: 'cl1',
+      class: { campusId: 'c1' },
     });
     prisma.section.update.mockResolvedValue({
       ...fullRecord,
@@ -215,6 +218,7 @@ describe('SectionsService', () => {
       id: 'sec1',
       name: '3A',
       classId: 'cl1',
+      class: { campusId: 'c1' },
     });
     prisma.section.update.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError(
@@ -274,5 +278,33 @@ describe('SectionsService', () => {
     expect(await service.getStudents('sec1')).toEqual([
       { id: 'st1', name: 'Eshaal Sample', grNumber: 'GR-1001' },
     ]);
+  });
+
+  it('rejects creating a section whose class teacher belongs to another campus', async () => {
+    prisma.teacher.findUnique.mockResolvedValue({ campusId: 'other-campus' });
+
+    await expect(
+      service.create({ classId: 'cl1', name: '3A', classTeacherId: 't-other' }, 'admin-1'),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.section.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects updating a section to a class teacher from another campus', async () => {
+    prisma.section.findUnique.mockResolvedValue({ id: 'sec1', class: { campusId: 'c1' } });
+    prisma.teacher.findUnique.mockResolvedValue({ campusId: 'other-campus' });
+
+    await expect(
+      service.update('sec1', { classTeacherId: 't-other' }, 'admin-1'),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.section.update).not.toHaveBeenCalled();
+  });
+
+  it('allows clearing the class teacher (null) without a campus check', async () => {
+    prisma.section.findUnique.mockResolvedValue({ id: 'sec1', class: { campusId: 'c1' } });
+    prisma.section.update.mockResolvedValue({ ...fullRecord, classTeacherId: null, classTeacher: null });
+
+    await service.update('sec1', { classTeacherId: null as unknown as undefined }, 'admin-1');
+
+    expect(prisma.teacher.findUnique).not.toHaveBeenCalled();
   });
 });

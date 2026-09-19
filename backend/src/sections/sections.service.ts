@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
@@ -86,10 +86,30 @@ export class SectionsService {
     return rows.map((r) => r.student);
   }
 
+  private async assertTeacherInCampus(classTeacherId: string, campusId: string): Promise<void> {
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { id: classTeacherId },
+      select: { campusId: true },
+    });
+    // A missing teacher is left to the FK handler (P2003 -> "Invalid ... reference").
+    if (teacher && teacher.campusId !== campusId) {
+      throw new BadRequestException('Class teacher must belong to the same campus as the class.');
+    }
+  }
+
   async create(
     dto: CreateSectionDto,
     actingUserId: string,
   ): Promise<SectionSummary> {
+    if (dto.classTeacherId) {
+      const klass = await this.prisma.class.findUnique({
+        where: { id: dto.classId },
+        select: { campusId: true },
+      });
+      if (klass) {
+        await this.assertTeacherInCampus(dto.classTeacherId, klass.campusId);
+      }
+    }
     const record = await this.prisma.section
       .create({
         data: {
@@ -122,9 +142,15 @@ export class SectionsService {
     dto: UpdateSectionDto,
     actingUserId: string,
   ): Promise<SectionSummary> {
-    const existing = await this.prisma.section.findUnique({ where: { id } });
+    const existing = await this.prisma.section.findUnique({
+      where: { id },
+      include: { class: { select: { campusId: true } } },
+    });
     if (!existing) {
       throw new NotFoundException('Section not found');
+    }
+    if (dto.classTeacherId) {
+      await this.assertTeacherInCampus(dto.classTeacherId, existing.class.campusId);
     }
     const record = await this.prisma.section
       .update({
