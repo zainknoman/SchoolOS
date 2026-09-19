@@ -51,7 +51,7 @@ beforeEach(() => {
 
 describe('School profile — add and edit on the profile screen', () => {
   it('adds a school from /admin/schools/new (no :id) and returns to the list', async () => {
-    vi.mocked(api.createSchool).mockResolvedValue(undefined);
+    vi.mocked(api.createSchool).mockResolvedValue({});
     const wrapper = mount(SchoolProfileView, mountOpts);
     await flushPromises();
 
@@ -104,7 +104,7 @@ describe('School profile — add and edit on the profile screen', () => {
 
   it('uploads a logo on selection and submits the returned file id', async () => {
     vi.mocked(api.uploadFile).mockResolvedValue({ id: 'file-9' } as never);
-    vi.mocked(api.createSchool).mockResolvedValue(undefined);
+    vi.mocked(api.createSchool).mockResolvedValue({});
     const wrapper = mount(SchoolProfileView, mountOpts);
     await flushPromises();
 
@@ -137,7 +137,7 @@ describe('School profile — add and edit on the profile screen', () => {
 
 describe('Campus profile — add and edit on the profile screen', () => {
   it('adds a campus from /admin/campuses/new: needs a school, then returns to the list', async () => {
-    vi.mocked(api.createCampus).mockResolvedValue(undefined);
+    vi.mocked(api.createCampus).mockResolvedValue({});
     const wrapper = mount(CampusProfileView, mountOpts);
     await flushPromises();
 

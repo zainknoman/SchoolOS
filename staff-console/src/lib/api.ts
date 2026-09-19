@@ -960,6 +960,12 @@ async function asJson<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
+export interface ProvisionedLogin {
+  identifier: string;
+  /** Set only when the server generated the password — shown once. Null when the caller supplied one. */
+  temporaryPassword: string | null;
+}
+
 export const api = {
   async login(identifier: string, password: string): Promise<LoginResponse> {
     const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
@@ -1067,8 +1073,9 @@ export const api = {
       address?: string;
       phone?: string;
       email?: string;
+      admin?: { identifier: string; password?: string };
     },
-  ): Promise<void> {
+  ): Promise<{ provisionedLogin?: ProvisionedLogin }> {
     const res = await fetch(`${API_BASE_URL}/api/v1/schools`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
@@ -1077,6 +1084,7 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+    return (await res.json()) as { provisionedLogin?: ProvisionedLogin };
   },
 
   async updateSchool(
@@ -1151,8 +1159,9 @@ export const api = {
       address?: string;
       phone?: string;
       email?: string;
+      principal?: { identifier: string; password?: string };
     },
-  ): Promise<void> {
+  ): Promise<{ provisionedLogin?: ProvisionedLogin }> {
     const res = await fetch(`${API_BASE_URL}/api/v1/campuses`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
@@ -1161,6 +1170,7 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+    return (await res.json()) as { provisionedLogin?: ProvisionedLogin };
   },
 
   async updateCampus(

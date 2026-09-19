@@ -5,12 +5,14 @@
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { api, type CampusSummary, type OrgStatus, type SchoolSummary } from '../lib/api';
+import { api, type CampusSummary, type OrgStatus, type ProvisionedLogin, type SchoolSummary } from '../lib/api';
 import OrgProfileHeader from '../components/OrgProfileHeader.vue';
 import ProfileSectionCard from '../components/ProfileSectionCard.vue';
 import ErrorRetry from '../components/ErrorRetry.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
+import ProvisionLoginFields from '../components/ProvisionLoginFields.vue';
+import CredentialsPanel from '../components/CredentialsPanel.vue';
 import { useToast } from '../lib/useToast';
 
 const STATUS_OPTIONS = [
@@ -32,6 +34,15 @@ const errorMessage = ref<string | null>(null);
 const saveErrorMessage = ref<string | null>(null);
 const isEditing = ref(isNew.value);
 const isSaving = ref(false);
+// Create-only login provisioning. The password / temporary password live only in memory and are cleared after use.
+const provision = reactive({ enabled: false, identifier: '', password: '' });
+const issuedLogin = ref<ProvisionedLogin | null>(null);
+
+function finishCreate() {
+  issuedLogin.value = null;
+  provision.password = '';
+  router.push('/admin/campuses');
+}
 
 function emptyForm() {
   return {
@@ -143,9 +154,20 @@ async function onSave() {
   isSaving.value = true;
   try {
     if (isNew.value) {
-      await api.createCampus(auth.accessToken, { schoolId: form.schoolId, ...buildPayload() });
+      const created = await api.createCampus(auth.accessToken, {
+        schoolId: form.schoolId,
+        ...buildPayload(),
+        ...(provision.enabled && provision.identifier.trim()
+          ? { principal: { identifier: provision.identifier.trim(), ...(provision.password ? { password: provision.password } : {}) } }
+          : {}),
+      });
       toast.success('Campus added.');
-      router.push('/admin/campuses');
+      if (created.provisionedLogin) {
+        issuedLogin.value = created.provisionedLogin;
+        provision.password = '';
+      } else {
+        finishCreate();
+      }
     } else {
       await api.updateCampus(auth.accessToken, campusId.value!, buildPayload());
       await load();
@@ -224,7 +246,7 @@ const headerStatus = computed(() => (isEditing.value ? form.status : campus.valu
         <template #actions>
           <template v-if="isEditing">
             <Button variant="secondary" data-testid="cancel-edit" :disabled="isSaving" @click="cancelEdit">Cancel</Button>
-            <Button :data-testid="isNew ? 'add-submit' : 'save-submit'" :disabled="isSaving || !canSave" @click="onSave">
+            <Button :data-testid="isNew ? 'add-submit' : 'save-submit'" :disabled="isSaving || !canSave || !!issuedLogin" @click="onSave">
               {{ isNew ? 'Add campus' : 'Save' }}
             </Button>
           </template>
@@ -233,7 +255,9 @@ const headerStatus = computed(() => (isEditing.value ? form.status : campus.valu
       </OrgProfileHeader>
       <p v-if="saveErrorMessage" class="error" role="alert">{{ saveErrorMessage }}</p>
 
-      <template v-if="isEditing">
+      <CredentialsPanel v-if="issuedLogin" :login="issuedLogin" @done="finishCreate" />
+
+      <template v-else-if="isEditing">
         <ProfileSectionCard icon="home" title="Overview">
           <div class="field-grid">
             <FormField
@@ -272,6 +296,10 @@ const headerStatus = computed(() => (isEditing.value ? form.status : campus.valu
             <FormField v-model="form.principalPhone" label="Phone" type="text" data-testid="field-principal-phone" placeholder="Principal phone" />
             <FormField v-model="form.principalEmail" label="Email" type="email" data-testid="field-principal-email" placeholder="Principal email" />
           </div>
+        </ProfileSectionCard>
+
+        <ProfileSectionCard v-if="isNew" icon="user-circle" title="Login">
+          <ProvisionLoginFields :model-value="provision" @update:model-value="Object.assign(provision, $event)" label="Campus principal login" />
         </ProfileSectionCard>
 
         <ProfileSectionCard icon="file-text" title="Logo">
