@@ -139,6 +139,7 @@ async function onDelete(id: string) {
     <FormField
       v-model="selectedSessionId"
       label="Academic session"
+      hide-label
       type="select"
       data-testid="select-academic-session"
       placeholder="Select academic session"

@@ -90,6 +90,7 @@ async function onCommit() {
         ref="entityFieldRef"
         v-model="selectedEntity"
         label="Entity"
+        hide-label
         type="select"
         data-testid="select-entity"
         placeholder="Choose what to import"

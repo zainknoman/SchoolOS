@@ -128,6 +128,7 @@ function downloadUrl(id: string): string {
       <FormField
         v-model="selectedSectionId"
         label="Section"
+        hide-label
         type="select"
         data-testid="section-select"
         placeholder="Choose a section"
@@ -137,6 +138,7 @@ function downloadUrl(id: string): string {
       <FormField
         v-model="selectedStudentId"
         label="Student"
+        hide-label
         type="select"
         data-testid="select-student"
         placeholder="Choose a student"
@@ -146,6 +148,7 @@ function downloadUrl(id: string): string {
       <FormField
         v-model="selectedSessionId"
         label="Academic session"
+        hide-label
         type="select"
         data-testid="select-session"
         placeholder="Choose a session"
@@ -156,6 +159,7 @@ function downloadUrl(id: string): string {
         v-if="terms.length"
         v-model="selectedTermId"
         label="Term"
+        hide-label
         type="select"
         data-testid="select-term"
         placeholder="Choose a term"

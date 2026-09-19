@@ -94,6 +94,7 @@ async function onUpdateStatus(id: string, status: string) {
       <FormField
         v-model="selectedStudentId"
         label="Student"
+        hide-label
         type="select"
         data-testid="select-student"
         placeholder="Choose a student"

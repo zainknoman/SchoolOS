@@ -157,6 +157,7 @@ async function onDelete(id: string) {
       <FormField
         v-model="selectedClassId"
         label="Class"
+        hide-label
         type="select"
         data-testid="select-class"
         placeholder="Select class"
@@ -165,6 +166,7 @@ async function onDelete(id: string) {
       <FormField
         v-model="selectedTermId"
         label="Term"
+        hide-label
         type="select"
         data-testid="select-term"
         placeholder="Select term"

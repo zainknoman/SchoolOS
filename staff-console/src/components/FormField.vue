@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, useId } from 'vue';
 
 interface FieldOption {
   value: string;
@@ -19,12 +19,15 @@ withDefaults(
     hint?: string;
     /** Renders the input in the app's monospace face, for IDs/dates/phone numbers. */
     mono?: boolean;
+    /** Visually hides the label (still read by screen readers) — for filter bars and table cells. */
+    hideLabel?: boolean;
   }>(),
-  { grow: false },
+  { grow: false, hideLabel: false },
 );
 defineEmits<{ 'update:modelValue': [value: string | boolean] }>();
 defineOptions({ inheritAttrs: false });
 
+const fieldId = useId();
 const inputRef = ref<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>(null);
 defineExpose({ focus: () => inputRef.value?.focus() });
 </script>
@@ -45,9 +48,11 @@ defineExpose({ focus: () => inputRef.value?.focus() });
     <template v-else>{{ label }}</template>
   </label>
   <div v-else class="form-field" :class="{ grow }">
-    <label class="sr-only">{{ label }}</label>
+    <label class="form-field-label" :class="{ 'sr-only': hideLabel }" :for="fieldId">{{ label }}</label>
+    <p v-if="hint && !hideLabel" class="field-hint">{{ hint }}</p>
     <select
       v-if="type === 'select'"
+      :id="fieldId"
       ref="inputRef"
       v-bind="$attrs"
       :class="{ mono }"
@@ -59,6 +64,7 @@ defineExpose({ focus: () => inputRef.value?.focus() });
     </select>
     <textarea
       v-else-if="type === 'textarea'"
+      :id="fieldId"
       ref="inputRef"
       v-bind="$attrs"
       :class="{ mono }"
@@ -68,6 +74,7 @@ defineExpose({ focus: () => inputRef.value?.focus() });
     />
     <input
       v-else
+      :id="fieldId"
       ref="inputRef"
       :type="type"
       v-bind="$attrs"
@@ -96,6 +103,16 @@ defineExpose({ focus: () => inputRef.value?.focus() });
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+}
+.form-field-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.field-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  margin: 0;
 }
 .form-field.grow {
   flex: 1;

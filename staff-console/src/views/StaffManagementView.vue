@@ -158,6 +158,7 @@ async function onAdd() {
       <FormField
         v-model="selectedEmployeeType"
         label="Employee type"
+        hide-label
         type="select"
         data-testid="filter-employee-type"
         placeholder="All employee types"

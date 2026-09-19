@@ -79,13 +79,21 @@ describe('FormField', () => {
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([true]);
   });
 
-  it('does not render the label visibly for non-checkbox types (sr-only only)', () => {
+  it('renders a visible label linked to the control for non-checkbox types', () => {
     const wrapper = mount(FormField, {
-      props: { modelValue: '', label: 'Full name', type: 'text' },
+      props: { modelValue: '', label: 'Date of birth', type: 'date' },
     });
     const label = wrapper.find('label');
-    expect(label.exists()).toBe(true);
-    expect(label.classes()).toContain('sr-only');
+    expect(label.text()).toBe('Date of birth');
+    expect(label.classes()).not.toContain('sr-only');
+    expect(label.attributes('for')).toBe(wrapper.find('input').attributes('id'));
+  });
+
+  it('visually hides the label when hideLabel is set', () => {
+    const wrapper = mount(FormField, {
+      props: { modelValue: '', label: 'Status', type: 'select', hideLabel: true },
+    });
+    expect(wrapper.find('label').classes()).toContain('sr-only');
   });
 
   it('forwards passthrough attributes like data-testid onto the inner control', () => {

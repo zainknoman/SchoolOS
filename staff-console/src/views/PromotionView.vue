@@ -248,6 +248,7 @@ async function onExecute() {
       <FormField
         v-model="sourceClassId"
         label="Source class"
+        hide-label
         type="select"
         data-testid="select-source-class"
         placeholder="Select class"
@@ -256,6 +257,7 @@ async function onExecute() {
       <FormField
         v-model="sourceSectionId"
         label="Source section"
+        hide-label
         type="select"
         data-testid="select-source-section"
         placeholder="Select section"
@@ -265,6 +267,7 @@ async function onExecute() {
       <FormField
         v-model="targetAcademicSessionId"
         label="Target academic session"
+        hide-label
         type="select"
         data-testid="select-target-session"
         placeholder="Select target session"
@@ -294,6 +297,7 @@ async function onExecute() {
       <FormField
         v-model="bulkTargetSectionId"
         label="Bulk target section"
+        hide-label
         type="select"
         data-testid="bulk-target-section"
         placeholder="Choose a section for all promoted/retained rows"
@@ -329,6 +333,7 @@ async function onExecute() {
         <FormField
           :model-value="rowState[item.studentId]!.decision"
           label="Decision"
+          hide-label
           type="select"
           :data-testid="`decision-${item.studentId}`"
           :options="decisionOptions"
@@ -339,6 +344,7 @@ async function onExecute() {
         <FormField
           v-model="rowState[item.studentId]!.targetSectionId"
           label="Target section"
+          hide-label
           type="select"
           :data-testid="`target-section-${item.studentId}`"
           placeholder="Choose a target section"

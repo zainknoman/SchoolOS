@@ -97,6 +97,7 @@ function onCandidateCreated() {
       <FormField
         v-model="selectedCampusId"
         label="Campus"
+        hide-label
         type="select"
         data-testid="filter-campus"
         placeholder="All campuses"
@@ -106,6 +107,7 @@ function onCandidateCreated() {
       <FormField
         v-model="selectedStatus"
         label="Status"
+        hide-label
         type="select"
         data-testid="filter-status"
         placeholder="All statuses"

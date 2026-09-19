@@ -109,6 +109,7 @@ async function onUpdateStatus(id: string, status: string) {
       <FormField
         v-model="selectedSectionId"
         label="Section"
+        hide-label
         type="select"
         data-testid="section-select"
         placeholder="Choose a section"
@@ -118,6 +119,7 @@ async function onUpdateStatus(id: string, status: string) {
       <FormField
         v-model="selectedStudentId"
         label="Student"
+        hide-label
         type="select"
         data-testid="student-select"
         placeholder="Choose a student"

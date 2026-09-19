@@ -215,8 +215,14 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
       <p v-else class="empty-hint">No fee structures yet — add one to start issuing vouchers.</p>
       <AppModal v-model="showAddStructureForm" title="Add Fee Structure">
         <div class="inline-form">
-          <input data-testid="structure-name" v-model="newStructureName" type="text" placeholder="Name" />
-          <input data-testid="structure-amount" v-model="newStructureAmount" type="number" placeholder="Amount (PKR)" />
+          <label class="field">
+            <span>Name</span>
+            <input data-testid="structure-name" v-model="newStructureName" type="text" placeholder="Name" />
+          </label>
+          <label class="field">
+            <span>Amount (PKR)</span>
+            <input data-testid="structure-amount" v-model="newStructureAmount" type="number" placeholder="Amount (PKR)" />
+          </label>
           <Button data-testid="create-structure" @click="onCreateStructure">Add</Button>
         </div>
       </AppModal>

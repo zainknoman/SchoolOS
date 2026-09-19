@@ -102,6 +102,7 @@ const activeSessionLabel = computed(
       <FormField
         v-model="selectedSessionId"
         label="Academic session"
+        hide-label
         type="select"
         data-testid="filter-session"
         placeholder="All sessions"
@@ -111,6 +112,7 @@ const activeSessionLabel = computed(
       <FormField
         v-model="selectedStatus"
         label="Status"
+        hide-label
         type="select"
         data-testid="filter-status"
         placeholder="All statuses"
