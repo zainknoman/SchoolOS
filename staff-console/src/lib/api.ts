@@ -1359,8 +1359,9 @@ export const api = {
     return asJson(res);
   },
 
-  async listTeachers(accessToken: string): Promise<TeacherSummary[]> {
-    const res = await fetch(`${API_BASE_URL}/api/v1/teachers`, { headers: authHeaders(accessToken) });
+  async listTeachers(accessToken: string, campusId?: string): Promise<TeacherSummary[]> {
+    const query = campusId ? `?campusId=${encodeURIComponent(campusId)}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/teachers${query}`, { headers: authHeaders(accessToken) });
     return asJson(res);
   },
 

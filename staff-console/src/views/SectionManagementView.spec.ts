@@ -32,7 +32,7 @@ describe('SectionManagementView', () => {
     ]);
     vi.mocked(api.listTeachers).mockResolvedValue([{ id: 't1', name: 'Ms. Ayesha' }]);
     vi.mocked(api.listSections).mockResolvedValue([
-      { id: 'sec1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar', classTeacherId: 't1', classTeacherName: 'Ms. Ayesha' },
+      { id: 'sec1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar', classId: 'cl1', classTeacherId: 't1', classTeacherName: 'Ms. Ayesha' },
     ]);
     vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
@@ -48,12 +48,33 @@ describe('SectionManagementView', () => {
 
     await wrapper.find('[data-testid="open-add-form"]').trigger('click');
     await wrapper.find('[data-testid="add-class"]').setValue('cl1');
+    await flushPromises();
     await wrapper.find('[data-testid="add-name"]').setValue('3B');
     await wrapper.find('[data-testid="add-teacher"]').setValue('t1');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
     await flushPromises();
 
     expect(api.createSection).toHaveBeenCalledWith('token-1', { classId: 'cl1', name: '3B', classTeacherId: 't1' });
+  });
+
+  it('loads only the selected class campus teachers and clears the chosen teacher when the class changes', async () => {
+    const wrapper = mount(SectionManagementView);
+    await flushPromises();
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
+
+    await wrapper.find('[data-testid="add-class"]').setValue('cl1');
+    await flushPromises();
+
+    expect(api.listTeachers).toHaveBeenCalledWith('token-1', 'c1');
+  });
+
+  it('offers no teachers until a class is chosen', async () => {
+    const wrapper = mount(SectionManagementView);
+    await flushPromises();
+    await wrapper.find('[data-testid="open-add-form"]').trigger('click');
+
+    expect(api.listTeachers).not.toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="add-teacher"]').text()).toContain('Choose a class first');
   });
 
   it('creates a section with no class teacher when none is chosen', async () => {

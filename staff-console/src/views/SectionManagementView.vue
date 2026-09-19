@@ -1,6 +1,6 @@
 <!-- staff-console/src/views/SectionManagementView.vue -->
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type ClassSummary, type TeacherSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
@@ -16,7 +16,8 @@ const { confirm } = useConfirm();
 const toast = useToast();
 
 const classes = ref<ClassSummary[]>([]);
-const teachers = ref<TeacherSummary[]>([]);
+const addTeachers = ref<TeacherSummary[]>([]);
+const editTeachers = ref<TeacherSummary[]>([]);
 const sections = ref<SectionSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
@@ -33,9 +34,8 @@ const editTeacherId = ref('');
 async function load() {
   if (!auth.accessToken) return;
   try {
-    [classes.value, teachers.value, sections.value] = await Promise.all([
+    [classes.value, sections.value] = await Promise.all([
       api.listClasses(auth.accessToken),
-      api.listTeachers(auth.accessToken),
       api.listSections(auth.accessToken),
     ]);
   } catch (err) {
@@ -43,6 +43,17 @@ async function load() {
   }
 }
 load();
+
+async function teachersForClass(classId: string | undefined): Promise<TeacherSummary[]> {
+  const campusId = classes.value.find((c) => c.id === classId)?.campusId;
+  if (!auth.accessToken || !campusId) return [];
+  return api.listTeachers(auth.accessToken, campusId);
+}
+
+watch(newClassId, async (classId) => {
+  newTeacherId.value = '';
+  addTeachers.value = await teachersForClass(classId || undefined);
+});
 
 async function onAdd() {
   if (!auth.accessToken || !newClassId.value || !newName.value.trim()) return;
@@ -56,6 +67,7 @@ async function onAdd() {
     });
     newName.value = '';
     newTeacherId.value = '';
+    addTeachers.value = [];
     showAddForm.value = false;
     await load();
     toast.success('Section added.');
@@ -66,10 +78,11 @@ async function onAdd() {
   }
 }
 
-function startEdit(section: SectionSummary) {
+async function startEdit(section: SectionSummary) {
   editingId.value = section.id;
   editName.value = section.name;
   editTeacherId.value = section.classTeacherId ?? '';
+  editTeachers.value = await teachersForClass(section.classId);
 }
 
 function cancelEdit() {
@@ -131,7 +144,7 @@ async function onDelete(id: string) {
       <template #cell-classTeacherName="{ item, editing }">
         <select v-if="editing" :data-testid="`edit-teacher-${item.id}`" v-model="editTeacherId">
           <option value="">— None —</option>
-          <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+          <option v-for="t in editTeachers" :key="t.id" :value="t.id">{{ t.name }}</option>
         </select>
         <span v-else>{{ item.classTeacherName ?? '— None —' }}</span>
       </template>
@@ -165,7 +178,9 @@ async function onDelete(id: string) {
           label="Class teacher"
           type="select"
           data-testid="add-teacher"
-          :options="[{ value: '', label: '— No class teacher —' }, ...teachers.map((t) => ({ value: t.id, label: t.name }))]"
+          :options="newClassId
+            ? [{ value: '', label: '— No class teacher —' }, ...addTeachers.map((t) => ({ value: t.id, label: t.name }))]
+            : [{ value: '', label: 'Choose a class first' }]"
         />
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>
