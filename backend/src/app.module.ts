@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { OrgScopeModule } from './common/org-scope.module';
 import { AuthModule } from './auth/auth.module';
 import { MeModule } from './me/me.module';
 import { TimetableModule } from './timetable/timetable.module';
@@ -52,6 +53,7 @@ import {
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    OrgScopeModule,
     AuthModule,
     MeModule,
     TimetableModule,
