@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { OrgStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
@@ -72,7 +72,14 @@ export class CampusService {
   async create(
     dto: CreateCampusDto,
     actingUserId: string,
+    actingUser?: RequestUser,
   ): Promise<CampusSummary> {
+    if (actingUser && actingUser.role !== 'SUPER_ADMIN') {
+      const scope = await this.orgScope.resolve(actingUser);
+      if (scope.denied || scope.campusId !== null || scope.schoolId !== dto.schoolId) {
+        throw new ForbiddenException('You can only create campuses for your own school');
+      }
+    }
     // The Campus row and its audit-log entry are wrapped in one $transaction so a bad
     // actingUserId (e.g. a stale/orphaned session) rolls back the Campus row too, instead of
     // silently persisting a Campus with no audit trail while the caller sees a 500.

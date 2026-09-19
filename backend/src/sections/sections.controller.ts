@@ -30,21 +30,24 @@ export class SectionsController {
     return this.sectionsService.getStudents(sectionId);
   }
 
-  @Roles('SUPER_ADMIN')
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post()
-  create(@Body() dto: CreateSectionDto, @Req() req: AuthenticatedRequest) {
+  async create(@Body() dto: CreateSectionDto, @Req() req: AuthenticatedRequest) {
+    await this.studentAccess.assertCanAccessClass(req.user, dto.classId);
     return this.sectionsService.create(dto, req.user.id);
   }
 
-  @Roles('SUPER_ADMIN')
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateSectionDto, @Req() req: AuthenticatedRequest) {
+  async update(@Param('id') id: string, @Body() dto: UpdateSectionDto, @Req() req: AuthenticatedRequest) {
+    await this.studentAccess.assertCanAccessSection(req.user, id);
     return this.sectionsService.update(id, dto, req.user.id);
   }
 
-  @Roles('SUPER_ADMIN')
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    await this.studentAccess.assertCanAccessSection(req.user, id);
     await this.sectionsService.delete(id, req.user.id);
   }
 }

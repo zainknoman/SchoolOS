@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { OrgStatus, Prisma } from '@prisma/client';
 import { CampusService } from './campus.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -63,6 +63,40 @@ describe('CampusService', () => {
       providers: [CampusService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
     }).compile();
     service = moduleRef.get(CampusService);
+  });
+
+  it('rejects a campus principal creating a campus', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'p1', schoolId: 's1', campusId: 'c1' });
+    await expect(
+      service.create({ schoolId: 's1', name: 'New' }, 'p1', { id: 'p1', role: 'SCHOOL_ADMIN' }),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects a school admin creating a campus in another school', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'a1', schoolId: 's1', campusId: null });
+    await expect(
+      service.create({ schoolId: 's2', name: 'New' }, 'a1', { id: 'a1', role: 'SCHOOL_ADMIN' }),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects a user with no school scope creating a campus', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'a1', schoolId: null, campusId: null });
+    await expect(
+      service.create({ schoolId: 's1', name: 'New' }, 'a1', { id: 'a1', role: 'SCHOOL_ADMIN' }),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('lets a school-wide admin create a campus in their own school', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'a1', schoolId: 's1', campusId: null });
+    prisma.campus.create.mockResolvedValue({
+      id: 'c9', name: 'New', schoolId: 's1', ...NEW_PROFILE_FIELDS,
+      address: null, phone: null, email: null, school: { name: 'S' },
+    });
+    const result = await service.create({ schoolId: 's1', name: 'New' }, 'a1', {
+      id: 'a1',
+      role: 'SCHOOL_ADMIN',
+    });
+    expect(result.id).toBe('c9');
   });
 
   it('creates a campus under a school (with address/phone/email) and audit-logs it', async () => {

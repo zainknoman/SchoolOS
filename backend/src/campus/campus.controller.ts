@@ -24,9 +24,10 @@ interface AuthenticatedRequest extends Request {
 export class CampusController {
   constructor(private readonly campusService: CampusService) {}
 
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('campuses')
   create(@Body() dto: CreateCampusDto, @Req() req: AuthenticatedRequest) {
-    return this.campusService.create(dto, req.user.id);
+    return this.campusService.create(dto, req.user.id, req.user);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
