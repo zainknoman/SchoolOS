@@ -27,7 +27,7 @@ describe('SectionsService', () => {
     name: '3A',
     classId: 'cl1',
     classTeacherId: 't1',
-    class: { name: 'Grade 3', campus: { name: 'Gulistan-e-Jauhar' } },
+    class: { name: 'Grade 3', academicSessionId: 'sess1', campus: { name: 'Gulistan-e-Jauhar' } },
     classTeacher: { name: 'Ms. Ayesha' },
   };
   const expectedSummary = {
@@ -37,6 +37,8 @@ describe('SectionsService', () => {
     campusName: 'Gulistan-e-Jauhar',
     classTeacherId: 't1',
     classTeacherName: 'Ms. Ayesha',
+    classId: 'cl1',
+    academicSessionId: 'sess1',
   };
 
   beforeEach(async () => {

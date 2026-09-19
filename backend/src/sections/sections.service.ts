@@ -12,6 +12,7 @@ export interface SectionSummary {
   name: string;
   className: string;
   campusName: string;
+  classId?: string;
   academicSessionId?: string;
   classTeacherId?: string | null;
   classTeacherName?: string | null;
@@ -33,6 +34,7 @@ export class SectionsService {
     id: string;
     name: string;
     classTeacherId: string | null;
+    classId: string;
     class: { name: string; academicSessionId: string; campus: { name: string } };
     classTeacher: { name: string } | null;
   }): SectionSummary {
@@ -41,6 +43,7 @@ export class SectionsService {
       name: record.name,
       className: record.class.name,
       campusName: record.class.campus.name,
+      classId: record.classId,
       academicSessionId: record.class.academicSessionId,
       classTeacherId: record.classTeacherId,
       classTeacherName: record.classTeacher?.name ?? null,

@@ -34,11 +34,18 @@ const isSaving = ref(false);
 const message = ref<string | null>(null);
 const errorMessage = ref<string | null>(null);
 
-// A Section doesn't carry its own classId — resolved here by matching the section's
-// className/campusName against the class list, the same pair SectionSummary and ClassSummary
-// both expose. (There is no classId on SectionSummary; see gradebook plan Task 9 discrepancy notes.)
+// Resolves a section's class. SectionSummary now carries classId; the name/campus/session match is
+// only a fallback for older payloads. Matching by name+campus alone is ambiguous once two academic
+// sessions hold classes with the same name (e.g. after copying next year's structure), and would
+// pick the wrong session's class — whose terms/categories are empty.
 function classForSection(section: SectionSummary): ClassSummary | undefined {
-  return classes.value.find((c) => c.name === section.className && c.campusName === section.campusName);
+  if (section.classId) return classes.value.find((c) => c.id === section.classId);
+  return classes.value.find(
+    (c) =>
+      c.name === section.className &&
+      c.campusName === section.campusName &&
+      (!section.academicSessionId || c.academicSessionId === section.academicSessionId),
+  );
 }
 
 async function loadInitial() {
@@ -119,6 +126,25 @@ async function onCategoryChange() {
   }
 }
 
+// Marks inputs only appear once an assessment is chosen, so say what is missing instead of showing
+// a bare roster: the first unmet step in Section -> Term -> Category -> Assessment.
+const nextStepHint = computed(() => {
+  if (!selectedSectionId.value || selectedAssessmentId.value) return null;
+  if (!selectedTermId.value) {
+    return terms.value.length
+      ? 'Choose a term to continue.'
+      : 'This section’s academic session has no terms yet — create a term for it before entering marks.';
+  }
+  if (!selectedCategoryId.value) {
+    return categories.value.length
+      ? 'Choose an assessment category to continue.'
+      : 'No assessment categories exist for this class and term yet.';
+  }
+  return assessments.value.length
+    ? 'Choose an assessment to enter marks.'
+    : 'No assessments exist in this category yet — create one first.';
+});
+
 const selectedAssessment = computed(() => assessments.value.find((a) => a.id === selectedAssessmentId.value));
 
 async function onSave() {
@@ -177,6 +203,8 @@ async function onSave() {
         </select>
       </label>
     </div>
+
+    <p v-if="nextStepHint" class="hint" data-testid="next-step-hint">{{ nextStepHint }}</p>
 
     <div v-if="students.length" class="roster-card">
       <div class="roster-header">
@@ -270,6 +298,14 @@ input {
 }
 .muted {
   color: var(--color-muted);
+}
+.hint {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-status-info-tint);
+  font-size: var(--font-size-sm);
 }
 .success {
   color: var(--color-accent);

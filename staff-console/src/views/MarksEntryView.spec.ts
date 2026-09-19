@@ -129,4 +129,42 @@ describe('MarksEntryView', () => {
       expect((wrapper.find('[data-testid="select-section"]').element as HTMLSelectElement).value).toBe('');
     });
   });
+
+  it('uses the section own class when another session has a same-named class', async () => {
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Main', classId: 'c-2026', academicSessionId: 'sess-1' },
+    ]);
+    vi.mocked(api.listClasses).mockResolvedValue([
+      { id: 'c-2027', name: 'Grade 3', campusId: 'camp-1', campusName: 'Main', academicSessionId: 'sess-2', academicSessionLabel: '2027-2028' },
+      { id: 'c-2026', name: 'Grade 3', campusId: 'camp-1', campusName: 'Main', academicSessionId: 'sess-1', academicSessionLabel: '2026-2027' },
+    ]);
+    const wrapper = await mountWithRouter();
+
+    await wrapper.find('[data-testid="select-section"]').setValue('sec-1');
+    await flushPromises();
+
+    expect(api.listTerms).toHaveBeenCalledWith('token-1', 'sess-1');
+  });
+
+  it('explains what is missing instead of showing a bare roster', async () => {
+    vi.mocked(api.listTerms).mockResolvedValue([]);
+    const wrapper = await mountWithRouter();
+
+    await wrapper.find('[data-testid="select-section"]').setValue('sec-1');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="next-step-hint"]').text()).toContain('no terms yet');
+    expect(wrapper.find('[data-testid="marks-input-s1"]').exists()).toBe(false);
+  });
+
+  it('prompts for the next cascade step once a term exists', async () => {
+    const wrapper = await mountWithRouter();
+
+    await wrapper.find('[data-testid="select-section"]').setValue('sec-1');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="next-step-hint"]').text()).toContain('Choose a term');
+
+    await wrapper.find('[data-testid="select-term"]').setValue('t1');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="next-step-hint"]').text()).toContain('category');
+  });
 });

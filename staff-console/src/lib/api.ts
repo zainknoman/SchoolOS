@@ -45,6 +45,7 @@ export interface SectionSummary {
   name: string;
   className: string;
   campusName: string;
+  classId?: string;
   academicSessionId?: string;
   classTeacherId?: string | null;
   classTeacherName?: string | null;
