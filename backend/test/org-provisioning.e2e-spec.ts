@@ -13,6 +13,8 @@ const SCHOOL_PREFIX = 'PROV E2E';
 const SCHOOL_NAME = 'PROV E2E School';
 const OTHER_SCHOOL_NAME = 'PROV E2E Other School';
 const DUP_SCHOOL_NAME = 'PROV E2E Dup School';
+const SUPPLIED_SCHOOL_NAME = 'PROV E2E Supplied Admin School';
+const SUPPLIED_ADMIN_PASSWORD = 'SuppliedAdmin123!';
 const DUP_CAMPUS_NAME = 'PROV E2E Dup Campus';
 
 const SUPER_ID = 'prov-super';
@@ -48,6 +50,39 @@ describe('Org provisioning and campus scoping (e2e)', () => {
     northTeacherId: string;
     southTeacherId: string;
   } = {} as never;
+
+  const startedAt = new Date();
+  const secrets: string[] = [];
+
+  // Scans every audit row written by any prov- actor since the test started (broadest window),
+  // plus rows keyed to the given entity ids, for any known password string. Also proves the
+  // `entity: 'User'` rows exist and record the identifier, so the scan provably covers them.
+  async function expectNoPasswordInAudit(userIdentifiers: string[], extraEntityIds: string[] = []) {
+    const actors = await prisma.user.findMany({
+      where: { identifier: { startsWith: ID_PREFIX } },
+      select: { id: true },
+    });
+    const rows = await prisma.auditLog.findMany({
+      where: {
+        OR: [
+          { userId: { in: actors.map((a) => a.id) }, createdAt: { gte: startedAt } },
+          { entityId: { in: extraEntityIds } },
+        ],
+      },
+    });
+    expect(rows.length).toBeGreaterThan(0);
+    expect(secrets.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      const serialized = JSON.stringify(row);
+      for (const secret of secrets) {
+        expect(serialized).not.toContain(secret);
+      }
+    }
+    const userRows = rows.filter((r) => r.entity === 'User');
+    for (const identifier of userIdentifiers) {
+      expect(userRows.some((r) => (r.metadata ?? '').includes(identifier))).toBe(true);
+    }
+  }
 
   const http = () => request(app.getHttpServer());
   const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
@@ -157,13 +192,8 @@ describe('Org provisioning and campus scoping (e2e)', () => {
     });
 
     it('does not write the generated password into any audit log row for that create', async () => {
-      const rows = await prisma.auditLog.findMany({
-        where: { OR: [{ entityId: s.schoolId }, { entity: 'User', entityId: s.schoolId }] },
-      });
-      expect(rows.length).toBeGreaterThan(0);
-      for (const row of rows) {
-        expect(JSON.stringify(row)).not.toContain(s.tempPassword);
-      }
+      secrets.push(s.tempPassword);
+      await expectNoPasswordInAudit([ADMIN_ID], [s.schoolId]);
     });
 
     it('the provisioned admin logs in with mustChangePassword, isPrincipal, a schoolId and no campusId', async () => {
@@ -211,6 +241,21 @@ describe('Org provisioning and campus scoping (e2e)', () => {
     });
   });
 
+  describe('School provisioning with a supplied admin password', () => {
+    it('returns temporaryPassword null and never audits the supplied password', async () => {
+      const res = await http()
+        .post('/api/v1/schools')
+        .set(auth(s.superToken))
+        .send({ name: SUPPLIED_SCHOOL_NAME, admin: { identifier: 'prov-admin2@x.test', password: SUPPLIED_ADMIN_PASSWORD } })
+        .expect(201);
+      expect(res.body.provisionedLogin).toEqual({ identifier: 'prov-admin2@x.test', temporaryPassword: null });
+      secrets.push(SUPPLIED_ADMIN_PASSWORD);
+      await expectNoPasswordInAudit(['prov-admin2@x.test'], [res.body.id]);
+      const body = await loginOk('prov-admin2@x.test', SUPPLIED_ADMIN_PASSWORD);
+      expect(body.mustChangePassword).toBe(true);
+    });
+  });
+
   describe('Campus provisioning by the school admin', () => {
     it('the admin of a school with zero campuses creates its first campus with a supplied principal password (temporaryPassword null)', async () => {
       const before = await http().get('/api/v1/campuses').set(auth(s.adminToken)).expect(200);
@@ -254,22 +299,16 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .expect(201);
       const temp = gen.body.provisionedLogin.temporaryPassword;
       expect(typeof temp).toBe('string');
-      const rows = await prisma.auditLog.findMany({ where: { entityId: gen.body.id } });
-      expect(rows.length).toBeGreaterThan(0);
-      for (const row of rows) {
-        expect(JSON.stringify(row)).not.toContain(temp);
-      }
+      secrets.push(temp);
+      await expectNoPasswordInAudit(['prov-east@x.test'], [gen.body.id]);
       const eastLogin = await loginOk('prov-east@x.test', temp);
       expect(eastLogin.mustChangePassword).toBe(true);
       expect(eastLogin.campusId).toBe(gen.body.id);
     });
 
     it('does not write a supplied principal password into the audit log', async () => {
-      const rows = await prisma.auditLog.findMany({ where: { entityId: s.northId } });
-      expect(rows.length).toBeGreaterThan(0);
-      for (const row of rows) {
-        expect(JSON.stringify(row)).not.toContain(NORTH_PASSWORD);
-      }
+      secrets.push(NORTH_PASSWORD, SOUTH_PASSWORD, ADMIN_NEW_PASSWORD);
+      await expectNoPasswordInAudit([NORTH_ID, SOUTH_ID], [s.northId, s.southId]);
     });
 
     it('rejects a duplicate principal identifier with 400 and leaves no Campus row behind', async () => {
@@ -309,6 +348,8 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .set(auth(s.adminToken))
         .send({ label: SCHOOL_PREFIX, startDate: '2030-01-01', endDate: '2030-12-31' })
         .expect(403);
+      // Only the fixture session exists: the 403 created nothing.
+      expect(await prisma.academicSession.count({ where: { label: SCHOOL_PREFIX } })).toBe(1);
       expect(await prisma.campus.findUnique({ where: { id: s.northId } })).toMatchObject({ name: 'North' });
     });
 
@@ -371,11 +412,13 @@ describe('Org provisioning and campus scoping (e2e)', () => {
     });
 
     it('forbids creating a class in another campus, and allows creating one in the own campus', async () => {
+      const classesBefore = await prisma.class.count({ where: { campusId: s.southId } });
       await http()
         .post('/api/v1/classes')
         .set(auth(s.northToken))
         .send({ campusId: s.southId, academicSessionId: s.sessionId, name: 'Sneaky' })
         .expect(403);
+      expect(await prisma.class.count({ where: { campusId: s.southId } })).toBe(classesBefore);
 
       const ok = await http()
         .post('/api/v1/classes')
@@ -400,6 +443,7 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .set(auth(s.northToken))
         .send({ classId: s.southClassId, name: 'Sneaky' })
         .expect(403);
+      expect(await prisma.section.count({ where: { classId: s.southClassId } })).toBe(1);
     });
 
     it('forbids updating and deleting another campus\'s class', async () => {
