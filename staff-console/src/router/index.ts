@@ -34,6 +34,12 @@ const router = createRouter({
       meta: { public: true, title: 'Reset password' },
     },
     {
+      path: '/change-password',
+      name: 'change-password',
+      component: () => import('../views/ChangePasswordView.vue'),
+      meta: { title: 'Change password' },
+    },
+    {
       path: '/teacher',
       name: 'teacher-home',
       component: () => import('../views/TeacherHomeView.vue'),
@@ -329,6 +335,11 @@ router.beforeEach((to) => {
 
   if (!auth.isAuthenticated) {
     return { name: 'login' };
+  }
+
+  // A provisioned login must set its own password before reaching anything else.
+  if (auth.mustChangePassword && to.name !== 'change-password') {
+    return { name: 'change-password' };
   }
 
   const requiresRole = to.meta.requiresRole as string[] | undefined;

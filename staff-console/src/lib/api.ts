@@ -29,6 +29,8 @@ export interface LoginResponse {
   refreshToken: string;
   role: string;
   isPrincipal: boolean;
+  mustChangePassword: boolean;
+  campusId: string | null;
 }
 
 export interface ChildSummary {
@@ -973,6 +975,18 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
+    });
+    return asJson<LoginResponse>(res);
+  },
+
+  async changePassword(
+    accessToken: string,
+    payload: { currentPassword: string; newPassword: string },
+  ): Promise<LoginResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/auth/change-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
     });
     return asJson<LoginResponse>(res);
   },

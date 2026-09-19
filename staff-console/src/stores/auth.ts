@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { api } from '../lib/api';
+import { api, type LoginResponse } from '../lib/api';
 
 const STORAGE_KEY = 'schoolos.auth';
 
@@ -11,6 +11,8 @@ interface PersistedSession {
   refreshToken: string;
   role: string;
   isPrincipal: boolean;
+  mustChangePassword: boolean;
+  campusId: string | null;
 }
 
 function loadPersistedSession(): PersistedSession | null {
@@ -37,7 +39,16 @@ export const useAuthStore = defineStore('auth', {
       refreshToken: persisted?.refreshToken ?? null,
       role: persisted?.role ?? null,
       isPrincipal: persisted?.isPrincipal ?? false,
-    } as { accessToken: string | null; refreshToken: string | null; role: string | null; isPrincipal: boolean };
+      mustChangePassword: persisted?.mustChangePassword ?? false,
+      campusId: persisted?.campusId ?? null,
+    } as {
+      accessToken: string | null;
+      refreshToken: string | null;
+      role: string | null;
+      isPrincipal: boolean;
+      mustChangePassword: boolean;
+      campusId: string | null;
+    };
   },
 
   getters: {
@@ -49,10 +60,16 @@ export const useAuthStore = defineStore('auth', {
       // Errors intentionally propagate to the caller (LoginView) unmodified — the API already
       // returns the correct generic message, this store must not add or remove information.
       const session = await api.login(identifier, password);
+      this.applySession(session);
+    },
+
+    applySession(session: LoginResponse) {
       this.accessToken = session.accessToken;
       this.refreshToken = session.refreshToken;
       this.role = session.role;
       this.isPrincipal = session.isPrincipal;
+      this.mustChangePassword = session.mustChangePassword ?? false;
+      this.campusId = session.campusId ?? null;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
     },
 
@@ -71,11 +88,7 @@ export const useAuthStore = defineStore('auth', {
     async _doRefresh(): Promise<string | null> {
       try {
         const session = await api.refresh(this.refreshToken as string);
-        this.accessToken = session.accessToken;
-        this.refreshToken = session.refreshToken;
-        this.role = session.role;
-        this.isPrincipal = session.isPrincipal;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        this.applySession(session);
         return session.accessToken;
       } catch {
         this.logout();
@@ -88,6 +101,8 @@ export const useAuthStore = defineStore('auth', {
       this.refreshToken = null;
       this.role = null;
       this.isPrincipal = false;
+      this.mustChangePassword = false;
+      this.campusId = null;
       localStorage.removeItem(STORAGE_KEY);
     },
   },

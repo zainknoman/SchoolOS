@@ -50,5 +50,17 @@
     "submit": "Sign in",
     "submitting": "Signing in…",
     "forgotPassword": "Forgot password?"
+  },
+  "changePassword": {
+    "title": "Change your password",
+    "subtitle": "Your account uses a temporary password. Choose a new one to continue.",
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "Confirm new password",
+    "submit": "Change password",
+    "submitting": "Saving…",
+    "tooShort": "The new password must be at least 8 characters.",
+    "mismatch": "The new passwords do not match.",
+    "logout": "Sign out"
   }
 }

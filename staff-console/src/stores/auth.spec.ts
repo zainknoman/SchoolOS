@@ -35,6 +35,8 @@ describe('auth store', () => {
       refreshToken: 'refresh-abc',
       role: 'TEACHER',
       isPrincipal: false,
+      mustChangePassword: false,
+      campusId: null,
     });
 
     const store = useAuthStore();
@@ -51,6 +53,8 @@ describe('auth store', () => {
       refreshToken: 'refresh-abc',
       role: 'SCHOOL_ADMIN',
       isPrincipal: false,
+      mustChangePassword: false,
+      campusId: null,
     });
 
     const store = useAuthStore();
@@ -78,6 +82,8 @@ describe('auth store', () => {
       refreshToken: 'refresh-abc',
       role: 'TEACHER',
       isPrincipal: false,
+      mustChangePassword: false,
+      campusId: null,
     });
 
     const store = useAuthStore();
@@ -95,12 +101,16 @@ describe('auth store', () => {
       refreshToken: 'refresh-old',
       role: 'TEACHER',
       isPrincipal: false,
+      mustChangePassword: false,
+      campusId: null,
     });
     vi.mocked(api.refresh).mockResolvedValue({
       accessToken: 'token-new',
       refreshToken: 'refresh-new',
       role: 'TEACHER',
       isPrincipal: false,
+      mustChangePassword: false,
+      campusId: null,
     });
 
     const store = useAuthStore();
@@ -120,6 +130,8 @@ describe('auth store', () => {
       refreshToken: 'refresh-old',
       role: 'TEACHER',
       isPrincipal: false,
+      mustChangePassword: false,
+      campusId: null,
     });
     vi.mocked(api.refresh).mockRejectedValue(new ApiError('Invalid credentials', 401));
 
@@ -146,12 +158,16 @@ describe('auth store', () => {
       refreshToken: 'refresh-old',
       role: 'TEACHER',
       isPrincipal: false,
+      mustChangePassword: false,
+      campusId: null,
     });
     let resolveRefresh!: (value: {
       accessToken: string;
       refreshToken: string;
       role: string;
       isPrincipal: boolean;
+      mustChangePassword: boolean;
+      campusId: string | null;
     }) => void;
     vi.mocked(api.refresh).mockReturnValue(
       new Promise((resolve) => {
@@ -164,12 +180,48 @@ describe('auth store', () => {
 
     const call1 = store.refreshSession();
     const call2 = store.refreshSession();
-    resolveRefresh({ accessToken: 'token-new', refreshToken: 'refresh-new', role: 'TEACHER', isPrincipal: false });
+    resolveRefresh({ accessToken: 'token-new', refreshToken: 'refresh-new', role: 'TEACHER', isPrincipal: false, mustChangePassword: false, campusId: null });
 
     const [result1, result2] = await Promise.all([call1, call2]);
 
     expect(result1).toBe('token-new');
     expect(result2).toBe('token-new');
     expect(vi.mocked(api.refresh)).toHaveBeenCalledTimes(1);
+  });
+
+  it('stores and persists mustChangePassword and campusId from login, and applySession clears the flag', async () => {
+    vi.mocked(api.login).mockResolvedValue({
+      accessToken: 'a1',
+      refreshToken: 'r1',
+      role: 'SCHOOL_ADMIN',
+      isPrincipal: true,
+      mustChangePassword: true,
+      campusId: 'campus-1',
+    });
+    const store = useAuthStore();
+    await store.login('p@schoolos.edu.pk', 'Temp1234!x');
+    expect(store.mustChangePassword).toBe(true);
+    expect(store.campusId).toBe('campus-1');
+    expect(JSON.parse(localStorage.getItem('schoolos.auth')!).mustChangePassword).toBe(true);
+
+    setActivePinia(createPinia());
+    expect(useAuthStore().mustChangePassword).toBe(true);
+
+    const reloaded = useAuthStore();
+    reloaded.applySession({
+      accessToken: 'a2',
+      refreshToken: 'r2',
+      role: 'SCHOOL_ADMIN',
+      isPrincipal: true,
+      mustChangePassword: false,
+      campusId: 'campus-1',
+    });
+    expect(reloaded.mustChangePassword).toBe(false);
+    expect(reloaded.accessToken).toBe('a2');
+    expect(JSON.parse(localStorage.getItem('schoolos.auth')!).mustChangePassword).toBe(false);
+
+    reloaded.logout();
+    expect(reloaded.mustChangePassword).toBe(false);
+    expect(reloaded.campusId).toBeNull();
   });
 });
