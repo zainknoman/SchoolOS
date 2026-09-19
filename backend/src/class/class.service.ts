@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertValidReferences } from '../common/prisma-create-guard';
 import { CreateClassDto } from './dto/create-class.dto';
@@ -25,6 +26,7 @@ const WITH_PARENTS = {
 export class ClassService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
     private readonly studentAccess: StudentAccessService,
   ) {}
 
@@ -90,12 +92,14 @@ export class ClassService {
       }
       const sectionIds = await this.studentAccess.getTeacherSectionIds(teacher.id);
       where = { sections: { some: { id: { in: [...sectionIds] } } } };
-    } else if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
+    } else {
+      const scope = await this.orgScope.resolve(actingUser);
+      if (scope.denied) {
         return [];
       }
-      where = { campus: { schoolId: admin.schoolId } };
+      if (scope.campusWhere) {
+        where = { campus: scope.campusWhere };
+      }
     }
     const records = await this.prisma.class.findMany({
       where,

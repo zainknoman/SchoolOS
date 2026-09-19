@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { ClassService } from './class.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StudentAccessService } from '../common/student-access.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 describe('ClassService', () => {
   let service: ClassService;
@@ -61,6 +62,7 @@ describe('ClassService', () => {
         ClassService,
         { provide: PrismaService, useValue: prisma },
         { provide: StudentAccessService, useValue: studentAccess },
+        OrgScopeService,
       ],
     }).compile();
     service = moduleRef.get(ClassService);
@@ -120,6 +122,17 @@ describe('ClassService', () => {
     expect(result).toEqual([expectedSummary]);
     expect(prisma.class.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { campus: { schoolId: 's1' } } }),
+    );
+  });
+
+  it('scopes a campus principal to their own campus classes', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'p1', schoolId: 's1', campusId: 'c1' });
+    prisma.class.findMany.mockResolvedValue([]);
+
+    await service.list({ id: 'p1', role: 'SCHOOL_ADMIN' });
+
+    expect(prisma.class.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { campus: { id: 'c1', schoolId: 's1' } } }),
     );
   });
 

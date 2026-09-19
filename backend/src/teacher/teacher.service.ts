@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
@@ -19,7 +20,10 @@ const WITH_USER = { user: { select: { identifier: true } } } as const;
 
 @Injectable()
 export class TeacherService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   private toSummary(record: { id: string; name: string; user: { identifier: string } }): TeacherAdminSummary {
     return { id: record.id, identifier: record.user.identifier, name: record.name };
@@ -54,14 +58,11 @@ export class TeacherService {
   }
 
   async list(actingUser: RequestUser): Promise<TeacherAdminSummary[]> {
-    let where: Prisma.TeacherWhereInput | undefined;
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
-        return [];
-      }
-      where = { campus: { schoolId: admin.schoolId } };
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.denied) {
+      return [];
     }
+    const where: Prisma.TeacherWhereInput | undefined = scope.campusWhere ? { campus: scope.campusWhere } : undefined;
     const records = await this.prisma.teacher.findMany({ where, include: WITH_USER, orderBy: { name: 'asc' } });
     return records.map((r) => this.toSummary(r));
   }

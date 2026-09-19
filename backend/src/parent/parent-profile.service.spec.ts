@@ -2,6 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ParentService } from './parent.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 describe('ParentService — profile / guardian links', () => {
   let service: ParentService;
@@ -72,7 +73,7 @@ describe('ParentService — profile / guardian links', () => {
       $transaction: jest.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [ParentService, { provide: PrismaService, useValue: prisma }],
+      providers: [ParentService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
     }).compile();
     service = moduleRef.get(ParentService);
   });

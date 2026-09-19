@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import type { RequestUser } from '../common/student-access.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
@@ -19,7 +20,10 @@ export interface AcademicSessionSummary {
 
 @Injectable()
 export class AcademicSessionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   private toSummary(record: {
     id: string;
@@ -88,20 +92,16 @@ export class AcademicSessionService {
     if (!target || !source) {
       throw new NotFoundException('Academic session not found');
     }
-    let schoolId: string | undefined;
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
-        throw new BadRequestException('No school is linked to this account');
-      }
-      schoolId = admin.schoolId;
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.denied) {
+      throw new BadRequestException('No school is linked to this account');
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
       const sourceClasses = await tx.class.findMany({
         where: {
           academicSessionId: sourceSessionId,
-          ...(schoolId ? { campus: { schoolId } } : {}),
+          ...(scope.campusWhere ? { campus: scope.campusWhere } : {}),
         },
         include: { sections: true },
       });

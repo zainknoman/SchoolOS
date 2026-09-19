@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { HiringApplicationsService } from './hiring-applications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 describe('HiringApplicationsService', () => {
   let service: HiringApplicationsService;
@@ -25,7 +26,7 @@ describe('HiringApplicationsService', () => {
       $transaction: jest.fn(),
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [HiringApplicationsService, { provide: PrismaService, useValue: prisma }],
+      providers: [HiringApplicationsService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
     }).compile();
     service = moduleRef.get(HiringApplicationsService);
   });

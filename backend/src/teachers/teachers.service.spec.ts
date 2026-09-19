@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { TeachersService } from './teachers.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 describe('TeachersService', () => {
   let service: TeachersService;
@@ -31,7 +32,7 @@ describe('TeachersService', () => {
       term: { findMany: jest.fn().mockResolvedValue([]) },
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [TeachersService, { provide: PrismaService, useValue: prisma }],
+      providers: [TeachersService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
     }).compile();
     service = moduleRef.get(TeachersService);
   });

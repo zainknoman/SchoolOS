@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { CreateHiringApplicationDto } from './dto/create-hiring-application.dto';
 import { UpdateHiringApplicationDto } from './dto/update-hiring-application.dto';
 import { ApproveHiringApplicationDto } from './dto/approve-hiring-application.dto';
@@ -25,7 +26,10 @@ const WITH_CANDIDATE = { candidate: { select: { name: true } } } as const;
 
 @Injectable()
 export class HiringApplicationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   private toSummary(record: {
     id: string; candidateId: string; candidate: { name: string }; employeeType: EmployeeType;
@@ -68,12 +72,12 @@ export class HiringApplicationsService {
       ...(campusId ? { campusId } : {}),
       ...(status ? { status } : {}),
     };
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
-        return [];
-      }
-      where = { ...where, campus: { schoolId: admin.schoolId } };
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.denied) {
+      return [];
+    }
+    if (scope.campusWhere) {
+      where = { ...where, campus: scope.campusWhere };
     }
     const records = await this.prisma.hiringApplication.findMany({
       where,

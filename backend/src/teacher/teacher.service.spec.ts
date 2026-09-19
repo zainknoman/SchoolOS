@@ -3,6 +3,7 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { Prisma } from '@prisma/client';
 import { TeacherService } from './teacher.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 jest.mock('argon2', () => ({ hash: jest.fn().mockResolvedValue('hashed-password') }));
 
@@ -32,7 +33,7 @@ describe('TeacherService', () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
     prisma.campus.findUnique.mockResolvedValue({ id: 'campus-1', schoolId: 'school-1' });
     const moduleRef = await Test.createTestingModule({
-      providers: [TeacherService, { provide: PrismaService, useValue: prisma }],
+      providers: [TeacherService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
     }).compile();
     service = moduleRef.get(TeacherService);
   });

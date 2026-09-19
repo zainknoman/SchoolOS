@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { createParentWithUser } from './create-parent-with-user';
@@ -107,7 +108,10 @@ const WITH_USER_AND_COUNT = { user: { select: { identifier: true } }, _count: { 
 
 @Injectable()
 export class ParentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   private toSummary(record: {
     id: string;
@@ -146,14 +150,14 @@ export class ParentService {
 
   async list(actingUser: RequestUser): Promise<ParentSummary[]> {
     let where: Prisma.ParentProfileWhereInput | undefined;
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
-        return [];
-      }
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.denied) {
+      return [];
+    }
+    if (scope.campusWhere) {
       where = {
         children: {
-          some: { student: { enrollments: { some: { section: { class: { campus: { schoolId: admin.schoolId } } } } } } },
+          some: { student: { enrollments: { some: { section: { class: { campus: scope.campusWhere } } } } } },
         },
       };
     }

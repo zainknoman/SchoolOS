@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { StaffService } from './staff.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 describe('StaffService', () => {
   let service: StaffService;
@@ -21,7 +22,7 @@ describe('StaffService', () => {
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [StaffService, { provide: PrismaService, useValue: prisma }],
+      providers: [StaffService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
     }).compile();
     service = moduleRef.get(StaffService);
   });

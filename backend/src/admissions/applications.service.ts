@@ -2,6 +2,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { ApproveApplicationDto } from './dto/approve-application.dto';
@@ -26,7 +27,10 @@ const WITH_APPLICANT = { applicant: { select: { name: true } } } as const;
 
 @Injectable()
 export class ApplicationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   private toSummary(record: {
     id: string;
@@ -75,13 +79,13 @@ export class ApplicationsService {
       ...(academicSessionId ? { academicSessionId } : {}),
       ...(status ? { status } : {}),
     };
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
-        return [];
-      }
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.denied) {
+      return [];
+    }
+    if (scope.campusWhere) {
       // AcademicSession has no schoolId of its own — scope via the desired class's campus instead.
-      where = { ...where, desiredClass: { campus: { schoolId: admin.schoolId } } };
+      where = { ...where, desiredClass: { campus: scope.campusWhere } };
     }
     const records = await this.prisma.application.findMany({
       where,

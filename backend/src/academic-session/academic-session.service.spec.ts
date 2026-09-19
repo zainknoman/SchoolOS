@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AcademicSessionService } from './academic-session.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 describe('AcademicSessionService', () => {
   let service: AcademicSessionService;
@@ -44,6 +45,7 @@ describe('AcademicSessionService', () => {
       providers: [
         AcademicSessionService,
         { provide: PrismaService, useValue: prisma },
+        OrgScopeService,
       ],
     }).compile();
     service = moduleRef.get(AcademicSessionService);

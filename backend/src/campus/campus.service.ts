@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { OrgStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import {
   assertCreatable,
@@ -40,7 +41,10 @@ const WITH_SCHOOL = { school: { select: { name: true } } } as const;
 
 @Injectable()
 export class CampusService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   private async toSummary(
     record: Omit<
@@ -110,19 +114,13 @@ export class CampusService {
   }
 
   async list(actingUser: RequestUser): Promise<CampusSummary[]> {
-    let schoolId: string | undefined;
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({
-        where: { id: actingUser.id },
-      });
-      if (!admin?.schoolId) {
-        // Fail closed: a non-SUPER_ADMIN caller with no schoolId sees no campuses at all.
-        return [];
-      }
-      schoolId = admin.schoolId;
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.denied) {
+      // Fail closed: a non-SUPER_ADMIN caller with no schoolId sees no campuses at all.
+      return [];
     }
     const records = await this.prisma.campus.findMany({
-      where: schoolId ? { schoolId } : undefined,
+      where: scope.campusWhere,
       include: WITH_SCHOOL,
       orderBy: { name: 'asc' },
     });

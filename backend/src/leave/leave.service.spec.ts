@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { LeaveService } from './leave.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 
 describe('LeaveService', () => {
@@ -32,6 +33,7 @@ describe('LeaveService', () => {
       providers: [
         LeaveService,
         { provide: PrismaService, useValue: prisma },
+        OrgScopeService,
         { provide: EnrollmentService, useValue: enrollmentService },
       ],
     }).compile();

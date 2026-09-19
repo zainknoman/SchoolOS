@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { OrgStatus, Prisma } from '@prisma/client';
 import { CampusService } from './campus.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 // Default values for the profile fields added on top of the original id/name/schoolId/address/
 // phone/email columns, used to keep fixtures realistic without hand-repeating every field in
@@ -59,7 +60,7 @@ describe('CampusService', () => {
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [CampusService, { provide: PrismaService, useValue: prisma }],
+      providers: [CampusService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
     }).compile();
     service = moduleRef.get(CampusService);
   });

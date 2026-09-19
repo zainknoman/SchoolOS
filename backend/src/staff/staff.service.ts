@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { EmployeeType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { createStaffWithOptionalTeacher } from '../hiring/create-staff-with-optional-teacher';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { assertDeletable } from '../common/prisma-delete-guard';
@@ -20,7 +21,10 @@ const WITH_CAMPUS = { campus: { select: { name: true } } } as const;
 
 @Injectable()
 export class StaffService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   private toSummary(record: {
     id: string; name: string; employeeType: EmployeeType; employmentStatus: string;
@@ -37,12 +41,12 @@ export class StaffService {
 
   async list(actingUser: RequestUser, employeeType?: EmployeeType): Promise<StaffSummary[]> {
     let where: Prisma.StaffWhereInput | undefined = employeeType ? { employeeType } : undefined;
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
-        return [];
-      }
-      where = { ...where, campus: { schoolId: admin.schoolId } };
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.denied) {
+      return [];
+    }
+    if (scope.campusWhere) {
+      where = { ...where, campus: scope.campusWhere };
     }
     const records = await this.prisma.staff.findMany({
       where,

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import type { RequestUser } from '../common/student-access.service';
 
 export interface TeacherSummary {
@@ -63,17 +64,20 @@ function dateOnlyUtc(d: Date): Date {
 
 @Injectable()
 export class TeachersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   async listAll(actingUser: RequestUser, campusId?: string): Promise<TeacherSummary[]> {
-    let where: Prisma.TeacherWhereInput | undefined = campusId ? { campusId } : undefined;
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
-        return [];
-      }
-      where = { ...where, campus: { schoolId: admin.schoolId } };
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.denied) {
+      return [];
     }
+    const where: Prisma.TeacherWhereInput | undefined =
+      scope.campusWhere || campusId
+        ? { ...(scope.campusWhere ? { campus: scope.campusWhere } : {}), ...(campusId ? { campusId } : {}) }
+        : undefined;
     const teachers = await this.prisma.teacher.findMany({ where, orderBy: { name: 'asc' } });
     return teachers.map((t) => ({ id: t.id, name: t.name }));
   }

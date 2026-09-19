@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { StudentService } from './student.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 jest.mock('argon2', () => ({ hash: jest.fn().mockResolvedValue('hashed-password') }));
 
@@ -58,7 +59,7 @@ describe('StudentService', () => {
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(tx)),
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [StudentService, { provide: PrismaService, useValue: prisma }],
+      providers: [StudentService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
     }).compile();
     service = moduleRef.get(StudentService);
   });

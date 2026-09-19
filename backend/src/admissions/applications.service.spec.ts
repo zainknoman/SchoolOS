@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { ApplicationsService } from './applications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 describe('ApplicationsService', () => {
   let service: ApplicationsService;
@@ -15,7 +16,7 @@ describe('ApplicationsService', () => {
       user: { findUnique: jest.fn() },
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [ApplicationsService, { provide: PrismaService, useValue: prisma }],
+      providers: [ApplicationsService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
     }).compile();
     service = moduleRef.get(ApplicationsService);
   });

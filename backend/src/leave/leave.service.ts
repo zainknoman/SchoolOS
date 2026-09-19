@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import type { RequestUser } from '../common/student-access.service';
@@ -22,6 +23,7 @@ const STUDENT_INCLUDE = { student: { select: { name: true } } } as const;
 export class LeaveService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
     private readonly enrollmentService: EnrollmentService,
   ) {}
 
@@ -60,14 +62,14 @@ export class LeaveService {
 
   async listAll(actingUser: RequestUser, status?: string): Promise<LeaveRequestSummary[]> {
     let where: Prisma.LeaveRequestWhereInput | undefined = status ? { status } : undefined;
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
-        return [];
-      }
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.denied) {
+      return [];
+    }
+    if (scope.campusWhere) {
       where = {
         ...where,
-        student: { enrollments: { some: { section: { class: { campus: { schoolId: admin.schoolId } } } } } },
+        student: { enrollments: { some: { section: { class: { campus: scope.campusWhere } } } } },
       };
     }
     const records = await this.prisma.leaveRequest.findMany({

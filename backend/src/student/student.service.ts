@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { createStudentWithEnrollment } from './create-student-with-enrollment';
@@ -30,7 +31,10 @@ const WITH_SECTION_AND_PARENTS = {
 
 @Injectable()
 export class StudentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   private toSummary(record: {
     id: string;
@@ -108,12 +112,12 @@ export class StudentService {
   // actually enrolled them, instead of disappearing from the roster once they leave.
   async list(actingUser: RequestUser): Promise<StudentAdminSummary[]> {
     let where: Prisma.StudentWhereInput | undefined;
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
-        return [];
-      }
-      where = { enrollments: { some: { section: { class: { campus: { schoolId: admin.schoolId } } } } } };
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.denied) {
+      return [];
+    }
+    if (scope.campusWhere) {
+      where = { enrollments: { some: { section: { class: { campus: scope.campusWhere } } } } };
     }
     const records = await this.prisma.student.findMany({
       where,
