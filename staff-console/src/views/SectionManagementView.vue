@@ -52,7 +52,16 @@ async function teachersForClass(classId: string | undefined): Promise<TeacherSum
 
 watch(newClassId, async (classId) => {
   newTeacherId.value = '';
-  addTeachers.value = await teachersForClass(classId || undefined);
+  addTeachers.value = [];
+  try {
+    const list = await teachersForClass(classId || undefined);
+    if (newClassId.value !== classId) return; // stale response: the class changed meanwhile
+    addTeachers.value = list;
+  } catch (err) {
+    if (newClassId.value !== classId) return;
+    addTeachers.value = [];
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load teachers.';
+  }
 });
 
 async function onAdd() {
@@ -66,6 +75,7 @@ async function onAdd() {
       classTeacherId: newTeacherId.value || undefined,
     });
     newName.value = '';
+    newClassId.value = '';
     newTeacherId.value = '';
     addTeachers.value = [];
     showAddForm.value = false;
@@ -82,7 +92,20 @@ async function startEdit(section: SectionSummary) {
   editingId.value = section.id;
   editName.value = section.name;
   editTeacherId.value = section.classTeacherId ?? '';
-  editTeachers.value = await teachersForClass(section.classId);
+  const assigned: TeacherSummary[] =
+    section.classTeacherId && section.classTeacherName
+      ? [{ id: section.classTeacherId, name: section.classTeacherName }]
+      : [];
+  editTeachers.value = assigned;
+  try {
+    const list = await teachersForClass(section.classId);
+    if (editingId.value !== section.id) return; // stale response: another row is being edited
+    editTeachers.value = [...list, ...assigned.filter((a) => !list.some((t) => t.id === a.id))];
+  } catch (err) {
+    if (editingId.value !== section.id) return;
+    editTeachers.value = assigned;
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load teachers.';
+  }
 }
 
 function cancelEdit() {
