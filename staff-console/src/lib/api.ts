@@ -966,6 +966,17 @@ export interface ProvisionedLogin {
   temporaryPassword: string | null;
 }
 
+// The create succeeded once res.ok is true, so an empty/unparseable body must never turn into a thrown error
+// (the UI would show a save failure and invite a duplicate create).
+async function parseProvisioned(res: Response): Promise<{ provisionedLogin?: ProvisionedLogin }> {
+  try {
+    const text = await res.text();
+    return text ? (JSON.parse(text) as { provisionedLogin?: ProvisionedLogin }) : {};
+  } catch {
+    return {};
+  }
+}
+
 export const api = {
   async login(identifier: string, password: string): Promise<LoginResponse> {
     const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
@@ -1084,7 +1095,7 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
-    return (await res.json()) as { provisionedLogin?: ProvisionedLogin };
+    return parseProvisioned(res);
   },
 
   async updateSchool(
@@ -1170,7 +1181,7 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
-    return (await res.json()) as { provisionedLogin?: ProvisionedLogin };
+    return parseProvisioned(res);
   },
 
   async updateCampus(

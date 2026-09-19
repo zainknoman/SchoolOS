@@ -224,3 +224,108 @@ describe('Profile header logo', () => {
     expect(wrapper.find('.org-avatar').text()).toBe('GU');
   });
 });
+
+describe('School create - login provisioning', () => {
+  async function fill() {
+    const wrapper = mount(SchoolProfileView, mountOpts);
+    await flushPromises();
+    await wrapper.find('[data-testid="field-name"]').setValue('New One');
+    return wrapper;
+  }
+
+  it('omits the admin key and navigates immediately when the box is not ticked', async () => {
+    vi.mocked(api.createSchool).mockResolvedValue({});
+    const wrapper = await fill();
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+    const payload = vi.mocked(api.createSchool).mock.calls[0]![1] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty('admin');
+    expect(wrapper.find('[data-testid="credentials-panel"]').exists()).toBe(false);
+    expect(push).toHaveBeenCalledWith('/admin/schools');
+  });
+
+  it('sends admin without a password key when blank, shows credentials, navigates only after Done', async () => {
+    vi.mocked(api.createSchool).mockResolvedValue({ provisionedLogin: { identifier: 'a@x.test', temporaryPassword: 'Tmp-pass-1' } });
+    const wrapper = await fill();
+    await wrapper.find('input[type="checkbox"]').setValue(true);
+    await wrapper.find('[data-testid="login-identifier"]').setValue(' a@x.test ');
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+    const payload = vi.mocked(api.createSchool).mock.calls[0]![1] as Record<string, unknown>;
+    expect(payload.admin).toEqual({ identifier: 'a@x.test' });
+    expect(payload.admin).not.toHaveProperty('password');
+    expect(wrapper.find('[data-testid="credentials-panel"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('a@x.test');
+    expect(wrapper.text()).toContain('Tmp-pass-1');
+    expect(push).not.toHaveBeenCalled();
+    await wrapper.find('[data-testid="credentials-done"]').trigger('click');
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/admin/schools');
+  });
+
+  it('sends the typed password, and navigates immediately if the response has no provisionedLogin', async () => {
+    vi.mocked(api.createSchool).mockResolvedValue({});
+    const wrapper = await fill();
+    await wrapper.find('input[type="checkbox"]').setValue(true);
+    await wrapper.find('[data-testid="login-identifier"]').setValue('a@x.test');
+    await wrapper.find('[data-testid="login-password"]').setValue('Chosen-pw-1');
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+    const payload = vi.mocked(api.createSchool).mock.calls[0]![1] as Record<string, unknown>;
+    expect(payload.admin).toEqual({ identifier: 'a@x.test', password: 'Chosen-pw-1' });
+    expect(push).toHaveBeenCalledWith('/admin/schools');
+  });
+});
+
+describe('Campus create - login provisioning', () => {
+  async function fill() {
+    const wrapper = mount(CampusProfileView, mountOpts);
+    await flushPromises();
+    await wrapper.find('[data-testid="field-name"]').setValue('New One');
+    await wrapper.find('[data-testid="field-school"]').setValue('s1');
+    return wrapper;
+  }
+
+  it('omits the principal key and navigates immediately when the box is not ticked', async () => {
+    vi.mocked(api.createCampus).mockResolvedValue({});
+    const wrapper = await fill();
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+    const payload = vi.mocked(api.createCampus).mock.calls[0]![1] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty('principal');
+    expect(wrapper.find('[data-testid="credentials-panel"]').exists()).toBe(false);
+    expect(push).toHaveBeenCalledWith('/admin/campuses');
+  });
+
+  it('sends principal without a password key when blank, shows credentials, navigates only after Done', async () => {
+    vi.mocked(api.createCampus).mockResolvedValue({ provisionedLogin: { identifier: 'a@x.test', temporaryPassword: 'Tmp-pass-1' } });
+    const wrapper = await fill();
+    await wrapper.find('input[type="checkbox"]').setValue(true);
+    await wrapper.find('[data-testid="login-identifier"]').setValue(' a@x.test ');
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+    const payload = vi.mocked(api.createCampus).mock.calls[0]![1] as Record<string, unknown>;
+    expect(payload.principal).toEqual({ identifier: 'a@x.test' });
+    expect(payload.principal).not.toHaveProperty('password');
+    expect(wrapper.find('[data-testid="credentials-panel"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('a@x.test');
+    expect(wrapper.text()).toContain('Tmp-pass-1');
+    expect(push).not.toHaveBeenCalled();
+    await wrapper.find('[data-testid="credentials-done"]').trigger('click');
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/admin/campuses');
+  });
+
+  it('sends the typed password, and navigates immediately if the response has no provisionedLogin', async () => {
+    vi.mocked(api.createCampus).mockResolvedValue({});
+    const wrapper = await fill();
+    await wrapper.find('input[type="checkbox"]').setValue(true);
+    await wrapper.find('[data-testid="login-identifier"]').setValue('a@x.test');
+    await wrapper.find('[data-testid="login-password"]').setValue('Chosen-pw-1');
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+    const payload = vi.mocked(api.createCampus).mock.calls[0]![1] as Record<string, unknown>;
+    expect(payload.principal).toEqual({ identifier: 'a@x.test', password: 'Chosen-pw-1' });
+    expect(push).toHaveBeenCalledWith('/admin/campuses');
+  });
+});

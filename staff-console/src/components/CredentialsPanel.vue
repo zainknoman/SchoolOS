@@ -34,7 +34,7 @@ async function copy() {
       </div>
     </dl>
     <template v-if="login.temporaryPassword">
-      <p class="warn">These credentials are shown only once. The principal must change the password at first login.</p>
+      <p class="warn">These credentials are shown only once. The user must change the password at first login.</p>
       <Button variant="secondary" data-testid="copy-credentials" @click="copy">Copy credentials</Button>
     </template>
     <p v-else class="note">The password is the password you entered.</p>
