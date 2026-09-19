@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { HolidaysService } from './holidays.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 describe('HolidaysService', () => {
   let service: HolidaysService;
@@ -39,6 +40,7 @@ describe('HolidaysService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         HolidaysService,
+        OrgScopeService,
         { provide: PrismaService, useValue: prisma },
       ],
     }).compile();
@@ -146,6 +148,23 @@ describe('HolidaysService', () => {
 
       expect(prisma.holiday.findMany).toHaveBeenCalledWith({
         where: { OR: [{ campusId: null }, { campusId: { in: ['campus-1', 'campus-2'] } }] },
+        orderBy: { startDate: 'asc' },
+      });
+    });
+
+    it("scopes a campus principal's calendar to their own campus only", async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'p1', schoolId: 's1', campusId: 'c1' });
+      prisma.campus.findMany.mockResolvedValue([{ id: 'c1' }]);
+      prisma.holiday.findMany.mockResolvedValue([]);
+
+      await service.findMany({ id: 'p1', role: 'SCHOOL_ADMIN' }, {});
+
+      expect(prisma.campus.findMany).toHaveBeenCalledWith({
+        where: { id: 'c1', schoolId: 's1' },
+        select: { id: true },
+      });
+      expect(prisma.holiday.findMany).toHaveBeenCalledWith({
+        where: { OR: [{ campusId: null }, { campusId: { in: ['c1'] } }] },
         orderBy: { startDate: 'asc' },
       });
     });

@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { AttendanceRiskService } from './attendance-risk.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StudentAccessService, RequestUser } from '../common/student-access.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 interface AuthenticatedRequest extends Request {
@@ -15,6 +16,7 @@ export class AttendanceRiskController {
     private readonly attendanceRiskService: AttendanceRiskService,
     private readonly studentAccess: StudentAccessService,
     private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
   @Get('students/:id/attendance-risk')
@@ -30,12 +32,12 @@ export class AttendanceRiskController {
       return this.attendanceRiskService.getFlagged();
     }
     if (req.user.role === 'SCHOOL_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: req.user.id } });
-      if (!admin?.schoolId) {
+      const scope = await this.orgScope.resolve(req.user);
+      if (scope.denied) {
         return this.attendanceRiskService.getFlagged([]);
       }
       const sections = await this.prisma.section.findMany({
-        where: { class: { campus: { schoolId: admin.schoolId } } },
+        where: { class: { campus: scope.campusWhere } },
         select: { id: true },
       });
       return this.attendanceRiskService.getFlagged(sections.map((s) => s.id));

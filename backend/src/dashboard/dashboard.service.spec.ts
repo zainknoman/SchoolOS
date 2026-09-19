@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { DashboardService } from './dashboard.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 describe('DashboardService', () => {
   let service: DashboardService;
@@ -40,7 +41,7 @@ describe('DashboardService', () => {
       mark: { findMany: jest.fn().mockResolvedValue([]) },
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [DashboardService, { provide: PrismaService, useValue: prisma }],
+      providers: [DashboardService, OrgScopeService, { provide: PrismaService, useValue: prisma }],
     }).compile();
     service = moduleRef.get(DashboardService);
   });
@@ -166,6 +167,29 @@ describe('DashboardService', () => {
       );
       expect(prisma.notification.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { userId: { in: ['u1', 'u2'] } } }),
+      );
+    });
+
+    it("confines a campus principal's queries to their own campus", async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'p1', schoolId: 's1', campusId: 'c1', isPrincipal: true });
+      prisma.user.findMany.mockResolvedValue([{ id: 'u1' }]);
+
+      await service.getSummary({ id: 'p1', role: 'SCHOOL_ADMIN' });
+
+      expect(prisma.enrollment.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ campus: { id: 'c1', schoolId: 's1' } }),
+        }),
+      );
+      expect(prisma.attendance.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            student: { enrollments: { some: { campus: { id: 'c1', schoolId: 's1' } } } },
+          }),
+        }),
+      );
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { schoolId: 's1', campusId: 'c1' } }),
       );
     });
 

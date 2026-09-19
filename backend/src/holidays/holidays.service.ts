@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateHolidayDto } from './dto/create-holiday.dto';
 import { UpdateHolidayDto } from './dto/update-holiday.dto';
 import type { RequestUser } from '../common/student-access.service';
+import { OrgScopeService } from '../common/org-scope.service';
 
 export interface HolidaySummary {
   id: string;
@@ -15,7 +16,10 @@ export interface HolidaySummary {
 
 @Injectable()
 export class HolidaysService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   private toSummary(record: {
     id: string;
@@ -82,14 +86,11 @@ export class HolidaysService {
    *  zero campuses but the null-campus rows still apply). */
   private async resolveAllowedCampusIds(actingUser: RequestUser): Promise<string[] | null> {
     if (actingUser.role === 'SCHOOL_ADMIN' || actingUser.role === 'ACCOUNTS') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId) {
+      const scope = await this.orgScope.resolve(actingUser);
+      if (scope.denied) {
         return null;
       }
-      const campuses = await this.prisma.campus.findMany({
-        where: { schoolId: admin.schoolId },
-        select: { id: true },
-      });
+      const campuses = await this.prisma.campus.findMany({ where: scope.campusWhere, select: { id: true } });
       return campuses.map((c) => c.id);
     }
     if (actingUser.role === 'TEACHER') {
