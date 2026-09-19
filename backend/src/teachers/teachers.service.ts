@@ -65,14 +65,14 @@ function dateOnlyUtc(d: Date): Date {
 export class TeachersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listAll(actingUser: RequestUser): Promise<TeacherSummary[]> {
-    let where: Prisma.TeacherWhereInput | undefined;
+  async listAll(actingUser: RequestUser, campusId?: string): Promise<TeacherSummary[]> {
+    let where: Prisma.TeacherWhereInput | undefined = campusId ? { campusId } : undefined;
     if (actingUser.role !== 'SUPER_ADMIN') {
       const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
       if (!admin?.schoolId) {
         return [];
       }
-      where = { campus: { schoolId: admin.schoolId } };
+      where = { ...where, campus: { schoolId: admin.schoolId } };
     }
     const teachers = await this.prisma.teacher.findMany({ where, orderBy: { name: 'asc' } });
     return teachers.map((t) => ({ id: t.id, name: t.name }));

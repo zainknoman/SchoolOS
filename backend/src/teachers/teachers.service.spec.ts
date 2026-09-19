@@ -68,6 +68,29 @@ describe('TeachersService', () => {
     expect(prisma.teacher.findMany).not.toHaveBeenCalled();
   });
 
+  it('filters a SUPER_ADMIN teacher list to one campus when campusId is given', async () => {
+    prisma.teacher.findMany.mockResolvedValue([{ id: 't-1', name: 'Ms. A' }]);
+
+    await service.listAll({ id: 'super-1', role: 'SUPER_ADMIN' }, 'campus-1');
+
+    expect(prisma.teacher.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { campusId: 'campus-1' } }),
+    );
+  });
+
+  it('intersects the campusId filter with a SCHOOL_ADMIN school scope', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
+    prisma.teacher.findMany.mockResolvedValue([]);
+
+    await service.listAll({ id: 'admin-1', role: 'SCHOOL_ADMIN' }, 'campus-9');
+
+    expect(prisma.teacher.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { campusId: 'campus-9', campus: { schoolId: 'school-1' } },
+      }),
+    );
+  });
+
   describe('getMyDay', () => {
     const teacherUser = { id: 'user-1', role: 'TEACHER' };
 
