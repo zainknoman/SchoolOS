@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestUser } from '../common/student-access.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import type { PromotionDecision } from '@prisma/client';
 
 export interface PromotionPreviewRow {
@@ -73,7 +74,10 @@ const ENROLLMENT_LABEL_INCLUDE = {
 
 @Injectable()
 export class PromotionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   private async assertSectionInOwnSchool(
     actingUser: RequestUser,
@@ -82,21 +86,23 @@ export class PromotionsService {
     // Always check section exists first (for all roles)
     const section = await this.prisma.section.findUnique({
       where: { id: sectionId },
-      select: { class: { select: { campus: { select: { schoolId: true } } } } },
+      select: {
+        class: {
+          select: { campusId: true, campus: { select: { schoolId: true } } },
+        },
+      },
     });
     if (!section) {
       throw new NotFoundException('Section not found');
     }
 
-    // Only check school ownership for non-SUPER_ADMIN users
-    if (actingUser.role === 'SUPER_ADMIN') {
-      return;
-    }
-
-    const admin = await this.prisma.user.findUnique({
-      where: { id: actingUser.id },
-    });
-    if (!admin?.schoolId || section.class.campus.schoolId !== admin.schoolId) {
+    const scope = await this.orgScope.resolve(actingUser);
+    if (
+      !scope.allows({
+        campusId: section.class.campusId,
+        schoolId: section.class.campus.schoolId,
+      })
+    ) {
       throw new ForbiddenException(
         'Cannot access a section outside your own school',
       );
@@ -152,10 +158,7 @@ export class PromotionsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const admin =
-        actingUser.role !== 'SUPER_ADMIN'
-          ? await tx.user.findUnique({ where: { id: actingUser.id } })
-          : null;
+      const scope = await this.orgScope.resolve(actingUser);
 
       for (const item of dto.decisions) {
         const currentEnrollment = await tx.enrollment.findFirst({
@@ -172,15 +175,15 @@ export class PromotionsService {
             `Student ${item.studentId} has no ACTIVE enrollment in the source academic session`,
           );
         }
-        if (actingUser.role !== 'SUPER_ADMIN') {
-          if (
-            !admin?.schoolId ||
-            currentEnrollment.section.class.campus.schoolId !== admin.schoolId
-          ) {
-            throw new ForbiddenException(
-              `Cannot promote student ${item.studentId} outside your own school`,
-            );
-          }
+        if (
+          !scope.allows({
+            campusId: currentEnrollment.section.class.campusId,
+            schoolId: currentEnrollment.section.class.campus.schoolId,
+          })
+        ) {
+          throw new ForbiddenException(
+            `Cannot promote student ${item.studentId} outside your own school`,
+          );
         }
 
         await tx.enrollment.update({
@@ -203,15 +206,15 @@ export class PromotionsService {
               `targetSectionId ${item.targetSectionId} does not belong to the target academic session`,
             );
           }
-          if (actingUser.role !== 'SUPER_ADMIN') {
-            if (
-              !admin?.schoolId ||
-              targetSection.class.campus.schoolId !== admin.schoolId
-            ) {
-              throw new ForbiddenException(
-                `Cannot promote student ${item.studentId} outside your own school`,
-              );
-            }
+          if (
+            !scope.allows({
+              campusId: targetSection.class.campusId,
+              schoolId: targetSection.class.campus.schoolId,
+            })
+          ) {
+            throw new ForbiddenException(
+              `Cannot promote student ${item.studentId} outside your own school`,
+            );
           }
           const created = await tx.enrollment.create({
             data: {

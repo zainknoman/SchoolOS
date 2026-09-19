@@ -64,11 +64,9 @@ export class StaffService {
     if (!staff) {
       throw new NotFoundException('Staff member not found');
     }
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-      if (!admin?.schoolId || staff.campus.schoolId !== admin.schoolId) {
-        throw new ForbiddenException('Cannot access staff outside your own school');
-      }
+    const scope = await this.orgScope.resolve(actingUser);
+    if (!scope.allows({ campusId: staff.campusId, schoolId: staff.campus.schoolId })) {
+      throw new ForbiddenException('Cannot access staff outside your own school');
     }
     return staff;
   }

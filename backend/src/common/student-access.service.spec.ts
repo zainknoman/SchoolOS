@@ -3,6 +3,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { StudentAccessService } from './student-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
+import { OrgScopeService } from './org-scope.service';
 
 describe('StudentAccessService', () => {
   let service: StudentAccessService;
@@ -31,6 +32,7 @@ describe('StudentAccessService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         StudentAccessService,
+        OrgScopeService,
         { provide: PrismaService, useValue: prisma },
         { provide: EnrollmentService, useValue: enrollmentService },
       ],
@@ -81,6 +83,22 @@ describe('StudentAccessService', () => {
     await expect(
       service.assertCanAccessStudent({ id: 'admin-3', role: 'SCHOOL_ADMIN' }, 'student-1'),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('denies a campus principal (SCHOOL_ADMIN with campusId) a section in another campus of the same school', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'p1', schoolId: 's1', campusId: 'c1' });
+    prisma.section.findUnique.mockResolvedValue({ id: 'sec2', class: { campusId: 'c2', campus: { schoolId: 's1' } } });
+    await expect(
+      service.assertCanAccessSection({ id: 'p1', role: 'SCHOOL_ADMIN' }, 'sec2'),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('allows a campus principal a section in their own campus', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'p1', schoolId: 's1', campusId: 'c1' });
+    prisma.section.findUnique.mockResolvedValue({ id: 'sec1', class: { campusId: 'c1', campus: { schoolId: 's1' } } });
+    await expect(
+      service.assertCanAccessSection({ id: 'p1', role: 'SCHOOL_ADMIN' }, 'sec1'),
+    ).resolves.toBeUndefined();
   });
 
   it('allows a TEACHER assigned (via timetable) to teach the student\'s section', async () => {

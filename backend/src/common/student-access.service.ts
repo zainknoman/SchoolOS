@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
+import { OrgScopeService } from './org-scope.service';
 
 export interface RequestUser {
   id: string;
@@ -26,6 +27,7 @@ export class StudentAccessService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly enrollmentService: EnrollmentService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
   async assertCanAccessStudent(user: RequestUser, studentId: string): Promise<void> {
@@ -93,8 +95,8 @@ export class StudentAccessService {
     switch (user.role) {
       case 'SCHOOL_ADMIN':
       case 'ACCOUNTS': {
-        const admin = await this.prisma.user.findUnique({ where: { id: user.id } });
-        if (!admin?.schoolId || admin.schoolId !== scope.schoolId) {
+        const orgScope = await this.orgScope.resolve(user);
+        if (!orgScope.allows({ campusId: scope.campusId, schoolId: scope.schoolId })) {
           throw new ForbiddenException('You do not have access to this resource');
         }
         return;

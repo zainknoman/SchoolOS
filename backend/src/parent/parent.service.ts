@@ -176,12 +176,12 @@ export class ParentService {
       throw new NotFoundException('Parent not found');
     }
     if (actingUser.role === 'SUPER_ADMIN') return;
-    const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
-    const inScope = admin?.schoolId
+    const scope = await this.orgScope.resolve(actingUser);
+    const inScope = !scope.denied
       ? await this.prisma.studentParent.findFirst({
           where: {
             parentProfileId: parentId,
-            student: { enrollments: { some: { section: { class: { campus: { schoolId: admin.schoolId } } } } } },
+            student: { enrollments: { some: { section: { class: { campus: scope.campusWhere } } } } },
           },
           select: { id: true },
         })

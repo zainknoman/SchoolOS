@@ -50,6 +50,13 @@ describe('StaffService — update / remove', () => {
     expect(prisma.staff.delete).not.toHaveBeenCalled();
   });
 
+  it('refuses a campus principal editing staff of another campus in the same school', async () => {
+    prisma.user.findUnique.mockResolvedValue({ schoolId: 'school-1', campusId: 'c1' });
+    prisma.staff.findUnique.mockResolvedValue(staffRow({ campusId: 'c2' }));
+    await expect(service.update('s1', { name: 'X' }, schoolAdmin)).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.staff.update).not.toHaveBeenCalled();
+  });
+
   it('updates only the supplied quick-edit fields and audits it', async () => {
     prisma.staff.findUnique.mockResolvedValue(staffRow());
     prisma.staff.update.mockResolvedValue(staffRow({ name: 'Nazir Ahmed', employmentStatus: 'ON_LEAVE' }));

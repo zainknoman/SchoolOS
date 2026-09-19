@@ -30,12 +30,10 @@ export class TeacherService {
   }
 
   async create(dto: CreateTeacherDto, actingUser: RequestUser): Promise<TeacherAdminSummary> {
-    if (actingUser.role !== 'SUPER_ADMIN') {
-      const [admin, campus] = await Promise.all([
-        this.prisma.user.findUnique({ where: { id: actingUser.id } }),
-        this.prisma.campus.findUnique({ where: { id: dto.campusId } }),
-      ]);
-      if (!admin?.schoolId || !campus || admin.schoolId !== campus.schoolId) {
+    const scope = await this.orgScope.resolve(actingUser);
+    if (!scope.unrestricted) {
+      const campus = await this.prisma.campus.findUnique({ where: { id: dto.campusId } });
+      if (!campus || !scope.allows({ campusId: campus.id, schoolId: campus.schoolId })) {
         throw new ForbiddenException('You do not have access to this campus');
       }
     }

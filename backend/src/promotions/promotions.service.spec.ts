@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PromotionsService } from './promotions.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 describe('PromotionsService', () => {
@@ -42,6 +43,7 @@ describe('PromotionsService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PromotionsService,
+        OrgScopeService,
         { provide: PrismaService, useValue: prisma },
       ],
     }).compile();
