@@ -36,7 +36,7 @@ describe('auth store', () => {
       role: 'TEACHER',
       isPrincipal: false,
       mustChangePassword: false,
-      campusId: null,
+      campusId: null, schoolId: null,
     });
 
     const store = useAuthStore();
@@ -54,7 +54,7 @@ describe('auth store', () => {
       role: 'SCHOOL_ADMIN',
       isPrincipal: false,
       mustChangePassword: false,
-      campusId: null,
+      campusId: null, schoolId: null,
     });
 
     const store = useAuthStore();
@@ -83,7 +83,7 @@ describe('auth store', () => {
       role: 'TEACHER',
       isPrincipal: false,
       mustChangePassword: false,
-      campusId: null,
+      campusId: null, schoolId: null,
     });
 
     const store = useAuthStore();
@@ -102,7 +102,7 @@ describe('auth store', () => {
       role: 'TEACHER',
       isPrincipal: false,
       mustChangePassword: false,
-      campusId: null,
+      campusId: null, schoolId: null,
     });
     vi.mocked(api.refresh).mockResolvedValue({
       accessToken: 'token-new',
@@ -110,7 +110,7 @@ describe('auth store', () => {
       role: 'TEACHER',
       isPrincipal: false,
       mustChangePassword: false,
-      campusId: null,
+      campusId: null, schoolId: null,
     });
 
     const store = useAuthStore();
@@ -131,7 +131,7 @@ describe('auth store', () => {
       role: 'TEACHER',
       isPrincipal: false,
       mustChangePassword: false,
-      campusId: null,
+      campusId: null, schoolId: null,
     });
     vi.mocked(api.refresh).mockRejectedValue(new ApiError('Invalid credentials', 401));
 
@@ -159,7 +159,7 @@ describe('auth store', () => {
       role: 'TEACHER',
       isPrincipal: false,
       mustChangePassword: false,
-      campusId: null,
+      campusId: null, schoolId: null,
     });
     let resolveRefresh!: (value: {
       accessToken: string;
@@ -167,7 +167,7 @@ describe('auth store', () => {
       role: string;
       isPrincipal: boolean;
       mustChangePassword: boolean;
-      campusId: string | null;
+      campusId: string | null; schoolId: string | null;
     }) => void;
     vi.mocked(api.refresh).mockReturnValue(
       new Promise((resolve) => {
@@ -180,7 +180,7 @@ describe('auth store', () => {
 
     const call1 = store.refreshSession();
     const call2 = store.refreshSession();
-    resolveRefresh({ accessToken: 'token-new', refreshToken: 'refresh-new', role: 'TEACHER', isPrincipal: false, mustChangePassword: false, campusId: null });
+    resolveRefresh({ accessToken: 'token-new', refreshToken: 'refresh-new', role: 'TEACHER', isPrincipal: false, mustChangePassword: false, campusId: null, schoolId: null });
 
     const [result1, result2] = await Promise.all([call1, call2]);
 
@@ -196,7 +196,7 @@ describe('auth store', () => {
       role: 'SCHOOL_ADMIN',
       isPrincipal: true,
       mustChangePassword: true,
-      campusId: 'campus-1',
+      campusId: 'campus-1', schoolId: null,
     });
     const store = useAuthStore();
     await store.login('p@schoolos.edu.pk', 'Temp1234!x');
@@ -214,7 +214,7 @@ describe('auth store', () => {
       role: 'SCHOOL_ADMIN',
       isPrincipal: true,
       mustChangePassword: false,
-      campusId: 'campus-1',
+      campusId: 'campus-1', schoolId: null,
     });
     expect(reloaded.mustChangePassword).toBe(false);
     expect(reloaded.accessToken).toBe('a2');

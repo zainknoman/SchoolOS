@@ -12,7 +12,7 @@ vi.mock('vue-router', async (importOriginal) => ({
   useRouter: () => ({ push: vi.fn() }),
   RouterLink: { props: ['to'], template: '<a><slot /></a>' },
 }));
-vi.mock('../lib/api', () => ({ api: { listCampuses: vi.fn(), listSchools: vi.fn(), filePreviewUrl: vi.fn() } }));
+vi.mock('../lib/api', () => ({ api: { listCampuses: vi.fn(), listSchools: vi.fn(), filePreviewUrl: vi.fn(), createCampus: vi.fn() } }));
 
 const CAMPUS = {
   id: 'c1', name: 'Gulistan', schoolId: 's1', schoolName: 'The School', code: 'G', campusType: null, logoFileId: null,
@@ -46,5 +46,38 @@ describe('CampusProfileView role gating', () => {
     expect(wrapper.text()).toContain('Gulistan');
     expect(wrapper.find('[data-testid="edit-profile"]').exists()).toBe(false);
     expect(api.listSchools).not.toHaveBeenCalled();
+  });
+
+  it('lets a SCHOOL_ADMIN with zero campuses add the first one, school pre-selected from the session', async () => {
+    const auth = useAuthStore();
+    auth.role = 'SCHOOL_ADMIN';
+    auth.schoolId = 'school-9';
+    auth.campusId = null;
+    route.params = {};
+    vi.mocked(api.listCampuses).mockResolvedValue([]);
+    vi.mocked(api.createCampus).mockResolvedValue({ id: 'new' } as never);
+    const wrapper = mount(CampusProfileView);
+    await flushPromises();
+
+    expect(api.listSchools).not.toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="field-school"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="field-school-readonly"]').text()).toBe('Your school');
+
+    await wrapper.find('[data-testid="field-name"]').setValue('First Campus');
+    await wrapper.find('[data-testid="add-submit"]').trigger('click');
+    await flushPromises();
+
+    expect(api.createCampus).toHaveBeenCalledWith('t', expect.objectContaining({ schoolId: 'school-9', name: 'First Campus' }));
+  });
+
+  it('still gives a SUPER_ADMIN the school picker on Add Campus', async () => {
+    useAuthStore().role = 'SUPER_ADMIN';
+    route.params = {};
+    const wrapper = mount(CampusProfileView);
+    await flushPromises();
+
+    expect(api.listSchools).toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="field-school"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="field-school-readonly"]').exists()).toBe(false);
   });
 });

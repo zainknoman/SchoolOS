@@ -13,6 +13,7 @@ interface PersistedSession {
   isPrincipal: boolean;
   mustChangePassword: boolean;
   campusId: string | null;
+  schoolId: string | null;
 }
 
 function loadPersistedSession(): PersistedSession | null {
@@ -41,6 +42,7 @@ export const useAuthStore = defineStore('auth', {
       isPrincipal: persisted?.isPrincipal ?? false,
       mustChangePassword: persisted?.mustChangePassword ?? false,
       campusId: persisted?.campusId ?? null,
+      schoolId: persisted?.schoolId ?? null,
     } as {
       accessToken: string | null;
       refreshToken: string | null;
@@ -48,6 +50,7 @@ export const useAuthStore = defineStore('auth', {
       isPrincipal: boolean;
       mustChangePassword: boolean;
       campusId: string | null;
+      schoolId: string | null;
     };
   },
 
@@ -70,6 +73,7 @@ export const useAuthStore = defineStore('auth', {
       this.isPrincipal = session.isPrincipal;
       this.mustChangePassword = session.mustChangePassword ?? false;
       this.campusId = session.campusId ?? null;
+      this.schoolId = session.schoolId ?? null;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
     },
 
@@ -103,6 +107,7 @@ export const useAuthStore = defineStore('auth', {
       this.isPrincipal = false;
       this.mustChangePassword = false;
       this.campusId = null;
+      this.schoolId = null;
       localStorage.removeItem(STORAGE_KEY);
     },
   },

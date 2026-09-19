@@ -31,6 +31,7 @@ export interface LoginResponse {
   isPrincipal: boolean;
   mustChangePassword: boolean;
   campusId: string | null;
+  schoolId: string | null;
 }
 
 export interface ChildSummary {

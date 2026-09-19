@@ -38,7 +38,7 @@ describe('ChangePasswordView', () => {
 
   it('changes the password, stores the fresh session and goes home', async () => {
     vi.mocked(api.changePassword).mockResolvedValue({
-      accessToken: 'a2', refreshToken: 'r2', role: 'SCHOOL_ADMIN', isPrincipal: true, mustChangePassword: false, campusId: null,
+      accessToken: 'a2', refreshToken: 'r2', role: 'SCHOOL_ADMIN', isPrincipal: true, mustChangePassword: false, campusId: null, schoolId: null,
     });
     const wrapper = mount(ChangePasswordView);
     await fill(wrapper, 'Temp1234!x', 'BrandNew123!', 'BrandNew123!');
