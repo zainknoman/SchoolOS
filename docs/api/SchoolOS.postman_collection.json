@@ -1,0 +1,6467 @@
+{
+  "info": {
+    "name": "SchoolOS API",
+    "description": "SchoolOS backend (NestJS). All routes are under `/api/v1` except the health check. Generated from the controllers and DTOs.\n\n**Getting started:** import the `SchoolOS Local` environment, set `identifier` and `password` (seed users are `superadmin@schoolportal.local`, `admin@<bh|tcs>.schoolportal.local`, etc.; password is the `SEED_PASSWORD` used when seeding), then run **Auth → POST /auth/login**. The login test script stores `accessToken`/`refreshToken`, which every other request sends as a Bearer token.\n\nIDs in path/query/body (`{{studentId}}`, `{{sectionId}}`, …) are collection variables — fill them in from list responses.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "academicSessionId",
+      "value": ""
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "addressId",
+      "value": ""
+    },
+    {
+      "key": "applicantId",
+      "value": ""
+    },
+    {
+      "key": "applicationId",
+      "value": ""
+    },
+    {
+      "key": "assessmentCategoryId",
+      "value": ""
+    },
+    {
+      "key": "assessmentId",
+      "value": ""
+    },
+    {
+      "key": "campusId",
+      "value": ""
+    },
+    {
+      "key": "candidateId",
+      "value": ""
+    },
+    {
+      "key": "circularId",
+      "value": ""
+    },
+    {
+      "key": "classId",
+      "value": ""
+    },
+    {
+      "key": "classTeacherId",
+      "value": ""
+    },
+    {
+      "key": "complaintId",
+      "value": ""
+    },
+    {
+      "key": "contactId",
+      "value": ""
+    },
+    {
+      "key": "conversationId",
+      "value": ""
+    },
+    {
+      "key": "desiredClassId",
+      "value": ""
+    },
+    {
+      "key": "documentId",
+      "value": ""
+    },
+    {
+      "key": "experienceId",
+      "value": ""
+    },
+    {
+      "key": "feePaymentId",
+      "value": ""
+    },
+    {
+      "key": "feeStructureId",
+      "value": ""
+    },
+    {
+      "key": "feeVoucherId",
+      "value": ""
+    },
+    {
+      "key": "fileId",
+      "value": ""
+    },
+    {
+      "key": "holidayId",
+      "value": ""
+    },
+    {
+      "key": "leaveRequestId",
+      "value": ""
+    },
+    {
+      "key": "logoFileId",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "parentId",
+      "value": ""
+    },
+    {
+      "key": "parentProfileId",
+      "value": ""
+    },
+    {
+      "key": "profilePhotoFileId",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "reportCardId",
+      "value": ""
+    },
+    {
+      "key": "resumeFileId",
+      "value": ""
+    },
+    {
+      "key": "schoolId",
+      "value": ""
+    },
+    {
+      "key": "sectionId",
+      "value": ""
+    },
+    {
+      "key": "sourceAcademicSessionId",
+      "value": ""
+    },
+    {
+      "key": "sourceSectionId",
+      "value": ""
+    },
+    {
+      "key": "staffId",
+      "value": ""
+    },
+    {
+      "key": "studentId",
+      "value": ""
+    },
+    {
+      "key": "subjectId",
+      "value": ""
+    },
+    {
+      "key": "targetAcademicSessionId",
+      "value": ""
+    },
+    {
+      "key": "targetSectionId",
+      "value": ""
+    },
+    {
+      "key": "teacherId",
+      "value": ""
+    },
+    {
+      "key": "termId",
+      "value": ""
+    },
+    {
+      "key": "timetableId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**Public** (no JWT).\n\nRate-limited (auth throttle).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{identifier}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  pm.collectionVariables.set('accessToken', j.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', j.refreshToken);",
+                  "  if (j.campusId) pm.collectionVariables.set('campusId', j.campusId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/refresh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**Public** (no JWT).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"sample refreshToken\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  pm.collectionVariables.set('accessToken', j.accessToken);",
+                  "  if (j.refreshToken) pm.collectionVariables.set('refreshToken', j.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/forgot-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**Public** (no JWT).\n\nRate-limited (auth throttle).\n\nUnauthenticated and enumerable, same as login — throttled at least as strictly.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{identifier}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/reset-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**Public** (no JWT).\n\nRate-limited (auth throttle).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"token-value\",\n  \"newPassword\": \"ChangeMe#12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/change-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)\n\nRate-limited (auth throttle).\n\nAuthenticated (global JWT guard, no @Public). A wrong-current-password endpoint is an online guessing surface for a stolen access token, so it gets the same throttle as login.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"ChangeMe#12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Academic Session",
+      "item": [
+        {
+          "name": "POST /academic-sessions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academic-sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academic-sessions"
+              ]
+            },
+            "description": "**Roles:** SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"sample label\",\n  \"startDate\": \"2026-09-21\",\n  \"endDate\": \"2026-09-21\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /academic-sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academic-sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academic-sessions"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN\n\nRead-only: school admins and teachers need this to pick a session when uploading report cards and other school-level operations, even though the write routes below stay SUPER_ADMIN-only (session definitions are structural, like Schools/Campuses/Classes)."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /academic-sessions/:id/copy-structure",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academic-sessions/:id/copy-structure",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academic-sessions",
+                ":id",
+                "copy-structure"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{academicSessionId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceSessionId\": \"00000000-0000-0000-0000-000000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /academic-sessions/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academic-sessions/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academic-sessions",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{academicSessionId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"sample label\",\n  \"startDate\": \"2026-09-21\",\n  \"endDate\": \"2026-09-21\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /academic-sessions/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academic-sessions/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academic-sessions",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{academicSessionId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "App",
+      "item": [
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**Public** (no JWT)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Applicants",
+      "item": [
+        {
+          "name": "POST /applicants",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applicants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applicants"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"dateOfBirth\": \"2015-05-15\",\n  \"guardianName\": \"sample guardianName\",\n  \"guardianPhone\": \"0300-1234567\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /applicants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applicants?guardianPhone=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applicants"
+              ],
+              "query": [
+                {
+                  "key": "guardianPhone",
+                  "value": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "POST /applications",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicantId\": \"{{applicantId}}\",\n  \"desiredClassId\": \"{{desiredClassId}}\",\n  \"academicSessionId\": \"{{academicSessionId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /applications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "academicSessionId",
+                  "value": "{{academicSessionId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /applications/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{applicationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /applications/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{applicationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"UNDER_REVIEW\",\n  \"decisionNotes\": \"sample decisionNotes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /applications/:id/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications",
+                ":id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{applicationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionNotes\": \"Reason for decision\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /applications/:id/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications",
+                ":id",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{applicationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grNumber\": \"sample grNumber\",\n  \"sectionId\": \"{{sectionId}}\",\n  \"parentProfileId\": \"{{parentProfileId}}\",\n  \"newParent\": {\n    \"identifier\": \"new.user@example.com\",\n    \"password\": \"ChangeMe#12345\",\n    \"name\": \"sample name\",\n    \"phone\": \"0300-1234567\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assessment Categories",
+      "item": [
+        {
+          "name": "POST /assessment-categories",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/assessment-categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "assessment-categories"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classId\": \"{{classId}}\",\n  \"termId\": \"{{termId}}\",\n  \"name\": \"sample name\",\n  \"weightPercent\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /assessment-categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/assessment-categories?classId={{classId}}&termId={{termId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "assessment-categories"
+              ],
+              "query": [
+                {
+                  "key": "classId",
+                  "value": "{{classId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /assessment-categories/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/assessment-categories/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "assessment-categories",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{assessmentCategoryId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"weightPercent\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /assessment-categories/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/assessment-categories/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "assessment-categories",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{assessmentCategoryId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assessments",
+      "item": [
+        {
+          "name": "POST /assessments",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/assessments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "assessments"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assessmentCategoryId\": \"{{assessmentCategoryId}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"label\": \"sample label\",\n  \"maxMarks\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /assessments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/assessments?assessmentCategoryId={{assessmentCategoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "assessments"
+              ],
+              "query": [
+                {
+                  "key": "assessmentCategoryId",
+                  "value": "{{assessmentCategoryId}}",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /assessments/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/assessments/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "assessments",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{assessmentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"sample label\",\n  \"maxMarks\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /assessments/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/assessments/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "assessments",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{assessmentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /assessments/:id/marks",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/assessments/:id/marks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "assessments",
+                ":id",
+                "marks"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{assessmentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marks\": [\n    {\n      \"studentId\": \"{{studentId}}\",\n      \"obtainedMarks\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "GET /students/:id/attendance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/students/:id/attendance?month=2026-09",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "students",
+                ":id",
+                "attendance"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-09",
+                  "disabled": false
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /sections/:id/attendance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sections/:id/attendance?date=2026-09-21",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sections",
+                ":id",
+                "attendance"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-09-21",
+                  "disabled": false
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sectionId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN\n\nStaff-only (no StudentAccessService involved for PARENT, since @Roles already excludes that role) — the roster-marking screen's pre-fill, now campus/tenant-scoped like every other section-level route."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "attendance"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"date\": \"2026-09-21\",\n  \"status\": \"PRESENT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /attendance/bulk",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/attendance/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "attendance",
+                "bulk"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-09-21\",\n  \"marks\": [\n    {\n      \"studentId\": \"{{studentId}}\",\n      \"status\": \"PRESENT\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Attendance Risk",
+      "item": [
+        {
+          "name": "GET /students/:id/attendance-risk",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/students/:id/attendance-risk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "students",
+                ":id",
+                "attendance-risk"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /attendance-risk",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/attendance-risk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "attendance-risk"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Bulk Import",
+      "item": [
+        {
+          "name": "GET /bulk-import/:entity/sample",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bulk-import/:entity/sample",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bulk-import",
+                ":entity",
+                "sample"
+              ],
+              "variable": [
+                {
+                  "key": "entity",
+                  "value": "students"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN\n\nReturns a file/PDF/CSV download, not JSON — use Send and Download."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /bulk-import/students/preview",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bulk-import/students/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bulk-import",
+                "students",
+                "preview"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /bulk-import/students/commit",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bulk-import/students/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bulk-import",
+                "students",
+                "commit"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /bulk-import/parents/preview",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bulk-import/parents/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bulk-import",
+                "parents",
+                "preview"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /bulk-import/parents/commit",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bulk-import/parents/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bulk-import",
+                "parents",
+                "commit"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /bulk-import/teachers/preview",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bulk-import/teachers/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bulk-import",
+                "teachers",
+                "preview"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /bulk-import/teachers/commit",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bulk-import/teachers/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bulk-import",
+                "teachers",
+                "commit"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /bulk-import/staff/preview",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bulk-import/staff/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bulk-import",
+                "staff",
+                "preview"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /bulk-import/staff/commit",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bulk-import/staff/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bulk-import",
+                "staff",
+                "commit"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Campus",
+      "item": [
+        {
+          "name": "POST /campuses",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campuses"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schoolId\": \"{{schoolId}}\",\n  \"name\": \"sample name\",\n  \"code\": \"sample code\",\n  \"campusType\": \"sample campusType\",\n  \"logoFileId\": \"{{logoFileId}}\",\n  \"principalName\": \"sample principalName\",\n  \"principalPhone\": \"0300-1234567\",\n  \"principalEmail\": \"user@example.com\",\n  \"openingDate\": \"2026-09-21\",\n  \"capacity\": 1,\n  \"latitude\": 1,\n  \"longitude\": 1,\n  \"status\": \"ACTIVE\",\n  \"departments\": [\n    \"sample departments\"\n  ],\n  \"alternatePhone\": \"0300-1234567\",\n  \"addressId\": \"{{addressId}}\",\n  \"address\": \"sample address\",\n  \"phone\": \"0300-1234567\",\n  \"email\": \"user@example.com\",\n  \"principal\": {\n    \"identifier\": \"new.user@example.com\",\n    \"password\": \"ChangeMe#12345\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /campuses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campuses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campuses"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /campuses/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campuses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campuses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{campusId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"code\": \"sample code\",\n  \"campusType\": \"sample campusType\",\n  \"logoFileId\": \"{{logoFileId}}\",\n  \"principalName\": \"sample principalName\",\n  \"principalPhone\": \"0300-1234567\",\n  \"principalEmail\": \"user@example.com\",\n  \"openingDate\": \"2026-09-21\",\n  \"capacity\": 1,\n  \"latitude\": 1,\n  \"longitude\": 1,\n  \"status\": \"ACTIVE\",\n  \"departments\": [\n    \"sample departments\"\n  ],\n  \"alternatePhone\": \"0300-1234567\",\n  \"addressId\": \"{{addressId}}\",\n  \"address\": \"sample address\",\n  \"phone\": \"0300-1234567\",\n  \"email\": \"user@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /campuses/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/campuses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "campuses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{campusId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Circulars",
+      "item": [
+        {
+          "name": "POST /circulars",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/circulars",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "circulars"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"sample title\",\n  \"description\": \"sample description\",\n  \"scope\": \"school\",\n  \"sectionId\": \"{{sectionId}}\",\n  \"priority\": \"sample priority\",\n  \"expiresAt\": \"2026-09-21\",\n  \"fileIds\": [\n    \"{{fileId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /circulars/draft-suggestion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/circulars/draft-suggestion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "circulars",
+                "draft-suggestion"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN\n\nNever auto-publishes — the suggestion is returned for the client to place into the compose textarea for staff to edit before calling publish() above.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": \"sample context\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /circulars",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/circulars",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "circulars"
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /circulars/:id/read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/circulars/:id/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "circulars",
+                ":id",
+                "read"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{circularId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** PARENT"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /circulars/:id/stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/circulars/:id/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "circulars",
+                ":id",
+                "stats"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{circularId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Class",
+      "item": [
+        {
+          "name": "POST /classes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campusId\": \"{{campusId}}\",\n  \"academicSessionId\": \"{{academicSessionId}}\",\n  \"name\": \"sample name\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /classes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /classes/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{classId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /classes/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/classes/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "classes",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{classId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Complaints",
+      "item": [
+        {
+          "name": "POST /complaints",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/complaints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "complaints"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"subject\": \"sample subject\",\n  \"description\": \"sample description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /complaints",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/complaints?studentId={{studentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "complaints"
+              ],
+              "query": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)\n\nStaff see any student's complaints directly; a parent request is scoped via StudentAccessService the same way every other student-linked read is."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /complaints/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/complaints/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "complaints",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{complaintId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"open\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Conversations",
+      "item": [
+        {
+          "name": "POST /conversations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/conversations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "conversations"
+              ]
+            },
+            "description": "**Roles:** PARENT",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientType\": \"CLASS_TEACHER\",\n  \"studentId\": \"{{studentId}}\",\n  \"body\": \"sample body\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/conversations?q=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "conversations"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /conversations/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/conversations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "conversations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{conversationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /conversations/:id/messages",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/conversations/:id/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "conversations",
+                ":id",
+                "messages"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{conversationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"sample body\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /conversations/:id/read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/conversations/:id/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "conversations",
+                ":id",
+                "read"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{conversationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "GET /admin/dashboard-summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dashboard-summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "dashboard-summary"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/operations-summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/operations-summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "operations-summary"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, ACCOUNTS"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/network-overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/network-overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "network-overview"
+              ]
+            },
+            "description": "**Roles:** SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/principal-academics-summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/principal-academics-summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "principal-academics-summary"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN\n\nGated on SCHOOL_ADMIN here; the service itself enforces the isPrincipal flag, since a Principal is a SCHOOL_ADMIN user with that flag set, not a distinct Role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Diary",
+      "item": [
+        {
+          "name": "POST /diary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/diary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "diary"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectionId\": \"{{sectionId}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"date\": \"2026-09-21\",\n  \"text\": \"sample text\",\n  \"dueDate\": \"2026-09-21\",\n  \"fileIds\": [\n    \"{{fileId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /diary/draft-suggestion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/diary/draft-suggestion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "diary",
+                "draft-suggestion"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN\n\nNever auto-publishes — matches CircularsController.suggestDraft's contract.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": \"sample context\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /students/:id/diary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/students/:id/diary?month=2026-09",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "students",
+                ":id",
+                "diary"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-09",
+                  "disabled": false
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /sections/:id/diary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sections/:id/diary?month=2026-09",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sections",
+                ":id",
+                "diary"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-09",
+                  "disabled": false
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sectionId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Fees",
+      "item": [
+        {
+          "name": "POST /fee-structures",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fee-structures",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fee-structures"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"amount\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /fee-structures",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fee-structures",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fee-structures"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /fee-vouchers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fee-vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fee-vouchers"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentIds\": [\n    \"{{studentId}}\"\n  ],\n  \"sectionId\": \"{{sectionId}}\",\n  \"month\": \"2026-09\",\n  \"dueDate\": \"2026-09-21\",\n  \"feeStructureIds\": [\n    \"{{feeStructureId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /students/:id/fees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/students/:id/fees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "students",
+                ":id",
+                "fees"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /students/:id/fees/payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/students/:id/fees/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "students",
+                ":id",
+                "fees",
+                "payments"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /fee-vouchers/:id/pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fee-vouchers/:id/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fee-vouchers",
+                ":id",
+                "pdf"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{feeVoucherId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)\n\nReturns a file/PDF/CSV download, not JSON — use Send and Download."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /fee-vouchers/:id/reconcile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fee-vouchers/:id/reconcile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fee-vouchers",
+                ":id",
+                "reconcile"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{feeVoucherId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1,\n  \"method\": \"cash\",\n  \"note\": \"sample note\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /fee-vouchers/:id/pay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fee-vouchers/:id/pay",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fee-vouchers",
+                ":id",
+                "pay"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{feeVoucherId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** PARENT",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"jazzcash\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /fee-payments/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fee-payments/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fee-payments",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{feePaymentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /fee-payments/:id/receipt.pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fee-payments/:id/receipt.pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fee-payments",
+                ":id",
+                "receipt.pdf"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{feePaymentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)\n\nReturns a file/PDF/CSV download, not JSON — use Send and Download."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "POST /files",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "files"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /files/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/files/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "files",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{fileId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)\n\nReturns a file/PDF/CSV download, not JSON — use Send and Download."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Grades",
+      "item": [
+        {
+          "name": "GET /students/:id/grades",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/students/:id/grades?termId={{termId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "students",
+                ":id",
+                "grades"
+              ],
+              "query": [
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Hiring Applications",
+      "item": [
+        {
+          "name": "POST /hiring/applications",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hiring/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hiring",
+                "applications"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"candidateId\": \"{{candidateId}}\",\n  \"employeeType\": \"TEACHER\",\n  \"campusId\": \"{{campusId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /hiring/applications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hiring/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hiring",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "campusId",
+                  "value": "{{campusId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /hiring/applications/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hiring/applications/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hiring",
+                "applications",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{applicationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /hiring/applications/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hiring/applications/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hiring",
+                "applications",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{applicationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SHORTLISTED\",\n  \"decisionNotes\": \"sample decisionNotes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /hiring/applications/:id/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hiring/applications/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hiring",
+                "applications",
+                ":id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{applicationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionNotes\": \"Reason for decision\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /hiring/applications/:id/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hiring/applications/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hiring",
+                "applications",
+                ":id",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{applicationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dateOfBirth\": \"2015-05-15\",\n  \"cnic\": \"sample cnic\",\n  \"mobile\": \"0300-1234567\",\n  \"email\": \"user@example.com\",\n  \"joiningDate\": \"2026-09-21\",\n  \"login\": {\n    \"identifier\": \"new.user@example.com\",\n    \"password\": \"ChangeMe#12345\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Hiring Candidates",
+      "item": [
+        {
+          "name": "POST /hiring/candidates",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hiring/candidates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hiring",
+                "candidates"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"dateOfBirth\": \"2015-05-15\",\n  \"cnic\": \"sample cnic\",\n  \"contactPhone\": \"0300-1234567\",\n  \"contactEmail\": \"user@example.com\",\n  \"resumeFileId\": \"{{resumeFileId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /hiring/candidates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hiring/candidates?contactPhone=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hiring",
+                "candidates"
+              ],
+              "query": [
+                {
+                  "key": "contactPhone",
+                  "value": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Holidays",
+      "item": [
+        {
+          "name": "POST /holidays",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/holidays",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "holidays"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"sample title\",\n  \"startDate\": \"2026-09-21\",\n  \"endDate\": \"2026-09-21\",\n  \"campusId\": \"{{campusId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /holidays",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/holidays",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "holidays"
+              ],
+              "query": [
+                {
+                  "key": "campusId",
+                  "value": "{{campusId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)\n\nNo @Roles restriction and no StudentAccessService check — holidays aren't student-scoped PII, any authenticated user (parents included) reads the calendar directly. Still scoped to the caller's own school/campus(es) inside the service, though, so it's a tenant boundary, not a completely open read."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /holidays/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/holidays/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "holidays",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{holidayId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"sample title\",\n  \"startDate\": \"2026-09-21\",\n  \"endDate\": \"2026-09-21\",\n  \"campusId\": \"{{campusId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /holidays/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/holidays/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "holidays",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{holidayId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Leave",
+      "item": [
+        {
+          "name": "POST /leave-requests",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leave-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leave-requests"
+              ]
+            },
+            "description": "**Roles:** PARENT",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"startDate\": \"2026-09-21\",\n  \"endDate\": \"2026-09-21\",\n  \"reason\": \"sample reason\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /students/:id/leave-requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/students/:id/leave-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "students",
+                ":id",
+                "leave-requests"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /leave-requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leave-requests?status=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leave-requests"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN\n\nStaff-only queue — not routed through StudentAccessService, matching Timetable/Attendance's staff-facing list endpoints."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /leave-requests/:id/approve",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leave-requests/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leave-requests",
+                ":id",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{leaveRequestId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /leave-requests/:id/reject",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leave-requests/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leave-requests",
+                ":id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{leaveRequestId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Me",
+      "item": [
+        {
+          "name": "GET /me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me"
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /me/children",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me/children",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "children"
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /me/children/:studentId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me/children/:studentId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "children",
+                ":studentId"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /me/children/:studentId",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me/children/:studentId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "children",
+                ":studentId"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentMobile\": \"0300-1234567\",\n  \"studentEmail\": \"user@example.com\",\n  \"currentAddress\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  },\n  \"allergies\": \"sample allergies\",\n  \"medicalConditions\": \"sample medicalConditions\",\n  \"medicationNotes\": \"sample medicationNotes\",\n  \"emergencyContacts\": [\n    {\n      \"name\": \"sample name\",\n      \"relationship\": \"sample relationship\",\n      \"phone\": \"0300-1234567\",\n      \"alternatePhone\": \"0300-1234567\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /me/device-tokens",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me/device-tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "device-tokens"
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"token-value\",\n  \"platform\": \"android\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /me/notification-preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me/notification-preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "notification-preferences"
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"PUSH\",\n  \"digestEnabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "GET /notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications"
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /notifications/:id/read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/:id/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                ":id",
+                "read"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{notificationId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /notifications/read-all",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "read-all"
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Parent",
+      "item": [
+        {
+          "name": "POST /admin/parents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/parents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "parents"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"new.user@example.com\",\n  \"password\": \"ChangeMe#12345\",\n  \"name\": \"sample name\",\n  \"phone\": \"0300-1234567\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/parents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/parents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "parents"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/parents/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/parents/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "parents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{parentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/parents/:id/children/:studentId",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/parents/:id/children/:studentId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "parents",
+                ":id",
+                "children",
+                ":studentId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{parentId}}"
+                },
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isPrimary\": true,\n  \"isEmergencyContact\": true,\n  \"relationship\": \"sample relationship\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/parents/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/parents/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "parents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{parentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"phone\": \"0300-1234567\",\n  \"password\": \"ChangeMe#12345\",\n  \"cnic\": \"sample cnic\",\n  \"gender\": \"MALE\",\n  \"dateOfBirth\": \"2015-05-15\",\n  \"alternatePhone\": \"0300-1234567\",\n  \"whatsappNumber\": \"sample whatsappNumber\",\n  \"email\": \"user@example.com\",\n  \"occupation\": \"sample occupation\",\n  \"employerName\": \"sample employerName\",\n  \"designation\": \"sample designation\",\n  \"currentAddress\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  },\n  \"permanentAddress\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/parents/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/parents/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "parents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{parentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments Webhook",
+      "item": [
+        {
+          "name": "POST /payments/webhook/:gateway",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/webhook/:gateway",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "webhook",
+                ":gateway"
+              ],
+              "variable": [
+                {
+                  "key": "gateway",
+                  "value": "jazzcash"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**Public** (no JWT).\n\nBody and signature headers are gateway-specific; verified by the gateway signer, not by JWT.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference\": \"VOUCHER-REF\",\n  \"status\": \"success\",\n  \"signature\": \"gateway-specific\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Promotions",
+      "item": [
+        {
+          "name": "GET /promotions/preview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/promotions/preview?sourceSectionId={{sourceSectionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "promotions",
+                "preview"
+              ],
+              "query": [
+                {
+                  "key": "sourceSectionId",
+                  "value": "{{sourceSectionId}}",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /promotions/execute",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/promotions/execute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "promotions",
+                "execute"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceAcademicSessionId\": \"{{sourceAcademicSessionId}}\",\n  \"targetAcademicSessionId\": \"{{targetAcademicSessionId}}\",\n  \"decisions\": [\n    {\n      \"studentId\": \"{{studentId}}\",\n      \"decision\": \"PROMOTED\",\n      \"targetSectionId\": \"{{targetSectionId}}\",\n      \"rollNumber\": \"sample rollNumber\",\n      \"remarks\": \"sample remarks\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Report Cards",
+      "item": [
+        {
+          "name": "POST /report-cards",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/report-cards",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "report-cards"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "academicSessionId",
+                  "value": "{{academicSessionId}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /report-cards",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/report-cards?studentId={{studentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "report-cards"
+              ],
+              "query": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /report-cards/:id/pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/report-cards/:id/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "report-cards",
+                ":id",
+                "pdf"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{reportCardId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)\n\nReturns a file/PDF/CSV download, not JSON — use Send and Download."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "School",
+      "item": [
+        {
+          "name": "POST /schools",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/schools",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schools"
+              ]
+            },
+            "description": "**Roles:** SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"code\": \"sample code\",\n  \"registrationNumber\": \"sample registrationNumber\",\n  \"website\": \"https://example.com\",\n  \"logoFileId\": \"{{logoFileId}}\",\n  \"principalName\": \"sample principalName\",\n  \"principalPhone\": \"0300-1234567\",\n  \"principalEmail\": \"user@example.com\",\n  \"establishedDate\": \"2026-09-21\",\n  \"schoolType\": \"sample schoolType\",\n  \"educationBoard\": \"sample educationBoard\",\n  \"status\": \"ACTIVE\",\n  \"timezone\": \"sample timezone\",\n  \"currency\": \"sample currency\",\n  \"alternatePhone\": \"0300-1234567\",\n  \"addressId\": \"{{addressId}}\",\n  \"address\": \"sample address\",\n  \"phone\": \"0300-1234567\",\n  \"email\": \"user@example.com\",\n  \"admin\": {\n    \"identifier\": \"new.user@example.com\",\n    \"password\": \"ChangeMe#12345\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /schools",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/schools",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schools"
+              ]
+            },
+            "description": "**Roles:** SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /schools/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/schools/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schools",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{schoolId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"code\": \"sample code\",\n  \"registrationNumber\": \"sample registrationNumber\",\n  \"website\": \"https://example.com\",\n  \"logoFileId\": \"{{logoFileId}}\",\n  \"principalName\": \"sample principalName\",\n  \"principalPhone\": \"0300-1234567\",\n  \"principalEmail\": \"user@example.com\",\n  \"establishedDate\": \"2026-09-21\",\n  \"schoolType\": \"sample schoolType\",\n  \"educationBoard\": \"sample educationBoard\",\n  \"status\": \"ACTIVE\",\n  \"timezone\": \"sample timezone\",\n  \"currency\": \"sample currency\",\n  \"alternatePhone\": \"0300-1234567\",\n  \"addressId\": \"{{addressId}}\",\n  \"address\": \"sample address\",\n  \"email\": \"user@example.com\",\n  \"phone\": \"0300-1234567\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /schools/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/schools/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schools",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{schoolId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sections",
+      "item": [
+        {
+          "name": "GET /sections",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sections",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sections"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /sections/:id/students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sections/:id/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sections",
+                ":id",
+                "students"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sectionId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /sections",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sections",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sections"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classId\": \"{{classId}}\",\n  \"name\": \"sample name\",\n  \"classTeacherId\": \"{{classTeacherId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /sections/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sections/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sections",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sectionId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"classTeacherId\": \"{{classTeacherId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /sections/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sections/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sections",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sectionId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Staff",
+      "item": [
+        {
+          "name": "GET /admin/staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff?employeeType=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff"
+              ],
+              "query": [
+                {
+                  "key": "employeeType",
+                  "value": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"employeeType\": \"TEACHER\",\n  \"campusId\": \"{{campusId}}\",\n  \"dateOfBirth\": \"2015-05-15\",\n  \"cnic\": \"sample cnic\",\n  \"mobile\": \"0300-1234567\",\n  \"email\": \"user@example.com\",\n  \"joiningDate\": \"2026-09-21\",\n  \"login\": {\n    \"identifier\": \"new.user@example.com\",\n    \"password\": \"ChangeMe#12345\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/staff/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{staffId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"mobile\": \"0300-1234567\",\n  \"email\": \"user@example.com\",\n  \"employmentStatus\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/staff/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{staffId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Staff Profile",
+      "item": [
+        {
+          "name": "GET /admin/staff/:staffId/profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "profile"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/staff/:staffId/profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "profile"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"sample firstName\",\n  \"middleName\": \"sample middleName\",\n  \"lastName\": \"sample lastName\",\n  \"gender\": \"MALE\",\n  \"dateOfBirth\": \"2015-05-15\",\n  \"cnic\": \"sample cnic\",\n  \"mobile\": \"0300-1234567\",\n  \"email\": \"user@example.com\",\n  \"profilePhotoFileId\": \"{{profilePhotoFileId}}\",\n  \"joiningDate\": \"2026-09-21\",\n  \"employmentStatus\": \"ACTIVE\",\n  \"leavingDate\": \"2026-09-21\",\n  \"leavingReason\": \"sample leavingReason\",\n  \"currentAddress\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  },\n  \"permanentAddress\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/staff/:staffId/emergency-contacts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/emergency-contacts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "emergency-contacts"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/staff/:staffId/emergency-contacts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/emergency-contacts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "emergency-contacts"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"relationship\": \"sample relationship\",\n  \"phone\": \"0300-1234567\",\n  \"alternatePhone\": \"0300-1234567\",\n  \"email\": \"user@example.com\",\n  \"priority\": 1,\n  \"isPrimary\": true,\n  \"address\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/staff/:staffId/emergency-contacts/:contactId",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/emergency-contacts/:contactId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "emergency-contacts",
+                ":contactId"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                },
+                {
+                  "key": "contactId",
+                  "value": "{{contactId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"relationship\": \"sample relationship\",\n  \"phone\": \"0300-1234567\",\n  \"alternatePhone\": \"0300-1234567\",\n  \"email\": \"user@example.com\",\n  \"priority\": 1,\n  \"isPrimary\": true,\n  \"address\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/staff/:staffId/emergency-contacts/:contactId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/emergency-contacts/:contactId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "emergency-contacts",
+                ":contactId"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                },
+                {
+                  "key": "contactId",
+                  "value": "{{contactId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/staff/:staffId/experience",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/experience",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "experience"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/staff/:staffId/experience",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/experience",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "experience"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organization\": \"sample organization\",\n  \"role\": \"sample role\",\n  \"fromDate\": \"2026-09-21\",\n  \"toDate\": \"2026-09-21\",\n  \"description\": \"sample description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/staff/:staffId/experience/:experienceId",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/experience/:experienceId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "experience",
+                ":experienceId"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                },
+                {
+                  "key": "experienceId",
+                  "value": "{{experienceId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organization\": \"sample organization\",\n  \"role\": \"sample role\",\n  \"fromDate\": \"2026-09-21\",\n  \"toDate\": \"2026-09-21\",\n  \"description\": \"sample description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/staff/:staffId/experience/:experienceId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/experience/:experienceId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "experience",
+                ":experienceId"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                },
+                {
+                  "key": "experienceId",
+                  "value": "{{experienceId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/staff/:staffId/documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "documents"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/staff/:staffId/documents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "documents"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentType\": \"BIRTH_CERTIFICATE\",\n  \"fileId\": \"{{fileId}}\",\n  \"expiryDate\": \"2026-09-21\",\n  \"notes\": \"sample notes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/staff/:staffId/documents/:documentId/verify",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/:staffId/documents/:documentId/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                ":staffId",
+                "documents",
+                ":documentId",
+                "verify"
+              ],
+              "variable": [
+                {
+                  "key": "staffId",
+                  "value": "{{staffId}}"
+                },
+                {
+                  "key": "documentId",
+                  "value": "{{documentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verified\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Student",
+      "item": [
+        {
+          "name": "POST /admin/students",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grNumber\": \"sample grNumber\",\n  \"name\": \"sample name\",\n  \"sectionId\": \"{{sectionId}}\",\n  \"parentProfileId\": \"{{parentProfileId}}\",\n  \"newParent\": {\n    \"identifier\": \"new.user@example.com\",\n    \"password\": \"ChangeMe#12345\",\n    \"name\": \"sample name\",\n    \"phone\": \"0300-1234567\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/students/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grNumber\": \"sample grNumber\",\n  \"name\": \"sample name\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/students/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Student Profile",
+      "item": [
+        {
+          "name": "GET /admin/students/:studentId/profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "profile"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/students/:studentId/profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "profile"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"sample firstName\",\n  \"middleName\": \"sample middleName\",\n  \"lastName\": \"sample lastName\",\n  \"preferredName\": \"sample preferredName\",\n  \"gender\": \"MALE\",\n  \"dateOfBirth\": \"2015-05-15\",\n  \"placeOfBirth\": \"sample placeOfBirth\",\n  \"nationality\": \"sample nationality\",\n  \"religion\": \"sample religion\",\n  \"bFormNumber\": \"sample bFormNumber\",\n  \"status\": \"ACTIVE\",\n  \"admissionDate\": \"2026-09-21\",\n  \"leavingDate\": \"2026-09-21\",\n  \"leavingReason\": \"sample leavingReason\",\n  \"studentMobile\": \"0300-1234567\",\n  \"studentEmail\": \"user@example.com\",\n  \"profilePhotoFileId\": \"{{profilePhotoFileId}}\",\n  \"currentAddress\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  },\n  \"permanentAddress\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/students/:studentId/current-enrollment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/current-enrollment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "current-enrollment"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rollNumber\": \"sample rollNumber\",\n  \"remarks\": \"sample remarks\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /admin/students/:studentId/previous-school",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/previous-school",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "previous-school"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schoolName\": \"sample schoolName\",\n  \"contactNumber\": \"sample contactNumber\",\n  \"email\": \"user@example.com\",\n  \"lastClassAttended\": \"sample lastClassAttended\",\n  \"admissionDate\": \"2026-09-21\",\n  \"leavingDate\": \"2026-09-21\",\n  \"leavingCertificateNumber\": \"sample leavingCertificateNumber\",\n  \"leavingCertificateDate\": \"2026-09-21\",\n  \"reasonForLeaving\": \"sample reasonForLeaving\",\n  \"academicRemarks\": \"sample academicRemarks\",\n  \"address\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /admin/students/:studentId/medical-info",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/medical-info",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "medical-info"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloodGroup\": \"A_POS\",\n  \"allergies\": \"sample allergies\",\n  \"medicalConditions\": \"sample medicalConditions\",\n  \"specialEducationalNeeds\": \"sample specialEducationalNeeds\",\n  \"medicationNotes\": \"sample medicationNotes\",\n  \"emergencyMedicalNotes\": \"sample emergencyMedicalNotes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/students/:studentId/emergency-contacts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/emergency-contacts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "emergency-contacts"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/students/:studentId/emergency-contacts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/emergency-contacts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "emergency-contacts"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"relationship\": \"sample relationship\",\n  \"phone\": \"0300-1234567\",\n  \"alternatePhone\": \"0300-1234567\",\n  \"email\": \"user@example.com\",\n  \"priority\": 1,\n  \"isPrimary\": true,\n  \"address\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/students/:studentId/emergency-contacts/:contactId",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/emergency-contacts/:contactId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "emergency-contacts",
+                ":contactId"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                },
+                {
+                  "key": "contactId",
+                  "value": "{{contactId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"relationship\": \"sample relationship\",\n  \"phone\": \"0300-1234567\",\n  \"alternatePhone\": \"0300-1234567\",\n  \"email\": \"user@example.com\",\n  \"priority\": 1,\n  \"isPrimary\": true,\n  \"address\": {\n    \"line1\": \"sample line1\",\n    \"line2\": \"sample line2\",\n    \"area\": \"sample area\",\n    \"city\": \"sample city\",\n    \"district\": \"sample district\",\n    \"province\": \"sample province\",\n    \"postalCode\": \"sample postalCode\",\n    \"country\": \"sample country\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/students/:studentId/emergency-contacts/:contactId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/emergency-contacts/:contactId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "emergency-contacts",
+                ":contactId"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                },
+                {
+                  "key": "contactId",
+                  "value": "{{contactId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/students/:studentId/documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "documents"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/students/:studentId/documents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "documents"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentType\": \"BIRTH_CERTIFICATE\",\n  \"fileId\": \"{{fileId}}\",\n  \"expiryDate\": \"2026-09-21\",\n  \"notes\": \"sample notes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/students/:studentId/documents/:documentId/verify",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/documents/:documentId/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "documents",
+                ":documentId",
+                "verify"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                },
+                {
+                  "key": "documentId",
+                  "value": "{{documentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verified\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/students/:studentId/promotion-history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/students/:studentId/promotion-history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "students",
+                ":studentId",
+                "promotion-history"
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subjects",
+      "item": [
+        {
+          "name": "GET /subjects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subjects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subjects"
+              ]
+            },
+            "description": "**Roles:** TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Teacher",
+      "item": [
+        {
+          "name": "POST /admin/teachers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/teachers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "teachers"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"new.user@example.com\",\n  \"password\": \"ChangeMe#12345\",\n  \"name\": \"sample name\",\n  \"campusId\": \"{{campusId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/teachers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/teachers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "teachers"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/teachers/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/teachers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "teachers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{teacherId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"sample name\",\n  \"password\": \"ChangeMe#12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/teachers/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/teachers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "teachers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{teacherId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Teachers",
+      "item": [
+        {
+          "name": "GET /teachers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers"
+              ],
+              "query": [
+                {
+                  "key": "campusId",
+                  "value": "{{campusId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN\n\nAdmin-only for now — the one consumer today is the Timetable editor, which is itself Admin/Super Admin only (matches POST /timetable's existing @Roles)."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /teachers/me/day",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers/me/day",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers",
+                "me",
+                "day"
+              ]
+            },
+            "description": "**Roles:** TEACHER"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /teachers/me/gradebook-overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers/me/gradebook-overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers",
+                "me",
+                "gradebook-overview"
+              ]
+            },
+            "description": "**Roles:** TEACHER"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Terms",
+      "item": [
+        {
+          "name": "POST /terms",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/terms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "terms"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"academicSessionId\": \"{{academicSessionId}}\",\n  \"label\": \"sample label\",\n  \"order\": 1,\n  \"startDate\": \"2026-09-21\",\n  \"endDate\": \"2026-09-21\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /terms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/terms?academicSessionId={{academicSessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "terms"
+              ],
+              "query": [
+                {
+                  "key": "academicSessionId",
+                  "value": "{{academicSessionId}}",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)\n\nNo StudentAccessService check — terms are not per-student PII, same reasoning as Holiday's read scope (any authenticated role, including PARENT/TEACHER, can read the term list)."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /terms/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/terms/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "terms",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{termId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"sample label\",\n  \"order\": 1,\n  \"startDate\": \"2026-09-21\",\n  \"endDate\": \"2026-09-21\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /terms/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/terms/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "terms",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{termId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Timetable",
+      "item": [
+        {
+          "name": "GET /teachers/me/timetable",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers/me/timetable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers",
+                "me",
+                "timetable"
+              ]
+            },
+            "description": "**Roles:** TEACHER"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /students/:id/timetable",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/students/:id/timetable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "students",
+                ":id",
+                "timetable"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** any authenticated user (row-level access is enforced in the service layer)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /sections/:id/timetable",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sections/:id/timetable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sections",
+                ":id",
+                "timetable"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sectionId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN\n\nStaff-only (no StudentAccessService involved) — this is the Timetable editor's read side, listing what's already scheduled for a section so it can be shown/edited, not a parent-facing read."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /sections/:id/timetable",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sections/:id/timetable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sections",
+                ":id",
+                "timetable"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sectionId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN\n\nThe grid composer's bulk save — replaces the section's entire timetable in one call.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entries\": [\n    {\n      \"subjectId\": \"{{subjectId}}\",\n      \"teacherId\": \"{{teacherId}}\",\n      \"dayOfWeek\": 1,\n      \"period\": 1,\n      \"startTime\": \"09:00\",\n      \"endTime\": \"09:00\",\n      \"room\": \"sample room\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /timetable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timetable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timetable"
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectionId\": \"{{sectionId}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"teacherId\": \"{{teacherId}}\",\n  \"dayOfWeek\": 1,\n  \"period\": 1,\n  \"startTime\": \"09:00\",\n  \"endTime\": \"09:00\",\n  \"room\": \"sample room\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /timetable/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timetable/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timetable",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{timetableId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectId\": \"{{subjectId}}\",\n  \"teacherId\": \"{{teacherId}}\",\n  \"dayOfWeek\": 1,\n  \"period\": 1,\n  \"startTime\": \"09:00\",\n  \"endTime\": \"09:00\",\n  \"room\": \"sample room\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /timetable/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timetable/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timetable",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{timetableId}}"
+                }
+              ]
+            },
+            "description": "**Roles:** SCHOOL_ADMIN, SUPER_ADMIN"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
