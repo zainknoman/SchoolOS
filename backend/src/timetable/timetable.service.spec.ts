@@ -17,6 +17,7 @@ describe('TimetableService', () => {
       deleteMany: jest.Mock;
       createMany: jest.Mock;
     };
+    section: { findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
@@ -33,6 +34,9 @@ describe('TimetableService', () => {
         delete: jest.fn(),
         deleteMany: jest.fn(),
         createMany: jest.fn(),
+      },
+      section: {
+        findUnique: jest.fn().mockResolvedValue({ class: { campusId: 'camp-1', academicSessionId: 'sess-1' } }),
       },
       auditLog: { create: jest.fn() },
       $transaction: jest.fn().mockResolvedValue(undefined),
@@ -360,6 +364,46 @@ describe('TimetableService', () => {
         }),
       );
       expect(prisma.timetable.update).toHaveBeenCalled();
+    });
+
+    it('scopes a room clash to the same campus and academic session (room names repeat across campuses/years)', async () => {
+      prisma.timetable.findMany.mockResolvedValue([]);
+      await service.replaceForSection('sec-1', [
+        { subjectId: 'sub-1', dayOfWeek: 1, period: 1, startTime: '08:00', endTime: '08:40', room: '2A' },
+      ], 'admin-1');
+
+      expect(prisma.timetable.findFirst).toHaveBeenCalledWith({
+        where: {
+          dayOfWeek: 1,
+          period: 1,
+          sectionId: { not: 'sec-1' },
+          OR: [{ room: '2A', section: { class: { campusId: 'camp-1', academicSessionId: 'sess-1' } } }],
+        },
+      });
+    });
+
+    it('scopes a teacher clash to the same academic session only', async () => {
+      prisma.timetable.findMany.mockResolvedValue([]);
+      await service.replaceForSection('sec-1', [
+        { subjectId: 'sub-1', teacherId: 'teacher-1', dayOfWeek: 1, period: 1, startTime: '08:00', endTime: '08:40' },
+      ], 'admin-1');
+
+      expect(prisma.timetable.findFirst).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          OR: [{ teacherId: 'teacher-1', section: { class: { academicSessionId: 'sess-1' } } }],
+        }),
+      });
+    });
+
+    it('still rejects a real room clash within the campus and session, naming the campus', async () => {
+      prisma.timetable.findFirst.mockResolvedValue({ id: 'other', teacherId: null, room: '2A' });
+
+      await expect(
+        service.replaceForSection('sec-1', [
+          { subjectId: 'sub-1', dayOfWeek: 1, period: 1, startTime: '08:00', endTime: '08:40', room: '2A' },
+        ], 'admin-1'),
+      ).rejects.toThrow('another section of this campus');
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });
 });

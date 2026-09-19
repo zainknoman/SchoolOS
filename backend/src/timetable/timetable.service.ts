@@ -53,23 +53,49 @@ export class TimetableService {
    * both real scheduling failures. `teacherId`/`room` are optional on Timetable, so a slot with
    * neither set is never flagged as conflicting with another slot that also has neither set.
    */
-  private async assertNoConflict(
-    dto: { dayOfWeek: number; period: number; teacherId?: string | null; room?: string | null },
-    excludeId?: string,
-  ): Promise<void> {
-    const or: Array<Record<string, unknown>> = [];
-    if (dto.teacherId) or.push({ teacherId: dto.teacherId });
-    if (dto.room) or.push({ room: dto.room });
-    if (or.length === 0) return;
+  /**
+   * Room names are free text ("2A", "Lab 1") and repeat across campuses and academic years, so a
+   * room only clashes with another booking in the SAME campus and academic session. A teacher can't
+   * be in two places at once, but historical rows from another academic session don't count.
+   */
+  private async findConflict(
+    sectionId: string,
+    entry: { dayOfWeek: number; period: number; teacherId?: string | null; room?: string | null },
+    exclude: { id?: string; sectionId?: string } = {},
+  ) {
+    const section = await this.prisma.section.findUnique({
+      where: { id: sectionId },
+      select: { class: { select: { campusId: true, academicSessionId: true } } },
+    });
+    if (!section) return null;
+    const { campusId, academicSessionId } = section.class;
 
-    const conflict = await this.prisma.timetable.findFirst({
+    const or: Array<Record<string, unknown>> = [];
+    if (entry.teacherId) {
+      or.push({ teacherId: entry.teacherId, section: { class: { academicSessionId } } });
+    }
+    if (entry.room) {
+      or.push({ room: entry.room, section: { class: { campusId, academicSessionId } } });
+    }
+    if (or.length === 0) return null;
+
+    return this.prisma.timetable.findFirst({
       where: {
-        dayOfWeek: dto.dayOfWeek,
-        period: dto.period,
-        id: excludeId ? { not: excludeId } : undefined,
+        dayOfWeek: entry.dayOfWeek,
+        period: entry.period,
+        ...(exclude.id ? { id: { not: exclude.id } } : {}),
+        ...(exclude.sectionId ? { sectionId: { not: exclude.sectionId } } : {}),
         OR: or,
       },
     });
+  }
+
+  private async assertNoConflict(
+    sectionId: string,
+    dto: { dayOfWeek: number; period: number; teacherId?: string | null; room?: string | null },
+    excludeId?: string,
+  ): Promise<void> {
+    const conflict = await this.findConflict(sectionId, dto, { id: excludeId });
     if (conflict) {
       throw new ConflictException(
         dto.teacherId && conflict.teacherId === dto.teacherId
@@ -99,7 +125,7 @@ export class TimetableService {
   }
 
   async createEntry(dto: CreateTimetableEntryDto, actingUserId: string) {
-    await this.assertNoConflict(dto);
+    await this.assertNoConflict(dto.sectionId, dto);
     const entry = await this.prisma.timetable.create({ data: dto });
     await this.prisma.auditLog.create({
       data: {
@@ -119,6 +145,7 @@ export class TimetableService {
       throw new NotFoundException('Timetable entry not found');
     }
     await this.assertNoConflict(
+      existing.sectionId,
       {
         dayOfWeek: dto.dayOfWeek ?? existing.dayOfWeek,
         period: dto.period ?? existing.period,
@@ -188,24 +215,12 @@ export class TimetableService {
   ): Promise<TimetableEntrySummary[]> {
     this.assertNoSelfConflict(entries);
     for (const entry of entries) {
-      const or: Array<Record<string, unknown>> = [];
-      if (entry.teacherId) or.push({ teacherId: entry.teacherId });
-      if (entry.room) or.push({ room: entry.room });
-      if (or.length === 0) continue;
-
-      const conflict = await this.prisma.timetable.findFirst({
-        where: {
-          dayOfWeek: entry.dayOfWeek,
-          period: entry.period,
-          sectionId: { not: sectionId },
-          OR: or,
-        },
-      });
+      const conflict = await this.findConflict(sectionId, entry, { sectionId });
       if (conflict) {
         throw new ConflictException(
           entry.teacherId && conflict.teacherId === entry.teacherId
             ? 'This teacher is already scheduled for this period in another section.'
-            : 'This room is already booked for this period in another section.',
+            : 'This room is already booked for this period in another section of this campus.',
         );
       }
     }
