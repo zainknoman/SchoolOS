@@ -7,6 +7,10 @@ import {
   assertCreatable,
   assertValidReferences,
 } from '../common/prisma-create-guard';
+import {
+  createPrincipalUser,
+  type ProvisionedLogin,
+} from '../common/create-principal-user';
 import { CreateCampusDto } from './dto/create-campus.dto';
 import { UpdateCampusDto } from './dto/update-campus.dto';
 import type { RequestUser } from '../common/student-access.service';
@@ -73,13 +77,16 @@ export class CampusService {
     dto: CreateCampusDto,
     actingUserId: string,
     actingUser?: RequestUser,
-  ): Promise<CampusSummary> {
+  ): Promise<CampusSummary & { provisionedLogin?: ProvisionedLogin }> {
     if (actingUser && actingUser.role !== 'SUPER_ADMIN') {
       const scope = await this.orgScope.resolve(actingUser);
       if (scope.denied || scope.campusId !== null || scope.schoolId !== dto.schoolId) {
         throw new ForbiddenException('You can only create campuses for your own school');
       }
     }
+    // `principal` (and any password in it) must never reach Prisma or the audit log.
+    const { principal, ...campusData } = dto;
+    let provisionedLogin: ProvisionedLogin | undefined;
     // The Campus row and its audit-log entry are wrapped in one $transaction so a bad
     // actingUserId (e.g. a stale/orphaned session) rolls back the Campus row too, instead of
     // silently persisting a Campus with no audit trail while the caller sees a 500.
@@ -87,9 +94,9 @@ export class CampusService {
       const created = await tx.campus
         .create({
           data: {
-            ...dto,
-            openingDate: dto.openingDate
-              ? new Date(dto.openingDate)
+            ...campusData,
+            openingDate: campusData.openingDate
+              ? new Date(campusData.openingDate)
               : undefined,
           },
           include: WITH_SCHOOL,
@@ -112,12 +119,34 @@ export class CampusService {
           action: 'campus.create',
           entity: 'Campus',
           entityId: created.id,
-          metadata: JSON.stringify(dto),
+          metadata: JSON.stringify(campusData),
         },
       });
+      if (principal) {
+        provisionedLogin = await createPrincipalUser(tx, {
+          identifier: principal.identifier,
+          password: principal.password,
+          schoolId: created.schoolId,
+          campusId: created.id,
+        });
+        await tx.auditLog.create({
+          data: {
+            userId: actingUserId,
+            action: 'user.create',
+            entity: 'User',
+            entityId: created.id,
+            metadata: JSON.stringify({
+              identifier: provisionedLogin.identifier,
+              role: 'SCHOOL_ADMIN',
+              campusId: created.id,
+            }),
+          },
+        });
+      }
       return created;
     });
-    return this.toSummary(record);
+    const summary = await this.toSummary(record);
+    return provisionedLogin ? { ...summary, provisionedLogin } : summary;
   }
 
   async list(actingUser: RequestUser): Promise<CampusSummary[]> {

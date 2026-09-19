@@ -8,8 +8,11 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { OrgStatus } from '@prisma/client';
+import { LoginProvisionDto } from '../../common/create-principal-user';
 
 export class CreateCampusDto {
   @IsString() @MinLength(1) schoolId!: string;
@@ -33,4 +36,6 @@ export class CreateCampusDto {
   @IsOptional() @IsString() address?: string;
   @IsOptional() @IsString() phone?: string;
   @IsOptional() @IsEmail() email?: string;
+
+  @IsOptional() @ValidateNested() @Type(() => LoginProvisionDto) principal?: LoginProvisionDto;
 }

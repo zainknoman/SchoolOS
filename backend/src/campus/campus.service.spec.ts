@@ -35,7 +35,7 @@ describe('CampusService', () => {
       update: jest.Mock;
       delete: jest.Mock;
     };
-    user: { findUnique: jest.Mock };
+    user: { findUnique: jest.Mock; create: jest.Mock };
     enrollment: { count: jest.Mock };
     staff: { count: jest.Mock };
     auditLog: { create: jest.Mock };
@@ -53,7 +53,7 @@ describe('CampusService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
-      user: { findUnique: jest.fn() },
+      user: { findUnique: jest.fn(), create: jest.fn().mockResolvedValue({ id: 'u1' }) },
       enrollment: { count: jest.fn().mockResolvedValue(0) },
       staff: { count: jest.fn().mockResolvedValue(0) },
       auditLog: { create: jest.fn() },
@@ -456,5 +456,45 @@ describe('CampusService', () => {
     await expect(service.delete('c1', 'admin-1')).rejects.toThrow(
       BadRequestException,
     );
+  });
+
+  describe('principal provisioning', () => {
+    beforeEach(() => {
+      prisma.campus.create.mockResolvedValue({
+        id: 'camp1', name: 'North', schoolId: 's1', ...NEW_PROFILE_FIELDS,
+        address: null, phone: null, email: null, school: { name: 'S' },
+      });
+    });
+
+    it('creates a campus principal login scoped to the new campus, in the same transaction', async () => {
+      const result = await service.create(
+        { schoolId: 's1', name: 'North', principal: { identifier: 'north@alpha.test' } },
+        'super-1',
+      );
+
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ schoolId: 's1', campusId: 'camp1', isPrincipal: true, role: 'SCHOOL_ADMIN' }),
+        }),
+      );
+      expect(result.provisionedLogin?.identifier).toBe('north@alpha.test');
+    });
+
+    it('does not put the principal block or a password in the campus row or audit metadata', async () => {
+      await service.create(
+        { schoolId: 's1', name: 'North', principal: { identifier: 'n@x.test', password: 'Sup3rSecret!' } },
+        'super-1',
+      );
+      expect(prisma.campus.create.mock.calls[0][0].data).not.toHaveProperty('principal');
+      for (const call of prisma.auditLog.create.mock.calls) {
+        expect(JSON.stringify(call[0])).not.toContain('Sup3rSecret!');
+      }
+    });
+
+    it('creates no user and no provisionedLogin key when principal is omitted', async () => {
+      const result = await service.create({ schoolId: 's1', name: 'North' }, 'super-1');
+      expect(prisma.user.create).not.toHaveBeenCalled();
+      expect(result).not.toHaveProperty('provisionedLogin');
+    });
   });
 });
