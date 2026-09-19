@@ -195,7 +195,7 @@ export class AuthService {
     const passwordHash = await argon2.hash(newPassword);
 
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: stored.userId }, data: { passwordHash } }),
+      this.prisma.user.update({ where: { id: stored.userId }, data: { passwordHash, mustChangePassword: false } }),
       this.prisma.passwordResetToken.update({
         where: { id: stored.id },
         data: { usedAt: new Date() },

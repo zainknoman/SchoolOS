@@ -425,6 +425,10 @@ describe('AuthService', () => {
       expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'user-1' } }),
       );
+      expect(prisma.user.update.mock.calls[0][0].data).toMatchObject({
+        passwordHash: expect.any(String),
+        mustChangePassword: false,
+      });
       expect(prisma.passwordResetToken.update).toHaveBeenCalledWith({
         where: { id: 'prt-1' },
         data: { usedAt: expect.any(Date) },

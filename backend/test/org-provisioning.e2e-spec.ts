@@ -49,6 +49,14 @@ describe('Org provisioning and campus scoping (e2e)', () => {
     northSectionId: string;
     northTeacherId: string;
     southTeacherId: string;
+    northStaffId: string;
+    southStaffId: string;
+    northStudentId: string;
+    southStudentId: string;
+    northParentId: string;
+    southParentId: string;
+    northLeaveId: string;
+    southLeaveId: string;
   } = {} as never;
 
   const startedAt = new Date();
@@ -135,6 +143,19 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         ],
       },
     });
+
+    // People/leave fixtures: leave requests hold a Restrict FK on the student, enrollments a
+    // Restrict FK on the section, staff a Restrict FK on the campus. Student delete cascades its
+    // enrollments and parent links; parent profiles go with their prov- user.
+    const fixtureStudents = await prisma.student.findMany({
+      where: { grNumber: { startsWith: 'PROV-GR-' } },
+      select: { id: true },
+    });
+    const studentIds = fixtureStudents.map((x) => x.id);
+    await prisma.leaveRequest.deleteMany({ where: { studentId: { in: studentIds } } });
+    await prisma.enrollment.deleteMany({ where: { campusId: { in: campusIds } } });
+    await prisma.student.deleteMany({ where: { id: { in: studentIds } } });
+    await prisma.staff.deleteMany({ where: { campusId: { in: campusIds } } });
 
     await prisma.section.deleteMany({ where: { classId: { in: classIds } } });
     await prisma.class.deleteMany({ where: { id: { in: classIds } } });
@@ -537,6 +558,145 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .set(auth(s.northToken))
         .send({ classId: s.northClassId, name: 'N-C', classTeacherId: s.northTeacherId })
         .expect(201);
+    });
+  });
+
+  describe('Campus principal confinement: staff, students, parents, leave', () => {
+    beforeAll(async () => {
+      const mkStaff = (name: string, campusId: string) =>
+        prisma.staff.create({ data: { name, employeeType: 'JANITORIAL', campusId } });
+      s.northStaffId = (await mkStaff('PROV North Janitor', s.northId)).id;
+      s.southStaffId = (await mkStaff('PROV South Janitor', s.southId)).id;
+
+      const mkStudent = async (grNumber: string, name: string, campusId: string, sectionId: string) => {
+        const student = await prisma.student.create({ data: { grNumber, name } });
+        await prisma.enrollment.create({
+          data: { studentId: student.id, campusId, sectionId, academicSessionId: s.sessionId, startDate: new Date() },
+        });
+        return student.id;
+      };
+      s.northStudentId = await mkStudent('PROV-GR-N', 'PROV North Student', s.northId, s.northSectionId);
+      s.southStudentId = await mkStudent('PROV-GR-S', 'PROV South Student', s.southId, s.southSectionId);
+
+      const mkParent = async (identifier: string, name: string, studentId: string) => {
+        const user = await prisma.user.create({
+          data: { identifier, passwordHash: await argon2.hash('ParentPass123!'), role: 'PARENT' },
+        });
+        const profile = await prisma.parentProfile.create({ data: { userId: user.id, name } });
+        await prisma.studentParent.create({ data: { studentId, parentProfileId: profile.id } });
+        return profile.id;
+      };
+      s.northParentId = await mkParent('prov-parent-north', 'PROV North Parent', s.northStudentId);
+      s.southParentId = await mkParent('prov-parent-south', 'PROV South Parent', s.southStudentId);
+
+      const mkLeave = (studentId: string) =>
+        prisma.leaveRequest.create({
+          data: { studentId, startDate: new Date('2030-01-01'), endDate: new Date('2030-01-02'), reason: 'PROV leave' },
+        });
+      s.northLeaveId = (await mkLeave(s.northStudentId)).id;
+      s.southLeaveId = (await mkLeave(s.southStudentId)).id;
+    });
+
+    it("GET /admin/staff returns only the principal's own campus staff", async () => {
+      const res = await http().get('/api/v1/admin/staff').set(auth(s.northToken)).expect(200);
+      expect(res.body.map((x: { id: string }) => x.id)).toEqual([s.northStaffId]);
+    });
+
+    it("PATCH and DELETE of another campus's staff member are 403 and change nothing", async () => {
+      await http()
+        .patch(`/api/v1/admin/staff/${s.southStaffId}`)
+        .set(auth(s.northToken))
+        .send({ name: 'Hacked' })
+        .expect(403);
+      await http().delete(`/api/v1/admin/staff/${s.southStaffId}`).set(auth(s.northToken)).expect(403);
+      expect(await prisma.staff.findUnique({ where: { id: s.southStaffId } })).toMatchObject({
+        name: 'PROV South Janitor',
+      });
+    });
+
+    it('POST /admin/staff into another campus is 403 and creates no row; into the own campus is 201', async () => {
+      const southBefore = await prisma.staff.count({ where: { campusId: s.southId } });
+      await http()
+        .post('/api/v1/admin/staff')
+        .set(auth(s.northToken))
+        .send({ name: 'PROV Sneaky Guard', employeeType: 'GUARD', campusId: s.southId })
+        .expect(403);
+      expect(await prisma.staff.count({ where: { campusId: s.southId } })).toBe(southBefore);
+      expect(await prisma.staff.count({ where: { name: 'PROV Sneaky Guard' } })).toBe(0);
+
+      const northBefore = await prisma.staff.count({ where: { campusId: s.northId } });
+      const ok = await http()
+        .post('/api/v1/admin/staff')
+        .set(auth(s.northToken))
+        .send({ name: 'PROV North Guard', employeeType: 'GUARD', campusId: s.northId })
+        .expect(201);
+      expect(await prisma.staff.count({ where: { campusId: s.northId } })).toBe(northBefore + 1);
+      expect(await prisma.staff.findUnique({ where: { id: ok.body.id } })).toMatchObject({ campusId: s.northId });
+    });
+
+    it("GET /admin/students returns only students enrolled in the principal's campus", async () => {
+      const res = await http().get('/api/v1/admin/students').set(auth(s.northToken)).expect(200);
+      expect(res.body.map((x: { id: string }) => x.id)).toEqual([s.northStudentId]);
+    });
+
+    it("GET /admin/parents returns only parents with a child in the principal's campus", async () => {
+      const res = await http().get('/api/v1/admin/parents').set(auth(s.northToken)).expect(200);
+      expect(res.body.map((x: { id: string }) => x.id)).toEqual([s.northParentId]);
+    });
+
+    it("GET /leave-requests returns only leave requests of students in the principal's campus", async () => {
+      const res = await http().get('/api/v1/leave-requests').set(auth(s.northToken)).expect(200);
+      expect(res.body.map((x: { id: string }) => x.id)).toEqual([s.northLeaveId]);
+      expect(res.body[0].studentId).toBe(s.northStudentId);
+    });
+
+    it('GET /teachers rejects a repeated or object-valued campusId with 400, not a 500', async () => {
+      await http()
+        .get(`/api/v1/teachers?campusId=${s.northId}&campusId=${s.southId}`)
+        .set(auth(s.northToken))
+        .expect(400);
+      // Express's simple query parser keeps `campusId[not]` as an unrelated literal key, so it is
+      // ignored (whitelisted away) rather than reaching Prisma as an object; the scope still holds.
+      const nested = await http().get('/api/v1/teachers?campusId[not]=x').set(auth(s.northToken)).expect(200);
+      expect(nested.body.map((t: { id: string }) => t.id)).toEqual([s.northTeacherId]);
+    });
+  });
+
+  describe('Principal identifier normalization', () => {
+    const MIXED = 'Prov-West@X.test';
+    const WEST_PASSWORD = 'WestPass123!';
+
+    it('stores a mixed-case principal identifier normalized, returns it as stored, and logs in by typing it lowercase', async () => {
+      const res = await http()
+        .post('/api/v1/campuses')
+        .set(auth(s.adminToken))
+        .send({ schoolId: s.schoolId, name: 'West', principal: { identifier: ` ${MIXED} `, password: WEST_PASSWORD } })
+        .expect(201);
+      const stored = MIXED.toLowerCase();
+      expect(res.body.provisionedLogin).toEqual({ identifier: stored, temporaryPassword: null });
+      const user = await prisma.user.findUnique({ where: { identifier: stored } });
+      expect(user).toMatchObject({ campusId: res.body.id, isPrincipal: true });
+      expect(await prisma.user.count({ where: { identifier: MIXED } })).toBe(0);
+
+      const lower = await loginOk(stored, WEST_PASSWORD);
+      expect(lower.campusId).toBe(res.body.id);
+      const typedMixed = await loginOk(MIXED, WEST_PASSWORD);
+      expect(typedMixed.campusId).toBe(res.body.id);
+
+      // The user.create audit row points at the created user, not the campus.
+      const audit = await prisma.auditLog.findFirst({ where: { action: 'user.create', entityId: user!.id } });
+      expect(audit).toMatchObject({ entity: 'User' });
+      expect(audit!.metadata).toContain(stored);
+    });
+
+    it('rejects a whitespace-only principal identifier with 400 and creates no campus', async () => {
+      const name = 'PROV E2E WS Campus';
+      await http()
+        .post('/api/v1/campuses')
+        .set(auth(s.adminToken))
+        .send({ schoolId: s.schoolId, name, principal: { identifier: '     ' } })
+        .expect(400);
+      expect(await prisma.campus.count({ where: { name } })).toBe(0);
     });
   });
 });

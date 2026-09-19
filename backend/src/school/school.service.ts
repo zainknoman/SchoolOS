@@ -99,20 +99,21 @@ export class SchoolService {
         },
       });
       if (admin) {
-        provisionedLogin = await createPrincipalUser(tx, {
+        const provisioned = await createPrincipalUser(tx, {
           identifier: admin.identifier,
           password: admin.password,
           schoolId: created.id,
           campusId: null,
         });
+        provisionedLogin = provisioned.login;
         await tx.auditLog.create({
           data: {
             userId: actingUserId,
             action: 'user.create',
             entity: 'User',
-            entityId: created.id,
+            entityId: provisioned.userId,
             metadata: JSON.stringify({
-              identifier: provisionedLogin.identifier,
+              identifier: provisioned.login.identifier,
               role: 'SCHOOL_ADMIN',
               schoolId: created.id,
             }),

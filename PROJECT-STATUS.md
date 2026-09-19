@@ -1510,8 +1510,8 @@ Spec: `docs/superpowers/specs/2026-09-19-org-provisioning-and-campus-scoping-des
       `SUPER_ADMIN`); campus principals cannot see/open Add Campus; a school admin can create the
       school's first campus (`schoolId` pre-selected).
 - [x] **Verified (run 2026-09-19 on this branch):**
-  - backend `npx jest`: **77/77 suites, 567/567 tests** passed; `npx tsc --noEmit` clean.
-  - backend `npm run test:e2e` (local dev DB): **22/22 suites, 187/187 tests** passed.
+  - backend `npx jest`: **78/78 suites, 579/579 tests** passed; `npx tsc --noEmit` clean.
+  - backend `npm run test:e2e` (local dev DB): **22/22 suites, 196/196 tests** passed.
   - staff-console `npx vitest run`: **73/73 files, 512/512 tests** passed;
     `vue-tsc --noEmit -p tsconfig.app.json` clean; `npm run lint` clean; `npm run build` clean.
 
@@ -1519,18 +1519,26 @@ Spec: `docs/superpowers/specs/2026-09-19-org-provisioning-and-campus-scoping-des
 
 - [ ] `mustChangePassword` is enforced only by the console router, not server-side: a provisioned
       principal can call the API with the temp password until they change it.
-- [ ] Principal identifier is stored trimmed "as typed", not normalized; login tries exact then
-      normalized, so a mixed-case stored identifier can't be reached by typing lowercase and the
-      unique constraint is case-sensitive.
-- [ ] `user.create` audit `entityId` is the school/campus id, not the new user's id.
 - [ ] Change-password throttle is per-tracker only; a wrong current password does not count toward
       lockout; the old access token stays valid until expiry.
 - [ ] Persisted school-admin sessions from before this change lack `schoolId` until re-login (Add
       Campus is disabled with no explanation until then).
 - [ ] `homeRouteForRole` is duplicated in three places (router, `LoginView`, `ChangePasswordView`).
 - [ ] `attendance-risk` controller has no unit spec.
-- [ ] Only sections + class have campus-principal unit tests; the other migrated services are
-      covered by the e2e spec only.
+- [ ] Only sections + class (plus staff create) have campus-principal unit tests; the other
+      migrated list/read services (staff/students/parents/leave lists) are covered by the e2e spec
+      only.
+- [ ] `POST /circulars` with `scope: 'school'` (the console default) notifies every PARENT user in
+      the database (`circulars.service.ts` ~L58), and `GET /circulars/:id/stats` has no ownership
+      check. Pre-existing; must be scoped before onboarding real campus principals.
+- [ ] By-id / by-payload WRITE endpoints are still not campus/school-scoped for any
+      `SCHOOL_ADMIN`: students create/update/delete, fee vouchers/structures/reconcile, timetable
+      writes, assessment categories & terms writes, hiring & admissions by-id actions (incl.
+      approve), leave approve/reject, holiday writes, parents PATCH/DELETE, bulk-import commits.
+      Pre-existing IDOR-style gap; a mechanical follow-up using
+      `OrgScopeService.assertCampusAccess` / `StudentAccessService`.
+- [ ] `FeeStructure`, `Subject`, `Term` and `AcademicSession` are global shared rows with no
+      school dimension (single-tenant by design; relevant to the multi-tenant direction).
 - [ ] Credentials are shown on screen once (no email delivery).
 - [ ] No automatic Staff/Teacher record is created for a provisioned principal.
 

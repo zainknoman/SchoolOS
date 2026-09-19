@@ -25,6 +25,8 @@ const NEW_PROFILE_FIELDS = {
   addressId: null,
 };
 
+const SUPER = { id: 'admin-1', role: 'SUPER_ADMIN' } as const;
+
 describe('CampusService', () => {
   let service: CampusService;
   let prisma: {
@@ -122,6 +124,7 @@ describe('CampusService', () => {
         email: 'gulistan@schoolos.edu',
       },
       'admin-1',
+      SUPER,
     );
 
     expect(result).toEqual({
@@ -193,7 +196,7 @@ describe('CampusService', () => {
       school: { name: 'The SchoolOS School' },
     });
 
-    await service.create(dto, 'admin-1');
+    await service.create(dto, 'admin-1', SUPER);
 
     expect(prisma.campus.create).toHaveBeenCalledWith({
       data: {
@@ -213,7 +216,7 @@ describe('CampusService', () => {
     );
 
     await expect(
-      service.create({ schoolId: 'missing', name: 'x' }, 'admin-1'),
+      service.create({ schoolId: 'missing', name: 'x' }, 'admin-1', SUPER),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -229,6 +232,7 @@ describe('CampusService', () => {
       service.create(
         { schoolId: 's1', name: 'Duplicate Code Campus', code: 'MAIN' },
         'admin-1',
+        SUPER,
       ),
     ).rejects.toThrow(
       new BadRequestException(
@@ -253,6 +257,7 @@ describe('CampusService', () => {
     const result = await service.create(
       { schoolId: 's2', name: 'Other School Campus', code: 'MAIN' },
       'admin-1',
+      SUPER,
     );
 
     expect(result.code).toBe('MAIN');
@@ -470,6 +475,7 @@ describe('CampusService', () => {
       const result = await service.create(
         { schoolId: 's1', name: 'North', principal: { identifier: 'north@alpha.test' } },
         'super-1',
+        { id: 'super-1', role: 'SUPER_ADMIN' },
       );
 
       expect(prisma.user.create).toHaveBeenCalledWith(
@@ -480,10 +486,24 @@ describe('CampusService', () => {
       expect(result.provisionedLogin?.identifier).toBe('north@alpha.test');
     });
 
+    it('audits user.create with the created user id as entityId (not the campus id) and no password', async () => {
+      prisma.user.create.mockResolvedValue({ id: 'user-42' });
+      await service.create(
+        { schoolId: 's1', name: 'North', principal: { identifier: 'North@Alpha.test', password: 'Sup3rSecret!' } },
+        'super-1',
+        { id: 'super-1', role: 'SUPER_ADMIN' },
+      );
+      const row = prisma.auditLog.create.mock.calls.map((c) => c[0].data).find((d) => d.action === 'user.create');
+      expect(row).toMatchObject({ entity: 'User', entityId: 'user-42', userId: 'super-1' });
+      expect(JSON.parse(row.metadata)).toEqual({ identifier: 'north@alpha.test', role: 'SCHOOL_ADMIN', campusId: 'camp1' });
+      expect(row.metadata).not.toContain('Sup3rSecret!');
+    });
+
     it('does not put the principal block or a password in the campus row or audit metadata', async () => {
       await service.create(
         { schoolId: 's1', name: 'North', principal: { identifier: 'n@x.test', password: 'Sup3rSecret!' } },
         'super-1',
+        { id: 'super-1', role: 'SUPER_ADMIN' },
       );
       expect(prisma.campus.create.mock.calls[0][0].data).not.toHaveProperty('principal');
       for (const call of prisma.auditLog.create.mock.calls) {
@@ -492,7 +512,7 @@ describe('CampusService', () => {
     });
 
     it('creates no user and no provisionedLogin key when principal is omitted', async () => {
-      const result = await service.create({ schoolId: 's1', name: 'North' }, 'super-1');
+      const result = await service.create({ schoolId: 's1', name: 'North' }, 'super-1', { id: 'super-1', role: 'SUPER_ADMIN' });
       expect(prisma.user.create).not.toHaveBeenCalled();
       expect(result).not.toHaveProperty('provisionedLogin');
     });

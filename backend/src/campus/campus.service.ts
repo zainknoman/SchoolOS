@@ -76,9 +76,9 @@ export class CampusService {
   async create(
     dto: CreateCampusDto,
     actingUserId: string,
-    actingUser?: RequestUser,
+    actingUser: RequestUser,
   ): Promise<CampusSummary & { provisionedLogin?: ProvisionedLogin }> {
-    if (actingUser && actingUser.role !== 'SUPER_ADMIN') {
+    if (actingUser.role !== 'SUPER_ADMIN') {
       const scope = await this.orgScope.resolve(actingUser);
       if (scope.denied || scope.campusId !== null || scope.schoolId !== dto.schoolId) {
         throw new ForbiddenException('You can only create campuses for your own school');
@@ -123,20 +123,21 @@ export class CampusService {
         },
       });
       if (principal) {
-        provisionedLogin = await createPrincipalUser(tx, {
+        const provisioned = await createPrincipalUser(tx, {
           identifier: principal.identifier,
           password: principal.password,
           schoolId: created.schoolId,
           campusId: created.id,
         });
+        provisionedLogin = provisioned.login;
         await tx.auditLog.create({
           data: {
             userId: actingUserId,
             action: 'user.create',
             entity: 'User',
-            entityId: created.id,
+            entityId: provisioned.userId,
             metadata: JSON.stringify({
-              identifier: provisionedLogin.identifier,
+              identifier: provisioned.login.identifier,
               role: 'SCHOOL_ADMIN',
               campusId: created.id,
             }),

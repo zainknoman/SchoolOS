@@ -1,11 +1,17 @@
 import { randomBytes } from 'crypto';
 import * as argon2 from 'argon2';
 import { Prisma } from '@prisma/client';
+import { Transform } from 'class-transformer';
 import { IsOptional, IsString, MinLength } from 'class-validator';
 import { assertCreatable } from './prisma-create-guard';
+import { normalizeIdentifier } from './normalize-identifier';
 
 export class LoginProvisionDto {
-  @IsString() @MinLength(3) identifier!: string;
+  // Trimmed before validation so "   " / " ab " cannot pass @MinLength and then collapse to nothing.
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @MinLength(3)
+  identifier!: string;
   @IsOptional() @IsString() @MinLength(8) password?: string;
 }
 
@@ -30,14 +36,17 @@ export interface CreatePrincipalUserInput {
 export async function createPrincipalUser(
   tx: Prisma.TransactionClient,
   input: CreatePrincipalUserInput,
-): Promise<ProvisionedLogin> {
+): Promise<{ login: ProvisionedLogin; userId: string }> {
+  // Stored in the same canonical form login() resolves, so what the operator types back matches.
+  const identifier = normalizeIdentifier(input.identifier);
   const generated = input.password ? null : randomBytes(12).toString('base64url');
   const password = input.password ?? (generated as string);
   const passwordHash = await argon2.hash(password);
+  let userId!: string;
   try {
-    await tx.user.create({
+    const user = await tx.user.create({
       data: {
-        identifier: input.identifier.trim(),
+        identifier,
         passwordHash,
         role: 'SCHOOL_ADMIN',
         isPrincipal: true,
@@ -46,8 +55,9 @@ export async function createPrincipalUser(
         campusId: input.campusId,
       },
     });
+    userId = user.id;
   } catch (error) {
     assertCreatable(error, 'This login identifier is already in use.');
   }
-  return { identifier: input.identifier.trim(), temporaryPassword: generated };
+  return { login: { identifier, temporaryPassword: generated }, userId };
 }

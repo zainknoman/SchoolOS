@@ -113,7 +113,8 @@ export class StaffService {
     });
   }
 
-  async create(dto: CreateStaffDto, actingUserId: string): Promise<{ id: string; name: string }> {
+  async create(dto: CreateStaffDto, actingUser: RequestUser): Promise<{ id: string; name: string }> {
+    await this.orgScope.assertCampusAccess(actingUser, dto.campusId);
     if (dto.employeeType === 'TEACHER' && !dto.login) {
       throw new BadRequestException('A login identifier/password is required for a Teacher.');
     }
@@ -139,7 +140,7 @@ export class StaffService {
 
     await this.prisma.auditLog.create({
       data: {
-        userId: actingUserId,
+        userId: actingUser.id,
         action: 'staff.create',
         entity: 'Staff',
         entityId: created.id,

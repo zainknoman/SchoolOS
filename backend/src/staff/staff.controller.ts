@@ -23,7 +23,7 @@ export class StaffController {
 
   @Post()
   create(@Body() dto: CreateStaffDto, @Req() req: AuthenticatedRequest) {
-    return this.staffService.create(dto, req.user.id);
+    return this.staffService.create(dto, req.user);
   }
 
   @Patch(':id')

@@ -184,6 +184,15 @@ describe('SchoolService', () => {
     expect(result.provisionedLogin?.temporaryPassword).toEqual(expect.any(String));
   });
 
+  it('audits user.create with the created user id as entityId (not the school id)', async () => {
+    prisma.school.create.mockResolvedValue({ id: 'sch1', name: 'Alpha', ...NEW_PROFILE_FIELDS, address: null, phone: null, email: null });
+    prisma.user.create.mockResolvedValue({ id: 'user-42' });
+    await service.create({ name: 'Alpha', admin: { identifier: 'Admin@Alpha.test' } }, 'super-1');
+    const row = prisma.auditLog.create.mock.calls.map((c) => c[0].data).find((d) => d.action === 'user.create');
+    expect(row).toMatchObject({ entity: 'User', entityId: 'user-42', userId: 'super-1' });
+    expect(JSON.parse(row.metadata)).toEqual({ identifier: 'admin@alpha.test', role: 'SCHOOL_ADMIN', schoolId: 'sch1' });
+  });
+
   it('does not put the login block or any password in the school row or the audit metadata', async () => {
     prisma.school.create.mockResolvedValue({ id: 'sch1', name: 'Alpha', ...NEW_PROFILE_FIELDS, address: null, phone: null, email: null });
     await service.create({ name: 'Alpha', admin: { identifier: 'a@x.test', password: 'Sup3rSecret!' } }, 'super-1');
