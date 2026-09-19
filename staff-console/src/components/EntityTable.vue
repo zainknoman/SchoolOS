@@ -126,7 +126,9 @@ const pagedItems = computed(() => {
               </slot>
             </td>
             <td class="actions-col">
-              <slot name="actions" :item="item" :editing="editingId === item[rowKey]" />
+              <div class="actions-wrap">
+                <slot name="actions" :item="item" :editing="editingId === item[rowKey]" />
+              </div>
             </td>
           </tr>
         </tbody>
@@ -204,9 +206,14 @@ const pagedItems = computed(() => {
 .entity-table tbody tr:hover td {
   background: var(--color-background);
 }
+/* Keep this cell a real table-cell: `display: flex` on a <th>/<td> pulls it out of table layout and
+   collapses the (empty) header cell, cropping the header row's background/border. The flex layout
+   lives on an inner wrapper instead. */
 .actions-col {
   width: 1%;
   white-space: nowrap;
+}
+.actions-wrap {
   display: flex;
   gap: var(--space-2);
 }

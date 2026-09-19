@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hiring Application Detail</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;}
+  .btn-primary{border:none;background:#0369a1;color:#fff;font:inherit;font-weight:700;font-size:13px;padding:9px 16px;border-radius:6px;cursor:pointer;}
+  .btn-secondary{border:1px solid #cbd5e1;background:#fff;color:#334155;font:inherit;font-weight:600;font-size:13px;padding:9px 16px;border-radius:6px;cursor:pointer;}
+  .field-label{font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:block;}
+  .field-input{width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:8px 11px;font:inherit;font-size:13px;color:#1e293b;background:#fff;}
+  .field{display:flex;flex-direction:column;}
+</style>
+</helmet>
+
+<div style="width:1280px;height:960px;background:#f8fafc;padding:36px 44px;position:relative;">
+
+  <div style="display:flex;flex-direction:column;gap:16px;max-width:640px;">
+    <div>
+      <span class="muted" style="font-size:12px;font-weight:700;">← Back to Hiring</span>
+      <h1 style="margin:8px 0 4px;font-size:21px;font-weight:800;color:#0f172a;">Imran Qureshi</h1>
+      <span class="pill" style="background:#fbf0de;color:#b45309;">Interviewed</span>
+    </div>
+
+    <div class="card" style="padding:20px 24px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;justify-content:space-between;"><span class="muted" style="font-size:12.5px;">Candidate</span><span style="font-weight:600;font-size:13px;">Imran Qureshi</span></div>
+      <div style="display:flex;justify-content:space-between;"><span class="muted" style="font-size:12.5px;">Employee type</span><span style="font-weight:600;font-size:13px;">Teacher</span></div>
+      <div style="display:flex;justify-content:space-between;"><span class="muted" style="font-size:12.5px;">Campus</span><span style="font-weight:600;font-size:13px;">Main Campus</span></div>
+      <div style="display:flex;justify-content:space-between;"><span class="muted" style="font-size:12.5px;">Status</span><span style="font-weight:600;font-size:13px;">Interviewed</span></div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn-secondary">Mark Shortlisted</button>
+      <button type="button" class="btn-secondary">Mark Interviewed</button>
+      <button type="button" class="btn-secondary" style="border-color:#dc2626;color:#dc2626;">Reject</button>
+      <button type="button" class="btn-primary">Approve</button>
+    </div>
+  </div>
+
+  <!-- Approve modal, showing the conditional teacher-login fields -->
+  <div style="position:absolute;inset:0;background:rgba(15,23,42,.4);display:flex;align-items:center;justify-content:center;">
+    <div class="card" style="width:480px;padding:26px 30px;display:flex;flex-direction:column;gap:16px;box-shadow:0 12px 32px rgba(15,23,42,.24);">
+      <h2 style="margin:0;font-size:16px;font-weight:800;">Approve Application — Hire</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><span class="field-label">Date of birth</span><input class="field-input" type="date"></div>
+        <div class="field"><span class="field-label">CNIC</span><input class="field-input" placeholder="xxxxx-xxxxxxx-x"></div>
+        <div class="field"><span class="field-label">Mobile</span><input class="field-input" placeholder="03xx-xxxxxxx"></div>
+        <div class="field"><span class="field-label">Email</span><input class="field-input" placeholder="teacher@email.com"></div>
+        <div class="field" style="grid-column:1/-1;"><span class="field-label">Joining date</span><input class="field-input" type="date"></div>
+      </div>
+      <div style="background:#e4f1fa;border:1px solid #bfe0f5;border-radius:8px;padding:10px 14px;font-size:12px;color:#0369a1;font-weight:600;">A login is required to hire a teacher.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><span class="field-label">Login email</span><input class="field-input" placeholder="teacher@email.com"></div>
+        <div class="field"><span class="field-label">Initial password</span><input class="field-input" type="password"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
+        <button type="button" class="btn-secondary">Cancel</button>
+        <button type="button" class="btn-primary">Approve</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

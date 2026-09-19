@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fee Management</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  table{border-collapse:separate;border-spacing:0;width:100%;}
+  th{padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;text-align:left;border-bottom:1px solid #e2e8f0;background:#fafbfc;}
+  td{padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:13.5px;}
+  tr:last-child td{border-bottom:none;}
+  .pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;}
+  .btn-primary{border:none;background:#0369a1;color:#fff;font:inherit;font-weight:700;font-size:13px;padding:9px 16px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .btn-secondary{border:1px solid #cbd5e1;background:#fff;color:#334155;font:inherit;font-weight:600;font-size:12.5px;padding:7px 14px;border-radius:6px;cursor:pointer;}
+  .link{color:#0369a1;font-weight:700;font-size:12.5px;cursor:pointer;}
+  .field-label{font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:block;}
+  .field-input{border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;font:inherit;font-size:13px;color:#1e293b;background:#fff;}
+  .section{border-top:1px solid #e2e8f0;padding-top:26px;display:flex;flex-direction:column;gap:14px;}
+  .section:first-child{border-top:none;padding-top:0;}
+  .check-fieldset{border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+  .check-row{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+</style>
+</helmet>
+
+<div style="width:1180px;height:1560px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:26px;">
+
+  <div>
+    <h1 style="margin:0 0 4px;font-size:21px;font-weight:800;color:#0f172a;">Fees</h1>
+    <span class="muted" style="font-size:13px;">Fee structures, vouchers &amp; the student ledger</span>
+  </div>
+
+  <!-- 1. Fee Structures -->
+  <div class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <h2 style="margin:0;font-size:15px;font-weight:800;">Fee Structures</h2>
+      <button type="button" class="btn-primary">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Add New
+      </button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <div style="padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:13.5px;">Tuition — Grade 6 <span class="mono muted">— PKR 18,000</span></div>
+      <div style="padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:13.5px;">Transport <span class="mono muted">— PKR 4,500</span></div>
+      <div style="padding:9px 0;font-size:13.5px;">Annual charges <span class="mono muted">— PKR 6,000</span></div>
+    </div>
+  </div>
+
+  <!-- 2. Issue Vouchers -->
+  <div class="section">
+    <h2 style="margin:0;font-size:15px;font-weight:800;">Issue Vouchers</h2>
+    <div><span class="field-label">Section</span><select class="field-input" style="width:220px;"><option>Grade 6 A — Main Campus</option></select></div>
+    <div class="check-fieldset">
+      <span class="field-label" style="margin:0 0 4px;">Individual students (leave all unchecked to issue to the whole section)</span>
+      <label class="check-row"><input type="checkbox"> Zara Ali (GR-2021-0142)</label>
+      <label class="check-row"><input type="checkbox"> Bilal Khan (GR-2021-0158)</label>
+      <label class="check-row"><input type="checkbox"> Hania Sheikh (GR-2021-0166)</label>
+    </div>
+    <div class="check-fieldset">
+      <span class="field-label" style="margin:0 0 4px;">Fee structures to include</span>
+      <label class="check-row"><input type="checkbox" checked=""> Tuition — Grade 6 — PKR 18,000</label>
+      <label class="check-row"><input type="checkbox" checked=""> Transport — PKR 4,500</label>
+      <label class="check-row"><input type="checkbox"> Annual charges — PKR 6,000</label>
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-end;">
+      <div><span class="field-label">Month</span><input class="field-input" placeholder="2026-09" style="width:140px;"></div>
+      <div><span class="field-label">Due date</span><input class="field-input" type="date" style="width:160px;"></div>
+      <button type="button" class="btn-primary">Issue vouchers</button>
+    </div>
+  </div>
+
+  <!-- 3. Student Ledger -->
+  <div class="section">
+    <h2 style="margin:0;font-size:15px;font-weight:800;">Student Ledger</h2>
+    <div style="display:flex;gap:14px;">
+      <div><span class="field-label">Section</span><select class="field-input" style="width:220px;"><option>Grade 6 A — Main Campus</option></select></div>
+      <div><span class="field-label">Student</span><select class="field-input" style="width:220px;"><option>Zara Ali (GR-2021-0142)</option></select></div>
+    </div>
+
+    <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+      <table>
+        <thead><tr><th>Month</th><th>Due</th><th style="text-align:right;">Total</th><th style="text-align:right;">Paid</th><th style="text-align:right;">Due</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="mono">2026-09</td><td class="mono">25 Sep</td><td class="mono" style="text-align:right;">PKR 22,500</td><td class="mono" style="text-align:right;">PKR 0</td><td class="mono" style="text-align:right;">PKR 22,500</td><td><span class="pill" style="background:#e8ecf1;color:#334155;">unpaid</span></td><td><span class="link">Record payment</span></td></tr>
+          <tr><td class="mono">2026-08</td><td class="mono">25 Aug</td><td class="mono" style="text-align:right;">PKR 22,500</td><td class="mono" style="text-align:right;">PKR 10,000</td><td class="mono" style="text-align:right;">PKR 12,500</td><td><span class="pill" style="background:#fbf0de;color:#b45309;">partial</span></td><td><span class="link">Record payment</span></td></tr>
+          <tr><td class="mono">2026-07</td><td class="mono">25 Jul</td><td class="mono" style="text-align:right;">PKR 22,500</td><td class="mono" style="text-align:right;">PKR 22,500</td><td class="mono" style="text-align:right;">PKR 0</td><td><span class="pill" style="background:#e4f5ea;color:#15803d;">paid</span></td><td></td></tr>
+          <tr><td class="mono">2026-06</td><td class="mono">25 Jun</td><td class="mono" style="text-align:right;">PKR 22,500</td><td class="mono" style="text-align:right;">PKR 0</td><td class="mono" style="text-align:right;">PKR 22,500</td><td><span class="pill" style="background:#fce8e7;color:#dc2626;">overdue</span></td><td><span class="link">Record payment</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- inline reconcile panel for the 2026-08 partial voucher -->
+    <div style="border:1px solid #cbd5e1;border-radius:8px;padding:16px 20px;display:flex;flex-direction:column;gap:12px;background:#fafbfc;">
+      <span style="font-weight:700;font-size:13px;">Record payment — 2026-08 voucher</span>
+      <div style="display:flex;gap:14px;align-items:flex-end;">
+        <div><span class="field-label">Amount (PKR)</span><input class="field-input mono" value="12500" style="width:140px;"></div>
+        <div><span class="field-label">Method</span><select class="field-input" style="width:160px;"><option>Cash</option><option>Bank transfer</option></select></div>
+        <div style="flex-grow:1;"><span class="field-label">Note (optional)</span><input class="field-input" placeholder="e.g. Paid at front desk"></div>
+        <button type="button" class="btn-secondary">Cancel</button>
+        <button type="button" class="btn-primary">Record payment</button>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <div style="padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:12.5px;">PKR 10,000 — success <span class="link" style="margin-left:8px;">Receipt</span></div>
+      <div style="padding:8px 0;font-size:12.5px;">PKR 22,500 — success <span class="link" style="margin-left:8px;">Receipt</span></div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

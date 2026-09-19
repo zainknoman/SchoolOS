@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard — Teacher Gradebook</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:9999px;font-size:11px;font-weight:700;}
+  .btn-mini{border:1px solid #0369a1;background:#0369a1;color:#fff;font:inherit;font-weight:700;font-size:11.5px;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;}
+  .btn-mini-ghost{border:1px solid #cbd5e1;background:#fff;color:#334155;font:inherit;font-weight:600;font-size:11.5px;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;}
+  .class-item{display:flex;align-items:center;gap:16px;padding:14px 18px;border-bottom:1px solid #f1f5f9;}
+  .class-item:last-child{border-bottom:none;}
+</style>
+</helmet>
+
+<div style="width:1180px;height:820px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:16px;">
+
+  <div>
+    <h1 style="margin:0 0 4px;font-size:21px;font-weight:800;color:#0f172a;">Gradebook</h1>
+    <span class="muted" style="font-size:13px;">Ms. Fatima Sheikh · Term 1, 2026–27</span>
+  </div>
+
+  <div style="display:flex;gap:16px;flex-grow:1;min-height:0;">
+    <!-- my classes -->
+    <div class="card" style="flex-grow:1;padding:0;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:14px 20px;border-bottom:1px solid #e2e8f0;"><h2 style="margin:0;font-size:14px;font-weight:700;">My classes — marks entry</h2></div>
+
+      <div class="class-item">
+        <div style="flex-grow:1;">
+          <div style="font-weight:700;font-size:13.5px;">6 · A — Mathematics</div>
+          <div class="muted" style="font-size:11.5px;">Mid-term · 34 students</div>
+        </div>
+        <div style="width:160px;">
+          <div style="height:6px;border-radius:9999px;background:#e4f5ea;overflow:hidden;"><div style="width:100%;height:100%;background:#15803d;"></div></div>
+          <div class="mono muted" style="font-size:11px;margin-top:4px;">34 of 34 entered</div>
+        </div>
+        <span class="pill" style="background:#e4f5ea;color:#15803d;">Complete</span>
+        <button type="button" class="btn-mini-ghost">Review</button>
+      </div>
+
+      <div class="class-item">
+        <div style="flex-grow:1;">
+          <div style="font-weight:700;font-size:13.5px;">7 · B — Mathematics</div>
+          <div class="muted" style="font-size:11.5px;">Mid-term · 31 students</div>
+        </div>
+        <div style="width:160px;">
+          <div style="height:6px;border-radius:9999px;background:#e4f1fa;overflow:hidden;"><div style="width:71%;height:100%;background:#0369a1;"></div></div>
+          <div class="mono muted" style="font-size:11px;margin-top:4px;">22 of 31 entered</div>
+        </div>
+        <span class="pill" style="background:#e4f1fa;color:#0369a1;">In progress</span>
+        <button type="button" class="btn-mini">Enter marks</button>
+      </div>
+
+      <div class="class-item">
+        <div style="flex-grow:1;">
+          <div style="font-weight:700;font-size:13.5px;">9 · B — Mathematics</div>
+          <div class="muted" style="font-size:11.5px;">Mid-term · 29 students</div>
+        </div>
+        <div style="width:160px;">
+          <div style="height:6px;border-radius:9999px;background:#fbf0de;overflow:hidden;"><div style="width:14%;height:100%;background:#b45309;"></div></div>
+          <div class="mono muted" style="font-size:11px;margin-top:4px;">4 of 29 entered</div>
+        </div>
+        <span class="pill" style="background:#fbf0de;color:#b45309;">Due tomorrow</span>
+        <button type="button" class="btn-mini">Enter marks</button>
+      </div>
+
+      <div class="class-item">
+        <div style="flex-grow:1;">
+          <div style="font-weight:700;font-size:13.5px;">10 · A — Mathematics</div>
+          <div class="muted" style="font-size:11.5px;">Mid-term · 27 students</div>
+        </div>
+        <div style="width:160px;">
+          <div style="height:6px;border-radius:9999px;background:#e8ecf1;overflow:hidden;"><div style="width:0%;height:100%;background:#64748b;"></div></div>
+          <div class="mono muted" style="font-size:11px;margin-top:4px;">Not started</div>
+        </div>
+        <span class="pill" style="background:#e8ecf1;color:#334155;">Not started</span>
+        <button type="button" class="btn-mini-ghost">Enter marks</button>
+      </div>
+    </div>
+
+    <!-- upcoming exams -->
+    <div class="card" style="width:300px;flex-shrink:0;padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+      <h2 style="margin:0;font-size:14px;font-weight:700;">Upcoming exams</h2>
+      <div style="display:flex;flex-direction:column;">
+        <div style="padding:10px 0;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+          <div><div style="font-weight:600;font-size:13px;">Mid-term — Grade 9</div><div class="muted" style="font-size:11.5px;">28 Sep</div></div>
+          <span class="mono" style="font-size:11.5px;font-weight:700;color:#b45309;">10 days</span>
+        </div>
+        <div style="padding:10px 0;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+          <div><div style="font-weight:600;font-size:13px;">Mid-term — Grade 6</div><div class="muted" style="font-size:11.5px;">28 Sep</div></div>
+          <span class="mono" style="font-size:11.5px;font-weight:700;color:#b45309;">10 days</span>
+        </div>
+        <div style="padding:10px 0;display:flex;align-items:center;justify-content:space-between;">
+          <div><div style="font-weight:600;font-size:13px;">Unit test — Grade 9B</div><div class="muted" style="font-size:11.5px;">22 Sep</div></div>
+          <span class="mono" style="font-size:11.5px;font-weight:700;color:#dc2626;">4 days</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

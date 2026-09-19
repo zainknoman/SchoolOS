@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hiring Candidate Intake</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .btn-primary{border:none;background:#0369a1;color:#fff;font:inherit;font-weight:700;font-size:13px;padding:9px 18px;border-radius:6px;cursor:pointer;align-self:flex-start;}
+  .field-label{font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:block;}
+  .field-input{width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:9px 12px;font:inherit;font-size:13.5px;color:#1e293b;background:#fff;}
+  .field{display:flex;flex-direction:column;}
+  .file-input{border:1px dashed #cbd5e1;border-radius:6px;padding:14px 12px;font-size:12.5px;color:#64748b;text-align:center;}
+</style>
+</helmet>
+
+<div style="width:900px;height:860px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:20px;">
+
+  <div>
+    <h1 style="margin:0 0 4px;font-size:21px;font-weight:800;color:#0f172a;">New Hiring Candidate</h1>
+    <span class="muted" style="font-size:13px;">Create the candidate, then start their application</span>
+  </div>
+
+  <div style="background:#fbf0de;border:1px solid #f3d9ab;border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:13px;color:#92400e;font-weight:600;">A similar candidate already exists — Sara Malik</span>
+    <span class="muted" style="font-size:12px;font-weight:700;cursor:pointer;color:#92400e;">Dismiss</span>
+  </div>
+
+  <div class="card" style="padding:22px 26px;display:flex;flex-direction:column;gap:16px;">
+    <h2 style="margin:0;font-size:14px;font-weight:700;">1 · Candidate details</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="field"><span class="field-label">Name</span><input class="field-input" placeholder="e.g. Sara Malik"></div>
+      <div class="field"><span class="field-label">Date of birth</span><input class="field-input" type="date"></div>
+      <div class="field"><span class="field-label">CNIC</span><input class="field-input" placeholder="xxxxx-xxxxxxx-x"></div>
+      <div class="field"><span class="field-label">Contact phone</span><input class="field-input" placeholder="03xx-xxxxxxx"></div>
+      <div class="field"><span class="field-label">Contact email</span><input class="field-input" placeholder="candidate@email.com"></div>
+      <div class="field"><span class="field-label">Résumé</span><div class="file-input">Choose file — PDF or DOCX</div></div>
+    </div>
+    <button type="button" class="btn-primary">Create Candidate</button>
+  </div>
+
+  <div class="card" style="padding:22px 26px;display:flex;flex-direction:column;gap:16px;">
+    <h2 style="margin:0;font-size:14px;font-weight:700;">2 · Application</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="field"><span class="field-label">Employee type</span>
+        <select class="field-input"><option>Teacher</option><option>Office Staff</option><option>Janitorial</option><option>Helper</option><option>Guard</option><option>Other</option></select>
+      </div>
+      <div class="field"><span class="field-label">Campus</span>
+        <select class="field-input"><option>Main Campus</option><option>North Campus</option></select>
+      </div>
+    </div>
+    <button type="button" class="btn-primary">Create Application</button>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":900,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

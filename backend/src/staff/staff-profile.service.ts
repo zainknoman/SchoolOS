@@ -11,6 +11,7 @@ import { AddressDto } from '../common/dto/address.dto';
 import { CreateStaffDocumentDto } from './dto/create-staff-document.dto';
 
 export const STAFF_PROFILE_INCLUDE = {
+  campus: { select: { id: true, name: true, code: true, school: { select: { id: true, name: true } } } },
   currentAddress: true,
   permanentAddress: true,
   teacher: { include: { user: { select: { identifier: true } } } },

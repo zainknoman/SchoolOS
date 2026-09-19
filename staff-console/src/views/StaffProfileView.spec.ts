@@ -23,7 +23,7 @@ function baseProfile(overrides: Partial<StaffProfileDetail> = {}): StaffProfileD
     employeeType: 'JANITORIAL', gender: 'MALE', dateOfBirth: null, cnic: null, mobile: '0300-1112233',
     email: null, profilePhotoFileId: null, currentAddress: null, permanentAddress: null,
     joiningDate: '2023-01-15', employmentStatus: 'ACTIVE', leavingDate: null, leavingReason: null,
-    teacher: null, emergencyContacts: [], experience: [], documents: [],
+    campus: { id: 'cam-1', name: 'Main Campus', code: 'MAIN', school: { id: 'sch-1', name: 'Bright School' } }, teacher: null, emergencyContacts: [], experience: [], documents: [],
     ...overrides,
   };
 }

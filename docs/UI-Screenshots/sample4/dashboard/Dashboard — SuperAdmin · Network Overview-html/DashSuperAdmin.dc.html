@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard — SuperAdmin</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .btn-secondary{border:1px solid #cbd5e1;background:#ffffff;color:#334155;font:inherit;font-weight:600;font-size:12.5px;padding:8px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .stat-label{font-size:11.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;}
+  .stat-value{font-size:24px;font-weight:800;color:#0f172a;}
+  .delta-up{color:#15803d;font-size:11.5px;font-weight:700;}
+  .pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:9999px;font-size:11px;font-weight:700;}
+  table{border-collapse:separate;border-spacing:0;width:100%;}
+  th{padding:9px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;text-align:left;border-bottom:1px solid #e2e8f0;background:#fafbfc;}
+  td{padding:9px 14px;border-bottom:1px solid #f1f5f9;font-size:13px;}
+  .qa-tile{border:1px solid #e2e8f0;border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;}
+</style>
+</helmet>
+
+<div style="width:1180px;height:920px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:16px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <h1 style="margin:0 0 4px;font-size:21px;font-weight:800;color:#0f172a;">Network Overview</h1>
+      <span class="muted" style="font-size:13px;">All schools · SuperAdmin</span>
+    </div>
+    <button type="button" class="btn-secondary">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>
+      This term
+    </button>
+  </div>
+
+  <!-- KPI row -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+    <div class="card" style="padding:16px 18px;">
+      <div class="stat-label">Schools</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px;"><span class="stat-value">12</span><span class="delta-up">+1 this term</span></div>
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="stat-label">Total students</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px;"><span class="stat-value">8,420</span><span class="delta-up">+3.2%</span></div>
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="stat-label">Total staff</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px;"><span class="stat-value">612</span></div>
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="stat-label">System uptime</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px;"><span class="stat-value" style="color:#15803d;">99.98%</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:16px;flex-grow:1;min-height:0;">
+    <!-- schools table -->
+    <div class="card" style="flex-grow:1;overflow:hidden;display:flex;flex-direction:column;">
+      <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
+        <h2 style="margin:0;font-size:14px;font-weight:700;">Schools</h2>
+        <span class="muted" style="font-size:12px;">View all →</span>
+      </div>
+      <table>
+        <thead><tr><th>School</th><th>Campuses</th><th>Students</th><th>Fee collection</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">Riverdale Grammar</td><td class="mono">3</td><td class="mono">2,140</td><td class="mono">96%</td><td><span class="pill" style="background:#e4f5ea;color:#15803d;">Active</span></td></tr>
+          <tr><td style="font-weight:600;">Lakeside Academy</td><td class="mono">2</td><td class="mono">1,680</td><td class="mono">89%</td><td><span class="pill" style="background:#e4f5ea;color:#15803d;">Active</span></td></tr>
+          <tr><td style="font-weight:600;">Crescent High</td><td class="mono">1</td><td class="mono">940</td><td class="mono">71%</td><td><span class="pill" style="background:#fbf0de;color:#b45309;">Attention</span></td></tr>
+          <tr><td style="font-weight:600;">Northgate School</td><td class="mono">2</td><td class="mono">1,510</td><td class="mono">93%</td><td><span class="pill" style="background:#e4f5ea;color:#15803d;">Active</span></td></tr>
+          <tr><td style="font-weight:600;">Summit Prep</td><td class="mono">1</td><td class="mono">420</td><td class="mono">100%</td><td><span class="pill" style="background:#e4f1fa;color:#0369a1;">Trial</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- side rail -->
+    <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;">
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+        <h2 style="margin:0;font-size:13px;font-weight:700;">Quick actions</h2>
+        <div class="qa-tile"><span style="font-weight:600;font-size:13px;">Manage Users</span><span class="muted" style="font-size:11.5px;">Roles &amp; access across schools</span></div>
+        <div class="qa-tile"><span style="font-weight:600;font-size:13px;">Audit Logs</span><span class="muted" style="font-size:11.5px;">System-wide activity trail</span></div>
+        <div class="qa-tile"><span style="font-weight:600;font-size:13px;">Billing</span><span class="muted" style="font-size:11.5px;">Subscriptions per school</span></div>
+      </div>
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <h2 style="margin:0;font-size:13px;font-weight:700;">Recent activity</h2>
+        <div style="font-size:12px;"><span style="font-weight:600;">Crescent High</span> <span class="muted">fee gateway reconnected</span><div class="mono muted" style="font-size:10.5px;">12 min ago</div></div>
+        <div style="font-size:12px;"><span style="font-weight:600;">Summit Prep</span> <span class="muted">completed onboarding</span><div class="mono muted" style="font-size:10.5px;">2 hr ago</div></div>
+        <div style="font-size:12px;"><span style="font-weight:600;">System</span> <span class="muted">nightly backup succeeded</span><div class="mono muted" style="font-size:10.5px;">6 hr ago</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":920}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

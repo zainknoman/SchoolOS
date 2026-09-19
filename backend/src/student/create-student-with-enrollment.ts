@@ -2,6 +2,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createParentWithUser, type CreateParentInput } from '../parent/create-parent-with-user';
+import { normalizeIdentifier } from '../common/normalize-identifier';
 
 export interface CreateStudentWithEnrollmentInput {
   grNumber: string;
@@ -54,6 +55,26 @@ export async function createStudentWithEnrollment(
     }
     parentProfileId = parent.id;
   } else {
+    // One parent, one login: if this mobile/email already belongs to a parent (a sibling was
+    // admitted earlier), link to that parent instead of creating a second account.
+    const existingParent = await tx.parentProfile.findFirst({
+      where: { user: { identifier: normalizeIdentifier(input.newParent!.identifier) } },
+      select: { id: true },
+    });
+    if (existingParent) {
+      parentProfileId = existingParent.id;
+      await tx.studentParent.create({ data: { studentId: student.id, parentProfileId } });
+      await tx.auditLog.create({
+        data: {
+          userId: actingUserId,
+          action: 'student.create',
+          entity: 'Student',
+          entityId: student.id,
+          metadata: JSON.stringify({ grNumber: input.grNumber, name: input.name, sectionId: input.sectionId }),
+        },
+      });
+      return { studentId: student.id };
+    }
     const newParent = await createParentWithUser(tx, input.newParent!);
     parentProfileId = newParent.id;
     await tx.auditLog.create({

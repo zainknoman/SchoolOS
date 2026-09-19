@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Parent App — Leave Applications</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.05),0 2px 6px rgba(15,23,42,.06);}
+  .pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;flex-shrink:0;}
+  .field-label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:block;}
+  .field-input{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;font:inherit;font-size:13px;color:#1e293b;background:#fff;}
+  .btn-date{border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;font:inherit;font-size:13px;color:#1e293b;background:#fff;flex:1;text-align:left;}
+  .btn-primary{border:none;background:#0369a1;color:#fff;font:inherit;font-weight:700;font-size:13.5px;padding:12px;border-radius:8px;width:100%;}
+  .section-label{font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px 2px;}
+  .row{padding:12px 16px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;}
+  .row:last-child{border-bottom:none;}
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;background:#f8fafc;display:flex;flex-direction:column;overflow:hidden;">
+
+  <!-- pushed-screen appbar: back arrow + title, no bottom nav -->
+  <div style="padding:16px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;border-bottom:1px solid #e2e8f0;background:#fff;">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
+    <span style="font-weight:800;font-size:16px;color:#0f172a;">Leave Applications</span>
+  </div>
+
+  <div style="flex-grow:1;overflow:hidden;padding:18px 20px;display:flex;flex-direction:column;gap:16px;">
+
+    <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px;">
+      <div><span class="field-label">Child</span><select class="field-input"><option>Hania — 6-A</option><option>Bilal — 9-B</option></select></div>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn-date">
+          <span class="field-label" style="margin:0;">Start date</span>
+          <span style="font-size:13px;font-weight:600;">22 Sep 2026</span>
+        </button>
+        <button type="button" class="btn-date">
+          <span class="field-label" style="margin:0;">End date</span>
+          <span style="font-size:13px;font-weight:600;">24 Sep 2026</span>
+        </button>
+      </div>
+      <div><span class="field-label">Reason</span><textarea class="field-input" rows="3" style="resize:none;">Family wedding out of town — travelling with the whole family.</textarea></div>
+      <button type="button" class="btn-primary">Submit request</button>
+    </div>
+
+    <div style="flex-grow:1;overflow:hidden;display:flex;flex-direction:column;">
+      <div class="section-label">Past requests</div>
+      <div class="card" style="overflow:hidden;">
+        <div class="row">
+          <div style="flex-grow:1;">
+            <div style="font-weight:700;font-size:13px;">10 Sep to 11 Sep</div>
+            <div class="muted" style="font-size:11.5px;">Travel — no supporting reason given</div>
+          </div>
+          <span class="pill" style="background:#fce8e7;color:#dc2626;">rejected</span>
+        </div>
+        <div class="row">
+          <div style="flex-grow:1;">
+            <div style="font-weight:700;font-size:13px;">18 Aug to 18 Aug</div>
+            <div class="muted" style="font-size:11.5px;">Doctor's appointment</div>
+          </div>
+          <span class="pill" style="background:#e4f5ea;color:#15803d;">approved</span>
+        </div>
+        <div class="row">
+          <div style="flex-grow:1;">
+            <div style="font-weight:700;font-size:13px;">2 Aug to 3 Aug</div>
+            <div class="muted" style="font-size:11.5px;">Cousin's wedding</div>
+          </div>
+          <span class="pill" style="background:#e4f5ea;color:#15803d;">approved</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

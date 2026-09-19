@@ -92,7 +92,7 @@ describe('StudentProfileView', () => {
 
   const activeEnrollment = {
     id: 'enr-1', rollNumber: '12', remarks: null,
-    section: { id: 'sec-1', name: '3A', class: { id: 'c-1', name: 'Grade 3', campus: { id: 'cam-1', name: 'PECHS Campus' } } },
+    section: { id: 'sec-1', name: '3A', class: { id: 'c-1', name: 'Grade 3', campus: { id: 'cam-1', name: 'PECHS Campus', code: 'PECHS', school: { id: 'sch-1', name: 'Bright School' } } } },
     };
 
     it('shows the current enrollment and edits roll number/remarks', async () => {

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Timetable — Bulk edit</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .btn-primary{border:none;background:#0369a1;color:#ffffff;font:inherit;font-weight:700;font-size:13.5px;padding:10px 18px;border-radius:6px;cursor:pointer;}
+  .btn-secondary{border:1px solid #cbd5e1;background:#ffffff;color:#334155;font:inherit;font-weight:600;font-size:13.5px;padding:10px 18px;border-radius:6px;cursor:pointer;}
+  .day-pill{width:38px;height:32px;border-radius:6px;border:1px solid #cbd5e1;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#334155;cursor:pointer;}
+  .day-pill.active{background:#0f172a;border-color:#0f172a;color:#ffffff;}
+  .day-pill.off{color:#cbd5e1;}
+  .mini-select{width:100%;padding:5px 6px;border:1px solid #cbd5e1;border-radius:5px;font-size:11.5px;font:inherit;background:#ffffff;}
+  .time-mini{width:100%;padding:4px 5px;border:1px solid #e2e8f0;border-radius:5px;font-size:10.5px;font-family:'IBM Plex Mono',monospace;}
+</style>
+</helmet>
+
+<div style="width:1180px;height:1020px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:16px;">
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+    <div>
+      <div class="muted" style="font-size:12.5px;margin-bottom:4px;">Timetable / Grade 9 · Section B</div>
+      <h1 style="margin:0;font-size:21px;font-weight:800;color:#0f172a;">Bulk edit — weekly grid</h1>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="btn-secondary">Cancel</button>
+      <button type="button" class="btn-primary">Save Timetable (24 periods)</button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:8px 16px;display:flex;align-items:center;gap:10px;background:#eaf4fb;border-color:#bfe0f2;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0369a1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg>
+    <span style="font-size:12.5px;color:#0f172a;">Pre-filled from this section's existing timetable — saving replaces it entirely.</span>
+  </div>
+
+  <div class="card" style="padding:18px 20px;display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;">
+    <div>
+      <label style="display:block;font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;">Periods per day</label>
+      <div style="display:flex;align-items:center;gap:0;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;width:fit-content;">
+        <button type="button" style="width:30px;height:32px;border:none;background:#f8fafc;cursor:pointer;font-size:15px;">−</button>
+        <span class="mono" style="width:36px;text-align:center;font-weight:700;font-size:13px;">4</span>
+        <button type="button" style="width:30px;height:32px;border:none;background:#f8fafc;cursor:pointer;font-size:15px;">+</button>
+      </div>
+    </div>
+    <div>
+      <label style="display:block;font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;">Default room</label>
+      <input class="mono" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;width:110px;" value="204">
+    </div>
+    <div>
+      <label style="display:block;font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;">Working days</label>
+      <div style="display:flex;gap:5px;">
+        <div class="day-pill active">Mon</div>
+        <div class="day-pill active">Tue</div>
+        <div class="day-pill active">Wed</div>
+        <div class="day-pill active">Thu</div>
+        <div class="day-pill active">Fri</div>
+        <div class="day-pill off">Sat</div>
+        <div class="day-pill off">Sun</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="overflow:hidden;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="width:150px;background:#fafbfc;border-bottom:1px solid #e2e8f0;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Day</th>
+          <th style="background:#fafbfc;border-bottom:1px solid #e2e8f0;padding:8px;text-align:left;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Period 1</div>
+            <div style="display:flex;gap:4px;"><input class="time-mini" value="08:00"><input class="time-mini" value="08:45"></div>
+          </th>
+          <th style="width:56px;background:#fafbfc;border-bottom:1px solid #e2e8f0;padding:8px;text-align:center;font-size:10.5px;font-weight:700;color:#94a3b8;">Break</th>
+          <th style="background:#fafbfc;border-bottom:1px solid #e2e8f0;padding:8px;text-align:left;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Period 2</div>
+            <div style="display:flex;gap:4px;"><input class="time-mini" value="09:00"><input class="time-mini" value="09:45"></div>
+          </th>
+          <th style="width:56px;background:#fafbfc;border-bottom:1px solid #e2e8f0;padding:8px;text-align:center;font-size:10.5px;font-weight:700;color:#94a3b8;">Break</th>
+          <th style="background:#fafbfc;border-bottom:1px solid #e2e8f0;padding:8px;text-align:left;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Period 3</div>
+            <div style="display:flex;gap:4px;"><input class="time-mini" value="10:00"><input class="time-mini" value="10:45"></div>
+          </th>
+          <th style="width:56px;background:#fafbfc;border-bottom:1px solid #e2e8f0;padding:8px;text-align:center;font-size:10.5px;font-weight:700;color:#94a3b8;">Break</th>
+          <th style="background:#fafbfc;border-bottom:1px solid #e2e8f0;padding:8px;text-align:left;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Period 4</div>
+            <div style="display:flex;gap:4px;"><input class="time-mini" value="11:00"><input class="time-mini" value="11:45"></div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="border-bottom:1px solid #f1f5f9;padding:10px;vertical-align:middle;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;">Monday</div>
+            <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:#94a3b8;"><input type="checkbox" style="width:12px;height:12px;">Custom times</label>
+          </td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;"><select class="mini-select" style="margin-bottom:4px;"><option>Mathematics</option></select><select class="mini-select"><option>Ms. Iqbal</option></select></td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;font-size:10.5px;color:#94a3b8;">15 min</td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;"><select class="mini-select" style="margin-bottom:4px;"><option>English</option></select><select class="mini-select"><option>Mr. Sheikh</option></select></td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;font-size:10.5px;color:#94a3b8;">15 min</td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;"><select class="mini-select" style="margin-bottom:4px;"><option>—</option></select><select class="mini-select"><option>(no teacher)</option></select></td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;font-size:10.5px;color:#94a3b8;">15 min</td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;"><select class="mini-select" style="margin-bottom:4px;"><option>Physics</option></select><select class="mini-select"><option>Dr. Farooq</option></select></td>
+        </tr>
+        <tr>
+          <td style="border-bottom:1px solid #f1f5f9;padding:10px;vertical-align:middle;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;">Tuesday</div>
+            <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:#94a3b8;"><input type="checkbox" style="width:12px;height:12px;">Custom times</label>
+          </td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;"><select class="mini-select" style="margin-bottom:4px;"><option>Physics</option></select><select class="mini-select"><option>Dr. Farooq</option></select></td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;font-size:10.5px;color:#94a3b8;">15 min</td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;"><select class="mini-select" style="margin-bottom:4px;"><option>Mathematics</option></select><select class="mini-select"><option>Ms. Iqbal</option></select></td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;font-size:10.5px;color:#94a3b8;">15 min</td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;"><select class="mini-select" style="margin-bottom:4px;"><option>Chemistry</option></select><select class="mini-select"><option>Ms. Aslam</option></select></td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;font-size:10.5px;color:#94a3b8;">15 min</td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;"><select class="mini-select" style="margin-bottom:4px;"><option>—</option></select><select class="mini-select"><option>(no teacher)</option></select></td>
+        </tr>
+        <tr style="background:#fffaf0;">
+          <td style="border-bottom:1px solid #f1f5f9;padding:10px;vertical-align:middle;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;">Friday</div>
+            <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:#b45309;font-weight:700;"><input type="checkbox" checked="" style="width:12px;height:12px;accent-color:#b45309;">Custom times</label>
+          </td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;">
+            <div style="display:flex;gap:4px;margin-bottom:4px;"><input class="time-mini" value="08:00" style="border-color:#f3d9a8;"><input class="time-mini" value="08:35" style="border-color:#f3d9a8;"></div>
+            <select class="mini-select" style="margin-bottom:4px;"><option>English</option></select><select class="mini-select"><option>Mr. Sheikh</option></select>
+          </td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;font-size:10.5px;color:#94a3b8;">10 min</td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;">
+            <div style="display:flex;gap:4px;margin-bottom:4px;"><input class="time-mini" value="08:45" style="border-color:#f3d9a8;"><input class="time-mini" value="09:20" style="border-color:#f3d9a8;"></div>
+            <select class="mini-select" style="margin-bottom:4px;"><option>Mathematics</option></select><select class="mini-select"><option>Ms. Iqbal</option></select>
+          </td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;font-size:10.5px;color:#94a3b8;">—</td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;color:#cbd5e1;font-size:11px;">not scheduled</td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;font-size:10.5px;color:#94a3b8;">—</td>
+          <td style="border-bottom:1px solid #f1f5f9;padding:8px;text-align:center;color:#cbd5e1;font-size:11px;">not scheduled</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":1020}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

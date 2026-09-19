@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Circulars</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .btn-primary{border:none;background:#0369a1;color:#fff;font:inherit;font-weight:700;font-size:13px;padding:9px 18px;border-radius:6px;cursor:pointer;}
+  .field-label{font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:block;}
+  .field-input{width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:9px 12px;font:inherit;font-size:13.5px;color:#1e293b;background:#fff;}
+  .field{display:flex;flex-direction:column;}
+  .link{color:#0369a1;font-weight:700;font-size:12px;cursor:pointer;}
+  .circular-row{padding:14px 0;border-bottom:1px solid #f1f5f9;}
+  .circular-row:last-child{border-bottom:none;}
+</style>
+</helmet>
+
+<div style="width:900px;height:900px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:18px;">
+
+  <div>
+    <h1 style="margin:0 0 4px;font-size:21px;font-weight:800;color:#0f172a;">Circulars</h1>
+    <span class="muted" style="font-size:13px;">Compose and publish school-wide notices</span>
+  </div>
+
+  <div class="card" style="padding:22px 26px;display:flex;flex-direction:column;gap:14px;">
+    <div class="field"><span class="field-label">Title</span><input class="field-input" placeholder="e.g. Mid-term exam schedule published"></div>
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span class="field-label" style="margin:0;">Description</span><span class="link">Suggest draft</span></div>
+      <textarea class="field-input" rows="3" style="resize:none;">Mid-term exams for Grades 6–10 begin 28 September. The full timetable is attached below.</textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="field"><span class="field-label">Scope</span><select class="field-input"><option>Whole school</option><option>One section</option></select></div>
+      <div class="field"><span class="field-label">Attachments (optional)</span><div style="border:1px dashed #cbd5e1;border-radius:6px;padding:9px 12px;font-size:12.5px;color:#64748b;">Choose files</div></div>
+    </div>
+    <button type="button" class="btn-primary" style="align-self:flex-start;">Publish circular</button>
+  </div>
+
+  <div class="card" style="flex-grow:1;overflow:hidden;padding:18px 22px;display:flex;flex-direction:column;">
+    <h2 style="margin:0 0 4px;font-size:14px;font-weight:700;">Published</h2>
+    <div style="overflow:hidden;">
+      <div class="circular-row">
+        <div style="font-weight:700;font-size:13.5px;">Mid-term exam schedule published <span class="muted" style="font-weight:500;">— Whole school</span></div>
+        <div class="mono muted" style="font-size:11.5px;margin-top:4px;">Delivered 842 · Read 611</div>
+      </div>
+      <div class="circular-row">
+        <div style="font-weight:700;font-size:13.5px;">Fire drill this Friday <span class="muted" style="font-weight:500;">— Whole school</span></div>
+        <div class="mono muted" style="font-size:11.5px;margin-top:4px;">Delivered 842 · Read 790</div>
+      </div>
+      <div class="circular-row">
+        <div style="font-weight:700;font-size:13.5px;">Grade 6 B field trip consent <span class="muted" style="font-weight:500;">— One section</span></div>
+        <div class="mono muted" style="font-size:11.5px;margin-top:4px;">Delivered 31 · Read 24</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":900,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

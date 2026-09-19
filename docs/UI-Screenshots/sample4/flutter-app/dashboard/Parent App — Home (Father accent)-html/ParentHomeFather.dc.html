@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Parent App — Home (Father accent)</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.05),0 2px 6px rgba(15,23,42,.06);}
+  .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;background:#f8fafc;display:flex;flex-direction:column;overflow:hidden;">
+
+  <!-- header -->
+  <div style="padding:18px 20px 14px;display:flex;flex-direction:column;gap:12px;flex-shrink:0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="width:36px;height:36px;border-radius:10px;background:#0369a1;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;">RG</span>
+        <div>
+          <div style="font-weight:800;font-size:14px;color:#0f172a;">Riverdale Grammar</div>
+          <div class="muted" style="font-size:11.5px;">Assalam-o-Alaikum, Mr. Ahmed</div>
+        </div>
+      </div>
+      <span style="width:38px;height:38px;border-radius:9999px;background:#e4f1fa;display:flex;align-items:center;justify-content:center;position:relative;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0369a1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+        <span style="position:absolute;top:4px;right:5px;width:8px;height:8px;border-radius:50%;background:#dc2626;border:1.5px solid #fff;"></span>
+      </span>
+    </div>
+
+    <!-- child selector -->
+    <div style="display:flex;gap:8px;overflow-x:auto;">
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 14px 7px 7px;border-radius:9999px;background:#0369a1;flex-shrink:0;">
+        <span style="width:26px;height:26px;border-radius:50%;background:#e4f1fa;display:flex;align-items:center;justify-content:center;color:#0369a1;font-weight:800;font-size:11px;">HA</span>
+        <span style="color:#fff;font-weight:700;font-size:12.5px;">Hania · 6-A</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 14px 7px 7px;border-radius:9999px;background:#fff;border:1px solid #e2e8f0;flex-shrink:0;">
+        <span style="width:26px;height:26px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#64748b;font-weight:800;font-size:11px;">BA</span>
+        <span style="color:#334155;font-weight:600;font-size:12.5px;">Bilal · 9-B</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- scroll body -->
+  <div style="flex-grow:1;overflow:hidden;padding:0 20px 16px;display:flex;flex-direction:column;gap:14px;">
+
+    <!-- three question hierarchy -->
+    <div class="card" style="padding:16px;display:flex;align-items:center;gap:14px;">
+      <span style="width:44px;height:44px;border-radius:10px;background:#e4f5ea;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"></path></svg></span>
+      <div style="flex-grow:1;">
+        <div class="muted" style="font-size:11.5px;font-weight:600;">Is Hania at school today?</div>
+        <div style="font-weight:800;font-size:16px;color:#15803d;">Present · marked 08:12</div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:16px;display:flex;align-items:center;gap:14px;">
+      <span style="width:44px;height:44px;border-radius:10px;background:#fbf0de;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-2.5-1.5L13 21l-2.5-1.5L8 21l-2-1.5V3Z"></path><path d="M9 8h6M9 12h6"></path></svg></span>
+      <div style="flex-grow:1;">
+        <div class="muted" style="font-size:11.5px;font-weight:600;">Any fees due?</div>
+        <div style="font-weight:800;font-size:16px;color:#b45309;">PKR 24,000 due 25 Sep</div>
+      </div>
+      <span style="color:#0369a1;font-size:12px;font-weight:700;">Pay →</span>
+    </div>
+
+    <div class="card" style="padding:16px;display:flex;align-items:center;gap:14px;">
+      <span style="width:44px;height:44px;border-radius:10px;background:#e4f1fa;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span>
+      <div style="flex-grow:1;">
+        <div class="muted" style="font-size:11.5px;font-weight:600;">How did the last test go?</div>
+        <div style="font-weight:800;font-size:16px;color:#0f172a;">Mathematics · 88 / 100</div>
+      </div>
+    </div>
+
+    <!-- announcements -->
+    <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2 style="margin:0;font-size:13px;font-weight:700;">Announcements</h2>
+        <span style="color:#0369a1;font-size:11.5px;font-weight:700;">See all</span>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#0369a1;margin-top:5px;flex-shrink:0;"></span>
+        <div><div style="font-weight:600;font-size:12.5px;">Mid-term exam schedule published</div><div class="muted mono" style="font-size:10.5px;">Today</div></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#64748b;margin-top:5px;flex-shrink:0;"></span>
+        <div><div style="font-weight:600;font-size:12.5px;">Fire drill scheduled this Friday</div><div class="muted mono" style="font-size:10.5px;">Yesterday</div></div>
+      </div>
+    </div>
+
+    <!-- timetable preview -->
+    <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:8px;">
+      <h2 style="margin:0 0 2px;font-size:13px;font-weight:700;">Today's timetable — Hania</h2>
+      <div style="display:flex;align-items:center;gap:10px;"><span class="mono muted" style="font-size:11px;width:42px;">08:00</span><span style="font-size:12.5px;font-weight:600;">Mathematics</span></div>
+      <div style="display:flex;align-items:center;gap:10px;"><span class="mono muted" style="font-size:11px;width:42px;">09:00</span><span style="font-size:12.5px;font-weight:600;">English</span></div>
+      <div style="display:flex;align-items:center;gap:10px;"><span class="mono muted" style="font-size:11px;width:42px;">10:15</span><span style="font-size:12.5px;font-weight:600;">Science</span></div>
+    </div>
+  </div>
+
+  <!-- bottom nav -->
+  <div style="flex-shrink:0;border-top:1px solid #e2e8f0;background:#fff;padding:10px 8px 14px;display:flex;">
+    <div class="nav-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0369a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg><span style="font-size:10px;font-weight:700;color:#0369a1;">Home</span></div>
+    <div class="nav-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"></path></svg><span style="font-size:10px;font-weight:600;color:#94a3b8;">Attendance</span></div>
+    <div class="nav-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-2.5-1.5L13 21l-2.5-1.5L8 21l-2-1.5V3Z"></path></svg><span style="font-size:10px;font-weight:600;color:#94a3b8;">Fees</span></div>
+    <div class="nav-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg><span style="font-size:10px;font-weight:600;color:#94a3b8;">Results</span></div>
+    <div class="nav-item"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg><span style="font-size:10px;font-weight:600;color:#94a3b8;">More</span></div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

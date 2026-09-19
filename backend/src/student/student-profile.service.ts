@@ -22,7 +22,9 @@ export const PROFILE_INCLUDE = {
     where: { status: 'ACTIVE' as const },
     orderBy: { startDate: 'desc' as const },
     take: 1,
-    include: { section: { include: { class: { include: { campus: true } } } } },
+    include: {
+      section: { include: { class: { include: { campus: { include: { school: { select: { id: true, name: true } } } } } } } },
+    },
   },
 };
 

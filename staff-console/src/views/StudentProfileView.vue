@@ -59,6 +59,12 @@ load();
 // --- Header presentation helpers (derived only from data already on the profile) --------------
 const activeEnrollment = computed(() => profile.value?.enrollments[0] ?? null);
 
+const studentCampusLabel = computed(() => {
+  const campus = activeEnrollment.value?.section.class.campus;
+  if (!campus) return null;
+  return campus.code ? `${campus.code} - ${campus.name}` : campus.name;
+});
+
 const headerClassSection = computed(() => {
   const enrollment = activeEnrollment.value;
   return enrollment ? `${enrollment.section.class.name} · ${enrollment.section.name}` : null;
@@ -626,6 +632,8 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
       :initials="initialsFromName(profile.name)"
       :photo-url="displayPhotoUrl"
       photo-label="Student photo"
+      :school-name="activeEnrollment?.section.class.campus.school.name ?? null"
+      :campus-label="studentCampusLabel"
       :is-saving-photo="isSavingPhoto"
       :id-chip="profile.grNumber"
       :subtitle-tag="headerClassSection"

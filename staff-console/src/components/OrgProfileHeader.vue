@@ -14,6 +14,8 @@ defineProps<{
   backLabel: string;
   chips?: string[];
   stats?: Array<{ label: string; value: string | number }>;
+  /** Uploaded logo; when absent the initials badge is shown instead. */
+  logoUrl?: string | null;
 }>();
 
 function initials(name: string): string {
@@ -28,7 +30,10 @@ function initials(name: string): string {
   <div class="org-header">
     <RouterLink class="back-link" :to="backTo" data-testid="profile-back">← {{ backLabel }}</RouterLink>
     <div class="org-identity">
-      <span class="org-avatar" aria-hidden="true">{{ initials(name) }}</span>
+      <span class="org-avatar" :class="{ 'has-logo': logoUrl }" aria-hidden="true">
+        <img v-if="logoUrl" :src="logoUrl" alt="" class="org-avatar-img" data-testid="org-logo" />
+        <template v-else>{{ initials(name) }}</template>
+      </span>
       <div class="org-titles">
         <div class="org-name-row">
           <h1 data-testid="profile-name">{{ name }}</h1>
@@ -87,6 +92,16 @@ function initials(name: string): string {
   font-weight: 800;
   font-size: var(--font-size-lg);
   flex-shrink: 0;
+}
+.org-avatar.has-logo {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+.org-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .org-titles {
   flex-grow: 1;

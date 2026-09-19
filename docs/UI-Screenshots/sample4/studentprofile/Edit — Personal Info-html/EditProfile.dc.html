@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Student Profile — Edit</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .tab-btn{border:none;background:none;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9999px;font-size:13.5px;font-weight:600;color:#64748b;}
+  .tab-btn.active{background:#ffffff;color:#0369a1;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .btn-primary{border:none;background:#0369a1;color:#ffffff;font:inherit;font-weight:600;font-size:13.5px;padding:10px 20px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+  .btn-primary:hover{background:#025a8a;}
+  .btn-secondary{border:1px solid #e2e8f0;background:#ffffff;color:#334155;font:inherit;font-weight:600;font-size:13.5px;padding:10px 20px;border-radius:6px;cursor:pointer;}
+  .btn-secondary:hover{border-color:#cbd5e1;color:#0f172a;}
+  .group-title{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#0369a1;display:flex;align-items:center;gap:8px;}
+  .group-title::after{content:'';flex-grow:1;height:1px;background:#e2e8f0;}
+  .f-label{font-size:12.5px;font-weight:600;color:#475569;margin-bottom:6px;display:block;}
+  .f-input{width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:6px;font:inherit;font-size:13.5px;color:#1e293b;background:#ffffff;outline:none;transition:border-color .15s,box-shadow .15s;}
+  .f-input:focus{border-color:#0369a1;box-shadow:0 0 0 3px rgba(3,105,161,.15);}
+  .f-input.select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 10px center;background-size:14px;padding-right:32px;}
+  textarea.f-input{resize:vertical;min-height:64px;}
+</style>
+</helmet>
+
+<div style="width:1180px;height:1480px;background:#f8fafc;padding:40px 48px;display:flex;flex-direction:column;gap:20px;">
+
+  <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8;">
+    <span>Students</span><span>/</span><span>Grade 9 · Section B</span><span>/</span>
+    <span style="color:#1e293b;font-weight:600;">Ayesha Raza</span><span>/</span>
+    <span style="color:#1e293b;font-weight:600;">Edit</span>
+  </div>
+
+  <!-- identity header, static -->
+  <div class="card" style="padding:22px 32px;display:flex;align-items:center;gap:20px;">
+    <div style="width:60px;height:60px;border-radius:50%;background:#0f172a;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;box-shadow:0 0 0 3px #ffffff,0 0 0 5px #0369a1;">AR</div>
+    <div style="flex-grow:1;">
+      <div style="font-size:18px;font-weight:800;color:#0f172a;">Ayesha Raza</div>
+      <div class="muted" style="font-size:13px;">GR-2024-0148 · Grade 9 · Section B</div>
+    </div>
+    <span style="display:inline-flex;align-items:center;padding:1px 10px;border-radius:9999px;background:#e4f1fa;color:#0369a1;font-size:12.5px;font-weight:700;">Editing</span>
+  </div>
+
+  <!-- tabs (static) -->
+  <div style="display:flex;align-items:center;gap:4px;background:#eef1f5;padding:5px;border-radius:9999px;width:fit-content;opacity:.55;">
+    <button type="button" class="tab-btn active">Personal Info</button>
+    <button type="button" class="tab-btn">Academic Record</button>
+    <button type="button" class="tab-btn">Family &amp; Contacts</button>
+    <button type="button" class="tab-btn">Medical &amp; Welfare</button>
+    <button type="button" class="tab-btn">Documents</button>
+  </div>
+
+  <!-- edit form -->
+  <div class="card" style="padding:32px;display:flex;flex-direction:column;gap:26px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <h2 style="margin:0;font-size:17px;font-weight:700;color:#0f172a;">Edit Personal Info</h2>
+      <span class="muted" style="font-size:12.5px;">Fields marked · are required</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="group-title">Identity</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div><label class="f-label">First name ·</label><input class="f-input" value="Ayesha"></div>
+        <div><label class="f-label">Middle name</label><input class="f-input" value=""></div>
+        <div><label class="f-label">Last name ·</label><input class="f-input" value="Raza"></div>
+        <div><label class="f-label">Preferred name</label><input class="f-input" value="Ayesha"></div>
+        <div><label class="f-label">Gender</label><select class="f-input select"><option>Female</option></select></div>
+        <div><label class="f-label">Date of birth</label><input class="f-input mono" value="2011-04-02"></div>
+        <div><label class="f-label">Place of birth</label><input class="f-input" value="Lahore"></div>
+        <div><label class="f-label">Nationality</label><input class="f-input" value="Pakistani"></div>
+        <div><label class="f-label">Religion</label><input class="f-input" value="Islam"></div>
+        <div style="grid-column:span 2;"><label class="f-label">B-Form number</label><input class="f-input mono" value="35202-1234567-1"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="group-title">Status &amp; admission</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div><label class="f-label">Status</label><select class="f-input select"><option>Active</option></select></div>
+        <div><label class="f-label">Admission date</label><input class="f-input mono" value="2023-08-14"></div>
+        <div><label class="f-label">Leaving date</label><input class="f-input mono" placeholder="—" value=""></div>
+      </div>
+      <div><label class="f-label">Leaving reason</label><textarea class="f-input" placeholder="Only needed if the student has left"></textarea></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="group-title">Contact</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div><label class="f-label">Mobile</label><input class="f-input mono" value="0300 1234567"></div>
+        <div style="grid-column:span 2;"><label class="f-label">Email</label><input class="f-input" value="ayesha.raza@example.com"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="group-title">Current address</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div style="grid-column:span 2;"><label class="f-label">Line 1</label><input class="f-input" value="House 12, Street 4"></div>
+        <div><label class="f-label">Line 2</label><input class="f-input" value="Gulberg III"></div>
+        <div><label class="f-label">City</label><input class="f-input" value="Lahore"></div>
+        <div><label class="f-label">Province</label><input class="f-input" value="Punjab"></div>
+        <div><label class="f-label">Postal code</label><input class="f-input mono" value="54000"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="group-title">Permanent address</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div style="grid-column:span 2;"><label class="f-label">Line 1</label><input class="f-input" value="Village Chak 45"></div>
+        <div><label class="f-label">Line 2</label><input class="f-input" value="Tehsil Kasur"></div>
+        <div><label class="f-label">City</label><input class="f-input" value="Kasur"></div>
+        <div><label class="f-label">Province</label><input class="f-input" value="Punjab"></div>
+        <div><label class="f-label">Postal code</label><input class="f-input mono" value="55070"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:6px;border-top:1px solid #e2e8f0;margin-top:4px;padding-top:20px;">
+      <button type="button" class="btn-secondary">Cancel</button>
+      <button type="button" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"></path></svg>
+        Save changes
+      </button>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":1480}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

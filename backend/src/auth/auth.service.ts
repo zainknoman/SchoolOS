@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
 import { randomBytes, createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { normalizeIdentifier } from '../common/normalize-identifier';
 import { MAIL_ADAPTER } from '../notifications/mail-adapter';
 import type { MailAdapter } from '../notifications/mail-adapter';
 import {
@@ -47,7 +48,11 @@ export class AuthService {
   }
 
   async login(identifier: string, password: string): Promise<SessionResult> {
-    const user = await this.prisma.user.findUnique({ where: { identifier } });
+    // Exact match first (staff/admin identifiers are stored as typed); then the canonical form, so
+    // a parent can sign in with "+92 300 1234567" or "Ali@Mail.com" however they type it.
+    const user =
+      (await this.prisma.user.findUnique({ where: { identifier } })) ??
+      (await this.prisma.user.findUnique({ where: { identifier: normalizeIdentifier(identifier) } }));
 
     // Unknown identifier and wrong password return the exact same error — never reveal which
     // field was wrong (FEAT-002 acceptance criteria).

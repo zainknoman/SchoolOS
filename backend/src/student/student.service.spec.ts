@@ -13,7 +13,7 @@ describe('StudentService', () => {
     enrollment: { create: jest.Mock };
     studentParent: { create: jest.Mock };
     user: { create: jest.Mock };
-    parentProfile: { create: jest.Mock; findUnique: jest.Mock };
+    parentProfile: { create: jest.Mock; findUnique: jest.Mock; findFirst: jest.Mock };
     auditLog: { create: jest.Mock };
   };
   let prisma: {
@@ -40,7 +40,7 @@ describe('StudentService', () => {
       enrollment: { create: jest.fn() },
       studentParent: { create: jest.fn() },
       user: { create: jest.fn() },
-      parentProfile: { create: jest.fn(), findUnique: jest.fn() },
+      parentProfile: { create: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn().mockResolvedValue(null) },
       auditLog: { create: jest.fn() },
     };
     prisma = {

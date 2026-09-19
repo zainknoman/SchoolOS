@@ -88,6 +88,12 @@ const router = createRouter({
       meta: { requiresRole: ['SUPER_ADMIN'], title: 'Schools', group: 'Org Structure' },
     },
     {
+      path: '/admin/schools/new',
+      name: 'admin-school-new',
+      component: () => import('../views/SchoolProfilePageView.vue'),
+      meta: { requiresRole: ['SUPER_ADMIN'], title: 'Add School', group: 'Org Structure' },
+    },
+    {
       path: '/admin/schools/:id',
       name: 'admin-school-profile',
       component: () => import('../views/SchoolProfilePageView.vue'),
@@ -98,6 +104,12 @@ const router = createRouter({
       name: 'admin-campuses',
       component: () => import('../views/CampusManagementPageView.vue'),
       meta: { requiresRole: ['SUPER_ADMIN'], title: 'Campuses', group: 'Org Structure' },
+    },
+    {
+      path: '/admin/campuses/new',
+      name: 'admin-campus-new',
+      component: () => import('../views/CampusProfilePageView.vue'),
+      meta: { requiresRole: ['SUPER_ADMIN'], title: 'Add Campus', group: 'Org Structure' },
     },
     {
       path: '/admin/campuses/:id',

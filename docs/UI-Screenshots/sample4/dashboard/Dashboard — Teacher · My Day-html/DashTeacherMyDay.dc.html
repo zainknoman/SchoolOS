@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard — Teacher My Day</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:9999px;font-size:11px;font-weight:700;}
+  .btn-mini{border:1px solid #0369a1;background:#0369a1;color:#fff;font:inherit;font-weight:700;font-size:11.5px;padding:6px 12px;border-radius:6px;cursor:pointer;}
+  .btn-mini-ghost{border:1px solid #cbd5e1;background:#fff;color:#334155;font:inherit;font-weight:600;font-size:11.5px;padding:6px 12px;border-radius:6px;cursor:pointer;}
+  .class-row{display:flex;align-items:center;gap:16px;padding:14px 18px;border-radius:8px;}
+  .stat-mini{display:flex;flex-direction:column;gap:2px;}
+</style>
+</helmet>
+
+<div style="width:1180px;height:820px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:16px;">
+
+  <div>
+    <h1 style="margin:0 0 4px;font-size:21px;font-weight:800;color:#0f172a;">My Day</h1>
+    <span class="muted" style="font-size:13px;">Thursday, 18 September · Ms. Fatima Sheikh</span>
+  </div>
+
+  <!-- compact stat row -->
+  <div style="display:flex;gap:14px;">
+    <div class="card" style="flex:1;padding:14px 18px;display:flex;align-items:center;gap:12px;">
+      <span style="width:34px;height:34px;border-radius:8px;background:#e4f1fa;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0369a1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path></svg></span>
+      <div class="stat-mini"><span style="font-size:19px;font-weight:800;">5</span><span class="muted" style="font-size:11px;">Classes today</span></div>
+    </div>
+    <div class="card" style="flex:1;padding:14px 18px;display:flex;align-items:center;gap:12px;">
+      <span style="width:34px;height:34px;border-radius:8px;background:#e4f5ea;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"></path></svg></span>
+      <div class="stat-mini"><span style="font-size:19px;font-weight:800;">3 of 5</span><span class="muted" style="font-size:11px;">Attendance marked</span></div>
+    </div>
+    <div class="card" style="flex:1;padding:14px 18px;display:flex;align-items:center;gap:12px;">
+      <span style="width:34px;height:34px;border-radius:8px;background:#fbf0de;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9.9 8.3 8.5 8.5 0 0 1-6.9-6.9A8.4 8.4 0 0 1 12.5 3a8.5 8.5 0 0 1 8.5 8.5Z"></path><path d="M8 12h.01M12 12h.01M16 12h.01"></path></svg></span>
+      <div class="stat-mini"><span style="font-size:19px;font-weight:800;">4</span><span class="muted" style="font-size:11px;">Unread messages</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:16px;flex-grow:1;min-height:0;">
+    <!-- timeline -->
+    <div class="card" style="flex-grow:1;padding:8px;display:flex;flex-direction:column;">
+      <h2 style="margin:8px 10px 4px;font-size:14px;font-weight:700;">Today's classes</h2>
+      <div class="class-row" style="background:#f8fafc;">
+        <span class="mono muted" style="font-size:12px;width:52px;flex-shrink:0;">08:00</span>
+        <div style="flex-grow:1;">
+          <div style="font-weight:700;font-size:13.5px;">6 · A — Mathematics</div>
+          <div class="muted" style="font-size:11.5px;">Room 14</div>
+        </div>
+        <span class="pill" style="background:#e4f5ea;color:#15803d;">Attendance marked</span>
+      </div>
+      <div class="class-row" style="background:#f8fafc;">
+        <span class="mono muted" style="font-size:12px;width:52px;flex-shrink:0;">09:00</span>
+        <div style="flex-grow:1;">
+          <div style="font-weight:700;font-size:13.5px;">7 · B — Mathematics</div>
+          <div class="muted" style="font-size:11.5px;">Room 14</div>
+        </div>
+        <span class="pill" style="background:#e4f5ea;color:#15803d;">Attendance marked</span>
+      </div>
+      <div class="class-row" style="background:#e4f1fa;border:1px solid #bfe0f5;">
+        <span class="mono" style="font-size:12px;width:52px;flex-shrink:0;color:#0369a1;font-weight:700;">10:15</span>
+        <div style="flex-grow:1;">
+          <div style="font-weight:700;font-size:13.5px;">9 · B — Mathematics</div>
+          <div class="muted" style="font-size:11.5px;">Room 21 · Now</div>
+        </div>
+        <button type="button" class="btn-mini">Mark now</button>
+      </div>
+      <div class="class-row" style="background:#f8fafc;">
+        <span class="mono muted" style="font-size:12px;width:52px;flex-shrink:0;">12:30</span>
+        <div style="flex-grow:1;">
+          <div style="font-weight:700;font-size:13.5px;">10 · A — Mathematics</div>
+          <div class="muted" style="font-size:11.5px;">Room 21</div>
+        </div>
+        <button type="button" class="btn-mini-ghost">Mark attendance</button>
+      </div>
+      <div class="class-row" style="background:#f8fafc;">
+        <span class="mono muted" style="font-size:12px;width:52px;flex-shrink:0;">14:00</span>
+        <div style="flex-grow:1;">
+          <div style="font-weight:700;font-size:13.5px;">6 · A — Mathematics (Lab)</div>
+          <div class="muted" style="font-size:11.5px;">Lab 2</div>
+        </div>
+        <button type="button" class="btn-mini-ghost">Mark attendance</button>
+      </div>
+    </div>
+
+    <!-- diary due -->
+    <div class="card" style="width:300px;flex-shrink:0;padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+      <h2 style="margin:0;font-size:14px;font-weight:700;">Diary due today</h2>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="padding:10px 0;border-bottom:1px solid #f1f5f9;">
+          <div style="font-weight:600;font-size:13px;">6 · A — Homework note</div>
+          <div class="muted" style="font-size:11.5px;">Ch. 4 exercises for Monday</div>
+        </div>
+        <div style="padding:10px 0;border-bottom:1px solid #f1f5f9;">
+          <div style="font-weight:600;font-size:13px;">9 · B — Test reminder</div>
+          <div class="muted" style="font-size:11.5px;">Unit test on Friday</div>
+        </div>
+      </div>
+      <button type="button" class="btn-mini-ghost" style="align-self:flex-start;">+ Add diary entry</button>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

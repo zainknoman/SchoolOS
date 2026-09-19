@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Parent App — Notifications Sheet</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+  .row{display:flex;align-items:flex-start;gap:12px;padding:13px 20px;border-bottom:1px solid #f1f5f9;}
+  .row:last-child{border-bottom:none;}
+  .dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+  .sheet{position:absolute;left:0;right:0;bottom:0;height:60%;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 24px rgba(15,23,42,.18);display:flex;flex-direction:column;overflow:hidden;}
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;background:#f8fafc;position:relative;overflow:hidden;">
+
+  <!-- dimmed background: Home tab underneath, faded -->
+  <div style="position:absolute;inset:0;padding:18px 20px;opacity:.5;filter:blur(1px);">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-weight:800;font-size:14px;color:#0f172a;">Riverdale Grammar</div>
+        <div class="muted" style="font-size:11px;">Assalam-o-Alaikum, Mr. Ahmed</div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(15,23,42,.42);"></div>
+
+  <!-- bottom sheet, 60% height per the real showModalBottomSheet -->
+  <div class="sheet">
+    <div style="display:flex;justify-content:center;padding-top:10px;flex-shrink:0;">
+      <span style="width:36px;height:4px;border-radius:9999px;background:#cbd5e1;"></span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px;flex-shrink:0;">
+      <span style="font-weight:800;font-size:16px;color:#0f172a;">Notifications</span>
+      <span style="color:#0369a1;font-weight:700;font-size:12.5px;">Mark all read</span>
+    </div>
+    <div style="flex-grow:1;overflow:hidden;">
+      <div class="row">
+        <span class="dot" style="background:#0369a1;"></span>
+        <div style="flex-grow:1;">
+          <div style="font-weight:800;font-size:13.5px;">New diary entry — Mathematics</div>
+          <div class="muted" style="font-size:12px;margin-top:2px;">Complete Ch. 4 exercises 1–12 in the workbook.</div>
+        </div>
+        <span class="mono muted" style="font-size:10.5px;flex-shrink:0;">2h</span>
+      </div>
+      <div class="row">
+        <span class="dot" style="background:#0369a1;"></span>
+        <div style="flex-grow:1;">
+          <div style="font-weight:800;font-size:13.5px;">Circular — Mid-term exam schedule published</div>
+          <div class="muted" style="font-size:12px;margin-top:2px;">Exams for Grades 6–10 begin 28 September.</div>
+        </div>
+        <span class="mono muted" style="font-size:10.5px;flex-shrink:0;">3h</span>
+      </div>
+      <div class="row">
+        <span class="dot" style="background:#0369a1;"></span>
+        <div style="flex-grow:1;">
+          <div style="font-weight:800;font-size:13.5px;">New message from Ms. Fatima Sheikh</div>
+          <div class="muted" style="font-size:12px;margin-top:2px;">Regarding Hania's participation in the science fair.</div>
+        </div>
+        <span class="mono muted" style="font-size:10.5px;flex-shrink:0;">5h</span>
+      </div>
+      <div class="row">
+        <span class="dot" style="border:1.5px solid #cbd5e1;background:transparent;"></span>
+        <div style="flex-grow:1;">
+          <div style="font-weight:600;font-size:13.5px;">Fee voucher issued — September</div>
+          <div class="muted" style="font-size:12px;margin-top:2px;">PKR 22,500 due 25 Sep.</div>
+        </div>
+        <span class="mono muted" style="font-size:10.5px;flex-shrink:0;">1d</span>
+      </div>
+      <div class="row">
+        <span class="dot" style="border:1.5px solid #cbd5e1;background:transparent;"></span>
+        <div style="flex-grow:1;">
+          <div style="font-weight:600;font-size:13.5px;">Circular — Fire drill this Friday</div>
+          <div class="muted" style="font-size:12px;margin-top:2px;">All campuses at 2pm on Friday.</div>
+        </div>
+        <span class="mono muted" style="font-size:10.5px;flex-shrink:0;">2d</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

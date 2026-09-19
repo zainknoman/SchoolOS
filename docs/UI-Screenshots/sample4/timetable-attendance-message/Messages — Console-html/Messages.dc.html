@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Messages — Console</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Nastaliq+Urdu:wght@500&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .btn-primary{border:none;background:#0369a1;color:#ffffff;font:inherit;font-weight:700;font-size:13.5px;padding:10px 18px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+  .conv-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;}
+  .conv-item.active{background:#eaf4fb;border-left:3px solid #0369a1;padding-left:11px;}
+</style>
+</helmet>
+
+<div style="width:1180px;height:820px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:16px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <h1 style="margin:0;font-size:21px;font-weight:800;color:#0f172a;">Messages</h1>
+    <button type="button" class="btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+      New Message
+    </button>
+  </div>
+
+  <div class="card" style="flex-grow:1;display:flex;overflow:hidden;">
+
+    <!-- conversation list -->
+    <div style="width:300px;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;">
+      <div style="padding:14px;border-bottom:1px solid #e2e8f0;">
+        <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M20 20l-4.8-4.8"></path></svg>
+          <span class="muted" style="font-size:13px;">Search conversations…</span>
+        </div>
+      </div>
+      <div style="overflow-y:auto;flex-grow:1;">
+        <div class="conv-item active">
+          <span style="width:36px;height:36px;border-radius:50%;background:#0f172a;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">NR</span>
+          <div style="min-width:0;flex-grow:1;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-weight:700;font-size:13.5px;">Nadia Raza</span>
+              <span class="muted mono" style="font-size:10.5px;">09:14</span>
+            </div>
+            <div class="muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Thank you, I'll send the certificate by...</div>
+          </div>
+        </div>
+        <div class="conv-item">
+          <span style="width:36px;height:36px;border-radius:50%;background:#e8ecf1;color:#334155;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;">TR
+            <span style="position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:#0369a1;border:2px solid #ffffff;"></span>
+          </span>
+          <div style="min-width:0;flex-grow:1;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-weight:800;font-size:13.5px;">Tariq Raza</span>
+              <span class="muted mono" style="font-size:10.5px;">Yesterday</span>
+            </div>
+            <div style="font-size:12px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Can we reschedule the meeting?</div>
+          </div>
+        </div>
+        <div class="conv-item">
+          <span style="width:36px;height:36px;border-radius:50%;background:#e8ecf1;color:#334155;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">SM</span>
+          <div style="min-width:0;flex-grow:1;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-weight:700;font-size:13.5px;">Sana Malik</span>
+              <span class="muted mono" style="font-size:10.5px;">Mon</span>
+            </div>
+            <div class="muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Noted, thank you for letting me know.</div>
+          </div>
+        </div>
+        <div class="conv-item">
+          <span style="width:36px;height:36px;border-radius:50%;background:#e8ecf1;color:#334155;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">FA</span>
+          <div style="min-width:0;flex-grow:1;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-weight:700;font-size:13.5px;">Dr. Farooq (Physics)</span>
+              <span class="muted mono" style="font-size:10.5px;">Mon</span>
+            </div>
+            <div class="muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Lab report deadline extended to Friday.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- thread -->
+    <div style="flex-grow:1;display:flex;flex-direction:column;">
+      <div style="padding:14px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;">
+        <span style="width:32px;height:32px;border-radius:50%;background:#0f172a;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">NR</span>
+        <div>
+          <div style="font-weight:700;font-size:14px;">Nadia Raza</div>
+          <div class="muted" style="font-size:11.5px;">Parent · Ayesha Raza, Grade 9-B</div>
+        </div>
+      </div>
+
+      <div style="flex-grow:1;padding:20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;">
+        <div style="max-width:70%;align-self:flex-start;">
+          <div style="background:#f1f5f9;border-radius:10px 10px 10px 2px;padding:10px 14px;font-size:13.5px;line-height:1.5;">Good morning, I wanted to ask about Ayesha's leaving certificate for the scholarship application.</div>
+          <div class="muted mono" style="font-size:10.5px;margin-top:4px;">Nadia Raza · 09:02</div>
+        </div>
+        <div style="max-width:70%;align-self:flex-end;">
+          <div style="background:#0369a1;color:#ffffff;border-radius:10px 10px 2px 10px;padding:10px 14px;font-size:13.5px;line-height:1.5;">Good morning! Of course — I'll have it ready by Thursday and will send a scan here.</div>
+          <div class="muted mono" style="font-size:10.5px;margin-top:4px;text-align:right;">You · 09:10</div>
+        </div>
+        <div style="max-width:70%;align-self:flex-start;" dir="rtl">
+          <div style="background:#f1f5f9;border-radius:10px 10px 2px 10px;padding:10px 14px;font-size:15px;line-height:1.9;font-family:'Noto Nastaliq Urdu','Plus Jakarta Sans',sans-serif;">شکریہ، میں انتظار کروں گی۔</div>
+          <div class="muted mono" style="font-size:10.5px;margin-top:4px;">Nadia Raza · 09:14</div>
+        </div>
+      </div>
+
+      <div style="padding:14px 20px;border-top:1px solid #e2e8f0;display:flex;align-items:flex-end;gap:10px;">
+        <div style="flex-grow:1;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;font-size:13.5px;color:#94a3b8;min-height:20px;">Type a reply…</div>
+        <button type="button" class="btn-primary" style="padding:10px 16px;">
+          Send
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

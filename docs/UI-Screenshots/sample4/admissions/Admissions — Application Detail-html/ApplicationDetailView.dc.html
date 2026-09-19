@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Application Detail</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;}
+  .btn-primary{border:none;background:#0369a1;color:#fff;font:inherit;font-weight:700;font-size:13px;padding:9px 16px;border-radius:6px;cursor:pointer;}
+  .btn-secondary{border:1px solid #cbd5e1;background:#fff;color:#334155;font:inherit;font-weight:600;font-size:13px;padding:9px 16px;border-radius:6px;cursor:pointer;}
+  .field-label{font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:block;}
+  .field-input{width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:8px 11px;font:inherit;font-size:13px;color:#1e293b;background:#fff;}
+  .field{display:flex;flex-direction:column;}
+  .toggle-row{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;}
+</style>
+</helmet>
+
+<div style="width:1280px;height:900px;background:#f8fafc;padding:36px 44px;position:relative;">
+
+  <div style="display:flex;flex-direction:column;gap:16px;max-width:640px;">
+    <div>
+      <span class="muted" style="font-size:12px;font-weight:700;">← Back to Admissions</span>
+      <h1 style="margin:8px 0 4px;font-size:21px;font-weight:800;color:#0f172a;">Hania Sheikh</h1>
+      <span class="pill" style="background:#e4f1fa;color:#0369a1;">Under review</span>
+    </div>
+
+    <div class="card" style="padding:20px 24px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;justify-content:space-between;"><span class="muted" style="font-size:12.5px;">Applicant</span><span style="font-weight:600;font-size:13px;">Hania Sheikh</span></div>
+      <div style="display:flex;justify-content:space-between;"><span class="muted" style="font-size:12.5px;">Status</span><span style="font-weight:600;font-size:13px;">Under review</span></div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button type="button" class="btn-secondary">Mark Under Review</button>
+      <button type="button" class="btn-secondary" style="border-color:#dc2626;color:#dc2626;">Reject</button>
+      <button type="button" class="btn-primary">Approve</button>
+    </div>
+  </div>
+
+  <!-- Approve modal, shown open to document its fields -->
+  <div style="position:absolute;inset:0;background:rgba(15,23,42,.4);display:flex;align-items:center;justify-content:center;">
+    <div class="card" style="width:480px;padding:26px 30px;display:flex;flex-direction:column;gap:16px;box-shadow:0 12px 32px rgba(15,23,42,.24);">
+      <h2 style="margin:0;font-size:16px;font-weight:800;">Approve Application</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><span class="field-label">GR Number</span><input class="field-input" placeholder="e.g. GR-2026-0412"></div>
+        <div class="field"><span class="field-label">Section</span><select class="field-input"><option>Grade 6 A (Main Campus)</option><option>Grade 6 B (Main Campus)</option></select></div>
+      </div>
+      <label class="toggle-row"><input type="checkbox"> + New Parent</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><span class="field-label">Parent login email</span><input class="field-input" placeholder="parent@email.com"></div>
+        <div class="field"><span class="field-label">Initial password</span><input class="field-input" type="password"></div>
+        <div class="field"><span class="field-label">Parent full name</span><input class="field-input" placeholder="e.g. Ahmed Sheikh"></div>
+        <div class="field"><span class="field-label">Phone (optional)</span><input class="field-input" placeholder="03xx-xxxxxxx"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
+        <button type="button" class="btn-secondary">Cancel</button>
+        <button type="button" class="btn-primary">Approve</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

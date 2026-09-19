@@ -638,7 +638,7 @@ export interface StudentCurrentEnrollmentDetail {
   section: {
     id: string;
     name: string;
-    class: { id: string; name: string; campus: { id: string; name: string } };
+    class: { id: string; name: string; campus: { id: string; name: string; code: string | null; school: { id: string; name: string } } };
   };
 }
 
@@ -865,6 +865,7 @@ export interface StaffProfileDetail {
   employmentStatus: 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED' | 'RESIGNED';
   leavingDate: string | null;
   leavingReason: string | null;
+  campus: { id: string; name: string; code: string | null; school: { id: string; name: string } };
   teacher: { id: string; name: string; user: { identifier: string } } | null;
   emergencyContacts: StaffEmergencyContactDetail[];
   experience: StaffExperienceDetail[];

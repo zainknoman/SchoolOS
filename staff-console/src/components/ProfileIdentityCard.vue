@@ -18,6 +18,10 @@ withDefaults(
     photoUrl: string | null;
     photoLabel: string;
     isSavingPhoto: boolean;
+    /** Shown above the name so the org context is visible without scrolling or switching tabs. */
+    schoolName?: string | null;
+    /** e.g. "MAIN - Main Campus" (campus code, then name). */
+    campusLabel?: string | null;
     /** A short identifying chip next to the name, e.g. a GR number. Omit if none applies. */
     idChip?: string | null;
     /** e.g. "Grade 9 · Section B" for a student, "Teacher" for a staff member. */
@@ -32,7 +36,7 @@ withDefaults(
     documentsLabel: string;
     compact?: boolean;
   }>(),
-  { compact: false, idChip: null, subtitleTag: null, secondaryTag: null },
+  { compact: false, schoolName: null, campusLabel: null, idChip: null, subtitleTag: null, secondaryTag: null },
 );
 
 const emit = defineEmits<{ 'edit-profile': []; 'photo-file-change': [Event] }>();
@@ -77,6 +81,11 @@ function onFileChange(event: Event) {
     </div>
 
     <div class="identity-main">
+      <div v-if="schoolName || campusLabel" class="identity-org" data-testid="profile-org">
+        <span v-if="schoolName" class="identity-school">{{ schoolName }}</span>
+        <span v-if="schoolName && campusLabel" class="identity-dot" aria-hidden="true">·</span>
+        <span v-if="campusLabel" class="identity-campus">{{ campusLabel }}</span>
+      </div>
       <template v-if="compact">
         <div class="identity-name-row">
           <span class="identity-name-compact">{{ name }}</span>
@@ -203,6 +212,20 @@ function onFileChange(event: Event) {
   flex-direction: column;
   gap: var(--space-2);
   min-width: 0;
+}
+.identity-org {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--font-size-sm);
+}
+.identity-school {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+.identity-campus {
+  color: var(--color-muted);
 }
 .identity-name-row {
   display: flex;

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Report Cards — Teacher</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  table{border-collapse:separate;border-spacing:0;width:100%;}
+  th{padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;text-align:left;border-bottom:1px solid #e2e8f0;background:#fafbfc;}
+  td{padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:13.5px;}
+  tr:last-child td{border-bottom:none;}
+  .chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:9999px;font-size:11px;font-weight:600;background:#e8ecf1;color:#334155;margin:2px 4px 2px 0;}
+  .btn-secondary{border:1px solid #cbd5e1;background:#fff;color:#334155;font:inherit;font-weight:600;font-size:13px;padding:9px 16px;border-radius:6px;cursor:pointer;}
+  .field-label{font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:block;}
+  .field-input{border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;font:inherit;font-size:13px;color:#1e293b;background:#fff;}
+  .link{color:#0369a1;font-weight:700;font-size:12.5px;cursor:pointer;}
+</style>
+</helmet>
+
+<div style="width:1180px;height:760px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:16px;">
+
+  <div>
+    <h1 style="margin:0 0 4px;font-size:21px;font-weight:800;color:#0f172a;">Report Cards</h1>
+    <span class="muted" style="font-size:13px;">Grades &amp; downloadable report cards — your sections only</span>
+  </div>
+
+  <!-- extra Section picker at the front, vs the admin variant -->
+  <div class="card" style="padding:18px 22px;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;">
+    <div><span class="field-label" style="color:#0369a1;">Section</span><select class="field-input" style="width:200px;border-color:#0369a1;"><option>Grade 9 B — Main Campus</option></select></div>
+    <div><span class="field-label">Student</span><select class="field-input" style="width:220px;"><option>Zara Ali (GR-2021-0142)</option></select></div>
+    <div><span class="field-label">Academic session</span><select class="field-input" style="width:150px;"><option>2026–27</option></select></div>
+    <div><span class="field-label">Term</span><select class="field-input" style="width:130px;"><option>Term 1</option></select></div>
+    <div style="border:1px dashed #cbd5e1;border-radius:6px;padding:8px 14px;font-size:12px;color:#64748b;">Choose PDF file</div>
+    <button type="button" class="btn-secondary">Upload</button>
+  </div>
+
+  <div class="card" style="flex-grow:1;overflow:hidden;">
+    <table>
+      <thead><tr><th>Subject</th><th>Categories</th><th style="width:120px;">Final %</th></tr></thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:600;">Mathematics</td>
+          <td><span class="chip">Quizzes: 30% wt, 92% obtained</span><span class="chip">Assignments: 20% wt, 88% obtained</span><span class="chip">Mid-term Exam: 50% wt, 84% obtained</span></td>
+          <td class="mono" style="font-weight:700;">87%</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;">English</td>
+          <td><span class="chip">Quizzes: 30% wt, 90% obtained</span><span class="chip">Mid-term Exam: 70% wt, 79% obtained</span></td>
+          <td class="mono" style="font-weight:700;">82%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" style="padding:16px 22px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-weight:600;font-size:13px;">Term 1 report card — 2026–27</span>
+    <span class="link">Download</span>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

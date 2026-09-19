@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard — Principal Overview</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  .stat-label{font-size:11.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;}
+  .stat-value{font-size:24px;font-weight:800;color:#0f172a;}
+  .delta-up{color:#15803d;font-size:11.5px;font-weight:700;}
+  .delta-down{color:#dc2626;font-size:11.5px;font-weight:700;}
+  .row-link{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;}
+  .row-link:last-child{border-bottom:none;}
+</style>
+</helmet>
+
+<div style="width:1180px;height:840px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:16px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <h1 style="margin:0 0 4px;font-size:21px;font-weight:800;color:#0f172a;">School Overview</h1>
+      <span class="muted" style="font-size:13px;">Riverdale Grammar · Main Campus · 2026–27 Session</span>
+    </div>
+  </div>
+
+  <!-- KPI row with sparklines -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+    <div class="card" style="padding:16px 18px;">
+      <div class="stat-label">Enrollment</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:6px;">
+        <div><span class="stat-value">1,284</span><div class="delta-up">+8.4% this term</div></div>
+        <svg width="72" height="28" viewBox="0 0 72 28"><polyline points="0,22 12,20 24,18 36,16 48,12 60,8 72,4" fill="none" stroke="#0369a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>
+      </div>
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="stat-label">Attendance today</div>
+      <div style="margin-top:6px;"><span class="stat-value" style="color:#15803d;">93.5%</span></div>
+      <div style="height:6px;border-radius:9999px;background:#e4f5ea;overflow:hidden;margin-top:8px;"><div style="width:93.5%;height:100%;background:#15803d;"></div></div>
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="stat-label">Fee collection (MTD)</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:6px;">
+        <div><span class="stat-value">PKR 2.4M</span><div class="delta-up">+15.6% vs last month</div></div>
+        <svg width="72" height="28" viewBox="0 0 72 28"><polyline points="0,18 12,20 24,14 36,16 48,10 60,12 72,4" fill="none" stroke="#0369a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>
+      </div>
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="stat-label">Outstanding fees</div>
+      <div style="margin-top:6px;"><span class="stat-value" style="color:#b45309;">PKR 680K</span><div class="delta-down">5.2% of billed</div></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:16px;flex-grow:1;min-height:0;">
+    <!-- today at a glance -->
+    <div class="card" style="flex:1;padding:18px 22px;display:flex;flex-direction:column;">
+      <h2 style="margin:0 0 6px;font-size:14px;font-weight:700;">Today at a glance</h2>
+      <div style="display:flex;flex-direction:column;">
+        <div class="row-link"><div><div style="font-weight:600;font-size:13.5px;">Staff meeting</div><div class="muted" style="font-size:11.5px;">Conference Room</div></div><span class="mono muted" style="font-size:12px;">09:00</span></div>
+        <div class="row-link"><div><div style="font-weight:600;font-size:13.5px;">Parent meeting — Grade 6B</div><div class="muted" style="font-size:11.5px;">Admin Office</div></div><span class="mono muted" style="font-size:12px;">12:30</span></div>
+        <div class="row-link"><div><div style="font-weight:600;font-size:13.5px;">Mid-term exam schedule published</div><div class="muted" style="font-size:11.5px;">Academics</div></div><span class="mono muted" style="font-size:12px;">Today</span></div>
+        <div class="row-link"><div><div style="font-weight:600;font-size:13.5px;">Fire drill</div><div class="muted" style="font-size:11.5px;">All campuses</div></div><span class="mono muted" style="font-size:12px;">14:00</span></div>
+      </div>
+    </div>
+
+    <!-- needs attention -->
+    <div class="card" style="width:340px;flex-shrink:0;padding:18px 22px;display:flex;flex-direction:column;">
+      <h2 style="margin:0 0 6px;font-size:14px;font-weight:700;">Needs attention</h2>
+      <div style="display:flex;flex-direction:column;">
+        <div class="row-link"><div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:#dc2626;"></span><span style="font-weight:600;font-size:13.5px;">At-risk students</span></div><span class="mono" style="font-weight:700;font-size:13.5px;">37</span></div>
+        <div class="row-link"><div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:#b45309;"></span><span style="font-weight:600;font-size:13.5px;">Absent today</span></div><span class="mono" style="font-weight:700;font-size:13.5px;">84</span></div>
+        <div class="row-link"><div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:#b45309;"></span><span style="font-weight:600;font-size:13.5px;">Teachers absent</span></div><span class="mono" style="font-weight:700;font-size:13.5px;">6</span></div>
+        <div class="row-link"><div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:#0369a1;"></span><span style="font-weight:600;font-size:13.5px;">Pending admissions</span></div><span class="mono" style="font-weight:700;font-size:13.5px;">12</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":840}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

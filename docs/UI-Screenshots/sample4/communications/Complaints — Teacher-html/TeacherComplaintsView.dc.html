@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Complaints — Teacher</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .muted{color:#64748b;}
+  .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.1);}
+  table{border-collapse:separate;border-spacing:0;width:100%;}
+  th{padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;text-align:left;border-bottom:1px solid #e2e8f0;background:#fafbfc;}
+  td{padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:13.5px;}
+  tr:last-child td{border-bottom:none;}
+  .btn-primary{border:none;background:#0369a1;color:#fff;font:inherit;font-weight:700;font-size:13px;padding:9px 16px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .field-label{font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:block;}
+  .field-input{border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;font:inherit;font-size:13px;color:#1e293b;background:#fff;}
+</style>
+</helmet>
+
+<div style="width:1180px;height:760px;background:#f8fafc;padding:36px 44px;display:flex;flex-direction:column;gap:16px;">
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+    <div>
+      <h1 style="margin:0 0 4px;font-size:21px;font-weight:800;color:#0f172a;">Complaints</h1>
+      <span class="muted" style="font-size:13px;">Your sections only</span>
+    </div>
+    <button type="button" class="btn-primary">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+      Add New
+    </button>
+  </div>
+
+  <!-- Section → Student cascade, vs the admin variant's single school-wide picker -->
+  <div style="display:flex;gap:16px;">
+    <div><span class="field-label" style="color:#0369a1;">Section</span><select class="field-input" style="width:220px;border-color:#0369a1;"><option>Grade 6 A — Main Campus</option></select></div>
+    <div><span class="field-label">Student</span><select class="field-input" style="width:220px;"><option>Zara Ali (GR-2021-0142)</option></select></div>
+  </div>
+
+  <div class="card" style="flex-grow:1;overflow:hidden;">
+    <table>
+      <thead><tr><th>Subject</th><th>Description</th><th style="width:150px;">Status</th><th style="width:120px;">Raised</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600;">Lost water bottle</td><td class="muted">Left in the cafeteria after lunch on Tuesday.</td><td><select class="field-input" style="width:130px;"><option>Open</option><option>In progress</option><option>Resolved</option></select></td><td class="mono muted">16 Sep</td></tr>
+        <tr><td style="font-weight:600;">Homework not submitted</td><td class="muted">Third missed submission this month.</td><td><select class="field-input" style="width:130px;"><option selected="">Open</option><option>In progress</option><option>Resolved</option></select></td><td class="mono muted">17 Sep</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

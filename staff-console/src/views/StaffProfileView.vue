@@ -549,6 +549,8 @@ async function onDeleteLogin() {
       :initials="initialsFromName(profile.name)"
       :photo-url="displayPhotoUrl"
       photo-label="Staff photo"
+      :school-name="profile.campus.school.name"
+      :campus-label="profile.campus.code ? `${profile.campus.code} - ${profile.campus.name}` : profile.campus.name"
       :is-saving-photo="isSavingPhoto"
       :subtitle-tag="employeeTypeLabel(profile.employeeType)"
       :status-label="staffStatusLabel(profile.employmentStatus)"
