@@ -34,6 +34,7 @@ describe('School / Campus profile pages', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     useAuthStore().accessToken = 'token-1';
+    useAuthStore().role = 'SUPER_ADMIN';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(api.listSchools).mockResolvedValue([SCHOOL]);
     vi.mocked(api.listCampuses).mockResolvedValue([CAMPUS]);

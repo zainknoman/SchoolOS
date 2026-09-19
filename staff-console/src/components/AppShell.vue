@@ -74,7 +74,9 @@ const isAdmin = computed(() => ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'].inclu
 const isPrincipal = computed(() => auth.role === 'SCHOOL_ADMIN' && auth.isPrincipal);
 const canManageLeave = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManagePromotions = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
+// Schools and Academic Sessions are SUPER_ADMIN-only; Campuses/Classes/Sections are also open to SCHOOL_ADMIN.
 const canManageOrgStructure = computed(() => auth.role === 'SUPER_ADMIN');
+const canManageOrgUnits = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManagePeople = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 // Fixes a real pre-existing bug (PROJECT-STATUS.md): the nav used to show Circulars/Timetable to
 // every admin-side role, but their route guards only allow SCHOOL_ADMIN/SUPER_ADMIN — an ACCOUNTS
@@ -241,15 +243,21 @@ const goToItems = computed<CmdkGoTo[]>(() => {
     items.push({ testid: 'cmdk-bulk-import', label: 'Bulk Import', icon: 'grid', to: '/admin/bulk-import' });
   }
   if (canManageOrgStructure.value) {
+    items.push({ testid: 'cmdk-schools', label: 'Schools', icon: 'chalkboard', to: '/admin/schools' });
+  }
+  if (canManageOrgUnits.value) {
+    items.push({ testid: 'cmdk-campuses', label: 'Campuses', icon: 'grid', to: '/admin/campuses' });
+  }
+  if (canManageOrgStructure.value) {
+    items.push({
+      testid: 'cmdk-academic-sessions',
+      label: 'Academic Sessions',
+      icon: 'calendar',
+      to: '/admin/academic-sessions',
+    });
+  }
+  if (canManageOrgUnits.value) {
     items.push(
-      { testid: 'cmdk-schools', label: 'Schools', icon: 'chalkboard', to: '/admin/schools' },
-      { testid: 'cmdk-campuses', label: 'Campuses', icon: 'grid', to: '/admin/campuses' },
-      {
-        testid: 'cmdk-academic-sessions',
-        label: 'Academic Sessions',
-        icon: 'calendar',
-        to: '/admin/academic-sessions',
-      },
       { testid: 'cmdk-classes', label: 'Classes', icon: 'grid', to: '/admin/classes' },
       { testid: 'cmdk-sections', label: 'Sections', icon: 'grid', to: '/admin/sections' },
     );
@@ -577,15 +585,15 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
             <RouterLink data-testid="nav-complaints" to="/admin/complaints"><Icon name="chat" />{{ t('nav.complaints') }}</RouterLink>
           </div>
 
-          <div v-if="canManageOrgStructure" class="nav-group">
+          <div v-if="canManageOrgUnits" class="nav-group">
             <div class="nav-group-label">Org Structure</div>
             <!-- Moved to last: one-time-per-session setup (Schools/Campuses/Academic Sessions/
                  Classes/Sections), the least frequently visited group day-to-day. -->
-            <RouterLink data-testid="nav-schools" to="/admin/schools"
+            <RouterLink v-if="canManageOrgStructure" data-testid="nav-schools" to="/admin/schools"
               ><Icon name="chalkboard" />{{ t('nav.schools') }}</RouterLink
             >
             <RouterLink data-testid="nav-campuses" to="/admin/campuses"><Icon name="grid" />{{ t('nav.campuses') }}</RouterLink>
-            <RouterLink data-testid="nav-academic-sessions" to="/admin/academic-sessions"
+            <RouterLink v-if="canManageOrgStructure" data-testid="nav-academic-sessions" to="/admin/academic-sessions"
               ><Icon name="calendar" />{{ t('nav.academicSessions') }}</RouterLink
             >
             <RouterLink data-testid="nav-classes" to="/admin/classes"><Icon name="grid" />{{ t('nav.classes') }}</RouterLink>

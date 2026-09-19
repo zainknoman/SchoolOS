@@ -40,6 +40,7 @@ const mountOpts = { global: { stubs: { RouterLink: RouterLinkStub } } };
 beforeEach(() => {
   setActivePinia(createPinia());
   useAuthStore().accessToken = 'token-1';
+  useAuthStore().role = 'SUPER_ADMIN';
   Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
   vi.mocked(api.filePreviewUrl).mockImplementation((_t: string, id: string) => `https://files.example/${id}`);
   vi.mocked(api.listSchools).mockResolvedValue([SCHOOL]);

@@ -125,13 +125,12 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.find('[data-testid="nav-attendance"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-diary"]').exists()).toBe(false);
 
-    // Org Structure links (Schools/Campuses/Academic Sessions/Classes/Sections) are
-    // SUPER_ADMIN-only — not visible to SCHOOL_ADMIN, even though it's otherwise a full admin role.
+    // Schools/Academic Sessions stay SUPER_ADMIN-only; Campuses/Classes/Sections are open to SCHOOL_ADMIN.
     expect(wrapper.find('[data-testid="nav-schools"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="nav-campuses"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-academic-sessions"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="nav-classes"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="nav-sections"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-campuses"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-classes"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-sections"]').exists()).toBe(true);
 
     expect(wrapper.find('[data-testid="nav-dashboard"]').attributes('href')).toBe('/admin');
     expect(wrapper.find('[data-testid="nav-fees"]').attributes('href')).toBe('/admin/fees');

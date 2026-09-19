@@ -109,19 +109,19 @@ const router = createRouter({
       path: '/admin/campuses',
       name: 'admin-campuses',
       component: () => import('../views/CampusManagementPageView.vue'),
-      meta: { requiresRole: ['SUPER_ADMIN'], title: 'Campuses', group: 'Org Structure' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Campuses', group: 'Org Structure' },
     },
     {
       path: '/admin/campuses/new',
       name: 'admin-campus-new',
       component: () => import('../views/CampusProfilePageView.vue'),
-      meta: { requiresRole: ['SUPER_ADMIN'], title: 'Add Campus', group: 'Org Structure' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], requiresSchoolWide: true, title: 'Add Campus', group: 'Org Structure' },
     },
     {
       path: '/admin/campuses/:id',
       name: 'admin-campus-profile',
       component: () => import('../views/CampusProfilePageView.vue'),
-      meta: { requiresRole: ['SUPER_ADMIN'], title: 'Campus Profile', group: 'Org Structure' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Campus Profile', group: 'Org Structure' },
     },
     {
       path: '/admin/academic-sessions',
@@ -133,13 +133,13 @@ const router = createRouter({
       path: '/admin/classes',
       name: 'admin-classes',
       component: () => import('../views/ClassManagementPageView.vue'),
-      meta: { requiresRole: ['SUPER_ADMIN'], title: 'Classes', group: 'Org Structure' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Classes', group: 'Org Structure' },
     },
     {
       path: '/admin/sections',
       name: 'admin-sections',
       component: () => import('../views/SectionManagementPageView.vue'),
-      meta: { requiresRole: ['SUPER_ADMIN'], title: 'Sections', group: 'Org Structure' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Sections', group: 'Org Structure' },
     },
     {
       path: '/admin/parents',
@@ -345,6 +345,11 @@ router.beforeEach((to) => {
   const requiresRole = to.meta.requiresRole as string[] | undefined;
   if (requiresRole && !requiresRole.includes(auth.role ?? '')) {
     // Wrong-role staff hitting the other console's route — send them home, not a blank/denied page.
+    return homeRouteForRole(auth.role, auth.isPrincipal);
+  }
+
+  // Creating a campus needs a school-wide caller: a campus-scoped SCHOOL_ADMIN is sent home.
+  if (to.meta.requiresSchoolWide && auth.role === 'SCHOOL_ADMIN' && auth.campusId) {
     return homeRouteForRole(auth.role, auth.isPrincipal);
   }
 

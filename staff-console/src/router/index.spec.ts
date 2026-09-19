@@ -43,3 +43,59 @@ describe('router forced password change', () => {
     expect(router.currentRoute.value.name).toBe('login');
   });
 });
+
+describe('router org-structure access', () => {
+  beforeEach(async () => {
+    setActivePinia(createPinia());
+    localStorage.clear();
+    await router.push('/login');
+  });
+
+  function signInAs(role: string, campusId: string | null = null) {
+    const auth = useAuthStore();
+    auth.accessToken = 't';
+    auth.role = role;
+    auth.isPrincipal = role === 'SCHOOL_ADMIN';
+    auth.campusId = campusId;
+  }
+
+  it.each(['/admin/campuses', '/admin/campuses/c1', '/admin/classes', '/admin/sections'])(
+    'lets a SCHOOL_ADMIN open %s',
+    async (path) => {
+      signInAs('SCHOOL_ADMIN');
+      await router.push(path);
+      expect(router.currentRoute.value.path).toBe(path);
+    },
+  );
+
+  it.each(['/admin/schools', '/admin/schools/new', '/admin/schools/s1', '/admin/academic-sessions'])(
+    'keeps %s SUPER_ADMIN-only',
+    async (path) => {
+      signInAs('SCHOOL_ADMIN');
+      await router.push(path);
+      expect(router.currentRoute.value.path).toBe('/principal');
+    },
+  );
+
+  it.each(['/admin/campuses', '/admin/classes', '/admin/sections'])('keeps %s away from ACCOUNTS', async (path) => {
+    signInAs('ACCOUNTS');
+    await router.push(path);
+    expect(router.currentRoute.value.path).toBe('/admin');
+  });
+
+  it('lets a school-wide SCHOOL_ADMIN and a SUPER_ADMIN open /admin/campuses/new', async () => {
+    signInAs('SCHOOL_ADMIN', null);
+    await router.push('/admin/campuses/new');
+    expect(router.currentRoute.value.path).toBe('/admin/campuses/new');
+    await router.push('/login');
+    signInAs('SUPER_ADMIN');
+    await router.push('/admin/campuses/new');
+    expect(router.currentRoute.value.path).toBe('/admin/campuses/new');
+  });
+
+  it('redirects a campus principal away from /admin/campuses/new', async () => {
+    signInAs('SCHOOL_ADMIN', 'campus-1');
+    await router.push('/admin/campuses/new');
+    expect(router.currentRoute.value.path).toBe('/principal');
+  });
+});

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type CampusSummary } from '../lib/api';
@@ -14,6 +14,12 @@ const auth = useAuthStore();
 const router = useRouter();
 const { confirm } = useConfirm();
 const toast = useToast();
+
+// Create needs SUPER_ADMIN or a school-wide SCHOOL_ADMIN; edit/delete are SUPER_ADMIN-only.
+const canCreateCampus = computed(
+  () => auth.role === 'SUPER_ADMIN' || (auth.role === 'SCHOOL_ADMIN' && !auth.campusId),
+);
+const canEditCampus = computed(() => auth.role === 'SUPER_ADMIN');
 
 const campuses = ref<CampusSummary[]>([]);
 const errorMessage = ref<string | null>(null);
@@ -50,7 +56,7 @@ async function onDelete(id: string) {
 <template>
   <ListPageCard icon="grid" title="Campuses">
     <template #actions>
-      <Button data-testid="open-add-form" @click="openNew">+ Add New</Button>
+      <Button v-if="canCreateCampus" data-testid="open-add-form" @click="openNew">+ Add New</Button>
     </template>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
@@ -90,8 +96,8 @@ async function onDelete(id: string) {
       </template>
       <template #actions="{ item }">
         <Button :data-testid="`view-profile-${item.id}`" @click="openProfile(item.id)">View</Button>
-        <Button :data-testid="`edit-${item.id}`" @click="openEdit(item.id)">Edit</Button>
-        <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
+        <Button v-if="canEditCampus" :data-testid="`edit-${item.id}`" @click="openEdit(item.id)">Edit</Button>
+        <Button v-if="canEditCampus" variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
           Delete
         </Button>
       </template>

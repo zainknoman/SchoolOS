@@ -26,7 +26,9 @@ const mountView = () => mount(CampusManagementView);
 describe('CampusManagementView', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    useAuthStore().accessToken = 'token-1';
+    const auth0 = useAuthStore();
+    auth0.accessToken = 'token-1';
+    auth0.role = 'SUPER_ADMIN';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     push.mockReset();
     vi.mocked(api.listCampuses).mockResolvedValue([CAMPUS]);
@@ -56,6 +58,31 @@ describe('CampusManagementView', () => {
     expect(push).toHaveBeenLastCalledWith({ path: '/admin/campuses/c1', query: { edit: '1' } });
 
     expect(wrapper.find('[data-testid="field-name"]').exists()).toBe(false);
+  });
+
+  it('hides Add New, Edit and Delete for a SCHOOL_ADMIN (campus writes are SUPER_ADMIN-only; create needs school-wide)', async () => {
+    const auth = useAuthStore();
+    auth.role = 'SCHOOL_ADMIN';
+    auth.campusId = 'campus-1';
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="open-add-form"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="edit-c1"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="delete-c1"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="view-profile-c1"]').exists()).toBe(true);
+  });
+
+  it('shows Add New (but not Edit/Delete) for a school-wide SCHOOL_ADMIN', async () => {
+    const auth = useAuthStore();
+    auth.role = 'SCHOOL_ADMIN';
+    auth.campusId = null;
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="open-add-form"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="edit-c1"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="delete-c1"]').exists()).toBe(false);
   });
 
   it('renders View, Edit and Delete as the same kind of button', async () => {

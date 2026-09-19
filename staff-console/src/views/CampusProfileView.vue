@@ -25,6 +25,9 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 
+// Campus edit/delete are SUPER_ADMIN-only on the backend; a SCHOOL_ADMIN can view (and, school-wide, create).
+const canEditCampus = computed(() => auth.role === 'SUPER_ADMIN');
+
 const campusId = computed(() => (route.params.id as string | undefined) ?? null);
 const isNew = computed(() => campusId.value === null);
 
@@ -182,16 +185,26 @@ async function onSave() {
   }
 }
 
+function schoolsFromCampuses(list: CampusSummary[]): SchoolSummary[] {
+  const seen = new Map<string, SchoolSummary>();
+  for (const c of list) {
+    if (!seen.has(c.schoolId)) seen.set(c.schoolId, { id: c.schoolId, name: c.schoolName } as SchoolSummary);
+  }
+  return [...seen.values()];
+}
+
 async function load() {
   if (!auth.accessToken) return;
   errorMessage.value = null;
   try {
     // No single-campus endpoint exists — the list already carries every field this page shows.
+    // GET /schools is SUPER_ADMIN-only, so a SCHOOL_ADMIN's own school is derived from the campuses
+    // list (already scoped to their school) — enough to pick the school when adding a campus.
     const [allCampuses, allSchools] = await Promise.all([
       api.listCampuses(auth.accessToken),
-      api.listSchools(auth.accessToken),
+      auth.role === 'SUPER_ADMIN' ? api.listSchools(auth.accessToken) : Promise.resolve(null),
     ]);
-    schools.value = allSchools;
+    schools.value = allSchools ?? schoolsFromCampuses(allCampuses);
     if (isNew.value) {
       fillForm(null);
       isEditing.value = true;
@@ -209,7 +222,7 @@ async function load() {
 }
 load();
 // The list's "Edit" link opens this screen straight into edit mode.
-if (route.query?.edit === '1') watch(campus, (v) => v && !isEditing.value && startEdit(), { once: true });
+if (route.query?.edit === '1' && canEditCampus.value) watch(campus, (v) => v && !isEditing.value && startEdit(), { once: true });
 
 const show = (value: string | number | null | undefined) => (value === null || value === undefined || value === '' ? '—' : value);
 const dateOnly = (value: string | null) => (value ? value.slice(0, 10) : null);
@@ -250,7 +263,7 @@ const headerStatus = computed(() => (isEditing.value ? form.status : campus.valu
               {{ isNew ? 'Add campus' : 'Save' }}
             </Button>
           </template>
-          <Button v-else data-testid="edit-profile" @click="startEdit">Edit</Button>
+          <Button v-else-if="canEditCampus" data-testid="edit-profile" @click="startEdit">Edit</Button>
         </template>
       </OrgProfileHeader>
       <p v-if="saveErrorMessage" class="error" role="alert">{{ saveErrorMessage }}</p>
@@ -320,7 +333,7 @@ const headerStatus = computed(() => (isEditing.value ? form.status : campus.valu
           <div class="field-grid">
             <div class="field">
               <span class="field-label">School</span>
-              <span class="field-value"><RouterLink data-testid="school-link" :to="`/admin/schools/${campus.schoolId}`">{{ campus.schoolName }}</RouterLink></span>
+              <span class="field-value"><RouterLink v-if="auth.role === 'SUPER_ADMIN'" data-testid="school-link" :to="`/admin/schools/${campus.schoolId}`">{{ campus.schoolName }}</RouterLink><template v-else>{{ campus.schoolName }}</template></span>
             </div>
             <div class="field"><span class="field-label">Campus code</span><span class="field-value mono">{{ show(campus.code) }}</span></div>
             <div class="field"><span class="field-label">Campus type</span><span class="field-value">{{ show(campus.campusType) }}</span></div>
