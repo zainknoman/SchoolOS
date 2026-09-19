@@ -1477,6 +1477,63 @@ own implementer + task review, plus this manual verification task.
     than one really exists — worth a decision on whether sessions should be global or per-school
     before touching this further.
 
+## Org Provisioning & Campus Scoping (2026-09-19) ✅ DONE
+
+Spec: `docs/superpowers/specs/2026-09-19-org-provisioning-and-campus-scoping-design.md`; plan:
+`docs/superpowers/plans/2026-09-19-org-provisioning-and-campus-scoping.md`. Branch
+`feat/org-provisioning-campus-scoping`.
+
+- [x] **Teacher/section campus-leak fix:** `GET /teachers?campusId=` filters the teacher list;
+      section create/update reject a class teacher from another campus; the console class-teacher
+      dropdown is scoped to the selected class's campus (stale-load guarded, load errors handled).
+- [x] **Schema:** `User.campusId` (FK `Restrict`, indexed) and `User.mustChangePassword`; migration
+      `20260919141332_add_user_campus_scope`.
+- [x] **`OrgScopeService` (`backend/src/common/org-scope.service.ts`) is the single school/campus
+      scoping mechanism.** Nearly all former `admin.schoolId` sites migrated. List scoping: sections,
+      class, campus, teachers, teacher, staff, student, parent, leave, admissions, hiring,
+      academic-session copy. Point-checks: staff, `teacher.create`, parent, promotions,
+      `StudentAccessService`. Also dashboard, holidays, attendance-risk. Campus principals
+      (`SCHOOL_ADMIN` with `campusId`) are confined to their campus; school-wide admins to their
+      school; `SUPER_ADMIN` unrestricted.
+- [x] **Provisioning:** optional `admin` on `POST /schools` and `principal` on `POST /campuses`,
+      created in the same transaction via `createPrincipalUser`. The generated temp password is
+      returned once and never stored, logged or audited; a duplicate identifier returns 400 with
+      full rollback.
+- [x] **Widened permissions:** `SCHOOL_ADMIN` may create/update/delete classes and sections within
+      scope; only a school-wide `SCHOOL_ADMIN` may create campuses (own school). Campus
+      update/delete, school writes and academic-session writes remain `SUPER_ADMIN`-only.
+- [x] **Auth:** the session carries `mustChangePassword`, `campusId` and `schoolId`;
+      `POST /auth/change-password` (authenticated, throttled) revokes refresh tokens and returns a
+      fresh session; the console forces the change (router guard + `ChangePasswordView`).
+- [x] **Console:** create-login section + one-time credentials panel on School/Campus create;
+      nav/routes open Campuses/Classes/Sections to `SCHOOL_ADMIN` (Schools/Academic Sessions stay
+      `SUPER_ADMIN`); campus principals cannot see/open Add Campus; a school admin can create the
+      school's first campus (`schoolId` pre-selected).
+- [x] **Verified (run 2026-09-19 on this branch):**
+  - backend `npx jest`: **77/77 suites, 567/567 tests** passed; `npx tsc --noEmit` clean.
+  - backend `npm run test:e2e` (local dev DB): **22/22 suites, 187/187 tests** passed.
+  - staff-console `npx vitest run`: **73/73 files, 512/512 tests** passed;
+    `vue-tsc --noEmit -p tsconfig.app.json` clean; `npm run lint` clean; `npm run build` clean.
+
+**Known limitations / follow-ups (deferred, not fixed):**
+
+- [ ] `mustChangePassword` is enforced only by the console router, not server-side: a provisioned
+      principal can call the API with the temp password until they change it.
+- [ ] Principal identifier is stored trimmed "as typed", not normalized; login tries exact then
+      normalized, so a mixed-case stored identifier can't be reached by typing lowercase and the
+      unique constraint is case-sensitive.
+- [ ] `user.create` audit `entityId` is the school/campus id, not the new user's id.
+- [ ] Change-password throttle is per-tracker only; a wrong current password does not count toward
+      lockout; the old access token stays valid until expiry.
+- [ ] Persisted school-admin sessions from before this change lack `schoolId` until re-login (Add
+      Campus is disabled with no explanation until then).
+- [ ] `homeRouteForRole` is duplicated in three places (router, `LoginView`, `ChangePasswordView`).
+- [ ] `attendance-risk` controller has no unit spec.
+- [ ] Only sections + class have campus-principal unit tests; the other migrated services are
+      covered by the e2e spec only.
+- [ ] Credentials are shown on screen once (no email delivery).
+- [ ] No automatic Staff/Teacher record is created for a provisioned principal.
+
 ## UI Sprint 1 — Staff console token & motion hardening ✅ DONE (2026-09-17)
 
 Per the sprint plan in `docs/Plan-Ideas/PHASE-1/` (see UI upgrade plan doc, un-deferred the parent
