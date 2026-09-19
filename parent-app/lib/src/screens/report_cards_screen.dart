@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../theme/tones.dart';
+import '../widgets/parent_ui.dart';
 
 /// Pushed from the "More" tab — lists report cards for the selected child; tapping one opens its
 /// PDF via url_launcher, the same pattern fees_tab/circulars_tab already use for receipts and
@@ -76,18 +78,26 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tones = Tones.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Report Cards')),
+      appBar: pageAppBar(context, 'Report Cards'),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
         children: [
-          if (widget.children.length > 1)
+          if (widget.children.length > 1) ...[
+            const FieldLabel('Child'),
             DropdownButtonFormField<String>(
               key: const Key('reportCardsChildDropdown'),
               initialValue: _selectedChildId,
-              decoration: const InputDecoration(labelText: 'Child'),
+              isDense: true,
+              decoration: fieldDecoration(),
               items: widget.children
-                  .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                  .map(
+                    (c) => DropdownMenuItem(
+                      value: c.id,
+                      child: Text('${c.name} — ${c.schoolClass} ${c.section}'),
+                    ),
+                  )
                   .toList(),
               onChanged: (value) {
                 if (value == null) return;
@@ -95,39 +105,79 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
                 _load();
               },
             ),
-          const SizedBox(height: 12),
-          if (_grades.isNotEmpty)
-            for (final grade in _grades)
-              Card(
-                key: Key('subjectGrade${grade.subjectId}'),
-                child: ListTile(
-                  leading: const Icon(Icons.grade_outlined),
-                  title: Text(grade.subjectName),
-                  trailing: Text('${_formatPercent(grade.finalPercent)}%'),
-                ),
-              ),
-          if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 16),
+          ],
+          if (_grades.isNotEmpty) ...[
+            const SectionLabel('Grades'),
+            GroupedCard(
+              children: [
+                for (final grade in _grades)
+                  GroupedRow(
+                    key: Key('subjectGrade${grade.subjectId}'),
+                    child: Row(
+                      children: [
+                        const IconBadge(Icons.grade_outlined),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            grade.subjectName,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                          ),
+                        ),
+                        Text(
+                          '${_formatPercent(grade.finalPercent)}%',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+          const SectionLabel('Report card PDFs'),
+          if (_error != null) Text(_error!, style: TextStyle(color: tones.absent)),
           if (_reportCards == null && _error == null)
             const Center(child: CircularProgressIndicator())
           else if (_reportCards != null && _reportCards!.isEmpty)
-            const Text('No report cards uploaded yet.')
+            Padding(
+              padding: const EdgeInsets.only(left: 2),
+              child: Text('No report cards uploaded yet.', style: TextStyle(color: tones.muted)),
+            )
           else if (_reportCards != null)
-            for (final card in _reportCards!)
-              Card(
-                key: Key('reportCard${card.id}'),
-                child: ListTile(
-                  leading: const Icon(Icons.description_outlined),
-                  title: Text('Report card — ${card.createdAt.substring(0, 10)}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.download_outlined),
-                    tooltip: 'Download report card',
-                    onPressed: () => launchUrl(
-                      widget.api.reportCardPdfUrl(card.id, widget.accessToken),
-                      mode: LaunchMode.externalApplication,
+            GroupedCard(
+              children: [
+                for (final card in _reportCards!)
+                  GroupedRow(
+                    key: Key('reportCard${card.id}'),
+                    child: Row(
+                      children: [
+                        const IconBadge(Icons.description_outlined, neutral: true),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Report card — ${card.createdAt.substring(0, 10)}',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                          ),
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: Icon(Icons.download_outlined, size: 18, color: tones.muted),
+                          tooltip: 'Download report card',
+                          onPressed: () => launchUrl(
+                            widget.api.reportCardPdfUrl(card.id, widget.accessToken),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ),
+              ],
+            ),
         ],
       ),
     );

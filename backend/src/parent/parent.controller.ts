@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { ParentService } from './parent.service';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
+import { UpdateParentChildLinkDto } from './dto/update-parent-child-link.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
 
@@ -23,6 +24,21 @@ export class ParentController {
   @Get()
   list(@Req() req: AuthenticatedRequest) {
     return this.parentService.list(req.user);
+  }
+
+  @Get(':id')
+  profile(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.parentService.getProfile(id, req.user);
+  }
+
+  @Patch(':id/children/:studentId')
+  updateChildLink(
+    @Param('id') id: string,
+    @Param('studentId') studentId: string,
+    @Body() dto: UpdateParentChildLinkDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.parentService.updateChildLink(id, studentId, dto, req.user);
   }
 
   @Patch(':id')

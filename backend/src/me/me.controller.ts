@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import { UpdateChildDto } from './dto/update-child.dto';
 import type { Request } from 'express';
 import { MeService } from './me.service';
 import { RegisterDeviceTokenDto } from './dto/register-device-token.dto';
@@ -20,6 +21,20 @@ export class MeController {
   @Get('children')
   children(@Req() req: AuthenticatedRequest) {
     return this.meService.getChildrenForUser(req.user.id);
+  }
+
+  @Get('children/:studentId')
+  childDetail(@Param('studentId') studentId: string, @Req() req: AuthenticatedRequest) {
+    return this.meService.getChildDetail(req.user.id, studentId);
+  }
+
+  @Patch('children/:studentId')
+  updateChild(
+    @Param('studentId') studentId: string,
+    @Body() dto: UpdateChildDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.meService.updateChild(req.user.id, studentId, dto);
   }
 
   @Post('device-tokens')

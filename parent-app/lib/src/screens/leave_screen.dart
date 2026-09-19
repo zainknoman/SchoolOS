@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../theme/tones.dart';
+import '../widgets/parent_ui.dart';
 
 /// Pushed from the "More" tab (not a bottom-nav tab itself) — a submit form (child picker only
 /// when there's more than one child) plus a status list of past requests for the selected child.
@@ -106,76 +108,161 @@ class _LeaveScreenState extends State<LeaveScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tones = Tones.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Leave Applications')),
+      appBar: pageAppBar(context, 'Leave Applications'),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
         children: [
-          if (widget.children.length > 1)
-            DropdownButtonFormField<String>(
-              key: const Key('leaveChildDropdown'),
-              initialValue: _selectedChildId,
-              decoration: const InputDecoration(labelText: 'Child'),
-              items: widget.children
-                  .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                  .toList(),
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => _selectedChildId = value);
-                _loadRequests();
-              },
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (widget.children.length > 1) ...[
+                    const FieldLabel('Child'),
+                    DropdownButtonFormField<String>(
+                      key: const Key('leaveChildDropdown'),
+                      initialValue: _selectedChildId,
+                      isDense: true,
+                      decoration: fieldDecoration(),
+                      items: widget.children
+                          .map(
+                            (c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text('${c.name} — ${c.schoolClass} ${c.section}'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() => _selectedChildId = value);
+                        _loadRequests();
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _DateButton(
+                          key: const Key('leaveStartDateButton'),
+                          label: 'Start date',
+                          value: _startDate == null ? 'Select' : _isoDate(_startDate!),
+                          onPressed: () => _pickDate(isStart: true),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _DateButton(
+                          key: const Key('leaveEndDateButton'),
+                          label: 'End date',
+                          value: _endDate == null ? 'Select' : _isoDate(_endDate!),
+                          onPressed: () => _pickDate(isStart: false),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const FieldLabel('Reason'),
+                  TextField(
+                    key: const Key('leaveReasonField'),
+                    controller: _reasonController,
+                    decoration: fieldDecoration(),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 14),
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(_error!, style: TextStyle(color: tones.absent)),
+                    ),
+                  if (_success != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(_success!, style: TextStyle(color: tones.present)),
+                    ),
+                  FilledButton(
+                    key: const Key('leaveSubmitButton'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: _isSubmitting ? null : _submit,
+                    child: Text(_isSubmitting ? 'Submitting…' : 'Submit request'),
+                  ),
+                ],
+              ),
             ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  key: const Key('leaveStartDateButton'),
-                  onPressed: () => _pickDate(isStart: true),
-                  child: Text(_startDate == null ? 'Start date' : _isoDate(_startDate!)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  key: const Key('leaveEndDateButton'),
-                  onPressed: () => _pickDate(isStart: false),
-                  child: Text(_endDate == null ? 'End date' : _isoDate(_endDate!)),
-                ),
-              ),
-            ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('leaveReasonField'),
-            controller: _reasonController,
-            decoration: const InputDecoration(labelText: 'Reason'),
-            maxLines: 3,
-          ),
-          const SizedBox(height: 12),
-          if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
-          if (_success != null) Text(_success!, style: const TextStyle(color: Colors.green)),
-          ElevatedButton(
-            key: const Key('leaveSubmitButton'),
-            onPressed: _isSubmitting ? null : _submit,
-            child: Text(_isSubmitting ? 'Submitting…' : 'Submit request'),
-          ),
-          const SizedBox(height: 24),
-          Text('Past requests', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
+          const SizedBox(height: 18),
+          const SectionLabel('Past requests'),
           if (_requests == null)
             const Center(child: CircularProgressIndicator())
           else if (_requests!.isEmpty)
-            const Text('No leave requests yet.')
+            Padding(
+              padding: const EdgeInsets.only(left: 2),
+              child: Text('No leave requests yet.', style: TextStyle(color: tones.muted)),
+            )
           else
-            for (final r in _requests!)
-              Card(
-                child: ListTile(
-                  title: Text('${r.startDate} to ${r.endDate}'),
-                  subtitle: Text(r.reason),
-                  trailing: Text(r.status),
-                ),
-              ),
+            GroupedCard(
+              children: [
+                for (final r in _requests!)
+                  GroupedRow(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${r.startDate} to ${r.endDate}',
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                              ),
+                              Text(r.reason, style: TextStyle(fontSize: 11.5, color: tones.muted)),
+                            ],
+                          ),
+                        ),
+                        StatusPill(label: r.status, color: StatusPill.colorFor(context, r.status)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DateButton extends StatelessWidget {
+  const _DateButton({super.key, required this.label, required this.value, required this.onPressed});
+
+  final String label;
+  final String value;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(fontSize: 10, color: Tones.of(context).muted, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 2),
+          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         ],
       ),
     );

@@ -5,6 +5,8 @@ import '../api/models.dart';
 import '../cache/cached_load.dart';
 import '../cache/data_cache.dart';
 import '../cache/last_updated_banner.dart';
+import '../theme/tones.dart';
+import '../widgets/parent_ui.dart';
 import 'voucher_detail_screen.dart';
 
 /// Fees bottom-nav tab (index 4): outstanding vouchers (tap for the itemized breakdown, PDF, and
@@ -90,49 +92,89 @@ class _FeesTabState extends State<FeesTab> {
     final vouchers = _vouchers;
     if (vouchers == null) return const Center(child: CircularProgressIndicator());
 
+    final tones = Tones.of(context);
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
       children: [
         LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
-        const SizedBox(height: 12),
-        Text('Fee Vouchers', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        if (vouchers.isEmpty) const Text('No fee vouchers yet.'),
-        for (final v in vouchers)
-          Card(
-            child: ListTile(
-              key: Key('voucher_${v.id}'),
-              title: Text(v.month),
-              subtitle: Text('Due ${v.dueDate}'),
-              trailing: Chip(label: Text(v.status)),
-              onTap: () => _openVoucher(v),
-            ),
+        const SizedBox(height: 14),
+        const SectionLabel('Fee Vouchers'),
+        if (vouchers.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 2),
+            child: Text('No fee vouchers yet.', style: TextStyle(color: tones.muted)),
+          )
+        else
+          GroupedCard(
+            children: [
+              for (final v in vouchers)
+                GroupedRow(
+                  key: Key('voucher_${v.id}'),
+                  onTap: () => _openVoucher(v),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(v.month, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                            Text('Due ${v.dueDate}', style: TextStyle(fontSize: 12, color: tones.muted)),
+                          ],
+                        ),
+                      ),
+                      StatusPill(label: v.status, color: StatusPill.colorFor(context, v.status)),
+                    ],
+                  ),
+                ),
+            ],
           ),
-        const SizedBox(height: 24),
-        Text('Payment History', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
+        const SizedBox(height: 18),
+        const SectionLabel('Payment History'),
         if (_payments == null)
           const Center(child: CircularProgressIndicator())
         else if (_payments!.isEmpty)
-          const Text('No payments yet.')
+          Padding(
+            padding: const EdgeInsets.only(left: 2),
+            child: Text('No payments yet.', style: TextStyle(color: tones.muted)),
+          )
         else
-          for (final p in _payments!)
-            Card(
-              child: ListTile(
-                title: Text('PKR ${(p.amount / 100).toStringAsFixed(2)}'),
-                subtitle: Text(p.status),
-                trailing: p.receiptId == null
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.receipt_long_outlined),
-                        tooltip: 'Download receipt',
-                        onPressed: () => launchUrl(
-                          widget.api.receiptPdfUrl(p.id, widget.accessToken),
-                          mode: LaunchMode.externalApplication,
+          GroupedCard(
+            children: [
+              for (final p in _payments!)
+                GroupedRow(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'PKR ${(p.amount / 100).toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13.5,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            Text(p.status, style: TextStyle(fontSize: 12, color: tones.muted)),
+                          ],
                         ),
                       ),
-              ),
-            ),
+                      if (p.receiptId != null)
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: Icon(Icons.receipt_long_outlined, size: 18, color: tones.muted),
+                          tooltip: 'Download receipt',
+                          onPressed: () => launchUrl(
+                            widget.api.receiptPdfUrl(p.id, widget.accessToken),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
       ],
     );
   }

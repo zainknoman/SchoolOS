@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type OrgStatus, type SchoolSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
@@ -261,6 +262,7 @@ async function onDelete(id: string) {
         <span>{{ item.phone ?? '—' }}</span>
       </template>
       <template #actions="{ item }">
+        <RouterLink :data-testid="`view-profile-${item.id}`" :to="`/admin/schools/${item.id}`">View</RouterLink>
         <Button :data-testid="`edit-${item.id}`" @click="openEditModal(item)">Edit</Button>
         <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
           Delete

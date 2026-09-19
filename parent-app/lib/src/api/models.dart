@@ -642,3 +642,129 @@ class GradeCategory {
     obtainedPercent: (json['obtainedPercent'] as num).toDouble(),
   );
 }
+
+class GuardianInfo {
+  const GuardianInfo({required this.name, required this.relationship, this.phone});
+
+  final String name;
+  final String relationship;
+  final String? phone;
+
+  factory GuardianInfo.fromJson(Map<String, dynamic> json) => GuardianInfo(
+    name: json['name'] as String,
+    relationship: json['relationship'] as String,
+    phone: json['phone'] as String?,
+  );
+}
+
+class EmergencyContactInfo {
+  const EmergencyContactInfo({
+    required this.name,
+    required this.relationship,
+    required this.phone,
+    this.alternatePhone,
+  });
+
+  final String name;
+  final String relationship;
+  final String phone;
+  final String? alternatePhone;
+
+  factory EmergencyContactInfo.fromJson(Map<String, dynamic> json) => EmergencyContactInfo(
+    name: json['name'] as String,
+    relationship: json['relationship'] as String,
+    phone: json['phone'] as String,
+    alternatePhone: json['alternatePhone'] as String?,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'relationship': relationship,
+    'phone': phone,
+    if (alternatePhone != null && alternatePhone!.isNotEmpty) 'alternatePhone': alternatePhone,
+  };
+}
+
+/// Full read model behind the parent-app "Student information" screen (`GET /me/children/:id`).
+class StudentDetail {
+  const StudentDetail({
+    required this.id,
+    required this.name,
+    required this.grNumber,
+    this.gender,
+    this.dateOfBirth,
+    this.admissionDate,
+    required this.status,
+    this.campus,
+    this.schoolClass,
+    this.section,
+    this.rollNumber,
+    this.studentMobile,
+    this.studentEmail,
+    this.addressLine1,
+    this.addressArea,
+    this.addressCity,
+    this.bloodGroup,
+    this.allergies,
+    this.medicalConditions,
+    this.medicationNotes,
+    this.emergencyContacts = const [],
+    this.guardians = const [],
+  });
+
+  final String id;
+  final String name;
+  final String grNumber;
+  final String? gender;
+  final String? dateOfBirth;
+  final String? admissionDate;
+  final String status;
+  final String? campus;
+  final String? schoolClass;
+  final String? section;
+  final String? rollNumber;
+  final String? studentMobile;
+  final String? studentEmail;
+  final String? addressLine1;
+  final String? addressArea;
+  final String? addressCity;
+  final String? bloodGroup;
+  final String? allergies;
+  final String? medicalConditions;
+  final String? medicationNotes;
+  final List<EmergencyContactInfo> emergencyContacts;
+  final List<GuardianInfo> guardians;
+
+  factory StudentDetail.fromJson(Map<String, dynamic> json) {
+    final address = json['currentAddress'] as Map<String, dynamic>?;
+    final medical = (json['medical'] as Map<String, dynamic>?) ?? const {};
+    return StudentDetail(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      grNumber: json['grNumber'] as String,
+      gender: json['gender'] as String?,
+      dateOfBirth: json['dateOfBirth'] as String?,
+      admissionDate: json['admissionDate'] as String?,
+      status: json['status'] as String,
+      campus: json['campus'] as String?,
+      schoolClass: json['class'] as String?,
+      section: json['section'] as String?,
+      rollNumber: json['rollNumber'] as String?,
+      studentMobile: json['studentMobile'] as String?,
+      studentEmail: json['studentEmail'] as String?,
+      addressLine1: address?['line1'] as String?,
+      addressArea: address?['area'] as String?,
+      addressCity: address?['city'] as String?,
+      bloodGroup: medical['bloodGroup'] as String?,
+      allergies: medical['allergies'] as String?,
+      medicalConditions: medical['medicalConditions'] as String?,
+      medicationNotes: medical['medicationNotes'] as String?,
+      emergencyContacts: ((json['emergencyContacts'] as List<dynamic>?) ?? const [])
+          .map((e) => EmergencyContactInfo.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      guardians: ((json['guardians'] as List<dynamic>?) ?? const [])
+          .map((e) => GuardianInfo.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}

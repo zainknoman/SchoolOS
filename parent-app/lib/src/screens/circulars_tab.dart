@@ -7,6 +7,8 @@ import '../cache/cached_load.dart';
 import '../cache/data_cache.dart';
 import '../cache/last_updated_banner.dart';
 import '../theme/text_direction.dart';
+import '../theme/tones.dart';
+import '../widgets/parent_ui.dart';
 
 /// Notifications tab content — school/section circulars for the signed-in parent (not per-child;
 /// a parent sees every circular they're a recipient of, regardless of which child tab is active).
@@ -84,52 +86,60 @@ class _CircularsTabState extends State<CircularsTab> {
       return const Center(child: Text('No circulars yet.'));
     }
 
-    return Column(
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
-          ),
+          padding: const EdgeInsets.only(bottom: 10),
+          child: LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
         ),
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: circulars.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, i) {
-              final c = circulars[i];
-              final isUnread = c.readAt == null;
-              return ListTile(
+        GroupedCard(
+          children: [
+            for (final c in circulars)
+              GroupedRow(
+                key: Key('circular-${c.id}'),
                 onTap: () => _onOpen(c),
-                leading: Icon(
-                  isUnread ? Icons.circle : Icons.circle_outlined,
-                  size: 12,
-                ),
-                title: DirectionalText(
-                  c.title,
-                  style: TextStyle(
-                    fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-                subtitle: DirectionalText(c.description),
-                trailing: c.attachments.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.attachment),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 5),
+                      child: UnreadDot(unread: c.readAt == null),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DirectionalText(
+                            c.title,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: c.readAt == null ? FontWeight.w800 : FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          DirectionalText(
+                            c.description,
+                            style: TextStyle(fontSize: 12, color: Tones.of(context).muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (c.attachments.isNotEmpty)
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(Icons.attach_file, size: 17, color: Tones.of(context).muted),
                         tooltip: 'Download attachment',
                         onPressed: () => launchUrl(
-                          widget.api.fileDownloadUrl(
-                            c.attachments.first.id,
-                            widget.accessToken,
-                          ),
+                          widget.api.fileDownloadUrl(c.attachments.first.id, widget.accessToken),
                           mode: LaunchMode.externalApplication,
                         ),
                       ),
-              );
-            },
-          ),
+                  ],
+                ),
+              ),
+          ],
         ),
       ],
     );

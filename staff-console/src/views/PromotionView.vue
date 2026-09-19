@@ -99,8 +99,37 @@ const targetClasses = computed(() =>
 
 const targetSectionOptions = computed(() => {
   const keys = new Set(targetClasses.value.map((c) => `${c.name}||${c.campusName}`));
-  return sections.value.filter((s) => keys.has(`${s.className}||${s.campusName}`));
+  return sections.value.filter((s) =>
+    s.academicSessionId
+      ? s.academicSessionId === targetAcademicSessionId.value
+      : keys.has(`${s.className}||${s.campusName}`),
+  );
 });
+
+// Shown when a target session is picked but has nothing to promote into yet.
+const targetHasNoSections = computed(() => !!targetAcademicSessionId.value && targetSectionOptions.value.length === 0);
+const isCopyingStructure = ref(false);
+
+async function onCopyStructure() {
+  if (!auth.accessToken || !activeSession.value || !targetAcademicSessionId.value) return;
+  errorMessage.value = null;
+  isCopyingStructure.value = true;
+  try {
+    const result = await api.copySessionStructure(
+      auth.accessToken,
+      targetAcademicSessionId.value,
+      activeSession.value.id,
+    );
+    await loadReferenceData();
+    toast.success(
+      `Created ${result.classesCreated} class(es) and ${result.sectionsCreated} section(s) in ${targetSessionLabel.value}.`,
+    );
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not copy classes and sections.';
+  } finally {
+    isCopyingStructure.value = false;
+  }
+}
 
 const targetSessionLabel = computed(
   () => academicSessions.value.find((s) => s.id === targetAcademicSessionId.value)?.label ?? '',
@@ -246,6 +275,21 @@ async function onExecute() {
       </Button>
     </div>
 
+    <div v-if="targetHasNoSections" class="structure-hint" data-testid="no-target-sections">
+      <p>
+        {{ targetSessionLabel }} has no classes or sections yet, so there is nowhere to promote students into.
+        Create them under Classes/Sections, or copy the structure from {{ activeSession?.label }}.
+      </p>
+      <Button
+        data-testid="copy-structure"
+        variant="secondary"
+        :disabled="isCopyingStructure"
+        @click="onCopyStructure"
+      >
+        Copy classes &amp; sections from {{ activeSession?.label }}
+      </Button>
+    </div>
+
     <div v-if="previewRows.length" class="bulk-assign">
       <FormField
         v-model="bulkTargetSectionId"
@@ -327,6 +371,20 @@ async function onExecute() {
   align-items: flex-end;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+.structure-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  background: var(--color-status-info-tint);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+}
+.structure-hint p {
+  margin: 0;
 }
 .execute-row {
   display: flex;

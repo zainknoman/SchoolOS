@@ -1,8 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { EmployeeType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { createStaffWithOptionalTeacher } from '../hiring/create-staff-with-optional-teacher';
 import { assertCreatable } from '../common/prisma-create-guard';
+import { assertDeletable } from '../common/prisma-delete-guard';
+import { UpdateStaffDto } from './dto/update-staff.dto';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import type { RequestUser } from '../common/student-access.service';
 
@@ -48,6 +50,65 @@ export class StaffService {
       orderBy: { name: 'asc' },
     });
     return records.map((r) => this.toSummary(r));
+  }
+
+  private async getScopedStaff(id: string, actingUser: RequestUser) {
+    const staff = await this.prisma.staff.findUnique({
+      where: { id },
+      include: { campus: { select: { name: true, schoolId: true } } },
+    });
+    if (!staff) {
+      throw new NotFoundException('Staff member not found');
+    }
+    if (actingUser.role !== 'SUPER_ADMIN') {
+      const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+      if (!admin?.schoolId || staff.campus.schoolId !== admin.schoolId) {
+        throw new ForbiddenException('Cannot access staff outside your own school');
+      }
+    }
+    return staff;
+  }
+
+  async update(id: string, dto: UpdateStaffDto, actingUser: RequestUser): Promise<StaffSummary> {
+    await this.getScopedStaff(id, actingUser);
+    const data: Prisma.StaffUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name.trim();
+    if (dto.mobile !== undefined) data.mobile = dto.mobile.trim() || null;
+    if (dto.email !== undefined) data.email = dto.email.trim() || null;
+    if (dto.employmentStatus !== undefined) data.employmentStatus = dto.employmentStatus;
+    const record = await this.prisma.staff.update({ where: { id }, data, include: WITH_CAMPUS });
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUser.id,
+        action: 'staff.update',
+        entity: 'Staff',
+        entityId: id,
+        metadata: JSON.stringify(dto),
+      },
+    });
+    return this.toSummary(record);
+  }
+
+  /**
+   * Teachers own a Teacher row and a login User that this endpoint does not remove, so deleting only
+   * the Staff row would orphan a working login — those are refused and should be marked Terminated
+   * or Resigned instead. Everyone else (support/admin staff) is deleted outright.
+   */
+  async remove(id: string, actingUser: RequestUser): Promise<void> {
+    const staff = await this.getScopedStaff(id, actingUser);
+    if (staff.teacherId || staff.userId) {
+      throw new BadRequestException(
+        'This staff member has a login. Set their employment status to Terminated or Resigned instead of deleting.',
+      );
+    }
+    try {
+      await this.prisma.staff.delete({ where: { id } });
+    } catch (error) {
+      assertDeletable(error, 'staff member');
+    }
+    await this.prisma.auditLog.create({
+      data: { userId: actingUser.id, action: 'staff.delete', entity: 'Staff', entityId: id },
+    });
   }
 
   async create(dto: CreateStaffDto, actingUserId: string): Promise<{ id: string; name: string }> {

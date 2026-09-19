@@ -83,6 +83,29 @@ class ApiClient {
     return list.map((e) => ChildSummary.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  Future<StudentDetail> studentDetail(String accessToken, String studentId) async {
+    final json = await _get('/api/v1/me/children/$studentId', accessToken) as Map<String, dynamic>;
+    return StudentDetail.fromJson(json);
+  }
+
+  /// Parent-editable subset only (contact, address, medical notes, emergency contacts) — the
+  /// backend rejects/ignores anything else.
+  Future<StudentDetail> updateStudent(
+    String accessToken,
+    String studentId,
+    Map<String, dynamic> changes,
+  ) async {
+    final res = await _client.patch(
+      Uri.parse('$baseUrl/api/v1/me/children/$studentId'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode(changes),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+    return StudentDetail.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
   Future<List<TimetableEntry>> timetable(String accessToken, String studentId) async {
     final list = await _get('/api/v1/students/$studentId/timetable', accessToken) as List<dynamic>;
     return list.map((e) => TimetableEntry.fromJson(e as Map<String, dynamic>)).toList();

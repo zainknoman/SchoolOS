@@ -4,9 +4,12 @@ import '../api/api_client.dart';
 import '../api/models.dart';
 import '../theme/theme_controller.dart';
 import '../theme/locale_controller.dart';
+import '../theme/tones.dart';
+import '../widgets/parent_ui.dart';
 import 'leave_screen.dart';
 import 'complaints_screen.dart';
 import 'report_cards_screen.dart';
+import 'student_info_screen.dart';
 import '../../l10n/app_localizations.dart';
 
 const _notificationChannels = ['PUSH', 'WHATSAPP', 'SMS'];
@@ -67,6 +70,34 @@ class _MoreTabState extends State<MoreTab> {
     );
   }
 
+  Widget _menuRow(Key key, IconData icon, String title, Widget Function() screen) {
+    return GroupedRow(
+      key: key,
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen())),
+      child: Row(
+        children: [
+          IconBadge(icon),
+          const SizedBox(width: 12),
+          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5))),
+          Icon(Icons.chevron_right, size: 18, color: Tones.of(context).muted),
+        ],
+      ),
+    );
+  }
+
+  Widget _settingRow(IconData icon, String title, Widget trailing) {
+    return GroupedRow(
+      child: Row(
+        children: [
+          IconBadge(icon, neutral: true),
+          const SizedBox(width: 12),
+          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5))),
+          trailing,
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeMode = context.watch<ThemeController>().mode;
@@ -74,134 +105,131 @@ class _MoreTabState extends State<MoreTab> {
     final l10n = AppLocalizations.of(context)!;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       children: [
-        Card(
-          child: ListTile(
-            key: const Key('moreLeaveApplications'),
-            leading: const Icon(Icons.event_busy_outlined),
-            title: Text(l10n.moreLeaveApplications),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => LeaveScreen(
-                  accessToken: widget.accessToken,
-                  api: widget.api,
-                  children: widget.children,
-                  initialChildId: widget.activeChildId,
-                ),
+        GroupedCard(
+          children: [
+            _menuRow(
+              const Key('moreStudentInfo'),
+              Icons.badge_outlined,
+              'Student information',
+              () => StudentInfoScreen(
+                accessToken: widget.accessToken,
+                api: widget.api,
+                children: widget.children,
+                initialChildId: widget.activeChildId,
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: ListTile(
-            key: const Key('moreComplaints'),
-            leading: const Icon(Icons.report_gmailerrorred_outlined),
-            title: Text(l10n.moreComplaints),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ComplaintsScreen(
-                  accessToken: widget.accessToken,
-                  api: widget.api,
-                  children: widget.children,
-                  initialChildId: widget.activeChildId,
-                ),
+            _menuRow(
+              const Key('moreLeaveApplications'),
+              Icons.event_busy_outlined,
+              l10n.moreLeaveApplications,
+              () => LeaveScreen(
+                accessToken: widget.accessToken,
+                api: widget.api,
+                children: widget.children,
+                initialChildId: widget.activeChildId,
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: ListTile(
-            key: const Key('moreReportCards'),
-            leading: const Icon(Icons.description_outlined),
-            title: Text(l10n.moreReportCards),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ReportCardsScreen(
-                  accessToken: widget.accessToken,
-                  api: widget.api,
-                  children: widget.children,
-                  initialChildId: widget.activeChildId,
-                ),
+            _menuRow(
+              const Key('moreComplaints'),
+              Icons.report_gmailerrorred_outlined,
+              l10n.moreComplaints,
+              () => ComplaintsScreen(
+                accessToken: widget.accessToken,
+                api: widget.api,
+                children: widget.children,
+                initialChildId: widget.activeChildId,
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.dark_mode_outlined),
-            title: Text(l10n.moreAppearance),
-            trailing: DropdownButton<ThemeMode>(
-              key: const Key('themeModeDropdown'),
-              value: themeMode,
-              items: const [
-                DropdownMenuItem(value: ThemeMode.system, child: Text('System')),
-                DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
-                DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark')),
-              ],
-              onChanged: (mode) {
-                if (mode != null) context.read<ThemeController>().setMode(mode);
-              },
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.language_outlined),
-            title: Text(l10n.moreLanguage),
-            trailing: DropdownButton<String>(
-              key: const Key('languageDropdown'),
-              value: locale?.languageCode ?? 'system',
-              items: const [
-                DropdownMenuItem(value: 'system', child: Text('System')),
-                DropdownMenuItem(value: 'en', child: Text('English')),
-                DropdownMenuItem(value: 'ur', child: Text('اردو')),
-              ],
-              onChanged: (code) {
-                if (code == null) return;
-                context.read<LocaleController>().setLocale(code == 'system' ? null : Locale(code));
-              },
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.notifications_outlined),
-                title: Text(l10n.moreNotificationChannel),
-                trailing: DropdownButton<String>(
-                  key: const Key('notificationChannelDropdown'),
-                  value: _channel,
-                  items: _notificationChannels
-                      .map((c) => DropdownMenuItem(value: c, child: Text(_channelLabel(c))))
-                      .toList(),
-                  onChanged: (channel) {
-                    if (channel != null) _updateChannel(channel);
-                  },
-                ),
+            _menuRow(
+              const Key('moreReportCards'),
+              Icons.description_outlined,
+              l10n.moreReportCards,
+              () => ReportCardsScreen(
+                accessToken: widget.accessToken,
+                api: widget.api,
+                children: widget.children,
+                initialChildId: widget.activeChildId,
               ),
-              CheckboxListTile(
-                key: const Key('digestEnabledCheckbox'),
-                title: const Text('Bundle notifications into a digest'),
-                subtitle: const Text(
-                  'Receive one combined message instead of separate ones for each update.',
-                ),
-                value: _digestEnabled,
-                onChanged: (value) {
-                  if (value != null) _updateDigestEnabled(value);
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        GroupedCard(
+          children: [
+            _settingRow(
+              Icons.dark_mode_outlined,
+              l10n.moreAppearance,
+              DropdownButton<ThemeMode>(
+                key: const Key('themeModeDropdown'),
+                value: themeMode,
+                underline: const SizedBox.shrink(),
+                items: const [
+                  DropdownMenuItem(value: ThemeMode.system, child: Text('System')),
+                  DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
+                  DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark')),
+                ],
+                onChanged: (mode) {
+                  if (mode != null) context.read<ThemeController>().setMode(mode);
                 },
               ),
-            ],
-          ),
+            ),
+            _settingRow(
+              Icons.language_outlined,
+              l10n.moreLanguage,
+              DropdownButton<String>(
+                key: const Key('languageDropdown'),
+                value: locale?.languageCode ?? 'system',
+                underline: const SizedBox.shrink(),
+                items: const [
+                  DropdownMenuItem(value: 'system', child: Text('System')),
+                  DropdownMenuItem(value: 'en', child: Text('English')),
+                  DropdownMenuItem(value: 'ur', child: Text('اردو')),
+                ],
+                onChanged: (code) {
+                  if (code == null) return;
+                  context.read<LocaleController>().setLocale(code == 'system' ? null : Locale(code));
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        GroupedCard(
+          children: [
+            _settingRow(
+              Icons.notifications_outlined,
+              l10n.moreNotificationChannel,
+              DropdownButton<String>(
+                key: const Key('notificationChannelDropdown'),
+                value: _channel,
+                underline: const SizedBox.shrink(),
+                items: _notificationChannels
+                    .map((c) => DropdownMenuItem(value: c, child: Text(_channelLabel(c))))
+                    .toList(),
+                onChanged: (channel) {
+                  if (channel != null) _updateChannel(channel);
+                },
+              ),
+            ),
+            CheckboxListTile(
+              key: const Key('digestEnabledCheckbox'),
+              controlAffinity: ListTileControlAffinity.leading,
+              title: const Text(
+                'Bundle notifications into a digest',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              subtitle: Text(
+                'Receive one combined message instead of separate ones for each update.',
+                style: TextStyle(fontSize: 11.5, color: Tones.of(context).muted),
+              ),
+              value: _digestEnabled,
+              onChanged: (value) {
+                if (value != null) _updateDigestEnabled(value);
+              },
+            ),
+          ],
         ),
       ],
     );

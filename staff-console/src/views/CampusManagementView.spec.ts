@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount, flushPromises, RouterLinkStub } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import CampusManagementView from './CampusManagementView.vue';
 import { useAuthStore } from '../stores/auth';
@@ -62,7 +62,7 @@ describe('CampusManagementView', () => {
   });
 
   it('lists campuses with code/status/type columns plus school, address/contact details and live stats', async () => {
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     expect(wrapper.text()).toContain('Gulistan-e-Jauhar');
@@ -76,10 +76,19 @@ describe('CampusManagementView', () => {
     expect(wrapper.text()).toContain('8');
   });
 
+  it('links each row to its profile page via a View button', async () => {
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
+    await flushPromises();
+
+    const link = wrapper.findComponent<typeof RouterLinkStub>('[data-testid="view-profile-c1"]');
+    expect(link.exists()).toBe(true);
+    expect(link.props('to')).toBe('/admin/campuses/c1');
+  });
+
   it('creates a new campus through the Add modal with all the new profile fields', async () => {
     vi.mocked(api.createCampus).mockResolvedValue(undefined);
 
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     expect(wrapper.find('[data-testid="field-name"]').exists()).toBe(false);
@@ -135,7 +144,7 @@ describe('CampusManagementView', () => {
     vi.mocked(api.createCampus).mockResolvedValue(undefined);
     vi.mocked(api.uploadFile).mockResolvedValue({ id: 'uploaded-file-9' });
 
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="open-add-form"]').trigger('click');
@@ -162,7 +171,7 @@ describe('CampusManagementView', () => {
   it('opens the Edit modal pre-filled with the row data (school is not editable) and submits every field to api.updateCampus, excluding schoolId', async () => {
     vi.mocked(api.updateCampus).mockResolvedValue(undefined);
 
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="edit-c1"]').trigger('click');
@@ -214,7 +223,7 @@ describe('CampusManagementView', () => {
   it('round-trips the comma-separated departments field: typing "Science, Admin,  IT" submits departments as a trimmed array', async () => {
     vi.mocked(api.createCampus).mockResolvedValue(undefined);
 
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="open-add-form"]').trigger('click');
@@ -233,7 +242,7 @@ describe('CampusManagementView', () => {
   it('does not send an empty departments array when the field is left blank or has trailing commas/spaces', async () => {
     vi.mocked(api.createCampus).mockResolvedValue(undefined);
 
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="open-add-form"]').trigger('click');
@@ -278,7 +287,7 @@ describe('CampusManagementView', () => {
       },
     ]);
 
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="edit-c2"]').trigger('click');
@@ -295,7 +304,7 @@ describe('CampusManagementView', () => {
     const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-c1"]').trigger('click');
@@ -315,7 +324,7 @@ describe('CampusManagementView', () => {
   it('shows the backend error when delete is blocked by dependent records', async () => {
     vi.mocked(api.deleteCampus).mockRejectedValue(new Error('Cannot delete this Campus: other records still reference it.'));
 
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-c1"]').trigger('click');
@@ -327,7 +336,7 @@ describe('CampusManagementView', () => {
   it('shows the backend error banner when creating a campus fails', async () => {
     vi.mocked(api.createCampus).mockRejectedValue(new Error('A campus with this code already exists.'));
 
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="open-add-form"]').trigger('click');
@@ -342,7 +351,7 @@ describe('CampusManagementView', () => {
   it('shows the backend error banner when updating a campus fails', async () => {
     vi.mocked(api.updateCampus).mockRejectedValue(new Error('Could not update this campus.'));
 
-    const wrapper = mount(CampusManagementView);
+    const wrapper = mount(CampusManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="edit-c1"]').trigger('click');

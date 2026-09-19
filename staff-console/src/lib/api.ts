@@ -45,6 +45,7 @@ export interface SectionSummary {
   name: string;
   className: string;
   campusName: string;
+  academicSessionId?: string;
   classTeacherId?: string | null;
   classTeacherName?: string | null;
 }
@@ -484,6 +485,60 @@ export interface ParentSummary {
   name: string;
   phone: string | null;
   childrenCount: number;
+}
+
+export interface ParentAddressDetail {
+  line1: string;
+  line2: string | null;
+  area: string | null;
+  city: string | null;
+  district: string | null;
+  province: string | null;
+  postalCode: string | null;
+  country: string;
+}
+
+export interface ParentChildLink {
+  studentId: string;
+  studentName: string;
+  grNumber: string;
+  className: string | null;
+  sectionName: string | null;
+  relationship: string;
+  isPrimary: boolean;
+  isEmergencyContact: boolean;
+}
+
+export interface ParentProfileDetail extends ParentSummary {
+  cnic: string | null;
+  gender: string | null;
+  dateOfBirth: string | null;
+  alternatePhone: string | null;
+  whatsappNumber: string | null;
+  email: string | null;
+  occupation: string | null;
+  employerName: string | null;
+  designation: string | null;
+  currentAddress: ParentAddressDetail | null;
+  permanentAddress: ParentAddressDetail | null;
+  children: ParentChildLink[];
+}
+
+export interface UpdateParentInput {
+  name?: string;
+  phone?: string;
+  password?: string;
+  cnic?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  alternatePhone?: string;
+  whatsappNumber?: string;
+  email?: string;
+  occupation?: string;
+  employerName?: string;
+  designation?: string;
+  currentAddress?: { line1: string; area?: string; city?: string };
+  permanentAddress?: { line1: string; area?: string; city?: string };
 }
 
 export interface NewParentInput {
@@ -1557,6 +1612,19 @@ export const api = {
     return asJson(res);
   },
 
+  async copySessionStructure(
+    accessToken: string,
+    targetSessionId: string,
+    sourceSessionId: string,
+  ): Promise<{ classesCreated: number; sectionsCreated: number }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/academic-sessions/${targetSessionId}/copy-structure`, {
+      method: 'POST',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceSessionId }),
+    });
+    return asJson(res);
+  },
+
   async getPromotionHistory(accessToken: string, studentId: string): Promise<PromotionHistoryRow[]> {
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${studentId}/promotion-history`, {
       headers: authHeaders(accessToken),
@@ -1696,7 +1764,7 @@ export const api = {
   async updateParent(
     accessToken: string,
     id: string,
-    payload: { name?: string; phone?: string; password?: string },
+    payload: UpdateParentInput,
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents/${id}`, {
       method: 'PATCH',
@@ -1706,6 +1774,25 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+  },
+
+  async getParentProfile(accessToken: string, id: string): Promise<ParentProfileDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents/${id}`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async updateParentChildLink(
+    accessToken: string,
+    parentId: string,
+    studentId: string,
+    payload: { isPrimary?: boolean; isEmergencyContact?: boolean; relationship?: string },
+  ): Promise<ParentProfileDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents/${parentId}/children/${studentId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
   },
 
   async deleteParent(accessToken: string, id: string): Promise<void> {
@@ -1904,6 +1991,29 @@ export const api = {
       body: JSON.stringify(payload),
     });
     return asJson(res);
+  },
+
+  async updateStaff(
+    accessToken: string,
+    id: string,
+    payload: { name?: string; mobile?: string; email?: string; employmentStatus?: StaffAdminSummary['employmentStatus'] },
+  ): Promise<StaffAdminSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async deleteStaff(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
   },
 
   async getStaffProfile(accessToken: string, staffId: string): Promise<StaffProfileDetail> {

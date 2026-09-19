@@ -114,6 +114,6 @@ void main() {
 
     // child-2 (Ahmed) is the active child, not children.first (child-1 / Eshaal).
     expect(requestedStudentId, 'child-2');
-    expect(find.text('Ahmed Sample'), findsOneWidget);
+    expect(find.textContaining('Ahmed Sample'), findsOneWidget);
   });
 }

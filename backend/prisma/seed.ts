@@ -228,8 +228,8 @@ async function main() {
         const userId = randomUUID(), profileId = randomUUID();
         const prefix = relationship;
         parentUsers.push({ id: userId, identifier: `${prefix}.${gr.toLowerCase()}@parent.schoolportal.local`, passwordHash, role: 'PARENT', schoolId: school.id });
-        parentProfiles.push({ id: profileId, userId, name: `${relationship === 'father' ? 'Father' : 'Mother'} of ${first} ${last}`, phone: `03${relationship === 'father' ? '00' : '01'}-${String((relationship === 'father' ? 4000000 : 5000000) + sequence).slice(-7)}` });
-        studentParents.push({ id: randomUUID(), studentId, parentProfileId: profileId, relationship });
+        parentProfiles.push({ id: profileId, userId, name: `${relationship === 'father' ? 'Father' : 'Mother'} of ${first} ${last}`, phone: `03${relationship === 'father' ? '00' : '01'}-${String((relationship === 'father' ? 4000000 : 5000000) + sequence).slice(-7)}`, gender: relationship === 'father' ? 'MALE' : 'FEMALE', email: `${prefix}.${gr.toLowerCase()}@parent.schoolportal.local`, occupation: relationship === 'father' ? 'Businessman' : 'Homemaker' });
+        studentParents.push({ id: randomUUID(), studentId, parentProfileId: profileId, relationship, isPrimary: relationship === 'father', isEmergencyContact: true });
       }
     }
   }

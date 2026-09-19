@@ -3,16 +3,18 @@ import { reactive, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api, type CampusSummary, type NewStaffInput, type StaffAdminSummary } from '../lib/api';
-import { EMPLOYEE_TYPE_OPTIONS } from '../lib/staff-profile.constants.ts';
+import { EMPLOYEE_TYPE_OPTIONS, EMPLOYMENT_STATUS_OPTIONS } from '../lib/staff-profile.constants.ts';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
 import ListPageCard from '../components/ListPageCard.vue';
+import { useConfirm } from '../lib/useConfirm';
 import { useToast } from '../lib/useToast';
 
 const auth = useAuthStore();
 const toast = useToast();
+const { confirm } = useConfirm();
 
 const staff = ref<StaffAdminSummary[]>([]);
 const campuses = ref<CampusSummary[]>([]);
@@ -32,6 +34,47 @@ async function load() {
   }
 }
 load();
+
+// --- Edit / Delete ------------------------------------------------------------------------------
+const editingId = ref<string | null>(null);
+const editName = ref('');
+const editStatus = ref<StaffAdminSummary['employmentStatus']>('ACTIVE');
+
+function startEdit(member: StaffAdminSummary) {
+  editingId.value = member.id;
+  editName.value = member.name;
+  editStatus.value = member.employmentStatus;
+}
+
+function cancelEdit() {
+  editingId.value = null;
+}
+
+async function onSaveEdit(id: string) {
+  if (!auth.accessToken || !editName.value.trim()) return;
+  errorMessage.value = null;
+  try {
+    await api.updateStaff(auth.accessToken, id, { name: editName.value.trim(), employmentStatus: editStatus.value });
+    editingId.value = null;
+    await load();
+    toast.success('Staff member updated.');
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not update this staff member.';
+  }
+}
+
+async function onDelete(id: string) {
+  if (!auth.accessToken) return;
+  if (!(await confirm({ title: 'Delete this staff member?', message: 'This cannot be undone.', danger: true }))) return;
+  errorMessage.value = null;
+  try {
+    await api.deleteStaff(auth.accessToken, id);
+    await load();
+    toast.success('Staff member deleted.');
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not delete this staff member.';
+  }
+}
 
 // --- Add New Staff --------------------------------------------------------------------------
 const showAddForm = ref(false);
@@ -132,15 +175,33 @@ async function onAdd() {
         { key: 'campusName', label: 'Campus' },
       ]"
       row-key="id"
-      :editing-id="null"
+      :editing-id="editingId"
       empty-icon="users"
       empty-title="No staff yet"
       empty-message="Add teachers and other staff members to get started."
       empty-cta-label="+ Add New"
       @empty-cta="openAddForm"
     >
-      <template #actions="{ item }">
-        <RouterLink :data-testid="`view-profile-${item.id}`" :to="`/admin/staff/${item.id}`">View Profile</RouterLink>
+      <template #cell-name="{ item, editing }">
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <span v-else>{{ item.name }}</span>
+      </template>
+      <template #cell-employmentStatus="{ item, editing }">
+        <select v-if="editing" :data-testid="`edit-status-${item.id}`" v-model="editStatus">
+          <option v-for="opt in EMPLOYMENT_STATUS_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+        <span v-else>{{ item.employmentStatus }}</span>
+      </template>
+      <template #actions="{ item, editing }">
+        <template v-if="editing">
+          <Button :data-testid="`save-${item.id}`" @click="onSaveEdit(item.id)">Save</Button>
+          <Button variant="secondary" @click="cancelEdit">Cancel</Button>
+        </template>
+        <template v-else>
+          <RouterLink :data-testid="`view-profile-${item.id}`" :to="`/admin/staff/${item.id}`">View Profile</RouterLink>
+          <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
+          <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">Delete</Button>
+        </template>
       </template>
     </EntityTable>
 

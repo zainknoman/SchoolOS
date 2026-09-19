@@ -72,6 +72,7 @@ class HomeTab extends StatefulWidget {
     this.onSelectChild,
     this.unreadNotifications = 0,
     this.onOpenNotifications,
+    this.onOpenStudentInfo,
   });
 
   final String studentId;
@@ -92,6 +93,9 @@ class HomeTab extends StatefulWidget {
   final ValueChanged<String>? onSelectChild;
   final int unreadNotifications;
   final VoidCallback? onOpenNotifications;
+
+  /// Opens the Student information screen for the active child (the eye button beside the pills).
+  final VoidCallback? onOpenStudentInfo;
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -162,11 +166,25 @@ class _HomeTabState extends State<HomeTab> {
           _header(context, accent),
           if (widget.children.isNotEmpty) ...[
             const SizedBox(height: 12),
-            ChildPills(
-              key: const Key('childSwitcher'),
-              children: widget.children,
-              activeChildId: widget.activeChildId,
-              onSelect: widget.onSelectChild ?? (_) {},
+            Row(
+              children: [
+                Expanded(
+                  child: ChildPills(
+                    key: const Key('childSwitcher'),
+                    children: widget.children,
+                    activeChildId: widget.activeChildId,
+                    onSelect: widget.onSelectChild ?? (_) {},
+                  ),
+                ),
+                if (widget.onOpenStudentInfo != null)
+                  IconButton(
+                    key: const Key('viewStudentInfo'),
+                    tooltip: 'Student information',
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(Icons.visibility_outlined, size: 20, color: accent),
+                    onPressed: widget.onOpenStudentInfo,
+                  ),
+              ],
             ),
           ],
           const SizedBox(height: 14),
@@ -364,8 +382,9 @@ class _HomeTabState extends State<HomeTab> {
       }
     } else {
       answer = _feesError != null ? '—' : '…';
-      if (_feesError != null)
+      if (_feesError != null) {
         trailing = Text('Unavailable', style: Theme.of(context).textTheme.labelSmall);
+      }
     }
 
     return _questionCard(

@@ -1,6 +1,6 @@
 // staff-console/src/views/ParentManagementView.spec.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount, flushPromises, RouterLinkStub } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import ParentManagementView from './ParentManagementView.vue';
 import { useAuthStore } from '../stores/auth';
@@ -34,7 +34,7 @@ describe('ParentManagementView', () => {
   it('lists parents (with their linked-children count) and creates a new one', async () => {
     vi.mocked(api.createParent).mockResolvedValue(undefined);
 
-    const wrapper = mount(ParentManagementView);
+    const wrapper = mount(ParentManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     expect(wrapper.text()).toContain('parent-x@schoolos.edu.pk');
@@ -56,7 +56,7 @@ describe('ParentManagementView', () => {
   it('creates a parent with no phone when the field is left blank', async () => {
     vi.mocked(api.createParent).mockResolvedValue(undefined);
 
-    const wrapper = mount(ParentManagementView);
+    const wrapper = mount(ParentManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="open-add-form"]').trigger('click');
@@ -74,7 +74,7 @@ describe('ParentManagementView', () => {
   it('edits name/phone without changing the password when the password field is left blank', async () => {
     vi.mocked(api.updateParent).mockResolvedValue(undefined);
 
-    const wrapper = mount(ParentManagementView);
+    const wrapper = mount(ParentManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="edit-p1"]').trigger('click');
@@ -90,7 +90,7 @@ describe('ParentManagementView', () => {
     const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
-    const wrapper = mount(ParentManagementView);
+    const wrapper = mount(ParentManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-p1"]').trigger('click');
@@ -110,7 +110,7 @@ describe('ParentManagementView', () => {
   it('shows the backend error when create fails on a duplicate identifier', async () => {
     vi.mocked(api.createParent).mockRejectedValue(new Error('This identifier is already in use.'));
 
-    const wrapper = mount(ParentManagementView);
+    const wrapper = mount(ParentManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="open-add-form"]').trigger('click');
@@ -121,5 +121,20 @@ describe('ParentManagementView', () => {
     await flushPromises();
 
     expect(wrapper.find('[role="alert"]').text()).toContain('already in use');
+  });
+});
+
+describe('ParentManagementView — profile link', () => {
+  it('links each row to the parent profile page', async () => {
+    setActivePinia(createPinia());
+    useAuthStore().accessToken = 'token-1';
+    vi.mocked(api.listAdminParents).mockResolvedValue([
+      { id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'Existing Parent', phone: null, childrenCount: 1 },
+    ]);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
+    const wrapper = mount(ParentManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
+    await flushPromises();
+
+    expect(wrapper.findComponent<typeof RouterLinkStub>('[data-testid="view-profile-p1"]').props('to')).toBe('/admin/parents/p1');
   });
 });

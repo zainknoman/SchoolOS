@@ -5,6 +5,7 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 import StaffManagementView from './StaffManagementView.vue';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
+import { useConfirm } from '../lib/useConfirm';
 
 async function mountView() {
   const router = createRouter({
@@ -17,8 +18,10 @@ async function mountView() {
 }
 
 vi.mock('../lib/api', () => ({
-  api: { listAdminStaff: vi.fn(), listCampuses: vi.fn(), createStaff: vi.fn() },
+  api: { listAdminStaff: vi.fn(), listCampuses: vi.fn(), createStaff: vi.fn(), updateStaff: vi.fn(), deleteStaff: vi.fn() },
 }));
+
+vi.mock('../lib/useConfirm', () => ({ useConfirm: vi.fn() }));
 
 describe('StaffManagementView', () => {
   beforeEach(() => {
@@ -26,6 +29,7 @@ describe('StaffManagementView', () => {
     const auth = useAuthStore();
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
+    vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
     vi.mocked(api.listAdminStaff).mockResolvedValue([
       { id: 'st1', name: 'Nazir Ahmed', employeeType: 'JANITORIAL', employmentStatus: 'ACTIVE', campusName: 'PECHS Campus' },
     ]);
@@ -113,5 +117,38 @@ describe('StaffManagementView', () => {
         login: { identifier: 'ayesha.khan', password: 'a-strong-password' },
       }),
     );
+  });
+
+  it('edits a staff member inline (name + employment status) and reloads', async () => {
+    vi.mocked(api.updateStaff).mockResolvedValue({
+      id: 'st1', name: 'Nazir A.', employeeType: 'JANITORIAL', employmentStatus: 'ON_LEAVE', campusName: 'PECHS Campus',
+    });
+    const wrapper = await mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="edit-st1"]').trigger('click');
+    await wrapper.find('[data-testid="edit-name-st1"]').setValue('Nazir A.');
+    await wrapper.find('[data-testid="edit-status-st1"]').setValue('ON_LEAVE');
+    await wrapper.find('[data-testid="save-st1"]').trigger('click');
+    await flushPromises();
+
+    expect(api.updateStaff).toHaveBeenCalledWith('token-1', 'st1', { name: 'Nazir A.', employmentStatus: 'ON_LEAVE' });
+    expect(api.listAdminStaff).toHaveBeenCalledTimes(2);
+  });
+
+  it('deletes a staff member only after confirmation', async () => {
+    const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
+    vi.mocked(api.deleteStaff).mockResolvedValue(undefined);
+    const wrapper = await mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="delete-st1"]').trigger('click');
+    await flushPromises();
+    expect(api.deleteStaff).not.toHaveBeenCalled();
+
+    await wrapper.find('[data-testid="delete-st1"]').trigger('click');
+    await flushPromises();
+    expect(api.deleteStaff).toHaveBeenCalledWith('token-1', 'st1');
   });
 });

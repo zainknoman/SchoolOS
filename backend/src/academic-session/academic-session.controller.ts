@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { AcademicSessionService } from './academic-session.service';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
+import { CopyStructureDto } from './dto/copy-structure.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
 
@@ -27,6 +28,16 @@ export class AcademicSessionController {
   @Get('academic-sessions')
   list() {
     return this.academicSessionService.list();
+  }
+
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @Post('academic-sessions/:id/copy-structure')
+  copyStructure(
+    @Param('id') id: string,
+    @Body() dto: CopyStructureDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.academicSessionService.copyStructure(id, dto.sourceSessionId, req.user);
   }
 
   @Roles('SUPER_ADMIN')

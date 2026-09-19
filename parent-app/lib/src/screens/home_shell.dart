@@ -7,6 +7,7 @@ import '../auth/auth_state.dart';
 import '../notifications/device_token_registrar.dart';
 import '../notifications/notification_target.dart';
 import '../theme/accent_controller.dart';
+import '../widgets/parent_ui.dart';
 import 'calendar_tab.dart';
 import 'circulars_tab.dart';
 import 'fees_tab.dart';
@@ -14,12 +15,13 @@ import 'home_tab.dart';
 import 'messages_tab.dart';
 import 'more_tab.dart';
 import 'notifications_sheet.dart';
+import 'student_info_screen.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Authenticated shell: bottom nav (Home / Calendar / Circulars / Messages / Fees / More) with
 /// the active child shared across tabs. Home and Calendar draw their own headers (child pills /
-/// title + notification bell) per the parent-app mockups, so the shell's AppBar — child dropdown,
-/// bell, logout — only shows on the remaining tabs. The per-guardian accent colour is derived from
+/// title + notification bell) per the parent-app mockups; the remaining tabs share [TabHeader]
+/// (title, child picker, bell, logout). The per-guardian accent colour is derived from
 /// the active child's `relationship` and pushed to `AccentController`.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, this.initialTab = 0});
@@ -172,6 +174,21 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     await _loadNotificationCount();
   }
 
+  void _openStudentInfo() {
+    final token = context.read<AuthState>().accessToken;
+    if (token == null || _children.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => StudentInfoScreen(
+          accessToken: token,
+          api: context.read<ApiClient>(),
+          children: _children,
+          initialChildId: _activeChildId,
+        ),
+      ),
+    );
+  }
+
   Future<void> _loadChildren() async {
     final auth = context.read<AuthState>();
     final api = context.read<ApiClient>();
@@ -216,31 +233,28 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // Home (0) and Calendar (1) render their own headers.
-    final ownsHeader = _tabIndex == 0 || _tabIndex == 1;
+    // Home (0) and Calendar (1) render their own headers; the other tabs share [TabHeader].
+    const titles = {2: 'Circulars', 4: 'Fees', 5: 'More'};
+    final headerTitle = titles[_tabIndex];
     return Scaffold(
-      appBar: ownsHeader
-          ? null
-          : AppBar(
-        title: _buildChildSwitcher(),
-        actions: [
-          IconButton(
-            key: const Key('notificationsButton'),
-            icon: _unreadNotifications > 0
-                ? Badge(label: Text('$_unreadNotifications'), child: const Icon(Icons.notifications_none))
-                : const Icon(Icons.notifications_none),
-            tooltip: 'Notifications',
-            onPressed: _openNotifications,
-          ),
-          IconButton(
-            key: const Key('logoutButton'),
-            icon: const Icon(Icons.logout),
-            tooltip: 'Log out',
-            onPressed: _onLogout,
-          ),
-        ],
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            if (headerTitle != null)
+              TabHeader(
+                title: headerTitle,
+                children: _children,
+                activeChildId: _activeChildId,
+                onSelectChild: _selectChild,
+                unreadNotifications: _unreadNotifications,
+                onOpenNotifications: _openNotifications,
+                onLogout: _onLogout,
+              ),
+            Expanded(child: _buildBody()),
+          ],
+        ),
       ),
-      body: ownsHeader ? SafeArea(bottom: false, child: _buildBody()) : _buildBody(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
         onDestinationSelected: (i) => setState(() {
@@ -272,31 +286,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           ),
           NavigationDestination(icon: const Icon(Icons.more_horiz), label: AppLocalizations.of(context)!.navMore),
         ],
-      ),
-    );
-  }
-
-  Widget _buildChildSwitcher() {
-    final title = AppLocalizations.of(context)!.appTitle;
-    if (_isLoading) return Text(title);
-    if (_loadError != null) return Text(title);
-    if (_children.isEmpty) return Text(title);
-
-    return DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        key: const Key('childSwitcher'),
-        value: _activeChildId,
-        items: _children
-            .map(
-              (c) => DropdownMenuItem(
-                value: c.id,
-                child: Text('${c.name} — ${c.schoolClass} ${c.section}'),
-              ),
-            )
-            .toList(),
-        onChanged: (id) {
-          if (id != null) _selectChild(id);
-        },
       ),
     );
   }
@@ -335,6 +324,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         onSelectChild: _selectChild,
         unreadNotifications: _unreadNotifications,
         onOpenNotifications: _openNotifications,
+        onOpenStudentInfo: _openStudentInfo,
       );
     }
 
@@ -383,6 +373,15 @@ if (_tabIndex == 3) {
         children: _children,
         activeChildId: _activeChildId,
         initialConversationId: _messagesInitialConversationId,
+        header: TabHeader(
+          title: 'Messages',
+          children: _children,
+          activeChildId: _activeChildId,
+          onSelectChild: _selectChild,
+          unreadNotifications: _unreadNotifications,
+          onOpenNotifications: _openNotifications,
+          onLogout: _onLogout,
+        ),
       );
     }
 

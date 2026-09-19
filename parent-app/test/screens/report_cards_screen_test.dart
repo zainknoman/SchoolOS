@@ -107,7 +107,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('reportCardsChildDropdown')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Eshaal Sample').last);
+    await tester.tap(find.textContaining('Eshaal Sample').last);
     await tester.pumpAndSettle();
 
     expect(requestedStudentId, 'child-1');

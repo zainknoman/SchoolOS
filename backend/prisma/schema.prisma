@@ -249,8 +249,8 @@ model Campus {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
-  @@index([schoolId])
   @@unique([schoolId, code])
+  @@index([schoolId])
 }
 
 model AcademicSession {
@@ -511,25 +511,25 @@ model Student {
 }
 
 model Enrollment {
-  id                String           @id @default(uuid())
+  id                String            @id @default(uuid())
   studentId         String
-  student           Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student           Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
   campusId          String
-  campus            Campus           @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  campus            Campus            @relation(fields: [campusId], references: [id], onDelete: Restrict)
   sectionId         String
-  section           Section          @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  section           Section           @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   academicSessionId String
-  academicSession   AcademicSession  @relation(fields: [academicSessionId], references: [id], onDelete: Restrict)
+  academicSession   AcademicSession   @relation(fields: [academicSessionId], references: [id], onDelete: Restrict)
   startDate         DateTime
   endDate           DateTime?
-  status            EnrollmentStatus @default(ACTIVE)
+  status            EnrollmentStatus  @default(ACTIVE)
   rollNumber        String?
   promotionDate     DateTime?
   remarks           String?
   promotedFrom      StudentPromotion? @relation("PromotionFromEnrollment")
   promotedTo        StudentPromotion? @relation("PromotionToEnrollment")
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@index([studentId])
   @@index([sectionId])
@@ -554,25 +554,42 @@ model StudentPromotion {
 }
 
 model ParentProfile {
-  id        String          @id @default(uuid())
-  userId    String          @unique
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  phone     String?
-  children  StudentParent[]
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  id                 String          @id @default(uuid())
+  userId             String          @unique
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  phone              String?
+  // Profile fields (parent management "Parent Profile" page) — all optional so existing rows and
+  // the create-with-login flow are unaffected.
+  cnic               String?         @unique
+  gender             Gender?
+  dateOfBirth        DateTime?
+  alternatePhone     String?
+  whatsappNumber     String?
+  email              String?
+  occupation         String?
+  employerName       String?
+  designation        String?
+  currentAddressId   String?
+  currentAddress     Address?        @relation("ParentCurrentAddress", fields: [currentAddressId], references: [id], onDelete: SetNull)
+  permanentAddressId String?
+  permanentAddress   Address?        @relation("ParentPermanentAddress", fields: [permanentAddressId], references: [id], onDelete: SetNull)
+  children           StudentParent[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 }
 
 // Join table — a parent may be linked to many students, a student may have many parents/guardians.
 model StudentParent {
-  id              String        @id @default(uuid())
-  studentId       String
-  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  parentProfileId String
-  parentProfile   ParentProfile @relation(fields: [parentProfileId], references: [id], onDelete: Cascade)
-  relationship    String        @default("guardian") // e.g. "mother", "father", "guardian"
-  createdAt       DateTime      @default(now())
+  id                 String        @id @default(uuid())
+  studentId          String
+  student            Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parentProfileId    String
+  parentProfile      ParentProfile @relation(fields: [parentProfileId], references: [id], onDelete: Cascade)
+  relationship       String        @default("guardian") // e.g. "mother", "father", "guardian"
+  isPrimary          Boolean       @default(false) // the guardian the school contacts first for this student
+  isEmergencyContact Boolean       @default(false)
+  createdAt          DateTime      @default(now())
 
   @@unique([studentId, parentProfileId])
   @@index([parentProfileId])
@@ -600,6 +617,8 @@ model Address {
   staffCurrent           Staff[]                   @relation("StaffCurrentAddress")
   staffPermanent         Staff[]                   @relation("StaffPermanentAddress")
   staffEmergencyContacts StaffEmergencyContact[]
+  parentsCurrent         ParentProfile[]           @relation("ParentCurrentAddress")
+  parentsPermanent       ParentProfile[]           @relation("ParentPermanentAddress")
   schools                School[]
   campuses               Campus[]
   createdAt              DateTime                  @default(now())

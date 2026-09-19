@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount, flushPromises, RouterLinkStub } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import SchoolManagementView from './SchoolManagementView.vue';
 import { useAuthStore } from '../stores/auth';
@@ -58,7 +58,7 @@ describe('SchoolManagementView', () => {
   });
 
   it('lists schools with code/status columns plus address/contact details and live stats', async () => {
-    const wrapper = mount(SchoolManagementView);
+    const wrapper = mount(SchoolManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     expect(wrapper.text()).toContain('The SchoolOS School');
@@ -70,10 +70,19 @@ describe('SchoolManagementView', () => {
     expect(wrapper.text()).toContain('15');
   });
 
+  it('links each row to its profile page via a View button', async () => {
+    const wrapper = mount(SchoolManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
+    await flushPromises();
+
+    const link = wrapper.findComponent<typeof RouterLinkStub>('[data-testid="view-profile-s1"]');
+    expect(link.exists()).toBe(true);
+    expect(link.props('to')).toBe('/admin/schools/s1');
+  });
+
   it('creates a new school through the Add modal with all the new profile fields', async () => {
     vi.mocked(api.createSchool).mockResolvedValue(undefined);
 
-    const wrapper = mount(SchoolManagementView);
+    const wrapper = mount(SchoolManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     expect(wrapper.find('[data-testid="field-name"]').exists()).toBe(false);
@@ -129,7 +138,7 @@ describe('SchoolManagementView', () => {
     vi.mocked(api.createSchool).mockResolvedValue(undefined);
     vi.mocked(api.uploadFile).mockResolvedValue({ id: 'uploaded-file-9' });
 
-    const wrapper = mount(SchoolManagementView);
+    const wrapper = mount(SchoolManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="open-add-form"]').trigger('click');
@@ -155,7 +164,7 @@ describe('SchoolManagementView', () => {
   it('opens the Edit modal pre-filled with the row data and submits every field to api.updateSchool', async () => {
     vi.mocked(api.updateSchool).mockResolvedValue(undefined);
 
-    const wrapper = mount(SchoolManagementView);
+    const wrapper = mount(SchoolManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="edit-s1"]').trigger('click');
@@ -231,7 +240,7 @@ describe('SchoolManagementView', () => {
       },
     ]);
 
-    const wrapper = mount(SchoolManagementView);
+    const wrapper = mount(SchoolManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="edit-s2"]').trigger('click');
@@ -246,7 +255,7 @@ describe('SchoolManagementView', () => {
     const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
 
-    const wrapper = mount(SchoolManagementView);
+    const wrapper = mount(SchoolManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-s1"]').trigger('click');
@@ -266,7 +275,7 @@ describe('SchoolManagementView', () => {
   it('shows the backend error when delete is blocked by dependent records', async () => {
     vi.mocked(api.deleteSchool).mockRejectedValue(new Error('Cannot delete this School: other records still reference it.'));
 
-    const wrapper = mount(SchoolManagementView);
+    const wrapper = mount(SchoolManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="delete-s1"]').trigger('click');
@@ -278,7 +287,7 @@ describe('SchoolManagementView', () => {
   it('shows the backend error banner when creating a school fails', async () => {
     vi.mocked(api.createSchool).mockRejectedValue(new Error('A school with this code already exists.'));
 
-    const wrapper = mount(SchoolManagementView);
+    const wrapper = mount(SchoolManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="open-add-form"]').trigger('click');
@@ -292,7 +301,7 @@ describe('SchoolManagementView', () => {
   it('shows the backend error banner when updating a school fails', async () => {
     vi.mocked(api.updateSchool).mockRejectedValue(new Error('Could not update this school.'));
 
-    const wrapper = mount(SchoolManagementView);
+    const wrapper = mount(SchoolManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await flushPromises();
 
     await wrapper.find('[data-testid="edit-s1"]').trigger('click');

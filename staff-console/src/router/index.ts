@@ -88,10 +88,22 @@ const router = createRouter({
       meta: { requiresRole: ['SUPER_ADMIN'], title: 'Schools', group: 'Org Structure' },
     },
     {
+      path: '/admin/schools/:id',
+      name: 'admin-school-profile',
+      component: () => import('../views/SchoolProfilePageView.vue'),
+      meta: { requiresRole: ['SUPER_ADMIN'], title: 'School Profile', group: 'Org Structure' },
+    },
+    {
       path: '/admin/campuses',
       name: 'admin-campuses',
       component: () => import('../views/CampusManagementPageView.vue'),
       meta: { requiresRole: ['SUPER_ADMIN'], title: 'Campuses', group: 'Org Structure' },
+    },
+    {
+      path: '/admin/campuses/:id',
+      name: 'admin-campus-profile',
+      component: () => import('../views/CampusProfilePageView.vue'),
+      meta: { requiresRole: ['SUPER_ADMIN'], title: 'Campus Profile', group: 'Org Structure' },
     },
     {
       path: '/admin/academic-sessions',
@@ -116,6 +128,12 @@ const router = createRouter({
       name: 'admin-parents',
       component: () => import('../views/ParentManagementPageView.vue'),
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Parents', group: 'People' },
+    },
+    {
+      path: '/admin/parents/:id',
+      name: 'admin-parent-profile',
+      component: () => import('../views/ParentProfilePageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Parent Profile', group: 'People' },
     },
     {
       path: '/admin/students',

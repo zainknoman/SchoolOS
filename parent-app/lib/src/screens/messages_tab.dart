@@ -5,6 +5,8 @@ import '../cache/cached_load.dart';
 import '../cache/data_cache.dart';
 import '../cache/last_updated_banner.dart';
 import '../theme/text_direction.dart';
+import '../theme/tones.dart';
+import '../widgets/parent_ui.dart';
 
 enum _MessagesView { list, compose, thread }
 
@@ -47,7 +49,11 @@ class MessagesTab extends StatefulWidget {
     required this.children,
     required this.activeChildId,
     this.initialConversationId,
+    this.header,
   });
+
+  /// Shared tab header, drawn only on the conversation list (thread/compose have their own bars).
+  final Widget? header;
 
   final String accessToken;
   final ApiClient api;
@@ -168,42 +174,68 @@ class _MessagesTabState extends State<MessagesTab> {
     final conversations = _conversations;
     if (conversations == null) return const Center(child: CircularProgressIndicator());
 
+    final tones = Tones.of(context);
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
         key: const Key('newConversation'),
+        shape: const CircleBorder(),
         onPressed: () => setState(() => _view = _MessagesView.compose),
         child: const Icon(Icons.add),
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
-            ),
-          ),
+          if (widget.header != null) widget.header!,
           Expanded(
-            child: conversations.isEmpty
-                ? const Center(child: Text('No messages yet.'))
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: conversations.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, i) {
-                      final c = conversations[i];
-                      return ListTile(
-                        onTap: () => _openThread(c.id),
-                        leading: Icon(c.unread ? Icons.circle : Icons.circle_outlined, size: 12),
-                        title: Text(
-                          c.otherPartyName,
-                          style: TextStyle(fontWeight: c.unread ? FontWeight.bold : FontWeight.normal),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 88),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: LastUpdatedBanner(lastUpdated: _lastUpdated!, stale: _stale),
+                ),
+                if (conversations.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 40),
+                    child: Center(child: Text('No messages yet.', style: TextStyle(color: tones.muted))),
+                  )
+                else
+                  GroupedCard(
+                    children: [
+                      for (final c in conversations)
+                        GroupedRow(
+                          key: Key('conversation-${c.id}'),
+                          onTap: () => _openThread(c.id),
+                          child: Row(
+                            children: [
+                              InitialsAvatar(c.otherPartyName, neutral: !c.unread),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      c.otherPartyName,
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: c.unread ? FontWeight.w800 : FontWeight.w700,
+                                      ),
+                                    ),
+                                    Text(
+                                      recipientLabel(c.recipientType),
+                                      style: TextStyle(fontSize: 12, color: tones.muted),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (c.unread) const UnreadDot(unread: true),
+                            ],
+                          ),
                         ),
-                        subtitle: Text(recipientLabel(c.recipientType)),
-                      );
-                    },
+                    ],
                   ),
+              ],
+            ),
           ),
         ],
       ),
