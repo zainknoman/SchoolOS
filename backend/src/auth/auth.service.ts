@@ -24,6 +24,7 @@ export type SessionResult = {
   isPrincipal: boolean;
   mustChangePassword: boolean;
   campusId: string | null;
+  schoolId: string | null;
 };
 
 function hashToken(token: string): string {
@@ -101,6 +102,7 @@ export class AuthService {
       user.isPrincipal,
       user.mustChangePassword,
       user.campusId,
+      user.schoolId,
     );
   }
 
@@ -140,6 +142,7 @@ export class AuthService {
       user.isPrincipal,
       user.mustChangePassword,
       user.campusId,
+      user.schoolId,
     );
   }
 
@@ -234,7 +237,7 @@ export class AuthService {
       }),
     ]);
 
-    return this.issueSession(user.id, user.role, user.isPrincipal, false, user.campusId);
+    return this.issueSession(user.id, user.role, user.isPrincipal, false, user.campusId, user.schoolId);
   }
 
   private async issueSession(
@@ -243,6 +246,7 @@ export class AuthService {
     isPrincipal: boolean,
     mustChangePassword: boolean,
     campusId: string | null,
+    schoolId: string | null,
   ): Promise<SessionResult> {
     const accessToken = this.jwt.sign({ sub: userId, role });
 
@@ -257,6 +261,14 @@ export class AuthService {
       },
     });
 
-    return { accessToken, refreshToken, role, isPrincipal, mustChangePassword, campusId };
+    return {
+      accessToken,
+      refreshToken,
+      role,
+      isPrincipal,
+      mustChangePassword,
+      campusId,
+      schoolId,
+    };
   }
 }

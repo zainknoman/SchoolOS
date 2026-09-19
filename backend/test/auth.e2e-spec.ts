@@ -48,6 +48,7 @@ describe('Auth (e2e)', () => {
     expect(res.body.role).toBe('PARENT');
     expect(res.body.mustChangePassword).toBe(false);
     expect(res.body.campusId).toBeNull();
+    expect(res.body).toHaveProperty('schoolId');
   });
 
   it('rejects a wrong password with a generic 401, revealing nothing about which field was wrong', async () => {
@@ -87,6 +88,7 @@ describe('Auth (e2e)', () => {
     expect(res.body.role).toBe('PARENT');
     expect(res.body.mustChangePassword).toBe(false);
     expect(res.body.campusId).toBeNull();
+    expect(res.body).toHaveProperty('schoolId');
   });
 
   it('rejects reuse of an already-redeemed refresh token (rotation-on-use)', async () => {

@@ -43,6 +43,7 @@ describe('AuthService', () => {
     isPrincipal: false,
     mustChangePassword: false,
     campusId: null as string | null,
+    schoolId: null as string | null,
     lockedUntil: null as Date | null,
     failedLoginCount: 0,
   };
@@ -99,6 +100,7 @@ describe('AuthService', () => {
     expect(result.role).toBe('PARENT');
     expect(result.mustChangePassword).toBe(false);
     expect(result.campusId).toBeNull();
+    expect(result.schoolId).toBeNull();
     // failed-login counter resets on success
     expect(prisma.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -214,6 +216,7 @@ describe('AuthService', () => {
       mustChangePassword: true,
       isPrincipal: true,
       campusId: 'campus-1',
+      schoolId: 'school-1',
     });
     prisma.user.update.mockResolvedValue({});
     prisma.refreshToken.create.mockResolvedValue({});
@@ -221,6 +224,7 @@ describe('AuthService', () => {
     const session = await service.login('head@school.test', 'Temp1234!x');
     expect(session.mustChangePassword).toBe(true);
     expect(session.campusId).toBe('campus-1');
+    expect(session.schoolId).toBe('school-1');
   });
 
   describe('changePassword', () => {
@@ -233,6 +237,7 @@ describe('AuthService', () => {
         passwordHash,
         mustChangePassword: true,
         campusId: 'campus-1',
+        schoolId: 'school-1',
       });
       prisma.user.update.mockResolvedValue({});
       prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
@@ -275,6 +280,7 @@ describe('AuthService', () => {
       expect(prisma.refreshToken.create).toHaveBeenCalled();
       expect(session.mustChangePassword).toBe(false);
       expect(session.campusId).toBe('campus-1');
+      expect(session.schoolId).toBe('school-1');
       expect(session.accessToken).toBe('signed-access-token');
       expect(JSON.stringify(session)).not.toContain('NewPass123!');
     });
@@ -302,11 +308,23 @@ describe('AuthService', () => {
       expect(result.role).toBe('PARENT');
       expect(result.mustChangePassword).toBe(false);
       expect(result.campusId).toBeNull();
+      expect(result.schoolId).toBeNull();
       // the presented token is revoked as part of the same exchange (rotation-on-use)
       expect(prisma.refreshToken.update).toHaveBeenCalledWith({
         where: { id: 'rt-1' },
         data: { revokedAt: expect.any(Date) },
       });
+    });
+
+    it('returns the user schoolId on refresh', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue(storedToken);
+      prisma.refreshToken.update.mockResolvedValue({});
+      prisma.user.findUnique.mockResolvedValue({ ...baseUser, schoolId: 'school-1' });
+      prisma.refreshToken.create.mockResolvedValue({});
+
+      const result = await service.refresh('some-raw-refresh-token');
+
+      expect(result.schoolId).toBe('school-1');
     });
 
     it('rejects an unknown refresh token', async () => {
