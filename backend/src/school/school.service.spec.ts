@@ -38,6 +38,7 @@ describe('SchoolService', () => {
     enrollment: { count: jest.Mock };
     staff: { count: jest.Mock };
     auditLog: { create: jest.Mock };
+    user: { create: jest.Mock };
     $transaction: jest.Mock;
   };
 
@@ -54,6 +55,7 @@ describe('SchoolService', () => {
       enrollment: { count: jest.fn().mockResolvedValue(0) },
       staff: { count: jest.fn().mockResolvedValue(0) },
       auditLog: { create: jest.fn() },
+      user: { create: jest.fn().mockResolvedValue({ id: 'u1' }) },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     const moduleRef = await Test.createTestingModule({
@@ -167,6 +169,36 @@ describe('SchoolService', () => {
       service.create({ name: 'Dup School', code: 'DUPE' }, 'admin-1'),
     ).rejects.toThrow(BadRequestException);
     expect(prisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a school-wide admin login in the same transaction and returns the generated password once', async () => {
+    prisma.school.create.mockResolvedValue({ id: 'sch1', name: 'Alpha', ...NEW_PROFILE_FIELDS, address: null, phone: null, email: null });
+    const result = await service.create({ name: 'Alpha', admin: { identifier: 'admin@alpha.test' } }, 'super-1');
+
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ schoolId: 'sch1', campusId: null, isPrincipal: true, role: 'SCHOOL_ADMIN' }),
+      }),
+    );
+    expect(result.provisionedLogin?.identifier).toBe('admin@alpha.test');
+    expect(result.provisionedLogin?.temporaryPassword).toEqual(expect.any(String));
+  });
+
+  it('does not put the login block or any password in the school row or the audit metadata', async () => {
+    prisma.school.create.mockResolvedValue({ id: 'sch1', name: 'Alpha', ...NEW_PROFILE_FIELDS, address: null, phone: null, email: null });
+    await service.create({ name: 'Alpha', admin: { identifier: 'a@x.test', password: 'Sup3rSecret!' } }, 'super-1');
+
+    expect(prisma.school.create.mock.calls[0][0].data).not.toHaveProperty('admin');
+    for (const call of prisma.auditLog.create.mock.calls) {
+      expect(JSON.stringify(call[0])).not.toContain('Sup3rSecret!');
+    }
+  });
+
+  it('creates no user when no admin block is given (existing behaviour)', async () => {
+    prisma.school.create.mockResolvedValue({ id: 'sch1', name: 'Alpha', ...NEW_PROFILE_FIELDS, address: null, phone: null, email: null });
+    const result = await service.create({ name: 'Alpha' }, 'super-1');
+    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(result).not.toHaveProperty('provisionedLogin');
   });
 
   it('lists schools with computed stats', async () => {

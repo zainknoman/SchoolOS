@@ -6,6 +6,10 @@ import {
   assertCreatable,
   assertValidReferences,
 } from '../common/prisma-create-guard';
+import {
+  createPrincipalUser,
+  type ProvisionedLogin,
+} from '../common/create-principal-user';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 
@@ -58,7 +62,10 @@ export class SchoolService {
   async create(
     dto: CreateSchoolDto,
     actingUserId: string,
-  ): Promise<SchoolSummary> {
+  ): Promise<SchoolSummary & { provisionedLogin?: ProvisionedLogin }> {
+    // `admin` (and any password in it) must never reach Prisma or the audit log.
+    const { admin, ...schoolData } = dto;
+    let provisionedLogin: ProvisionedLogin | undefined;
     // The School row and its audit-log entry are wrapped in one $transaction so a bad
     // actingUserId (e.g. a stale/orphaned session) rolls back the School row too, instead of
     // silently persisting a School with no audit trail while the caller sees a 500.
@@ -67,9 +74,9 @@ export class SchoolService {
       try {
         created = await tx.school.create({
           data: {
-            ...dto,
-            establishedDate: dto.establishedDate
-              ? new Date(dto.establishedDate)
+            ...schoolData,
+            establishedDate: schoolData.establishedDate
+              ? new Date(schoolData.establishedDate)
               : undefined,
           },
         });
@@ -88,12 +95,34 @@ export class SchoolService {
           action: 'school.create',
           entity: 'School',
           entityId: created.id,
-          metadata: JSON.stringify(dto),
+          metadata: JSON.stringify(schoolData),
         },
       });
+      if (admin) {
+        provisionedLogin = await createPrincipalUser(tx, {
+          identifier: admin.identifier,
+          password: admin.password,
+          schoolId: created.id,
+          campusId: null,
+        });
+        await tx.auditLog.create({
+          data: {
+            userId: actingUserId,
+            action: 'user.create',
+            entity: 'User',
+            entityId: created.id,
+            metadata: JSON.stringify({
+              identifier: provisionedLogin.identifier,
+              role: 'SCHOOL_ADMIN',
+              schoolId: created.id,
+            }),
+          },
+        });
+      }
       return created;
     });
-    return this.withStats(record);
+    const summary = await this.withStats(record);
+    return provisionedLogin ? { ...summary, provisionedLogin } : summary;
   }
 
   async list(): Promise<SchoolSummary[]> {
