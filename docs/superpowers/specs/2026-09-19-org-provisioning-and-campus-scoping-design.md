@@ -68,6 +68,13 @@ attendance listing, dashboard. Implement as one shared helper (e.g. a scope-buil
 `StudentAccessService`) rather than per-module copies. The plan must begin by enumerating every `schoolId`
 scoping site.
 
+### Principal write access (found while planning)
+Today `POST/PATCH/DELETE /classes` and `/sections` and `POST /campuses` are `SUPER_ADMIN`-only, so a
+provisioned principal could not add classes or sections. These are widened to `SCHOOL_ADMIN` with a
+scope check on the target campus (`OrgScopeService.assertCampusAccess` / `StudentAccessService`).
+`POST /campuses` additionally requires the caller's `campusId` to be null and `dto.schoolId` to equal
+their school. Academic sessions stay `SUPER_ADMIN`-created; principals only select an existing one.
+
 ### Password change
 Login response includes `mustChangePassword`. The staff console redirects to a change-password screen
 until cleared. Reuse the existing password-reset/change endpoint if one exists; otherwise add
@@ -79,7 +86,8 @@ School and Campus create forms get an optional "Create login" section (identifie
 warning that it won't be shown again.
 
 ### Errors
-- Duplicate `identifier` → 409, whole transaction rolls back (no orphan School/Campus).
+- Duplicate `identifier` → 400 via the existing `assertCreatable` helper (the codebase's convention for
+  duplicate-identifier creates), whole transaction rolls back (no orphan School/Campus).
 - Weak/invalid password or identifier → 400 via DTO validation.
 - Login block omitted → behaves exactly as today (seed/import paths unaffected).
 
