@@ -1,0 +1,71 @@
+> **ARCHIVED 2026-09-20** — Original MVP plan (SQLite-era). Superseded by the canonical docs listed in docs/README.md. Do not treat as current documentation.
+
+# PRODUCT REQUIREMENTS — SchoolOS Digital Platform
+Generated: 2026-08-27  ·  Owner: The SchoolOS School (via user)
+
+## 1. Overview
+A replacement for The SchoolOS School's current two-vendor setup (an unpublished WebView-shell Android app
+from one vendor, a separately-built website portal from another). One backend serves a Flutter parent
+app and a role-gated Vue staff console (Teacher/Admin/Accounts), so parents and staff always see the
+same data. Every screen exists to answer the parent's question: "What do I need to know about my child
+today?" — in English and Urdu (RTL), on a mid/low-end Android phone with a weak connection.
+
+## 2. Goals
+- Parents can see timetable/attendance/diary/circulars/messages/fees for each of their children from one
+  login, with data that matches across app and web.
+- Staff (teacher/admin/accounts) can author attendance, diary, circulars, and manage fees from one
+  console instead of two disconnected vendor back-offices.
+- The app is store-published (Play Store, then App Store) under the school's own account — not
+  sideloaded.
+- Fee payment happens in-app (JazzCash/EasyPaisa), not voucher-view-only.
+
+## 3. Scope (in)
+- Auth (email/GR-number + password, JWT+refresh, RBAC), multi-child switcher.
+- Calendar-based Timetable / Attendance / Diary (per SchoolDetails.txt's existing UX pattern).
+- Circulars (school + section scope, read-tracking, attachments).
+- Messages (scoped inbox: Parent ↔ Class Teacher / Admin / Accounts / Principal only).
+- Fees (server-computed voucher, PDF, in-app JazzCash/EasyPaisa payment, payment history).
+- Leave applications (submit/approve, reflects on attendance calendar).
+- Push notifications with deep links; offline "last updated" caching.
+- Staff console: teacher (attendance, diary, timetable, messages) + admin/accounts (CRUD, circulars,
+  fee/voucher management, leave approval, complaint tracking).
+- Data migration plan from the two existing vendor systems.
+
+## 4. Non-goals (out)
+Payroll, full accounting ERP, library, transport GPS, RFID/biometric attendance, canteen/wallet, AI
+tutor or AI-generated summaries, complex LMS/e-content, online examinations, inventory/procurement/HR,
+custom report builder, live gradebook (static report-card PDF instead), a separate parent web portal
+(Phase 2), separate Teacher/Admin portal apps, campus-switching UI, WhatsApp integration (Phase 2
+candidate), a public-website redesign (separate, lower-priority track).
+
+## 5. Success criteria
+- Parent logs in, sees only their authorized children, switches between them, and every screen updates.
+- Calendar shows correct per-date timetable/attendance/diary; Urdu renders RTL, untranslated.
+- Fee voucher is server-computed, payable in-app, downloadable as PDF, with payment history.
+- Teacher can mark attendance + publish diary; Admin can publish circulars + manage fees/students.
+- Pilot: ≥70% parent login rate within 2 weeks of a pilot-class rollout.
+
+## 6. High-level features (this run covers Sprint 1 of the 6-sprint plan in MVP-Plan-V3.md;
+   later FEAT ids are recorded now and queued for follow-up runs, not built in this pass)
+- FEAT-001 Data model + migration plan — core schema for all entities below
+- FEAT-002 Auth + RBAC — login, JWT/refresh, roles (SUPER_ADMIN/SCHOOL_ADMIN/TEACHER/ACCOUNTS/PARENT)
+- FEAT-003 Multi-campus + multi-child data model — campus_id on student/class/section; parent-child links
+- FEAT-004 Staff console shell — Vue 3 app skeleton, RBAC-gated routing, login screen
+- FEAT-005 Parent app shell — Flutter app skeleton, login screen, multi-child switcher
+- FEAT-006 Timetable (backend + staff console + parent app)               [Sprint 3-4]
+- FEAT-007 Attendance (backend + staff console + parent app, immutable from parent side) [Sprint 3-4]
+- FEAT-008 Diary/homework (backend + attachments + RTL)                   [Sprint 5-6]
+- FEAT-009 Circulars (backend + read-tracking + attachments)              [Sprint 5-6]
+- FEAT-010 Messages (scoped inbox, server-enforced recipients)            [Sprint 7-8]
+- FEAT-011 Notifications (FCM + deep links)                               [Sprint 7-8]
+- FEAT-012 Fees (voucher, PDF, JazzCash/EasyPaisa payment, history)       [Sprint 9-10]
+- FEAT-013 Leave applications                                            [Sprint 9-10]
+- FEAT-014 Offline caching + hardening + pilot readiness                  [Sprint 11-12]
+
+**This run builds FEAT-001 through FEAT-004** — the backend foundation (schema, auth/RBAC) and the
+staff-console shell. **FEAT-005 (parent app, Flutter) is deferred**: no Flutter SDK is installed on this
+machine; resume it once `flutter --version` succeeds. **Database note:** no PostgreSQL/Docker is
+available either, so FEAT-001 runs on SQLite for local dev — switch the Prisma datasource to
+`postgresql` before any staging/production deploy (tracked, not forgotten). FEAT-006 onward are
+specified now so the planner has the full dependency graph, but their `impl` tasks are left `queued`
+rather than dispatched this run — see ARCHITECTURE.md §Run scoping.

@@ -1,48 +1,29 @@
-# staff-console
+# SchoolOS Staff Console
 
-This template should help get you started developing with Vue 3 in Vite.
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
 
-## Recommended IDE Setup
+Vue 3 + Vite + TypeScript single-page app for school staff (Super Admin, School Admin/Principal, Accounts, Teacher). Project overview: [`../README.md`](../README.md).
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## Run
 
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```bash
 npm install
+npm run dev          # http://localhost:5173
 ```
 
-### Compile and Hot-Reload for Development
+Requires Node `^22.18.0` or `>=24.12.0`. The API base URL comes from `VITE_API_BASE_URL` (default `http://localhost:3000`, see `src/lib/api.ts`). Log in with a seeded account (see the root README).
 
-```sh
-npm run dev
-```
+## Scripts
 
-### Type-Check, Compile and Minify for Production
+| Script | Purpose |
+|---|---|
+| `npm run build` | Type-check and production build |
+| `npm test` | Vitest (component/view/store specs) |
+| `npm run type-check` | `vue-tsc --build` |
+| `npm run lint` | oxlint + ESLint (blocking in CI) |
 
-```sh
-npm run build
-```
+## Layout
 
-### Lint with [ESLint](https://eslint.org/)
+`src/views/` pages (`*PageView.vue` wraps the feature view) · `src/components/` shared UI kit (AppShell, EntityTable, StatusPill, …) · `src/router/index.ts` routes with `meta.requiresRole` / `requiresPrincipal` guards · `src/stores/auth.ts` session · `src/lib/api.ts` API client · `src/locales/{en,ur}.json` i18n · `design-system/` token spec (`MASTER.md`).
 
-```sh
-npm run lint
-```
+Client-side guards only shape the UI; authorization is enforced by the backend. Design rules: [`../DESIGN.md`](../DESIGN.md).

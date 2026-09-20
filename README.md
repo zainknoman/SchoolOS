@@ -1,210 +1,127 @@
-# SchoolOS Digital Platform
+# SchoolOS
 
-A school management platform for a multi-school, multi-campus environment: one NestJS + Prisma backend serving a Vue **staff console** and Flutter **parent app**. The Prisma schema supports richer Student, Parent, Staff/Hiring, Admission, Enrollment, timetable, diary, attendance, document, address and medical data. Current implementation status is tracked in [`PROJECT-STATUS.md`](./PROJECT-STATUS.md).
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · Maturity: **pre-production** (see [Known limitations](#known-limitations))
 
-**Repository:** [github.com/zainknoman/SchoolOS](https://github.com/zainknoman/SchoolOS)
+SchoolOS is a school management platform for a multi-school, multi-campus setting. One NestJS + Prisma + PostgreSQL API serves two clients: a Vue **staff console** (school staff) and a Flutter **parent app** (parents). Both clients speak English and Urdu (RTL).
 
-```bash
-git clone https://github.com/zainknoman/SchoolOS.git
-```
+Repository: <https://github.com/zainknoman/SchoolOS> · Live status: [`PROJECT-STATUS.md`](PROJECT-STATUS.md) · All docs: [`docs/README.md`](docs/README.md)
 
-## Architecture
+## What it does today
+
+Status per area (`IMPLEMENTED` = code exists and is wired; not a production-readiness claim). Full table: [`PROJECT-STATUS.md`](PROJECT-STATUS.md).
+
+| Area | Status |
+|---|---|
+| Schools, campuses, academic sessions, classes, sections, terms | IMPLEMENTED (academic sessions are platform-global; subjects are read-only) |
+| Students (with profile), parents/guardians, teachers, staff, hiring pipeline | IMPLEMENTED |
+| Admissions pipeline, enrollment history, promotion/re-enrollment | IMPLEMENTED |
+| Timetable, attendance (+ risk flags), diary/homework, circulars | IMPLEMENTED |
+| Gradebook (categories, assessments, marks), report cards, holidays, complaints, leave | IMPLEMENTED (report cards: PARTIALLY) |
+| Fees, vouchers, payments, receipts | IMPLEMENTED — real gateways CONFIGURATION REQUIRED, never live-verified |
+| Messages and notifications (push/email/SMS/WhatsApp) | IMPLEMENTED — channels EXTERNAL SERVICE REQUIRED |
+| Bulk import (students, parents, teachers, staff) | IMPLEMENTED |
+| AI drafting (diary/circular suggestions) | EXTERNAL SERVICE REQUIRED (stub without a key) |
+
+**Not part of SchoolOS today:** student logins, a parent web portal, object-storage (S3) uploads, deployment tooling.
+
+## Applications
 
 ```text
-backend/               NestJS + Prisma API — the only backend, serves both clients
-staff-console/         Vue 3 SPA for Teacher / School Admin / Accounts / Principal roles
-parent-app/            Flutter app for parents
-plan/docs/             Original MVP plan and feature specification
-docs/superpowers/      Per-sprint implementation plans and design specifications
-docs/database/         Database audit, design and migration documentation
-docs/Plan-Ideas/       Post-MVP planning, gap analysis and roadmap
-docs/Figma/            Figma design-system handoff
+backend/          NestJS 11 API (only backend; both clients use /api/v1/...)
+staff-console/    Vue 3 SPA — Teacher, School Admin, Accounts, Super Admin (and Principal views)
+parent-app/       Flutter app — Parent
+docs/             Documentation (index: docs/README.md)
+DESIGN.md         Design system      PROJECT-STATUS.md  Status & known gaps
 ```
 
-- **One backend, two clients.** Both clients use the same REST API at `/api/v1/...`.
-- **Role-gated staff console.** Teacher/Admin/Accounts/Principal access is enforced server-side with JWT roles and guards.
-- **Tenant and campus isolation.** Backend access paths enforce school and campus ownership.
-- **Swappable infrastructure adapters.** Storage, payments, push notifications and AI drafting use adapter interfaces with development/test fallbacks.
-- **Audit-logged writes.** State-changing endpoints record audit information.
+Per-app quickstarts: [backend](backend/README.md) · [staff console](staff-console/README.md) · [parent app](parent-app/README.md).
+
+**Roles** (`enum Role`): `SUPER_ADMIN`, `SCHOOL_ADMIN`, `TEACHER`, `ACCOUNTS`, `PARENT`. "Principal" is a `SCHOOL_ADMIN` user with `isPrincipal = true` (unlocks `/principal/*` views), not a separate role. Details: [`docs/product/PERSONAS-AND-ROLES.md`](docs/product/PERSONAS-AND-ROLES.md).
+
+**Security model (summary):** JWT access + rotating refresh tokens, argon2 password hashing, account lockout, server-enforced role guards (`@Roles`), school/campus scoping in services, request validation (`ValidationPipe` whitelist), rate limiting. Status of every control and known gaps: [`docs/security/`](docs/security/SECURITY-OVERVIEW.md).
 
 ## Tech stack
 
-| Layer | Stack |
+| Layer | Stack (from `package.json` / `pubspec.yaml`) |
 |---|---|
-| Backend | NestJS 11, Prisma 7 + PostgreSQL (`@prisma/adapter-pg`), Passport-JWT + argon2, class-validator |
-| Staff console | Vue 3, TypeScript, Vite, Pinia, Vue Router, vue-i18n, Vitest |
-| Parent app | Flutter (Dart), secure storage, shared preferences, Firebase Messaging, Flutter localization |
-| Testing | Jest, Vitest, Flutter Test |
+| Backend | NestJS 11, Prisma 7 + PostgreSQL (`@prisma/adapter-pg`), Passport-JWT, argon2, class-validator, `@nestjs/schedule`, `@nestjs/throttler` |
+| Staff console | Vue 3, Vite, Pinia, Vue Router, vue-i18n, Vitest (Node `^22.18` or `>=24.12`) |
+| Parent app | Flutter (Dart `^3.13`), `provider`, `go_router`, secure storage, Firebase Messaging |
+| CI | GitHub Actions (`.github/workflows/ci.yml`): Postgres 16, Node 24, Flutter 3.47.1 |
 
-## Expanded data model
+## Quick start (local development)
 
-The current Prisma schema is additive and covers:
-
-- **Organization:** School, Campus, AcademicSession, Class and Section.
-- **Identity/RBAC:** User, roles, refresh tokens and tenant ownership.
-- **Students:** GR number, structured name, preferred name, gender, DOB, place of birth, nationality, religion, B-Form number, status, admission/leaving information, student contact information and current/permanent addresses.
-- **Student profile satellites:** previous school, leaving-certificate information, emergency contacts, medical information and student documents.
-- **Parents/guardians:** ParentProfile plus StudentParent relationships.
-- **Enrollment:** campus, section, academic session, roll number, promotion date, remarks and enrollment status.
-- **Staff:** employee type, personal/contact information, CNIC, addresses, employment status, experience, emergency contacts and documents; teachers remain linked to the existing Teacher model.
-- **Hiring:** HiringCandidate and HiringApplication pipeline.
-- **Admissions:** Applicant and Application pipeline with desired class, academic session, status, decision notes and approved-student linkage.
-- **Academic operations:** subjects, timetables, diary/homework, attendance, holidays, assessments/gradebook and report cards.
-- **Communication/finance:** circulars, messages, notifications, fees, payments, receipts, complaints and leave.
-
-## Seed data
-
-`backend/prisma/seed.ts` is aligned with the expanded Prisma schema and is designed for a fresh development database. It creates relational demo data rather than the former small single-school sample.
-
-### Seeded organization
-
-| Item | Quantity |
-|---|---:|
-| Schools | 2 |
-| Branches/campuses | 5 |
-| Academic sessions | 2 per school (2025-2026 and 2026-2027) |
-| Grades | 1–8 |
-| Sections | 2 per grade per campus = 80 |
-| Students | 20 per section = 1,600 |
-| Parent accounts | 2 per student = 3,200 |
-| Class teachers | 1 per section = 80 |
-
-The two seeded schools are **Test School A** (3 branches) and **Test School B** (2 branches) —
-placeholder demo names, not real institutions.
-
-Each seeded student receives:
-
-- Structured identity and contact information.
-- GR number and B-Form number.
-- Current and permanent address records.
-- Previous-school record including leaving-certificate details.
-- Emergency contact and medical information.
-- Active enrollment with campus, class, section, academic session, roll number and remarks.
-- Father and mother linked through `StudentParent`.
-- Timetable and diary activity through the student's section/class teacher.
-
-### Academic operations seed
-
-- Monday-Friday timetable for every section, with six periods per day and a break between periods 3 and 4.
-- Attendance records for every student using all five schema statuses: `PRESENT`, `ABSENT`, `LATE`, `LEAVE`, and `HOLIDAY`.
-- Homework diary entries and classroom activities for every section.
-- Admissions data for each branch using the `Applicant` and `Application` models.
-- Hiring candidate/application examples for the expanded Staff/Hiring model.
-
-### Seed password
-
-The seed reads the development password from `SEED_PASSWORD`. Do not hard-code a development password into source control. Set it in the backend `.env` or shell environment before running the seed.
-
-## Getting started
-
-### Prerequisites
-
-- Node.js version specified by the repository `package.json` engines.
-- PostgreSQL 16+ reachable at the configured `DATABASE_URL`.
-- Flutter SDK 3.47.x for the parent app.
-
-### 1. Backend
+Prerequisites: Node 24 (or a version allowed by the staff-console `engines`), PostgreSQL 16, Flutter SDK for the parent app.
 
 ```bash
+# 1. Backend — http://localhost:3000
 cd backend
 npm install
-cp .env.example .env
-# Set DATABASE_URL and SEED_PASSWORD in .env
+cp .env.example .env        # set DATABASE_URL and SEED_PASSWORD; change JWT secrets
 npx prisma generate
 npx prisma migrate deploy
-npm run prisma:seed
+npm run prisma:seed         # fresh dev database only
 npm run start:dev
-```
 
-The expanded seed is intended for an empty development database. For a clean local rebuild, reset/recreate the development database using your normal PostgreSQL workflow, then run migrations and the seed again.
-
-### 2. Staff console
-
-```bash
+# 2. Staff console — http://localhost:5173
 cd staff-console
 npm install
-npm run dev
-```
+npm run dev                 # API URL: VITE_API_BASE_URL (default http://localhost:3000)
 
-### 3. Parent app
-
-```bash
+# 3. Parent app
 cd parent-app
 flutter pub get
-flutter run -d chrome
+flutter run -d chrome       # API URL: --dart-define=API_BASE_URL=... (default http://localhost:3000;
+                            #   Android emulator: http://10.0.2.2:3000)
 ```
 
-### After pulling schema changes
+*These commands match the package scripts; they were not executed as part of the documentation pass.*
 
-```bash
-cd backend
-npx prisma generate
-npx prisma migrate deploy
-```
+**Demo accounts** come from `backend/prisma/seed.ts` (password = your `SEED_PASSWORD`): `superadmin@schoolportal.local`, per-school `admin@…`, `principal@…`, `accounts@…`, per-section teachers, and per-student parent accounts (`father.gr-00001@parent.schoolportal.local` pattern). The `schoolportal` naming is a known rebrand leftover. Seed content and caveats: [`docs/database/SEEDING.md`](docs/database/SEEDING.md).
 
-## Seeded account patterns
+## Configuration
 
-The seed creates school-level Admin, Principal and Accounts users, one Teacher login per seeded section, and two Parent accounts per seeded student.
-
-Teacher identifiers follow this pattern (`school1`/`school2` denote the two seeded test schools):
-
-```text
-school1.g1a@schoolportal.local
-school1.g1b@schoolportal.local
-...
-school2.g8a@schoolportal.local
-school2.g8b@schoolportal.local
-```
-
-Parent identifiers follow this pattern:
-
-```text
-father.gr-00001@parent.schoolportal.local
-mother.gr-00001@parent.schoolportal.local
-```
-
-The exact password is supplied through `SEED_PASSWORD` and is intentionally not documented in the repository.
+Backend environment variables are documented in `backend/.env.example` (database, CORS, JWT secrets/TTL, payment gateways, Firebase, SMTP, `FRONTEND_URL`, `ANTHROPIC_API_KEY`). A provider whose variables are all unset falls back to a development stub/logging adapter; **partially set variables are a startup error outside development/test**. Full reference: [`docs/operations/ENVIRONMENT.md`](docs/operations/ENVIRONMENT.md).
 
 ## Testing
 
 ```bash
-cd backend
-npm test
-npx jest --config test/jest-e2e.json
-
-cd ../staff-console
-npm test
-npm run type-check
-
-cd ../parent-app
-flutter analyze
-flutter test
+cd backend        && npm test && npm run test:e2e     # e2e needs PostgreSQL (DATABASE_URL)
+cd staff-console  && npm test && npm run type-check && npm run lint
+cd parent-app     && flutter analyze && flutter test
 ```
 
-## Environment variables
+Strategy and results (2026-09-20: backend unit 579, e2e 196, staff console 512, Flutter 100 — all green; backend lint failing/non-blocking): [`docs/testing/`](docs/testing/TESTING-STRATEGY.md).
 
-| Variable | Purpose |
+## Integrations
+
+| Integration | Status |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string; required in every environment |
-| `SEED_PASSWORD` | Development-only password used for generated seed login accounts |
-| `CORS_ORIGINS` | Allow-listed client origins |
-| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | JWT signing secrets |
-| `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` | Access/refresh token lifetimes |
-| `JAZZCASH_*` / `EASYPAISA_*` | Payment adapter credentials |
-| `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | FCM credentials |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Password-reset email configuration |
-| `FRONTEND_URL` | Password-reset link base URL |
-| `ANTHROPIC_API_KEY` | Enables real AI drafting instead of the development stub |
+| JazzCash / EasyPaisa | CONFIGURATION REQUIRED; not sandbox-verified |
+| Firebase Cloud Messaging | CONFIGURATION REQUIRED; logging no-op when unset |
+| SMTP (password reset) | CONFIGURATION REQUIRED; logs the link when unset |
+| SMS / WhatsApp | EXTERNAL SERVICE REQUIRED |
+| Anthropic (AI drafting) | EXTERNAL SERVICE REQUIRED; stub when unset |
+| File storage | Local disk only |
+
+## Known limitations
+
+- **Not production-ready** — see [`docs/release/PRODUCTION-READINESS.md`](docs/release/PRODUCTION-READINESS.md).
+- Pre-production: no deployment tooling (Dockerfile/IaC), no health/readiness endpoint, no security headers (`helmet`), no structured logging or metrics, no backup/restore documentation.
+- Academic sessions are platform-global; activating one deactivates all others. Four list endpoints are not school-scoped (`academic-sessions`, `terms`, `subjects`, `fee-structures`).
+- Subjects are read-only (no create/edit in API or UI; seed/DB only).
+- File uploads use local disk only; scheduled jobs run in-process (single-instance assumption).
+- Payment/messaging/AI integrations have never been verified against live services; the SMS sender targets a placeholder URL.
+- Cross-school data-isolation defects exist (e.g. school-wide circulars reach all parents; platform-wide holidays) and the backend has 9 high-severity dependency vulnerabilities — see [`docs/security/KNOWN-GAPS.md`](docs/security/KNOWN-GAPS.md).
+- `NODE_ENV` must be set to `production`; an unset value enables development fallbacks.
+- No LICENSE; [`CHANGELOG.md`](CHANGELOG.md) is a reconstructed pre-1.0 history.
+
+Full list and evidence: [`PROJECT-STATUS.md`](PROJECT-STATUS.md).
 
 ## Documentation
 
-- [`PROJECT-STATUS.md`](./PROJECT-STATUS.md) — current implementation/status source of truth.
-- `plan/docs/FEATURES.txt` — original FEAT-001..014 specification.
-- `docs/Plan-Ideas/PHASE-1/` and `docs/Plan-Ideas/PHASE-2/` — planning, audit, roadmap and implementation prompts.
-- `docs/superpowers/plans/` — dated implementation plans.
-- `docs/superpowers/specs/` — feature/design specifications.
-- `docs/database/` — database audit, design and migration documentation.
+[`docs/README.md`](docs/README.md) is the index. Highlights: [status](PROJECT-STATUS.md) · [design system](DESIGN.md) · [product](docs/product/PRODUCT-OVERVIEW.md) · [workflows](docs/workflows/PRODUCT-JOURNEY.md) · [architecture](docs/architecture/SYSTEM-OVERVIEW.md) · [API](docs/api/API-OVERVIEW.md) · [database](docs/database/DATA-MODEL.md) · [security](docs/security/SECURITY-OVERVIEW.md) · [operations](docs/operations/ENVIRONMENT.md) · [testing](docs/testing/TESTING-STRATEGY.md) · [user guides](docs/user-guides/README.md) · [release](docs/release/README.md) · [documentation plan](docs/PLAN-DOCUMENTATION-PRODUCTION-READINESS.md) · [history/archive](docs/archive/).
 
-## Deployment readiness
+## Roadmap (PLANNED, not implemented)
 
-The repository is PostgreSQL-only and has tenant/campus access-control hardening. Before staging or production, replace development secrets, configure real storage/Firebase/payment/WhatsApp-SMS integrations, configure real AI credentials if required, validate migrations on staging, and perform a scoped pilot before full rollout.
+Parent web portal · object storage adapter · deployment and monitoring tooling · school-scoped academic sessions (needs a product decision) · live payment/messaging verification. Backlog: [`docs/product/requirements/BACKLOG.md`](docs/product/requirements/BACKLOG.md).

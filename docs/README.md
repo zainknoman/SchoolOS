@@ -1,0 +1,41 @@
+# SchoolOS Documentation Index
+
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
+
+## Rules
+
+1. **Truth order:** running code (controllers, services, DTOs) → `schema.prisma` + migrations → e2e tests → unit tests → config (`.env.example`, `ci.yml`, `package.json`) → client code → canonical docs → design docs → historical docs → ideas. Docs describe what **is** implemented; planned work lives only in clearly labelled roadmap/backlog sections.
+2. **Every canonical doc starts with a status header:** `Status · Verified <date> against main@<sha> · Sources · Owner`. Doc status values: `CURRENT`, `PARTIAL`, `HISTORICAL`, `DEPRECATED`, `ARCHIVED`, `REQUIRES-DECISION`.
+3. **Feature/control status words (inside tables):** `IMPLEMENTED`, `PARTIALLY IMPLEMENTED`, `CONFIGURATION REQUIRED`, `EXTERNAL SERVICE REQUIRED`, `STUB`, `PLANNED`, `NOT IMPLEMENTED`, `DEPRECATED`, `UNKNOWN`. Undecided rules: `REQUIRES-DECISION`.
+4. **Documentation completeness is not production readiness.** Readiness is assessed separately (`release/`, planned).
+5. Documentation phases never change application code. Problems found are logged as `CODE ISSUE DISCOVERED`.
+
+## Canonical documents
+
+| Topic | Location | State |
+|---|---|---|
+| Entry point | [`../README.md`](../README.md) | CURRENT |
+| Live status & known gaps | [`../PROJECT-STATUS.md`](../PROJECT-STATUS.md) | CURRENT |
+| Design system | [`../DESIGN.md`](../DESIGN.md), [`../staff-console/design-system/schoolos-staff-console/MASTER.md`](../staff-console/design-system/schoolos-staff-console/MASTER.md) | CURRENT |
+| Product foundation (overview, roles, features, rules, glossary) | [`product/`](product/) | CURRENT (Phase 3) |
+| Requirements | [`product/requirements/`](product/requirements/README.md) | CURRENT (Phase 5; traceability completed in Phase 10) |
+| Journeys & workflows | [`workflows/`](workflows/) | CURRENT (Phase 4) |
+| Architecture / ADRs | [`architecture/`](architecture/README.md), [`decisions/`](decisions/README.md) | CURRENT |
+| API | [`api/`](api/API-OVERVIEW.md) (overview, authN/authZ, generated endpoint reference, Postman collection) | CURRENT |
+| Database | [`database/`](database/DATA-MODEL.md) (model, generated dictionary + ERD, tenancy, migrations, seeding, history) | CURRENT (`data-model-design.md` and `migration-plan.md` are deprecated stubs kept only because code comments cite them) |
+| Security | [`security/`](security/SECURITY-OVERVIEW.md), root [`SECURITY.md`](../SECURITY.md) | CURRENT (inventory; contact REQUIRES-DECISION) |
+| Operations | [`operations/`](operations/ENVIRONMENT.md) (environment, deployment requirements, backup, monitoring, runbooks, integrations) | PARTIAL — several capabilities NOT IMPLEMENTED and documented as such |
+| Testing | [`testing/`](testing/TESTING-STRATEGY.md) | CURRENT (suites executed 2026-09-20) |
+| User guides | [`user-guides/`](user-guides/README.md) | PARTIAL (not click-tested) |
+| Release / readiness | [`release/`](release/README.md), [`../CHANGELOG.md`](../CHANGELOG.md) | CURRENT — verdict: **not production-ready** |
+
+## Reference and history
+
+| Location | Meaning | State |
+|---|---|---|
+| [`PLAN-DOCUMENTATION-PRODUCTION-READINESS.md`](PLAN-DOCUMENTATION-PRODUCTION-READINESS.md) | Program plan for this documentation effort | CURRENT |
+| [`audit/`](audit/) | Dated audits (UI/design-system audit 2026-09-18; documentation audit 2026-09-20) | CURRENT (dated records) |
+| [`superpowers/`](superpowers/README.md) | Per-sprint plans and design specs (tool-managed) | HISTORICAL — rationale, not truth |
+| [`design-reference/`](design-reference/) | Wireframes, screenshot/comps, timetable samples | HISTORICAL/REFERENCE |
+| `UI-Screenshots/` (this folder) | Current design comps — **pending move** into `design-reference/` (blocked by a Windows file lock on 2026-09-20) | REFERENCE |
+| [`archive/`](archive/) | Superseded material with ARCHIVED banners: original MVP plan, Plan-Ideas, Figma handoff, old build log, old trackers, stale DB docs. Cleanup record: [`archive/CLEANUP-MANIFEST.md`](archive/CLEANUP-MANIFEST.md) | ARCHIVED |

@@ -1,17 +1,27 @@
-# parent_app
+# SchoolOS Parent App
 
-A new Flutter project.
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
 
-## Getting Started
+Flutter app for parents: children switcher, calendar (attendance/diary/timetable), circulars, fees and voucher payment, messages, notifications, leave, complaints, report cards. English and Urdu. Project overview: [`../README.md`](../README.md).
 
-This project is a starting point for a Flutter application.
+## Run
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+flutter run -d chrome
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+API base URL: `--dart-define=API_BASE_URL=http://10.0.2.2:3000` (Android emulator); default `http://localhost:3000` (`lib/main.dart`). Sign in with a seeded parent account (see the root README).
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Checks
+
+```bash
+flutter analyze
+flutter test
+```
+
+CI uses Flutter 3.47.1 (`.github/workflows/ci.yml`).
+
+## Layout
+
+`lib/src/api/` HTTP client with token refresh · `auth/` session state, secure token store · `screens/` UI · `cache/` last-response offline cache · `notifications/` FCM token registration · `theme/` theme, accent, locale · `router/` `go_router` · `lib/l10n/` ARB strings. Firebase is configured through `lib/firebase_options.dart` (no real Firebase project is wired yet — push is CONFIGURATION REQUIRED).
