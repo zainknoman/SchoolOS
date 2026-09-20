@@ -1,6 +1,6 @@
 # Backup, Restore and Disaster Recovery
 
-> **Status:** PARTIAL — requirements only · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
+> **Status:** PARTIAL — requirements only · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Operations/Deployment Owner
 > **`NOT IMPLEMENTED`:** the repository contains no backup script, schedule, restore procedure, retention setting, or DR plan (grep for `pg_dump`, `backup`, `restore` in non-doc files: none). Nothing below is a procedure that exists; it is what must be decided and built. Verified only: the migrations apply cleanly to an empty PostgreSQL database (13/13, 2026-09-20) — this proves rebuild-from-schema, **not** data recovery.
 
 ## What must be protected
@@ -11,8 +11,18 @@
 | Secrets/config | environment | needed to restart; JWT secret change invalidates sessions |
 | Migrations/code | git | reproducible |
 
-## Requirements to decide (REQUIRES-DECISION)
-Recovery point objective (RPO) and time objective (RTO); backup frequency and retention (interacts with PII retention, Q7); encryption of backups; off-site copy; who can restore; restore-test cadence.
+## Decided initial targets (owner, 2026-09-20) — tooling NOT IMPLEMENTED
+| Target | Value |
+|---|---|
+| Backup frequency | **daily minimum**; automated **point-in-time recovery preferred** (managed PostgreSQL) |
+| RPO (maximum data loss) | **24 hours** |
+| RTO (maximum restore time) | **4 hours** |
+| Backup retention | **30 days minimum** |
+| Uploaded files | held in external object storage (BL-10) with versioning/lifecycle so files and database restore consistently |
+Targets may be tightened after the pilot. Pilot exit requires a **tested** restore (BL-13, BL-57): rehearsal result and duration recorded in `docs/release/`.
+
+## Still `REQUIRES-DECISION`
+Backup encryption keys and off-site copy location (depends on hosting, RD-3); who is authorised to restore (Operations/Deployment Owner unnamed, RD-5); restore-test cadence after the pilot; interaction of backup retention with the future PII retention policy (RD-6).
 
 ## Minimal procedure to write once tooling is chosen
 1. Scheduled logical (`pg_dump`) or physical backup of the database **and** snapshot of `UPLOADS_DIR` at the same time.

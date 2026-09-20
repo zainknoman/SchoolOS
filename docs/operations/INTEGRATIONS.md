@@ -1,7 +1,8 @@
 # External Integrations
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/fees/gateways/*`, `notifications/*`, `ai-drafting/*`, `storage/*`, `.env.example`, unit specs · **Owner:** project owner
-> **Rule:** an adapter existing is **not** production readiness. "Verification status" uses only: `Unit-tested with fakes` (colocated specs, no network), `Sandbox-verified`, `Production-verified`. **No integration below has been sandbox- or production-verified** (the archived status log states this for payments/FCM/WhatsApp/SMS; nothing in the repository contradicts it). Architecture: [`../architecture/INTEGRATIONS.md`](../architecture/INTEGRATIONS.md). Variables: [ENVIRONMENT](ENVIRONMENT.md).
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/fees/gateways/*`, `notifications/*`, `ai-drafting/*`, `storage/*`, `.env.example`, unit specs · **Owner:** Operations/Deployment Owner
+> **Owner decisions (2026-09-20) do not change any verification status:** all integrations must be **configurable and must never block the core platform when credentials are unavailable** (feature flags default off; manual payment recording is the fallback).
+**Rule:** an adapter existing is **not** production readiness. "Verification status" uses only: `Unit-tested with fakes` (colocated specs, no network), `Sandbox-verified`, `Production-verified`. **No integration below has been sandbox- or production-verified** (the archived status log states this for payments/FCM/WhatsApp/SMS; nothing in the repository contradicts it). Architecture: [`../architecture/INTEGRATIONS.md`](../architecture/INTEGRATIONS.md). Variables: [ENVIRONMENT](ENVIRONMENT.md).
 
 Common facts: no retry, back-off, circuit breaker, queue or dead-letter handling exists for any outbound call (`grep retry` in adapters: none); no HTTP timeouts are set on the `fetch` senders; failures of notification/mail sends are caught, logged and swallowed (`notifications.service.ts:72`, `auth.service.ts:179`); no integration-specific monitoring exists.
 
@@ -21,3 +22,17 @@ Common facts: no retry, back-off, circuit breaker, queue or dead-letter handling
 
 ## Retry, monitoring and test strategy (all integrations)
 Retry: none. Monitoring: none (see [MONITORING-LOGGING](MONITORING-LOGGING.md)). Test strategy today: adapter unit specs with injected fakes; gateway signers have signer specs; e2e uses stubs. Needed before production: sandbox runs with real credentials for each integration, recorded in `docs/release/`; a timeout/retry policy; delivery-status handling for messaging.
+
+## Decided provider direction (owner, 2026-09-20)
+| Integration | Decision | Launch role | Work item |
+|---|---|---|---|
+| JazzCash, EasyPaisa | Supported behind feature configuration; activated only with merchant accounts and sandbox/production credentials; **manual payment recording is the launch fallback** | Not a launch blocker; post-pilot | BL-14 |
+| Firebase / FCM | Dedicated SchoolOS Firebase project; separate staging and production projects where practical; parent push + app config | Pilot (notifications operational) | BL-43, BL-14 |
+| SMTP / transactional e-mail | Production provider behind a provider abstraction, env-configured; **provider not chosen** (RD-4) | Pilot (reset, notifications) | BL-14 |
+| SMS | Behind an adapter/interface, **not coupled to the placeholder URL**; **provider not chosen** (RD-4) | Post-pilot unless required | BL-38 |
+| WhatsApp | Future; official Business/Cloud API; **approved message templates** required (no unrestricted free text) | Post-pilot | BL-48 |
+| AI drafting | Optional, **feature-flagged**, off by default; org-provided credentials, server-side only; configurable usage/cost limits; redact child data where possible | Post-pilot | BL-49 |
+| File storage | **S3-compatible object storage** behind the storage service (student documents, report cards, certificates, admission documents, profile images); no persistent local disk | Pilot blocker | BL-10 |
+| Parent password-reset delivery | Parent-app/web-compatible link (deep link), short-lived single-use token, separate from staff reset | Pilot blocker | BL-35 |
+
+Verification: **unchanged** — no integration is sandbox- or production-verified. Recorded evidence (date, environment, result) is required in `docs/release/` before any status changes.

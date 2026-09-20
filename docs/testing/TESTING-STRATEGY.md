@@ -1,6 +1,6 @@
 # Testing Strategy and Current Results
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` — **suites were executed on this date** (commands and results below; figures come from the run, not from older documents) · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` — **suites were executed on this date** (commands and results below; figures come from the run, not from older documents) · **Owner:** Engineering Lead
 > Passing tests are evidence of behaviour under the test setup, **not proof of production readiness** (no live integration, load, security or migration-from-data tests exist).
 
 ## Test layers (as implemented)

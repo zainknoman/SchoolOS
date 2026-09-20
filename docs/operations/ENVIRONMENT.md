@@ -1,6 +1,6 @@
 # Environment Variables
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** every `process.env.*` / `config.get('…')` read under `backend/src`, `backend/prisma`, `backend/prisma.config.ts`; `backend/.env.example`; `staff-console/src/lib/api.ts`; `parent-app/lib/main.dart` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** every `process.env.*` / `config.get('…')` read under `backend/src`, `backend/prisma`, `backend/prisma.config.ts`; `backend/.env.example`; `staff-console/src/lib/api.ts`; `parent-app/lib/main.dart` · **Owner:** Operations/Deployment Owner
 > Build method: union of variables read by code compared with `.env.example` (scripted grep, 2026-09-20). "Fail" = behaviour when missing/partial.
 
 ## Backend (`backend/`)
@@ -25,6 +25,13 @@
 | `ANTHROPIC_API_KEY` | Optional | unset ⇒ stub drafting provider | Yes | |
 
 **In `.env.example` but not read by code:** `JWT_REFRESH_SECRET`, `JWT_REFRESH_TTL` (refresh tokens are opaque and fixed at 30 days — `auth.constants.ts`). **Read by code but absent from `.env.example`:** `NODE_ENV`, `PORT`, `UPLOADS_DIR`, `WHATSAPP_*`, `SMS_GATEWAY_*`.
+
+## Decided environment policy (owner, 2026-09-20) — not all implemented
+- **Separate secrets per environment** (development, staging, production); nothing shared. `NODE_ENV=production` must be set explicitly in staging and production (KG-3, BL-51). Placeholder values such as `change-me` must be rejected at startup (BL-51).
+- Variables the decided design **adds** (names indicative, `NOT IMPLEMENTED`): object-storage endpoint/bucket/credentials (BL-10); Sentry DSN and scrubbing settings (BL-11); bootstrap SUPER_ADMIN credentials, consumed once (BL-22); separate parent reset base URL/deep-link scheme (BL-35); per-integration feature flags, default **off** for payment gateways, WhatsApp and AI drafting (Q34, Q38, Q39); SMS/e-mail provider selection variables (Q36, Q37).
+- `FRONTEND_URL` remains a single staff-console URL today; parents must not be sent to it (KI-7 -> BL-35).
+- Signing keys, keystores, Firebase service accounts and store credentials are **never committed** (Q32); the parent app's `firebase_options.dart` placeholder is replaced per environment (BL-34, BL-43).
+- `.env.example` and `backend/.env` still contain `schoolportal` naming (DB name); the rename is decided (BL-34) but needs an explicit keep/rename decision for existing local databases.
 
 ## Staff console (Vite)
 | Variable | Default | Notes |

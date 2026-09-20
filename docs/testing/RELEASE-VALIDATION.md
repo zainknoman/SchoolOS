@@ -1,6 +1,6 @@
 # Release Validation
 
-> **Status:** CURRENT (procedure) · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
+> **Status:** CURRENT (procedure) · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Engineering Lead
 > What must be run and confirmed before a build is released. Items marked **(gap)** have no automation today and would have to be done manually or built. Nothing here has been executed as a release; the first row set was executed once on 2026-09-20 as documentation evidence ([TESTING-STRATEGY](TESTING-STRATEGY.md)).
 
 ## 1. Automated gates (exist)

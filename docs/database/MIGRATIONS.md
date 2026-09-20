@@ -1,6 +1,6 @@
 # Migrations
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/prisma/migrations/*/migration.sql`, `prisma.config.ts`, `.github/workflows/ci.yml` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/prisma/migrations/*/migration.sql`, `prisma.config.ts`, `.github/workflows/ci.yml` · **Owner:** Engineering Lead
 > Replaces `docs/database/migration-plan.md` (archived, covered only two sub-projects).
 
 ## Strategy (observed)

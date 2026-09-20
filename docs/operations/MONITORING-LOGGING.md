@@ -1,6 +1,6 @@
 # Monitoring, Logging, Health and Alerting
 
-> **Status:** PARTIAL — as-is inventory plus gaps · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/**` (grep for `Logger`, `console.*`, `helmet`, health), `package.json` · **Owner:** project owner
+> **Status:** PARTIAL — as-is inventory plus gaps · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/**` (grep for `Logger`, `console.*`, `helmet`, health), `package.json` · **Owner:** Operations/Deployment Owner
 
 ## What exists
 | Capability | State | Evidence |
@@ -14,6 +14,17 @@
 | Alerting | **NOT IMPLEMENTED** | — |
 | Audit trail (business) | `AuditLog` table, many writes ([HISTORY](../database/HISTORY.md)) | schema |
 | Client crash/analytics | none in staff console or parent app | dependencies |
+
+## Decided monitoring stack (owner, 2026-09-20) — NOT IMPLEMENTED
+| Concern | Decision |
+|---|---|
+| Errors and performance | **Sentry** (hosted) for the backend, staff console and parent app |
+| Database | provider-native PostgreSQL monitoring |
+| Logs | **structured (JSON) application logs** with request id |
+| Availability | **external uptime monitoring** (provider not chosen, RD-4) against live/ready endpoints |
+| Later | Grafana only if operational complexity justifies it |
+**PII scrubbing must be enabled.** Never intentionally capture: passwords; access/refresh/reset tokens; CNIC/B-Form; medical information; sensitive student or guardian information. Request bodies are not captured by default; a scrubbing test belongs in CI (BL-11).
+Targets to monitor: 99.5 % monthly availability, API p95 < 500 ms (CRUD), auth p95 < 1 s (see [NFR](../product/requirements/NON-FUNCTIONAL-REQUIREMENTS.md)). Alerts on 5xx rate, cron failure, payment webhook failures, database connectivity/space, object-storage errors.
 
 ## Sensitive data in logs
 Password-reset links with tokens are logged when SMTP is unset (KG-4); push no-op logs user id and title; notification failures log the error object. No redaction policy.

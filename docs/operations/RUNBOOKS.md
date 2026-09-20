@@ -1,7 +1,18 @@
 # Troubleshooting Runbooks
 
-> **Status:** PARTIAL — derived from code behaviour, **not from production experience** (none exists) · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
-> Each entry states the symptom, the code-derived cause(s), and what to check. There is no incident-response process, on-call or SLA in the repository; those are `REQUIRES-DECISION`.
+> **Status:** PARTIAL — derived from code behaviour, **not from production experience** (none exists) · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Operations/Deployment Owner
+> Each entry states the symptom, the code-derived cause(s), and what to check. The incident/support model below is **DECIDED (2026-09-20) but not yet operational**; it must exist before production launch (BL-56).
+
+## Incident and support process (decided; pilot)
+- **Roles:** the Engineering/Operations owner handles technical incidents; the **school admin is the first operational contact** for school-side issues and escalates to the designated support channel (a dedicated support e-mail/helpdesk address — address `[support-email]`, RD-2/RD-13).
+- **Internal severity levels** (no contractual SLA in the pilot; exact response targets are defined after pilot validation):
+| Level | Meaning (working definition) | Handling |
+|---|---|---|
+| P1 Critical | production down, data loss/corruption or suspected breach/cross-school data exposure | immediate operational attention; Security Owner engaged for suspected breach; breach-notification process (Product Owner, counsel) applies |
+| P2 High | major function unusable (login, attendance, fees) for a school | acknowledged as soon as practical |
+| P3 Medium | degraded or workaround exists | normal queue |
+| P4 Low | cosmetic/minor request | backlog |
+- Critical production incidents are acknowledged as soon as practical. Record each P1/P2 with timeline, cause, fix and follow-ups. Named on-call owners: `REQUIRES-DECISION` (RD-5).
 
 | Symptom | Likely cause (evidence) | Check / action |
 |---|---|---|
@@ -19,8 +30,8 @@
 | "No active academic session" on student create / voucher issue | no session with `isActive = true` (`student.service.ts:69`) | Activate a session (note: activation deactivates all others) |
 | Students/vouchers land in the wrong session in a multi-school setup | Global active-session lookup (Q1, KG-7) | Correct data manually; needs product decision |
 | Attendance cannot be marked | section has no class teacher, or the day is a holiday (`attendance.service.ts`) | Assign class teacher; check holidays |
-| Leave cannot be approved | section has no class teacher (`leave.service.ts:109`) | Assign class teacher |
+| Leave cannot be approved | section has no class teacher (`leave.service.ts:109`) — **defect vs the decided rule** (KI-26, BL-29) | Assign a class teacher as a workaround until BL-29 ships |
 | Uploaded files missing after redeploy | `UPLOADS_DIR` on ephemeral disk | Mount persistent storage; restore files ([BACKUP-RESTORE](BACKUP-RESTORE.md)) |
 | Digest/risk jobs run twice | two backend instances (ADR-0008) | Run one instance |
 | Deleting a record returns 400 "still referenced" | FK restriction (`prisma-delete-guard.ts`) | Remove/relocate dependents first |
-| Parents see another school's circular | KG-1 | Known defect |
+| Parents see another school's circular | KG-1 | Known defect (BL-20) |

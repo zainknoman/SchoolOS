@@ -1,6 +1,6 @@
 # Parent App Architecture
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `parent-app/lib/**`, `pubspec.yaml` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `parent-app/lib/**`, `pubspec.yaml` · **Owner:** Engineering Lead
 
 **Stack:** Flutter (Dart `^3.13`), `provider` (`ChangeNotifierProvider<AuthState>`, plain `Provider` for services), `go_router`, `http`, `flutter_secure_storage`, `shared_preferences`, `firebase_core` + `firebase_messaging`, `google_fonts`, `flutter_localizations`/`intl`.
 

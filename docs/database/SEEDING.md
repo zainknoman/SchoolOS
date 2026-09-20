@@ -1,6 +1,6 @@
 # Seeding
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/prisma/seed.ts` (296 lines), `backend/package.json` (`prisma:seed`), `.env.example` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/prisma/seed.ts` (296 lines), `backend/package.json` (`prisma:seed`), `.env.example` · **Owner:** Engineering Lead
 
 **Purpose:** development/demo data only. **Never run against a production database** — the script has no environment guard and creates well-known demo accounts.
 

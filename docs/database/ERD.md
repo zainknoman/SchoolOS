@@ -1,6 +1,6 @@
 # Entity Relationships
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `schema.prisma` (generated edges: child → parent for every `@relation(fields:…)`) · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `schema.prisma` (generated edges: child → parent for every `@relation(fields:…)`) · **Owner:** Engineering Lead
 > Edge label = `onDelete` (blank = Prisma default). Cross-domain parents appear as plain nodes.
 
 ## Identity

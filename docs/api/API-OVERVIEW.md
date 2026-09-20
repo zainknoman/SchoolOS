@@ -1,6 +1,6 @@
 # API Overview and Conventions
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/main.ts`, controllers, DTOs, `auth/`, `config/`, `staff-console/src/lib/api.ts` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/main.ts`, controllers, DTOs, `auth/`, `config/`, `staff-console/src/lib/api.ts` · **Owner:** Engineering Lead
 > Conventions are documented **as they actually are**; inconsistencies are logged as `CODE ISSUE DISCOVERED`, not smoothed over. Endpoint list: [ENDPOINTS.md](ENDPOINTS.md). No OpenAPI/Swagger document exists (decision G7: hand-written docs now; adding `@nestjs/swagger` is an engineering task, backlog BL-19).
 
 | Aspect | Actual behaviour | Evidence |

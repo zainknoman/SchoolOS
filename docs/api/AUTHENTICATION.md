@@ -1,6 +1,6 @@
 # Authentication
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/auth/**` (`auth.service.ts`, `auth.controller.ts`, `auth.constants.ts`, `strategies/jwt.strategy.ts`, `jwt-secret.ts`, `guards/*`), `common/normalize-identifier.ts` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/auth/**` (`auth.service.ts`, `auth.controller.ts`, `auth.constants.ts`, `strategies/jwt.strategy.ts`, `jwt-secret.ts`, `guards/*`), `common/normalize-identifier.ts` · **Owner:** Engineering Lead
 
 ## Endpoints
 | Endpoint | Auth | Body | Result |

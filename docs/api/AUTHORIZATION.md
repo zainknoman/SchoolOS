@@ -1,6 +1,6 @@
 # Authorization
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `auth/guards/roles.guard.ts`, `auth/decorators/*`, `common/org-scope.service.ts`, `common/student-access.service.ts`, controllers · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `auth/guards/roles.guard.ts`, `auth/decorators/*`, `common/org-scope.service.ts`, `common/student-access.service.ts`, controllers · **Owner:** Engineering Lead
 > Role capability matrix: [`docs/product/PERSONAS-AND-ROLES.md`](../product/PERSONAS-AND-ROLES.md). Route-by-route roles: [ENDPOINTS.md](ENDPOINTS.md).
 
 ## Three layers

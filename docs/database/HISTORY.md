@@ -1,6 +1,6 @@
 # Historical Records and Auditability
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `schema.prisma`, `promotions.service.ts`, `AuditLog` writers · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `schema.prisma`, `promotions.service.ts`, `AuditLog` writers · **Owner:** Engineering Lead
 
 | Record | Kept as history? | How | Gaps |
 |---|---|---|---|

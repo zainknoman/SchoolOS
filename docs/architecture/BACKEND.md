@@ -1,6 +1,6 @@
 # Backend Architecture
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/**`, `backend/prisma/**`, `backend/package.json` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/**`, `backend/prisma/**`, `backend/package.json` · **Owner:** Engineering Lead
 
 **Stack:** NestJS 11, Prisma 7.10 + `@prisma/adapter-pg` (PostgreSQL), Passport-JWT, argon2, class-validator/transformer, `@nestjs/throttler`, `@nestjs/schedule`, multer, pdfkit, nodemailer, firebase-admin, `@anthropic-ai/sdk`, csv-parse.
 

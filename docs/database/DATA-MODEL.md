@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/prisma/schema.prisma` (57 models, 14 enums, 108 foreign-key relations), 13 migrations · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/prisma/schema.prisma` (57 models, 14 enums, 108 foreign-key relations), 13 migrations · **Owner:** Engineering Lead
 > Companions (generated from the schema): [DATA-DICTIONARY.md](DATA-DICTIONARY.md) (every field) · [ERD.md](ERD.md) (relationships by domain). Isolation: [TENANCY.md](TENANCY.md). History/audit: [HISTORY.md](HISTORY.md). Migrations: [MIGRATIONS.md](MIGRATIONS.md). Seed: [SEEDING.md](SEEDING.md).
 
 ## Conventions (observed)

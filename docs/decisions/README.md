@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Engineering Lead
 > All ADRs are **retroactive**: they record decisions already embodied in the code, with evidence. Status `Accepted (retroactive)` means the decision is in force, not that it was formally reviewed. Decision gate G6 (ADR list) resolved by recording only decisions with clear code evidence.
 
 | ADR | Decision |

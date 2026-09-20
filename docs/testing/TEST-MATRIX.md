@@ -1,6 +1,6 @@
 # Test Matrix
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** file inventory under `backend/test`, `backend/src/**/*.spec.ts`, `staff-console/src/**/*.spec.ts`, `parent-app/test/**`; run results in [TESTING-STRATEGY](TESTING-STRATEGY.md) · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** file inventory under `backend/test`, `backend/src/**/*.spec.ts`, `staff-console/src/**/*.spec.ts`, `parent-app/test/**`; run results in [TESTING-STRATEGY](TESTING-STRATEGY.md) · **Owner:** Engineering Lead
 > Mapping is by **spec file names and module folders** (not by reading every assertion). "e2e (n)" = number of `it/test` blocks in the spec by grep (Jest's total of 196 includes parameterised cases; the sum of these greps is 192). Feature IDs: [FEATURE-CATALOG](../product/FEATURE-CATALOG.md).
 
 | Feature | Backend e2e | Backend unit (module folder) | Staff console specs | Parent app tests | Gap |

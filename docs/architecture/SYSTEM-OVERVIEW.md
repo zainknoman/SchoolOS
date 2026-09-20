@@ -1,6 +1,6 @@
 # System Overview
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/app.module.ts`, `backend/prisma/schema.prisma`, `staff-console/src/main.ts`, `parent-app/lib/main.dart`, `.github/workflows/ci.yml` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/app.module.ts`, `backend/prisma/schema.prisma`, `staff-console/src/main.ts`, `parent-app/lib/main.dart`, `.github/workflows/ci.yml` · **Owner:** Engineering Lead
 
 ## Shape
 

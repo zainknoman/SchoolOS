@@ -1,6 +1,6 @@
 # Tenancy and Data Isolation
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/prisma/schema.prisma`, `common/org-scope.service.ts`, `circulars.service.ts`, `holidays.service.ts`, `academic-session.service.ts`; e2e `cross-tenant-boundary`, `org-provisioning`, `sections-access` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/prisma/schema.prisma`, `common/org-scope.service.ts`, `circulars.service.ts`, `holidays.service.ts`, `academic-session.service.ts`; e2e `cross-tenant-boundary`, `org-provisioning`, `sections-access` · **Owner:** Engineering Lead
 > Design: one PostgreSQL database; tenancy is a hierarchy (`School → Campus → Class → Section`) plus scope columns enforced in **application code** ([ADR-0006](../decisions/ADR-0006-tenancy-by-scoping-columns.md)). No row-level security exists. The owner intends a future multi-tenant SaaS; treat this document as the starting point for that audit, not as a claim of isolation.
 
 ## Where scope lives (schema)
