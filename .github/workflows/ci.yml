@@ -42,6 +42,8 @@ jobs:
       - run: cp .env.example .env
       - run: npx prisma generate
       - run: npx prisma migrate deploy
+      # BL-65: the migration harness creates/drops its own scratch databases (schoolos_scratch_*)
+      - run: npm run migration:harness:test
       # Backend carries ~672 pre-existing repo-wide Prettier/CRLF errors (see PROJECT-STATUS.md,
       # "Security Hardening Pass"); a full `prettier --write` is its own change, deliberately out of
       # Sprint A's scope. Non-blocking so the rest of this gate is trustworthy from run #1 — flip
