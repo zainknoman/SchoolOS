@@ -44,3 +44,41 @@
 | Migration | No |
 | Production smoke | No |
 | Regression | Implicit via e2e; no dedicated suite |
+
+## Generated test inventory (BL-66)
+
+<!-- GENERATED:BEGIN test-inventory -->
+Generated suite inventory (file and `it/test` block counts by grep — **not** executed results; executed counts are in [TESTING-STRATEGY](TESTING-STRATEGY.md)):
+
+| Suite | Files | Test blocks |
+|---|---|---|
+| Backend unit (`backend/src/**/*.spec.ts`) | 78 | 574 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 22 | 193 |
+| Staff console (`staff-console/src/**/*.spec.ts`) | 73 | 487 |
+| Parent app (`parent-app/test/**/*_test.dart`) | 29 | — |
+
+| Backend e2e spec | Test blocks |
+|---|---|
+| `admissions.e2e-spec.ts` | 7 |
+| `app.e2e-spec.ts` | 1 |
+| `auth-password-reset.e2e-spec.ts` | 3 |
+| `auth.e2e-spec.ts` | 8 |
+| `bulk-import.e2e-spec.ts` | 13 |
+| `cascade-delete-restrictions.e2e-spec.ts` | 4 |
+| `cors.e2e-spec.ts` | 2 |
+| `cross-tenant-boundary.e2e-spec.ts` | 6 |
+| `diary-circulars.e2e-spec.ts` | 13 |
+| `fees.e2e-spec.ts` | 11 |
+| `gradebook.e2e-spec.ts` | 10 |
+| `holidays-complaints-report-cards.e2e-spec.ts` | 12 |
+| `leave.e2e-spec.ts` | 6 |
+| `me.e2e-spec.ts` | 9 |
+| `messages-notifications.e2e-spec.ts` | 7 |
+| `org-provisioning.e2e-spec.ts` | 36 |
+| `org-structure.e2e-spec.ts` | 15 |
+| `people-crud.e2e-spec.ts` | 5 |
+| `promotions.e2e-spec.ts` | 6 |
+| `rate-limiting.e2e-spec.ts` | 2 |
+| `sections-access.e2e-spec.ts` | 1 |
+| `timetable-attendance.e2e-spec.ts` | 16 |
+<!-- GENERATED:END test-inventory -->

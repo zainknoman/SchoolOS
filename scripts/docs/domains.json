@@ -1,0 +1,97 @@
+{
+  "_comment": "Domain grouping used by the generated DATA-DICTIONARY and ERD. Edit here when adding a model; the generator fails if a model is missing.",
+  "domains": [
+    {
+      "name": "Identity",
+      "models": [
+        "User",
+        "RefreshToken",
+        "PasswordResetToken",
+        "DeviceToken",
+        "AuditLog"
+      ]
+    },
+    {
+      "name": "Organization",
+      "models": [
+        "School",
+        "Campus",
+        "AcademicSession",
+        "Class",
+        "Section",
+        "Subject",
+        "Term",
+        "Holiday"
+      ]
+    },
+    {
+      "name": "People",
+      "models": [
+        "Student",
+        "ParentProfile",
+        "StudentParent",
+        "Address",
+        "StudentPreviousSchool",
+        "StudentEmergencyContact",
+        "StudentMedicalInfo",
+        "StudentDocument",
+        "Teacher",
+        "Staff",
+        "StaffEmergencyContact",
+        "StaffExperience",
+        "StaffDocument"
+      ]
+    },
+    {
+      "name": "Enrollment & admissions & hiring",
+      "models": [
+        "Enrollment",
+        "StudentPromotion",
+        "Applicant",
+        "Application",
+        "HiringCandidate",
+        "HiringApplication"
+      ]
+    },
+    {
+      "name": "Academics",
+      "models": [
+        "Timetable",
+        "Attendance",
+        "AttendanceRiskFlag",
+        "DiaryEntry",
+        "DiaryAttachment",
+        "AssessmentCategory",
+        "Assessment",
+        "Mark",
+        "ReportCard",
+        "LeaveRequest",
+        "Complaint"
+      ]
+    },
+    {
+      "name": "Communication",
+      "models": [
+        "Circular",
+        "CircularRecipient",
+        "CircularAttachment",
+        "Conversation",
+        "Message",
+        "Notification",
+        "DraftSuggestion"
+      ]
+    },
+    {
+      "name": "Finance & files",
+      "models": [
+        "FeeStructure",
+        "FeeVoucher",
+        "FeeItem",
+        "FeePayment",
+        "FeePaymentAllocation",
+        "Receipt",
+        "File"
+      ]
+    }
+  ]
+}

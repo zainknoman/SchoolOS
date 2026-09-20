@@ -1,8 +1,8 @@
 # Endpoint Reference
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** every `backend/src/**/*.controller.ts` (185 route handlers, extracted by scanning `@Controller` + `@Get/@Post/@Put/@Patch/@Delete` + `@Roles/@Public/@Throttle`; **the table is generated, not hand-typed**) · **Owner:** Engineering Lead
-> All paths are prefixed with `/api/v1`. **Roles** = the `@Roles(...)` decorator (`RolesGuard` does an exact `includes(user.role)` check — SUPER_ADMIN has **no implicit override**; a route is open to it only when it is listed). "any authenticated (service-scoped)" = no decorator: every logged-in role passes the guard and the **service** decides by scope (`StudentAccessService` / `OrgScopeService`, see [AUTHORIZATION](AUTHORIZATION.md)). Rate limit column: `T` = route-level auth throttle (5/min); all routes also fall under the global 100/min limit.
-> The Postman collection (`SchoolOS.postman_collection.json`) was compared method+path against this table: **185 of 185 match, no extras either side** (path parameters normalised).
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from every `backend/src/**/*.controller.ts` — **do not edit by hand**; regenerate with `node scripts/docs/generate.mjs` (CI runs `--check`) · **Sources:** `@Controller` + `@Get/@Post/@Put/@Patch/@Delete` + `@Roles/@Public/@Throttle`; method-level `@Roles`/`@Public` override class-level ones · **Owner:** Engineering Lead
+> All paths are prefixed with `/api/v1`. **Roles** = the `@Roles(...)` decorator (`RolesGuard` does an exact `includes(user.role)` check — SUPER_ADMIN has **no implicit override**). "any authenticated (service-scoped)" = no decorator: every logged-in role passes the guard and the **service** decides by scope (see [AUTHORIZATION](AUTHORIZATION.md)). `T` = route-level throttle decorator (auth routes, 5/min); all routes also fall under the global 100/min limit.
+> Total: **185** route handlers in 41 controllers.
 
 ## (root)
 
@@ -405,5 +405,3 @@
 | POST | `/timetable` | SCHOOL_ADMIN, SUPER_ADMIN |  | `timetable/timetable.controller.ts` |
 | PATCH | `/timetable/:id` | SCHOOL_ADMIN, SUPER_ADMIN |  | `timetable/timetable.controller.ts` |
 | DELETE | `/timetable/:id` | SCHOOL_ADMIN, SUPER_ADMIN |  | `timetable/timetable.controller.ts` |
-
-Total: 185 handlers.

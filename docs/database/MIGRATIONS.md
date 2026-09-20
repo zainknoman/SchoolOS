@@ -34,3 +34,25 @@ No `UPDATE`/`INSERT`/`DELETE` statements were found in migrations (only DDL). Co
 
 ## Not present
 Migration tests (up-from-N, data-preservation), a documented squash policy, a tested rollback rehearsal, a migration lint in CI.
+
+## Generated migration inventory (BL-66)
+
+<!-- GENERATED:BEGIN migrations -->
+Generated inventory of `backend/prisma/migrations`: **13 migrations**, 0 DROP TABLE/COLUMN statements, 0 data-changing statements (INSERT/UPDATE/DELETE).
+
+| # | Migration | Lines | CREATE TABLE | ALTER TABLE | CREATE INDEX | CREATE TYPE | DROP TABLE/COLUMN | INSERT/UPDATE/DELETE |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `20260908000000_postgres_baseline` | 679 | 33 | 44 | 41 | 4 | 0 | 0 |
+| 2 | `20260911000000_notification_channel_preferences` | 10 | 0 | 2 | 0 | 1 | 0 | 0 |
+| 3 | `20260911001942_sprint_ijk_new_models` | 132 | 6 | 10 | 9 | 0 | 0 | 0 |
+| 4 | `20260912130140_teacher_campus_user_school_id` | 24 | 0 | 4 | 2 | 0 | 0 | 0 |
+| 5 | `20260913075451_add_gradebook` | 101 | 4 | 8 | 8 | 0 | 0 | 0 |
+| 6 | `20260913080800_add_admissions` | 56 | 2 | 5 | 4 | 0 | 0 | 0 |
+| 7 | `20260913190151_add_student_profile_and_documents` | 181 | 5 | 13 | 6 | 5 | 0 | 0 |
+| 8 | `20260914111659_add_staff_and_hiring` | 203 | 6 | 17 | 12 | 2 | 0 | 0 |
+| 9 | `20260916210234_add_school_campus_contact_fields` | 10 | 0 | 2 | 0 | 0 | 0 | 0 |
+| 10 | `20260917064046_add_student_promotion` | 41 | 1 | 4 | 3 | 1 | 0 | 0 |
+| 11 | `20260917101522_extend_school_campus_profile` | 55 | 0 | 6 | 2 | 1 | 0 | 0 |
+| 12 | `20260919090000_add_parent_profile_fields` | 27 | 0 | 4 | 1 | 0 | 0 | 0 |
+| 13 | `20260919141332_add_user_campus_scope` | 10 | 0 | 2 | 1 | 0 | 0 | 0 |
+<!-- GENERATED:END migrations -->

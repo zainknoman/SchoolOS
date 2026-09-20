@@ -36,6 +36,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      # BL-66: generated docs must match the repository (regenerate: node scripts/docs/generate.mjs)
+      - run: node --test ../scripts/docs/lib.test.mjs
+      - run: node ../scripts/docs/generate.mjs --check
       - run: cp .env.example .env
       - run: npx prisma generate
       - run: npx prisma migrate deploy

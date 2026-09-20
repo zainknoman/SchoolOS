@@ -36,3 +36,17 @@
 | DB-4 | Missing uniqueness for single ACTIVE enrollment and per-month vouchers |
 | DB-5 | No soft delete; `Cascade` on structural children means deleting a student removes its profile satellites, and deleting an academic session removes its terms (and whatever cascades from them) |
 | DB-6 | `Attendance` is daily only; no per-period attendance despite a period-based timetable |
+
+## Generated model index (BL-66)
+
+<!-- GENERATED:BEGIN model-index -->
+Generated model index (57 models, 14 enums):
+
+- **Identity** (5): User, RefreshToken, PasswordResetToken, DeviceToken, AuditLog
+- **Organization** (8): School, Campus, AcademicSession, Class, Section, Subject, Term, Holiday
+- **People** (13): Student, ParentProfile, StudentParent, Address, StudentPreviousSchool, StudentEmergencyContact, StudentMedicalInfo, StudentDocument, Teacher, Staff, StaffEmergencyContact, StaffExperience, StaffDocument
+- **Enrollment & admissions & hiring** (6): Enrollment, StudentPromotion, Applicant, Application, HiringCandidate, HiringApplication
+- **Academics** (11): Timetable, Attendance, AttendanceRiskFlag, DiaryEntry, DiaryAttachment, AssessmentCategory, Assessment, Mark, ReportCard, LeaveRequest, Complaint
+- **Communication** (7): Circular, CircularRecipient, CircularAttachment, Conversation, Message, Notification, DraftSuggestion
+- **Finance & files** (7): FeeStructure, FeeVoucher, FeeItem, FeePayment, FeePaymentAllocation, Receipt, File
+<!-- GENERATED:END model-index -->

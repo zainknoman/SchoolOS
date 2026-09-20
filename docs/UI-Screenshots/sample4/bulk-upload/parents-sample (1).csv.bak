@@ -8,7 +8,40 @@ father.ali,Muhammad Ali,0300-1234567
 
 
 2, 300k
+1
 
 
 
 
+
+Seeding against https://zynunureylcdexxhvdth.supabase.co
+
+Creating users...
+  user ready: alice.owner@tasktracker.test (00e12002-8310-45df-9c05-bc94bf00b768)
+  user ready: bob.member@tasktracker.test (b1ce72cf-27e0-4287-8250-991c384690e7)
+  user ready: carol.guest@tasktracker.test (bb4d16a4-a547-463f-a689-d7066149ff7e)
+  user ready: dave.owner@tasktracker.test (ab45ba1c-208d-40cb-9459-7a49b0e0ad12)
+  user ready: erin.member@tasktracker.test (b4f8e3e7-4201-4d0c-af91-ed26b4f682cb)
+
+Tenant 1 — Acme Corporation
+  workspace "Acme Corporation" already seeded (9c9fdada-a9f9-4274-bc18-594834f651dc) — skipping tenant
+
+Tenant 2 — Globex Industries
+  workspace "Globex Industries" already seeded (fe755f32-05dd-4a9f-922f-59d48287044c) — skipping tenant
+
+Done. Test accounts (password for all: Test1234!):
+┌─────────┬────────────────────────────────┬────────────────────────────────────────┬─────────────────┐
+│ (index) │ email                          │ workspace                              │ role            │
+├─────────┼────────────────────────────────┼────────────────────────────────────────┼─────────────────┤
+│ 0       │ 'alice.owner@tasktracker.test' │ 'Acme Corporation'                     │ 'owner'         │
+│ 1       │ 'bob.member@tasktracker.test'  │ 'Acme Corporation + Globex Industries' │ 'member (both)' │
+│ 2       │ 'carol.guest@tasktracker.test' │ 'Acme Corporation'                     │ 'guest'         │
+│ 3       │ 'dave.owner@tasktracker.test'  │ 'Globex Industries'                    │ 'owner'         │
+│ 4       │ 'erin.member@tasktracker.test' │ 'Globex Industries'                    │ 'member'        │
+└─────────┴────────────────────────────────┴────────────────────────────────────────┴─────────────────┘
+
+
+1- On Hiring View Screen. When a candidate is approved, pick the date of birth, CNIC, Mobile, Email, login email(email before '@' from hiring) automatically fill in approve application window.
+2- In Add Applicant, New Applicant, 2. Application	academic session dropdown showing all other school sessions also.
+3- In Admissions dropdown labels not appearing, in session dropdown all other school sessions appearing
+4- On ReportCard why all sessions from different school and campus apppearing? It should show only school session

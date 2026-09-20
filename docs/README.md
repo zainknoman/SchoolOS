@@ -9,7 +9,8 @@
 3. **Feature/control status words (inside tables):** `IMPLEMENTED`, `PARTIALLY IMPLEMENTED`, `CONFIGURATION REQUIRED`, `EXTERNAL SERVICE REQUIRED`, `STUB`, `PLANNED`, `NOT IMPLEMENTED`, `DEPRECATED`, `UNKNOWN`. Undecided rules: `REQUIRES-DECISION`.
 4. **Documentation completeness is not production readiness.** Readiness is assessed separately (`release/`).
 5. Documentation phases never change application code. Problems found are logged as `CODE ISSUE DISCOVERED`.
-6. **Decisions are not implementation.** An owner decision is recorded as `DECIDED` (with date) and gets a backlog item; the current behaviour stays documented as current until the code changes. Where code conflicts with a decided product rule, the rule stands and the code is the defect.
+6. **Generated docs** (`api/ENDPOINTS.md`, `database/DATA-DICTIONARY.md`, `database/ERD.md`, and the marked blocks in `MIGRATIONS`, `DATA-MODEL`, `testing/TEST-MATRIX`) are produced by `scripts/docs/generate.mjs` (BL-66) — never edit them by hand; CI runs `docs:check`.
+7. **Decisions are not implementation.** An owner decision is recorded as `DECIDED` (with date) and gets a backlog item; the current behaviour stays documented as current until the code changes. Where code conflicts with a decided product rule, the rule stands and the code is the defect.
 
 ## Canonical documents
 
