@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
@@ -27,14 +31,22 @@ export class LeaveService {
     private readonly enrollmentService: EnrollmentService,
   ) {}
 
-  async create(dto: CreateLeaveRequestDto, actingUserId: string): Promise<LeaveRequestSummary> {
+  async create(
+    dto: CreateLeaveRequestDto,
+    actingUserId: string,
+  ): Promise<LeaveRequestSummary> {
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
     if (startDate > endDate) {
       throw new BadRequestException('startDate must not be after endDate');
     }
     const record = await this.prisma.leaveRequest.create({
-      data: { studentId: dto.studentId, startDate, endDate, reason: dto.reason },
+      data: {
+        studentId: dto.studentId,
+        startDate,
+        endDate,
+        reason: dto.reason,
+      },
       include: STUDENT_INCLUDE,
     });
 
@@ -44,7 +56,11 @@ export class LeaveService {
         action: 'leave-request.create',
         entity: 'LeaveRequest',
         entityId: record.id,
-        metadata: JSON.stringify({ studentId: dto.studentId, startDate: dto.startDate, endDate: dto.endDate }),
+        metadata: JSON.stringify({
+          studentId: dto.studentId,
+          startDate: dto.startDate,
+          endDate: dto.endDate,
+        }),
       },
     });
 
@@ -60,8 +76,13 @@ export class LeaveService {
     return records.map((r) => this.toSummary(r));
   }
 
-  async listAll(actingUser: RequestUser, status?: string): Promise<LeaveRequestSummary[]> {
-    let where: Prisma.LeaveRequestWhereInput | undefined = status ? { status } : undefined;
+  async listAll(
+    actingUser: RequestUser,
+    status?: string,
+  ): Promise<LeaveRequestSummary[]> {
+    let where: Prisma.LeaveRequestWhereInput | undefined = status
+      ? { status }
+      : undefined;
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
       return [];
@@ -69,7 +90,11 @@ export class LeaveService {
     if (scope.campusWhere) {
       where = {
         ...where,
-        student: { enrollments: { some: { section: { class: { campus: scope.campusWhere } } } } },
+        student: {
+          enrollments: {
+            some: { section: { class: { campus: scope.campusWhere } } },
+          },
+        },
       };
     }
     const records = await this.prisma.leaveRequest.findMany({
@@ -94,17 +119,28 @@ export class LeaveService {
    * FeePaymentsService.confirm()'s pattern: preconditions/reads resolved first, the transaction
    * wraps only the state-mutating write sequence.
    */
-  async approve(id: string, actingUserId: string): Promise<LeaveRequestSummary> {
-    const existing = await this.prisma.leaveRequest.findUnique({ where: { id } });
+  async approve(
+    id: string,
+    actingUserId: string,
+  ): Promise<LeaveRequestSummary> {
+    const existing = await this.prisma.leaveRequest.findUnique({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException('Leave request not found');
     }
     if (existing.status !== 'pending') {
-      throw new BadRequestException('This leave request has already been decided');
+      throw new BadRequestException(
+        'This leave request has already been decided',
+      );
     }
 
-    const enrollment = await this.enrollmentService.getCurrentEnrollment(existing.studentId);
-    const section = await this.prisma.section.findUnique({ where: { id: enrollment.sectionId } });
+    const enrollment = await this.enrollmentService.getCurrentEnrollment(
+      existing.studentId,
+    );
+    const section = await this.prisma.section.findUnique({
+      where: { id: enrollment.sectionId },
+    });
     if (!section?.classTeacherId) {
       throw new BadRequestException(
         "Cannot approve leave: this student's section has no class teacher assigned",
@@ -133,14 +169,21 @@ export class LeaveService {
         select: { date: true, status: true },
       });
       const holidayDates = new Set(
-        existingAttendance.filter((e) => e.status === 'HOLIDAY').map((e) => e.date.toISOString()),
+        existingAttendance
+          .filter((e) => e.status === 'HOLIDAY')
+          .map((e) => e.date.toISOString()),
       );
 
       for (const date of dates) {
         if (holidayDates.has(date.toISOString())) continue;
         await tx.attendance.upsert({
           where: { studentId_date: { studentId: updated.studentId, date } },
-          create: { studentId: updated.studentId, date, status: 'LEAVE', markedById: classTeacherId },
+          create: {
+            studentId: updated.studentId,
+            date,
+            status: 'LEAVE',
+            markedById: classTeacherId,
+          },
           update: { status: 'LEAVE', markedById: classTeacherId },
         });
       }
@@ -151,7 +194,10 @@ export class LeaveService {
           action: 'leave-request.approve',
           entity: 'LeaveRequest',
           entityId: id,
-          metadata: JSON.stringify({ studentId: updated.studentId, dateCount: dates.length }),
+          metadata: JSON.stringify({
+            studentId: updated.studentId,
+            dateCount: dates.length,
+          }),
         },
       });
 
@@ -175,12 +221,16 @@ export class LeaveService {
   }
 
   private async decide(id: string, status: 'approved' | 'rejected') {
-    const existing = await this.prisma.leaveRequest.findUnique({ where: { id } });
+    const existing = await this.prisma.leaveRequest.findUnique({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException('Leave request not found');
     }
     if (existing.status !== 'pending') {
-      throw new BadRequestException('This leave request has already been decided');
+      throw new BadRequestException(
+        'This leave request has already been decided',
+      );
     }
     return this.prisma.leaveRequest.update({
       where: { id },

@@ -1,5 +1,11 @@
-import { PaymentGatewayAdapter, PaymentInitiation } from '../payment-gateway-adapter';
-import { PaymentWebhookSigner, WebhookVerificationResult } from './webhook-signer';
+import {
+  PaymentGatewayAdapter,
+  PaymentInitiation,
+} from '../payment-gateway-adapter';
+import {
+  PaymentWebhookSigner,
+  WebhookVerificationResult,
+} from './webhook-signer';
 import { EasyPaisaSigner } from './easypaisa.signer';
 
 export interface EasyPaisaConfig {
@@ -17,7 +23,11 @@ export interface EasyPaisaConfig {
 export class EasyPaisaAdapter implements PaymentGatewayAdapter {
   constructor(private readonly config: EasyPaisaConfig) {}
 
-  async initiate(input: { amount: number; reference: string }): Promise<PaymentInitiation> {
+  // eslint-disable-next-line @typescript-eslint/require-await -- the adapter interface is Promise-based
+  async initiate(input: {
+    amount: number;
+    reference: string;
+  }): Promise<PaymentInitiation> {
     const signer = new EasyPaisaSigner(this.config.hashKey);
     const expiryDate = new Date(Date.now() + 24 * 60 * 60 * 1000)
       .toISOString()
@@ -32,9 +42,15 @@ export class EasyPaisaAdapter implements PaymentGatewayAdapter {
       expiryDate,
     };
     const merchantHashedReq = signer.sign(fields);
-    const query = new URLSearchParams({ ...fields, merchantHashedReq }).toString();
+    const query = new URLSearchParams({
+      ...fields,
+      merchantHashedReq,
+    }).toString();
 
-    return { redirectUrl: `${this.config.apiUrl}?${query}`, gatewayReference: input.reference };
+    return {
+      redirectUrl: `${this.config.apiUrl}?${query}`,
+      gatewayReference: input.reference,
+    };
   }
 }
 
@@ -44,11 +60,18 @@ export class EasyPaisaWebhookSigner implements PaymentWebhookSigner {
     this.signer = new EasyPaisaSigner(hashKey);
   }
 
-  verifyAndParse(body: Record<string, string>, _headers: Record<string, string | undefined>): WebhookVerificationResult {
+  verifyAndParse(
+    body: Record<string, string>,
+    _headers: Record<string, string | undefined>,
+  ): WebhookVerificationResult {
     const { merchantHashedReq, ...rest } = body;
     if (!this.signer.verify(rest, merchantHashedReq)) {
       return { valid: false };
     }
-    return { valid: true, reference: rest.orderRefNum, status: rest.status === 'SUCCESS' ? 'completed' : 'failed' };
+    return {
+      valid: true,
+      reference: rest.orderRefNum,
+      status: rest.status === 'SUCCESS' ? 'completed' : 'failed',
+    };
   }
 }

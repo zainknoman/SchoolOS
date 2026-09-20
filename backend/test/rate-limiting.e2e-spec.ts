@@ -1,6 +1,4 @@
-import {
-  getThrottlerLimits,
-} from '../src/config/throttler.config';
+import { getThrottlerLimits } from '../src/config/throttler.config';
 
 describe('throttler.config', () => {
   it('uses the strict production limits when NODE_ENV is not test', () => {

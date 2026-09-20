@@ -391,7 +391,9 @@ describe('Org Structure (e2e)', () => {
     expect(school.body.website).toBe('https://extended.schoolos.edu.pk');
     expect(school.body.principalName).toBe('Ahmed Principal');
     expect(school.body.principalPhone).toBe('0300-1000001');
-    expect(school.body.principalEmail).toBe('principal.extended@schoolos.edu.pk');
+    expect(school.body.principalEmail).toBe(
+      'principal.extended@schoolos.edu.pk',
+    );
     expect(school.body.registrationNumber).toBe('REG-OS-001');
     expect(new Date(school.body.establishedDate).toISOString()).toBe(
       new Date('2010-04-15').toISOString(),

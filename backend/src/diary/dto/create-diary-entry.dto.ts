@@ -1,4 +1,10 @@
-import { IsArray, IsDateString, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class CreateDiaryEntryDto {
   @IsString()

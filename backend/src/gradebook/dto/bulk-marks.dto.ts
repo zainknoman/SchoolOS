@@ -1,4 +1,12 @@
-import { ArrayMinSize, IsArray, IsNumber, IsString, Min, MinLength, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsNumber,
+  IsString,
+  Min,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class MarkEntryDto {

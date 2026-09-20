@@ -2,7 +2,10 @@ import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { DiaryService } from './diary.service';
 import { CreateDiaryEntryDto } from './dto/create-diary-entry.dto';
-import { StudentAccessService, RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  RequestUser,
+} from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AiDraftingService } from '../ai-drafting/ai-drafting.service';
 import { SuggestDraftDto } from '../ai-drafting/dto/suggest-draft.dto';
@@ -21,7 +24,10 @@ export class DiaryController {
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('diary')
-  async createEntry(@Body() dto: CreateDiaryEntryDto, @Req() req: AuthenticatedRequest) {
+  async createEntry(
+    @Body() dto: CreateDiaryEntryDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     await this.studentAccess.assertCanAccessSection(req.user, dto.sectionId);
     return this.diaryService.createEntry(dto, req.user.id);
   }
@@ -30,7 +36,11 @@ export class DiaryController {
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('diary/draft-suggestion')
   suggestDraft(@Body() dto: SuggestDraftDto, @Req() req: AuthenticatedRequest) {
-    return this.aiDraftingService.suggestDraft(req.user.id, 'diary', dto.context);
+    return this.aiDraftingService.suggestDraft(
+      req.user.id,
+      'diary',
+      dto.context,
+    );
   }
 
   @Get('students/:id/diary')

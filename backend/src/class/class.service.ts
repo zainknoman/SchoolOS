@@ -6,7 +6,10 @@ import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertValidReferences } from '../common/prisma-create-guard';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
-import { StudentAccessService, type RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  type RequestUser,
+} from '../common/student-access.service';
 
 export interface ClassSummary {
   id: string;
@@ -86,11 +89,15 @@ export class ClassService {
   async list(actingUser: RequestUser): Promise<ClassSummary[]> {
     let where: Prisma.ClassWhereInput | undefined;
     if (actingUser.role === 'TEACHER') {
-      const teacher = await this.prisma.teacher.findUnique({ where: { userId: actingUser.id } });
+      const teacher = await this.prisma.teacher.findUnique({
+        where: { userId: actingUser.id },
+      });
       if (!teacher) {
         return [];
       }
-      const sectionIds = await this.studentAccess.getTeacherSectionIds(teacher.id);
+      const sectionIds = await this.studentAccess.getTeacherSectionIds(
+        teacher.id,
+      );
       where = { sections: { some: { id: { in: [...sectionIds] } } } };
     } else {
       const scope = await this.orgScope.resolve(actingUser);

@@ -38,7 +38,11 @@ describe('JazzCashSigner', () => {
 
   it('ignores pp_SecureHash itself and non-pp_ fields when sorting/concatenating', () => {
     const signer = new JazzCashSigner(salt);
-    const withExtras = { ...fields, pp_SecureHash: 'ignored-input-value', unrelatedField: 'x' };
+    const withExtras = {
+      ...fields,
+      pp_SecureHash: 'ignored-input-value',
+      unrelatedField: 'x',
+    };
     expect(signer.sign(withExtras)).toBe(signer.sign(fields));
   });
 });

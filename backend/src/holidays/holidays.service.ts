@@ -64,11 +64,14 @@ export class HolidaysService {
       if (allowedCampusIds === null) {
         return [];
       }
-      campusScope = { OR: [{ campusId: null }, { campusId: { in: allowedCampusIds } }] };
+      campusScope = {
+        OR: [{ campusId: null }, { campusId: { in: allowedCampusIds } }],
+      };
     }
-    const requestedCampusFilter: Prisma.HolidayWhereInput | undefined = params.campusId
-      ? { OR: [{ campusId: params.campusId }, { campusId: null }] }
-      : undefined;
+    const requestedCampusFilter: Prisma.HolidayWhereInput | undefined =
+      params.campusId
+        ? { OR: [{ campusId: params.campusId }, { campusId: null }] }
+        : undefined;
 
     const where: Prisma.HolidayWhereInput = {
       ...(params.from ? { endDate: { gte: new Date(params.from) } } : {}),
@@ -78,23 +81,33 @@ export class HolidaysService {
         : (campusScope ?? requestedCampusFilter ?? {})),
     };
 
-    const records = await this.prisma.holiday.findMany({ where, orderBy: { startDate: 'asc' } });
+    const records = await this.prisma.holiday.findMany({
+      where,
+      orderBy: { startDate: 'asc' },
+    });
     return records.map((r) => this.toSummary(r));
   }
 
   /** null means "no access at all" (fail closed), as distinct from an empty array (access to
    *  zero campuses but the null-campus rows still apply). */
-  private async resolveAllowedCampusIds(actingUser: RequestUser): Promise<string[] | null> {
+  private async resolveAllowedCampusIds(
+    actingUser: RequestUser,
+  ): Promise<string[] | null> {
     if (actingUser.role === 'SCHOOL_ADMIN' || actingUser.role === 'ACCOUNTS') {
       const scope = await this.orgScope.resolve(actingUser);
       if (scope.denied) {
         return null;
       }
-      const campuses = await this.prisma.campus.findMany({ where: scope.campusWhere, select: { id: true } });
+      const campuses = await this.prisma.campus.findMany({
+        where: scope.campusWhere,
+        select: { id: true },
+      });
       return campuses.map((c) => c.id);
     }
     if (actingUser.role === 'TEACHER') {
-      const teacher = await this.prisma.teacher.findUnique({ where: { userId: actingUser.id } });
+      const teacher = await this.prisma.teacher.findUnique({
+        where: { userId: actingUser.id },
+      });
       if (!teacher) {
         return null;
       }
@@ -102,7 +115,11 @@ export class HolidaysService {
     }
     // PARENT (or any other authenticated role) — scoped to their own children's campuses.
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { student: { parents: { some: { parentProfile: { userId: actingUser.id } } } } },
+      where: {
+        student: {
+          parents: { some: { parentProfile: { userId: actingUser.id } } },
+        },
+      },
       select: { campusId: true },
       distinct: ['campusId'],
     });
@@ -118,8 +135,12 @@ export class HolidaysService {
       where: { id },
       data: {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
-        ...(dto.startDate !== undefined ? { startDate: new Date(dto.startDate) } : {}),
-        ...(dto.endDate !== undefined ? { endDate: new Date(dto.endDate) } : {}),
+        ...(dto.startDate !== undefined
+          ? { startDate: new Date(dto.startDate) }
+          : {}),
+        ...(dto.endDate !== undefined
+          ? { endDate: new Date(dto.endDate) }
+          : {}),
         ...(dto.campusId !== undefined ? { campusId: dto.campusId } : {}),
       },
     });

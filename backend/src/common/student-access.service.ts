@@ -30,7 +30,10 @@ export class StudentAccessService {
     private readonly orgScope: OrgScopeService,
   ) {}
 
-  async assertCanAccessStudent(user: RequestUser, studentId: string): Promise<void> {
+  async assertCanAccessStudent(
+    user: RequestUser,
+    studentId: string,
+  ): Promise<void> {
     switch (user.role) {
       case 'SUPER_ADMIN':
         return;
@@ -49,13 +52,18 @@ export class StudentAccessService {
           where: { studentId, parentProfile: { userId: user.id } },
         });
         if (!link) {
-          throw new ForbiddenException('You do not have access to this student');
+          throw new ForbiddenException(
+            'You do not have access to this student',
+          );
         }
       }
     }
   }
 
-  async assertCanAccessSection(user: RequestUser, sectionId: string): Promise<void> {
+  async assertCanAccessSection(
+    user: RequestUser,
+    sectionId: string,
+  ): Promise<void> {
     switch (user.role) {
       case 'SUPER_ADMIN':
         return;
@@ -72,7 +80,10 @@ export class StudentAccessService {
     }
   }
 
-  async assertCanAccessClass(user: RequestUser, classId: string): Promise<void> {
+  async assertCanAccessClass(
+    user: RequestUser,
+    classId: string,
+  ): Promise<void> {
     switch (user.role) {
       case 'SUPER_ADMIN':
         return;
@@ -88,7 +99,10 @@ export class StudentAccessService {
     }
   }
 
-  private async assertCanAccessScope(user: RequestUser, scope: AccessScope | null): Promise<void> {
+  private async assertCanAccessScope(
+    user: RequestUser,
+    scope: AccessScope | null,
+  ): Promise<void> {
     if (!scope) {
       throw new ForbiddenException('You do not have access to this resource');
     }
@@ -96,20 +110,35 @@ export class StudentAccessService {
       case 'SCHOOL_ADMIN':
       case 'ACCOUNTS': {
         const orgScope = await this.orgScope.resolve(user);
-        if (!orgScope.allows({ campusId: scope.campusId, schoolId: scope.schoolId })) {
-          throw new ForbiddenException('You do not have access to this resource');
+        if (
+          !orgScope.allows({
+            campusId: scope.campusId,
+            schoolId: scope.schoolId,
+          })
+        ) {
+          throw new ForbiddenException(
+            'You do not have access to this resource',
+          );
         }
         return;
       }
       case 'TEACHER': {
-        const teacher = await this.prisma.teacher.findUnique({ where: { userId: user.id } });
+        const teacher = await this.prisma.teacher.findUnique({
+          where: { userId: user.id },
+        });
         if (!teacher || teacher.campusId !== scope.campusId) {
-          throw new ForbiddenException('You do not have access to this resource');
+          throw new ForbiddenException(
+            'You do not have access to this resource',
+          );
         }
         const assignedSectionIds = await this.getTeacherSectionIds(teacher.id);
-        const isAssigned = scope.sectionIds.some((id) => assignedSectionIds.has(id));
+        const isAssigned = scope.sectionIds.some((id) =>
+          assignedSectionIds.has(id),
+        );
         if (!isAssigned) {
-          throw new ForbiddenException('You do not have access to this resource');
+          throw new ForbiddenException(
+            'You do not have access to this resource',
+          );
         }
         return;
       }
@@ -121,8 +150,12 @@ export class StudentAccessService {
     }
   }
 
-  private async resolveStudentScope(studentId: string): Promise<AccessScope | null> {
-    let enrollment;
+  private async resolveStudentScope(
+    studentId: string,
+  ): Promise<AccessScope | null> {
+    let enrollment: Awaited<
+      ReturnType<EnrollmentService['getCurrentEnrollment']>
+    >;
     try {
       enrollment = await this.enrollmentService.getCurrentEnrollment(studentId);
     } catch {
@@ -139,10 +172,14 @@ export class StudentAccessService {
     };
   }
 
-  private async resolveSectionScope(sectionId: string): Promise<AccessScope | null> {
+  private async resolveSectionScope(
+    sectionId: string,
+  ): Promise<AccessScope | null> {
     const section = await this.prisma.section.findUnique({
       where: { id: sectionId },
-      include: { class: { include: { campus: { select: { schoolId: true } } } } },
+      include: {
+        class: { include: { campus: { select: { schoolId: true } } } },
+      },
     });
     return section
       ? {
@@ -153,7 +190,9 @@ export class StudentAccessService {
       : null;
   }
 
-  private async resolveClassScope(classId: string): Promise<AccessScope | null> {
+  private async resolveClassScope(
+    classId: string,
+  ): Promise<AccessScope | null> {
     const klass = await this.prisma.class.findUnique({
       where: { id: classId },
       include: {
@@ -177,8 +216,14 @@ export class StudentAccessService {
    */
   async getTeacherSectionIds(teacherId: string): Promise<Set<string>> {
     const [timetableRows, homeroomSections] = await Promise.all([
-      this.prisma.timetable.findMany({ where: { teacherId }, select: { sectionId: true } }),
-      this.prisma.section.findMany({ where: { classTeacherId: teacherId }, select: { id: true } }),
+      this.prisma.timetable.findMany({
+        where: { teacherId },
+        select: { sectionId: true },
+      }),
+      this.prisma.section.findMany({
+        where: { classTeacherId: teacherId },
+        select: { id: true },
+      }),
     ]);
     return new Set([
       ...timetableRows.map((r) => r.sectionId),

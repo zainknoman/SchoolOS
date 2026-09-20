@@ -18,10 +18,15 @@ export class EasyPaisaSigner {
       .filter((key) => fields[key] !== '')
       .sort()
       .map((key) => fields[key]);
-    return createHmac('sha256', this.hashKey).update(sortedValues.join('')).digest('hex');
+    return createHmac('sha256', this.hashKey)
+      .update(sortedValues.join(''))
+      .digest('hex');
   }
 
-  verify(fields: Record<string, string>, providedHash: string | undefined): boolean {
+  verify(
+    fields: Record<string, string>,
+    providedHash: string | undefined,
+  ): boolean {
     if (!providedHash) return false;
     const expected = Buffer.from(this.sign(fields));
     const provided = Buffer.from(providedHash);

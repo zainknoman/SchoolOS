@@ -109,7 +109,11 @@ describe('Timetable + Attendance (e2e)', () => {
       },
     });
     const teacher = await prisma.teacher.create({
-      data: { userId: teacherUser.id, name: 'TTA Teacher', campusId: campus.id },
+      data: {
+        userId: teacherUser.id,
+        name: 'TTA Teacher',
+        campusId: campus.id,
+      },
     });
 
     const campusB = await prisma.campus.create({
@@ -123,7 +127,11 @@ describe('Timetable + Attendance (e2e)', () => {
       },
     });
     const teacherB = await prisma.teacher.create({
-      data: { userId: teacherBUser.id, name: 'TTA Teacher B', campusId: campusB.id },
+      data: {
+        userId: teacherBUser.id,
+        name: 'TTA Teacher B',
+        campusId: campusB.id,
+      },
     });
 
     await prisma.user.create({
@@ -503,7 +511,7 @@ describe('Timetable + Attendance (e2e)', () => {
     });
   });
 
-  it('denies a teacher reading another campus section\'s attendance roster', async () => {
+  it("denies a teacher reading another campus section's attendance roster", async () => {
     const token = await loginAs('tta-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .get(`/api/v1/sections/${ids.section}/attendance`)
@@ -520,12 +528,15 @@ describe('Timetable + Attendance (e2e)', () => {
     expect(res.status).toBe(403);
   });
 
-  it('denies a bulk-attendance call when any mark targets a student outside the caller\'s campus', async () => {
+  it("denies a bulk-attendance call when any mark targets a student outside the caller's campus", async () => {
     const token = await loginAs('tta-teacher-b@schoolos.edu.pk');
     const res = await request(app.getHttpServer())
       .post('/api/v1/attendance/bulk')
       .set('Authorization', `Bearer ${token}`)
-      .send({ date: '2026-09-12', marks: [{ studentId: ids.childA, status: 'PRESENT' }] });
+      .send({
+        date: '2026-09-12',
+        marks: [{ studentId: ids.childA, status: 'PRESENT' }],
+      });
     expect(res.status).toBe(403);
   });
 });

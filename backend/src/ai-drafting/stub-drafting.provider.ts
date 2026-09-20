@@ -11,6 +11,7 @@ export const STUB_SUGGESTION_MESSAGE =
  */
 @Injectable()
 export class StubAiDraftingProvider implements AiDraftingProvider {
+  // eslint-disable-next-line @typescript-eslint/require-await -- the adapter interface is Promise-based
   async suggestDraft(): Promise<string> {
     return STUB_SUGGESTION_MESSAGE;
   }

@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { PaymentGatewayAdapter, PaymentInitiation } from './payment-gateway-adapter';
+import {
+  PaymentGatewayAdapter,
+  PaymentInitiation,
+} from './payment-gateway-adapter';
 
 /**
  * No real JazzCash/EasyPaisa merchant account exists yet — this adapter simulates a gateway's
@@ -10,7 +13,11 @@ import { PaymentGatewayAdapter, PaymentInitiation } from './payment-gateway-adap
  */
 @Injectable()
 export class StubPaymentGatewayAdapter implements PaymentGatewayAdapter {
-  async initiate(input: { amount: number; reference: string }): Promise<PaymentInitiation> {
+  // eslint-disable-next-line @typescript-eslint/require-await -- the adapter interface is Promise-based
+  async initiate(input: {
+    amount: number;
+    reference: string;
+  }): Promise<PaymentInitiation> {
     const gatewayReference = `stub_${randomUUID()}`;
     return {
       redirectUrl: `/pay/stub-checkout?ref=${gatewayReference}&amount=${input.amount}`,

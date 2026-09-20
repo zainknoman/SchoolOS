@@ -15,7 +15,10 @@ export class AiDraftingService {
     targetType: 'circular' | 'diary',
     context: string,
   ): Promise<{ suggestion: string }> {
-    const suggestion = await this.provider.suggestDraft({ context, targetType });
+    const suggestion = await this.provider.suggestDraft({
+      context,
+      targetType,
+    });
     await this.prisma.draftSuggestion.create({
       data: { userId, targetType, prompt: context, suggestion },
     });

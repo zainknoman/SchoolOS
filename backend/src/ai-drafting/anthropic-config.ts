@@ -9,7 +9,9 @@ export interface AnthropicConfig {
  * — unset entirely means "use the stub provider", set means "use the real one". No dev/test
  * carve-out branch applies here, unlike resolveFirebaseConfig/resolveSmtpConfig.
  */
-export function resolveAnthropicConfig(config: ConfigService): AnthropicConfig | undefined {
+export function resolveAnthropicConfig(
+  config: ConfigService,
+): AnthropicConfig | undefined {
   const apiKey = config.get<string>('ANTHROPIC_API_KEY');
   if (!apiKey) return undefined;
   return { apiKey };

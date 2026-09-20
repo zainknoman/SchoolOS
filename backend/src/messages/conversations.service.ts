@@ -1,10 +1,18 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
-import { RequestUser, StudentAccessService } from '../common/student-access.service';
+import {
+  RequestUser,
+  StudentAccessService,
+} from '../common/student-access.service';
 
 export interface ConversationSummary {
   id: string;
@@ -39,9 +47,15 @@ export class ConversationsService {
     private readonly studentAccess: StudentAccessService,
   ) {}
 
-  async create(dto: CreateConversationDto, parentUser: RequestUser): Promise<{ id: string }> {
+  async create(
+    dto: CreateConversationDto,
+    parentUser: RequestUser,
+  ): Promise<{ id: string }> {
     if (dto.studentId) {
-      await this.studentAccess.assertCanAccessStudent(parentUser, dto.studentId);
+      await this.studentAccess.assertCanAccessStudent(
+        parentUser,
+        dto.studentId,
+      );
     }
 
     const staffUserId = await this.resolveStaffUserId(dto);
@@ -63,7 +77,10 @@ export class ConversationsService {
         action: 'conversation.create',
         entity: 'Conversation',
         entityId: conversation.id,
-        metadata: JSON.stringify({ recipientType: dto.recipientType, studentId: dto.studentId }),
+        metadata: JSON.stringify({
+          recipientType: dto.recipientType,
+          studentId: dto.studentId,
+        }),
       },
     });
 
@@ -78,26 +95,47 @@ export class ConversationsService {
     return { id: conversation.id };
   }
 
-  private async resolveStaffUserId(dto: CreateConversationDto): Promise<string> {
+  private async resolveStaffUserId(
+    dto: CreateConversationDto,
+  ): Promise<string> {
     if (dto.recipientType === 'CLASS_TEACHER') {
-      const enrollment = await this.enrollmentService.getCurrentEnrollment(dto.studentId as string);
-      const section = await this.prisma.section.findUnique({ where: { id: enrollment.sectionId } });
+      const enrollment = await this.enrollmentService.getCurrentEnrollment(
+        dto.studentId as string,
+      );
+      const section = await this.prisma.section.findUnique({
+        where: { id: enrollment.sectionId },
+      });
       if (!section?.classTeacherId) {
-        throw new BadRequestException("This student's section has no class teacher assigned yet");
+        throw new BadRequestException(
+          "This student's section has no class teacher assigned yet",
+        );
       }
-      const teacher = await this.prisma.teacher.findUnique({ where: { id: section.classTeacherId } });
+      const teacher = await this.prisma.teacher.findUnique({
+        where: { id: section.classTeacherId },
+      });
       return teacher!.userId;
     }
 
-    const where = dto.recipientType === 'PRINCIPAL' ? { isPrincipal: true } : { role: dto.recipientType };
-    const user = await this.prisma.user.findFirst({ where, orderBy: { createdAt: 'asc' } });
+    const where =
+      dto.recipientType === 'PRINCIPAL'
+        ? { isPrincipal: true }
+        : { role: dto.recipientType };
+    const user = await this.prisma.user.findFirst({
+      where,
+      orderBy: { createdAt: 'asc' },
+    });
     if (!user) {
-      throw new BadRequestException(`No ${dto.recipientType} account exists yet`);
+      throw new BadRequestException(
+        `No ${dto.recipientType} account exists yet`,
+      );
     }
     return user.id;
   }
 
-  async listForUser(user: RequestUser, q?: string): Promise<ConversationSummary[]> {
+  async listForUser(
+    user: RequestUser,
+    q?: string,
+  ): Promise<ConversationSummary[]> {
     const isParent = user.role === 'PARENT';
     const conversations = await this.prisma.conversation.findMany({
       where: isParent ? { parentUserId: user.id } : { staffUserId: user.id },
@@ -129,10 +167,15 @@ export class ConversationsService {
 
     if (!q) return summaries;
     const needle = q.toLowerCase();
-    return summaries.filter((s) => s.otherPartyName.toLowerCase().includes(needle));
+    return summaries.filter((s) =>
+      s.otherPartyName.toLowerCase().includes(needle),
+    );
   }
 
-  async getById(conversationId: string, user: RequestUser): Promise<ConversationDetail> {
+  async getById(
+    conversationId: string,
+    user: RequestUser,
+  ): Promise<ConversationDetail> {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
@@ -144,14 +187,20 @@ export class ConversationsService {
     if (!conversation) {
       throw new NotFoundException('Conversation not found');
     }
-    if (conversation.parentUserId !== user.id && conversation.staffUserId !== user.id) {
+    if (
+      conversation.parentUserId !== user.id &&
+      conversation.staffUserId !== user.id
+    ) {
       throw new ForbiddenException('You are not a party to this conversation');
     }
 
     // Every message's sender is one of this conversation's exactly two parties — resolve the
     // display name once per party rather than per message.
-    const parentName = conversation.parentUser.parentProfile?.name ?? conversation.parentUser.identifier;
-    const staffName = conversation.staffUser.teacher?.name ?? conversation.staffUser.identifier;
+    const parentName =
+      conversation.parentUser.parentProfile?.name ??
+      conversation.parentUser.identifier;
+    const staffName =
+      conversation.staffUser.teacher?.name ?? conversation.staffUser.identifier;
 
     return {
       id: conversation.id,
@@ -160,15 +209,22 @@ export class ConversationsService {
       messages: conversation.messages.map((m) => ({
         id: m.id,
         senderId: m.senderId,
-        senderName: m.senderId === conversation.parentUserId ? parentName : staffName,
+        senderName:
+          m.senderId === conversation.parentUserId ? parentName : staffName,
         body: m.body,
         createdAt: m.createdAt.toISOString(),
       })),
     };
   }
 
-  async reply(conversationId: string, userId: string, dto: SendMessageDto): Promise<void> {
-    const conversation = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
+  async reply(
+    conversationId: string,
+    userId: string,
+    dto: SendMessageDto,
+  ): Promise<void> {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
     if (!conversation) {
       throw new NotFoundException('Conversation not found');
     }
@@ -179,17 +235,29 @@ export class ConversationsService {
     }
 
     const now = new Date();
-    await this.prisma.message.create({ data: { conversationId, senderId: userId, body: dto.body } });
+    await this.prisma.message.create({
+      data: { conversationId, senderId: userId, body: dto.body },
+    });
     await this.prisma.conversation.update({
       where: { id: conversationId },
-      data: { lastMessageAt: now, ...(isParent ? { parentReadAt: now } : { staffReadAt: now }) },
+      data: {
+        lastMessageAt: now,
+        ...(isParent ? { parentReadAt: now } : { staffReadAt: now }),
+      },
     });
 
     await this.prisma.auditLog.create({
-      data: { userId, action: 'message.send', entity: 'Conversation', entityId: conversationId },
+      data: {
+        userId,
+        action: 'message.send',
+        entity: 'Conversation',
+        entityId: conversationId,
+      },
     });
 
-    const recipientId = isParent ? conversation.staffUserId : conversation.parentUserId;
+    const recipientId = isParent
+      ? conversation.staffUserId
+      : conversation.parentUserId;
     await this.notifications.notify({
       userId: recipientId,
       type: 'message',
@@ -200,7 +268,9 @@ export class ConversationsService {
   }
 
   async markRead(conversationId: string, user: RequestUser): Promise<void> {
-    const conversation = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
     if (!conversation) {
       throw new NotFoundException('Conversation not found');
     }
@@ -211,7 +281,9 @@ export class ConversationsService {
     }
     await this.prisma.conversation.update({
       where: { id: conversationId },
-      data: isParent ? { parentReadAt: new Date() } : { staffReadAt: new Date() },
+      data: isParent
+        ? { parentReadAt: new Date() }
+        : { staffReadAt: new Date() },
     });
   }
 }

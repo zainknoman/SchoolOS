@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
@@ -40,7 +44,12 @@ export class StudentService {
     id: string;
     grNumber: string;
     name: string;
-    enrollments: Array<{ section: { name: string; class: { name: string; campus: { name: string } } } }>;
+    enrollments: Array<{
+      section: {
+        name: string;
+        class: { name: string; campus: { name: string } };
+      };
+    }>;
     parents: Array<{ parentProfile: { name: string } }>;
   }): StudentAdminSummary {
     const enrollment = record.enrollments[0];
@@ -55,7 +64,10 @@ export class StudentService {
     };
   }
 
-  async create(dto: CreateStudentDto, actingUserId: string): Promise<StudentAdminSummary> {
+  async create(
+    dto: CreateStudentDto,
+    actingUserId: string,
+  ): Promise<StudentAdminSummary> {
     // `!= null` (not `!== undefined`) so an explicit `null` is treated the same as an omitted
     // field — otherwise `{ parentProfileId: null, newParent: null }` (or a null/omitted mix)
     // slips past this guard and blows up downstream instead of getting a clean 400 here.
@@ -63,12 +75,18 @@ export class StudentService {
     const hasNew = dto.newParent != null;
     if (hasExisting === hasNew) {
       // Both true (both given) or both false (neither given) are the two invalid states.
-      throw new BadRequestException('Provide exactly one of parentProfileId or newParent');
+      throw new BadRequestException(
+        'Provide exactly one of parentProfileId or newParent',
+      );
     }
 
-    const activeSession = await this.prisma.academicSession.findFirst({ where: { isActive: true } });
+    const activeSession = await this.prisma.academicSession.findFirst({
+      where: { isActive: true },
+    });
     if (!activeSession) {
-      throw new BadRequestException('No active academic session — cannot enroll a student');
+      throw new BadRequestException(
+        'No active academic session — cannot enroll a student',
+      );
     }
     const section = await this.prisma.section.findUnique({
       where: { id: dto.sectionId },
@@ -96,7 +114,10 @@ export class StudentService {
         ),
       ));
     } catch (error) {
-      assertCreatable(error, 'This GR number or parent identifier is already in use.');
+      assertCreatable(
+        error,
+        'This GR number or parent identifier is already in use.',
+      );
     }
 
     const created = await this.prisma.student.findUniqueOrThrow({
@@ -117,7 +138,11 @@ export class StudentService {
       return [];
     }
     if (scope.campusWhere) {
-      where = { enrollments: { some: { section: { class: { campus: scope.campusWhere } } } } };
+      where = {
+        enrollments: {
+          some: { section: { class: { campus: scope.campusWhere } } },
+        },
+      };
     }
     const records = await this.prisma.student.findMany({
       where,
@@ -127,7 +152,11 @@ export class StudentService {
     return records.map((r) => this.toSummary(r));
   }
 
-  async update(id: string, dto: UpdateStudentDto, actingUserId: string): Promise<StudentAdminSummary> {
+  async update(
+    id: string,
+    dto: UpdateStudentDto,
+    actingUserId: string,
+  ): Promise<StudentAdminSummary> {
     const existing = await this.prisma.student.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Student not found');
@@ -163,7 +192,12 @@ export class StudentService {
       assertDeletable(error, 'Student');
     }
     await this.prisma.auditLog.create({
-      data: { userId: actingUserId, action: 'student.delete', entity: 'Student', entityId: id },
+      data: {
+        userId: actingUserId,
+        action: 'student.delete',
+        entity: 'Student',
+        entityId: id,
+      },
     });
   }
 }

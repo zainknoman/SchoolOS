@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { AssessmentCategory } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { assertDeletable } from '../common/prisma-delete-guard';
@@ -37,7 +38,10 @@ export class AssessmentCategoriesService {
     };
   }
 
-  private async weightWarning(classId: string, termId: string): Promise<string | null> {
+  private async weightWarning(
+    classId: string,
+    termId: string,
+  ): Promise<string | null> {
     const siblings = await this.prisma.assessmentCategory.findMany({
       where: { classId, termId },
       select: { weightPercent: true },
@@ -48,8 +52,10 @@ export class AssessmentCategoriesService {
       : `Category weights for this class/term total ${total}%, not 100% — grades will be understated or overstated until this is corrected.`;
   }
 
-  async create(dto: CreateAssessmentCategoryDto): Promise<AssessmentCategoryWithWarning> {
-    let record;
+  async create(
+    dto: CreateAssessmentCategoryDto,
+  ): Promise<AssessmentCategoryWithWarning> {
+    let record: AssessmentCategory;
     try {
       record = await this.prisma.assessmentCategory.create({
         data: {
@@ -60,13 +66,22 @@ export class AssessmentCategoriesService {
         },
       });
     } catch (error) {
-      assertCreatable(error, 'A category with this name already exists for this class and term.');
+      assertCreatable(
+        error,
+        'A category with this name already exists for this class and term.',
+      );
     }
-    const weightTotalWarning = await this.weightWarning(record.classId, record.termId);
+    const weightTotalWarning = await this.weightWarning(
+      record.classId,
+      record.termId,
+    );
     return { ...this.toSummary(record), weightTotalWarning };
   }
 
-  async findMany(classId: string, termId: string): Promise<AssessmentCategorySummary[]> {
+  async findMany(
+    classId: string,
+    termId: string,
+  ): Promise<AssessmentCategorySummary[]> {
     const records = await this.prisma.assessmentCategory.findMany({
       where: { classId, termId },
       orderBy: { name: 'asc' },
@@ -74,8 +89,13 @@ export class AssessmentCategoriesService {
     return records.map((r) => this.toSummary(r));
   }
 
-  async update(id: string, dto: UpdateAssessmentCategoryDto): Promise<AssessmentCategoryWithWarning> {
-    const existing = await this.prisma.assessmentCategory.findUnique({ where: { id } });
+  async update(
+    id: string,
+    dto: UpdateAssessmentCategoryDto,
+  ): Promise<AssessmentCategoryWithWarning> {
+    const existing = await this.prisma.assessmentCategory.findUnique({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException('Assessment category not found');
     }
@@ -83,15 +103,22 @@ export class AssessmentCategoriesService {
       where: { id },
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
-        ...(dto.weightPercent !== undefined ? { weightPercent: dto.weightPercent } : {}),
+        ...(dto.weightPercent !== undefined
+          ? { weightPercent: dto.weightPercent }
+          : {}),
       },
     });
-    const weightTotalWarning = await this.weightWarning(record.classId, record.termId);
+    const weightTotalWarning = await this.weightWarning(
+      record.classId,
+      record.termId,
+    );
     return { ...this.toSummary(record), weightTotalWarning };
   }
 
   async delete(id: string): Promise<void> {
-    const existing = await this.prisma.assessmentCategory.findUnique({ where: { id } });
+    const existing = await this.prisma.assessmentCategory.findUnique({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException('Assessment category not found');
     }

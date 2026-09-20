@@ -1,4 +1,12 @@
-import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { Gender, StudentStatus } from '@prisma/client';
 import { AddressDto } from '../../common/dto/address.dto';
@@ -21,6 +29,12 @@ export class UpdateStudentProfileDto {
   @IsOptional() @IsString() studentMobile?: string;
   @IsOptional() @IsEmail() studentEmail?: string;
   @IsOptional() @IsString() profilePhotoFileId?: string;
-  @IsOptional() @ValidateNested() @Type(() => AddressDto) currentAddress?: AddressDto;
-  @IsOptional() @ValidateNested() @Type(() => AddressDto) permanentAddress?: AddressDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AddressDto)
+  currentAddress?: AddressDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AddressDto)
+  permanentAddress?: AddressDto;
 }

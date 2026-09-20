@@ -1,7 +1,10 @@
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { GradesService } from './grades.service';
-import { StudentAccessService, type RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  type RequestUser,
+} from '../common/student-access.service';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;

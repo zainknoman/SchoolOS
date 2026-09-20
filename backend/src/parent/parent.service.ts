@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
@@ -70,7 +74,11 @@ const PROFILE_INCLUDE = {
             where: { status: 'ACTIVE' },
             orderBy: { startDate: 'desc' },
             take: 1,
-            select: { section: { select: { name: true, class: { select: { name: true } } } } },
+            select: {
+              section: {
+                select: { name: true, class: { select: { name: true } } },
+              },
+            },
           },
         },
       },
@@ -104,7 +112,10 @@ const toAddress = (
       }
     : null;
 
-const WITH_USER_AND_COUNT = { user: { select: { identifier: true } }, _count: { select: { children: true } } } as const;
+const WITH_USER_AND_COUNT = {
+  user: { select: { identifier: true } },
+  _count: { select: { children: true } },
+} as const;
 
 @Injectable()
 export class ParentService {
@@ -129,10 +140,15 @@ export class ParentService {
     };
   }
 
-  async create(dto: CreateParentDto, actingUserId: string): Promise<ParentSummary> {
-    let created;
+  async create(
+    dto: CreateParentDto,
+    actingUserId: string,
+  ): Promise<ParentSummary> {
+    let created: Awaited<ReturnType<typeof createParentWithUser>>;
     try {
-      created = await this.prisma.$transaction((tx) => createParentWithUser(tx, dto));
+      created = await this.prisma.$transaction((tx) =>
+        createParentWithUser(tx, dto),
+      );
     } catch (error) {
       assertCreatable(error, 'This identifier is already in use.');
     }
@@ -142,10 +158,19 @@ export class ParentService {
         action: 'parent.create',
         entity: 'ParentProfile',
         entityId: created.id,
-        metadata: JSON.stringify({ identifier: dto.identifier, name: dto.name }),
+        metadata: JSON.stringify({
+          identifier: dto.identifier,
+          name: dto.name,
+        }),
       },
     });
-    return { id: created.id, identifier: created.identifier, name: created.name, phone: created.phone, childrenCount: 0 };
+    return {
+      id: created.id,
+      identifier: created.identifier,
+      name: created.name,
+      phone: created.phone,
+      childrenCount: 0,
+    };
   }
 
   async list(actingUser: RequestUser): Promise<ParentSummary[]> {
@@ -157,7 +182,13 @@ export class ParentService {
     if (scope.campusWhere) {
       where = {
         children: {
-          some: { student: { enrollments: { some: { section: { class: { campus: scope.campusWhere } } } } } },
+          some: {
+            student: {
+              enrollments: {
+                some: { section: { class: { campus: scope.campusWhere } } },
+              },
+            },
+          },
         },
       };
     }
@@ -170,8 +201,14 @@ export class ParentService {
   }
 
   /** SCHOOL_ADMIN may only reach parents that have a child enrolled in their own school. */
-  private async assertParentInScope(parentId: string, actingUser: RequestUser): Promise<void> {
-    const parent = await this.prisma.parentProfile.findUnique({ where: { id: parentId }, select: { id: true } });
+  private async assertParentInScope(
+    parentId: string,
+    actingUser: RequestUser,
+  ): Promise<void> {
+    const parent = await this.prisma.parentProfile.findUnique({
+      where: { id: parentId },
+      select: { id: true },
+    });
     if (!parent) {
       throw new NotFoundException('Parent not found');
     }
@@ -181,19 +218,31 @@ export class ParentService {
       ? await this.prisma.studentParent.findFirst({
           where: {
             parentProfileId: parentId,
-            student: { enrollments: { some: { section: { class: { campus: scope.campusWhere } } } } },
+            student: {
+              enrollments: {
+                some: { section: { class: { campus: scope.campusWhere } } },
+              },
+            },
           },
           select: { id: true },
         })
       : null;
     if (!inScope) {
-      throw new ForbiddenException('Cannot access a parent outside your own school');
+      throw new ForbiddenException(
+        'Cannot access a parent outside your own school',
+      );
     }
   }
 
-  async getProfile(id: string, actingUser: RequestUser): Promise<ParentProfileDetail> {
+  async getProfile(
+    id: string,
+    actingUser: RequestUser,
+  ): Promise<ParentProfileDetail> {
     await this.assertParentInScope(id, actingUser);
-    const p = await this.prisma.parentProfile.findUniqueOrThrow({ where: { id }, include: PROFILE_INCLUDE });
+    const p = await this.prisma.parentProfile.findUniqueOrThrow({
+      where: { id },
+      include: PROFILE_INCLUDE,
+    });
     return {
       id: p.id,
       identifier: p.user.identifier,
@@ -239,7 +288,9 @@ export class ParentService {
   ): Promise<ParentProfileDetail> {
     await this.assertParentInScope(parentId, actingUser);
     const link = await this.prisma.studentParent.findUnique({
-      where: { studentId_parentProfileId: { studentId, parentProfileId: parentId } },
+      where: {
+        studentId_parentProfileId: { studentId, parentProfileId: parentId },
+      },
     });
     if (!link) {
       throw new NotFoundException('This parent is not linked to that student');
@@ -255,8 +306,12 @@ export class ParentService {
         where: { id: link.id },
         data: {
           ...(dto.isPrimary !== undefined ? { isPrimary: dto.isPrimary } : {}),
-          ...(dto.isEmergencyContact !== undefined ? { isEmergencyContact: dto.isEmergencyContact } : {}),
-          ...(dto.relationship !== undefined ? { relationship: dto.relationship } : {}),
+          ...(dto.isEmergencyContact !== undefined
+            ? { isEmergencyContact: dto.isEmergencyContact }
+            : {}),
+          ...(dto.relationship !== undefined
+            ? { relationship: dto.relationship }
+            : {}),
         },
       });
       await tx.auditLog.create({
@@ -272,21 +327,34 @@ export class ParentService {
     return this.getProfile(parentId, actingUser);
   }
 
-  private addressWrite(address: AddressDto | undefined, existingId: string | null | undefined) {
+  private addressWrite(
+    address: AddressDto | undefined,
+    existingId: string | null | undefined,
+  ) {
     if (!address) return undefined;
     return existingId ? { update: address } : { create: address };
   }
 
-  async update(id: string, dto: UpdateParentDto, actingUserId: string): Promise<ParentSummary> {
-    const existing = await this.prisma.parentProfile.findUnique({ where: { id } });
+  async update(
+    id: string,
+    dto: UpdateParentDto,
+    actingUserId: string,
+  ): Promise<ParentSummary> {
+    const existing = await this.prisma.parentProfile.findUnique({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException('Parent not found');
     }
     if (dto.password !== undefined) {
       const passwordHash = await argon2.hash(dto.password);
-      await this.prisma.user.update({ where: { id: existing.userId }, data: { passwordHash } });
+      await this.prisma.user.update({
+        where: { id: existing.userId },
+        data: { passwordHash },
+      });
     }
-    const blankToNull = (v: string | undefined) => (v === undefined ? undefined : v.trim() || null);
+    const blankToNull = (v: string | undefined) =>
+      v === undefined ? undefined : v.trim() || null;
     let record;
     try {
       record = await this.prisma.parentProfile.update({
@@ -303,8 +371,14 @@ export class ParentService {
           occupation: blankToNull(dto.occupation),
           employerName: blankToNull(dto.employerName),
           designation: blankToNull(dto.designation),
-          currentAddress: this.addressWrite(dto.currentAddress, existing.currentAddressId),
-          permanentAddress: this.addressWrite(dto.permanentAddress, existing.permanentAddressId),
+          currentAddress: this.addressWrite(
+            dto.currentAddress,
+            existing.currentAddressId,
+          ),
+          permanentAddress: this.addressWrite(
+            dto.permanentAddress,
+            existing.permanentAddressId,
+          ),
         },
         include: WITH_USER_AND_COUNT,
       });
@@ -317,14 +391,19 @@ export class ParentService {
         action: 'parent.update',
         entity: 'ParentProfile',
         entityId: id,
-        metadata: JSON.stringify({ fields: Object.keys(dto).filter((k) => k !== 'password'), passwordChanged: dto.password !== undefined }),
+        metadata: JSON.stringify({
+          fields: Object.keys(dto).filter((k) => k !== 'password'),
+          passwordChanged: dto.password !== undefined,
+        }),
       },
     });
     return this.toSummary(record);
   }
 
   async delete(id: string, actingUserId: string): Promise<void> {
-    const existing = await this.prisma.parentProfile.findUnique({ where: { id } });
+    const existing = await this.prisma.parentProfile.findUnique({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException('Parent not found');
     }
@@ -337,7 +416,12 @@ export class ParentService {
       assertDeletable(error, 'Parent');
     }
     await this.prisma.auditLog.create({
-      data: { userId: actingUserId, action: 'parent.delete', entity: 'ParentProfile', entityId: id },
+      data: {
+        userId: actingUserId,
+        action: 'parent.delete',
+        entity: 'ParentProfile',
+        entityId: id,
+      },
     });
   }
 }

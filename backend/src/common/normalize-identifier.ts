@@ -15,7 +15,8 @@ export function normalizeIdentifier(raw: string): string {
   if (/^\+?\d{10,15}$/.test(digits)) {
     const onlyDigits = digits.replace(/^\+/, '');
     if (onlyDigits.startsWith('0092')) return `0${onlyDigits.slice(4)}`;
-    if (onlyDigits.startsWith('92') && onlyDigits.length === 12) return `0${onlyDigits.slice(2)}`;
+    if (onlyDigits.startsWith('92') && onlyDigits.length === 12)
+      return `0${onlyDigits.slice(2)}`;
     return onlyDigits;
   }
   return value;

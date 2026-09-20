@@ -26,7 +26,9 @@ function pkr(amountPaisa: number): string {
 export class FeesPdfService {
   renderVoucherPdf(input: VoucherPdfInput): Promise<Buffer> {
     return this.render((doc) => {
-      doc.fontSize(18).text('The SchoolOS School — Fee Voucher', { align: 'center' });
+      doc
+        .fontSize(18)
+        .text('The SchoolOS School — Fee Voucher', { align: 'center' });
       doc.moveDown();
       doc.fontSize(11);
       doc.text(`Student: ${input.studentName} (${input.grNumber})`);
@@ -37,13 +39,17 @@ export class FeesPdfService {
         doc.text(`${item.label}   PKR ${pkr(item.amount)}`);
       }
       doc.moveDown();
-      doc.fontSize(13).text(`Total due: PKR ${pkr(input.totalAmount)}`, { align: 'right' });
+      doc
+        .fontSize(13)
+        .text(`Total due: PKR ${pkr(input.totalAmount)}`, { align: 'right' });
     });
   }
 
   renderReceiptPdf(input: ReceiptPdfInput): Promise<Buffer> {
     return this.render((doc) => {
-      doc.fontSize(18).text('The SchoolOS School — Payment Receipt', { align: 'center' });
+      doc
+        .fontSize(18)
+        .text('The SchoolOS School — Payment Receipt', { align: 'center' });
       doc.moveDown();
       doc.fontSize(11);
       doc.text(`Receipt No: ${input.receiptNumber}`);
@@ -51,7 +57,9 @@ export class FeesPdfService {
       doc.text(`Paid via: ${input.method}`);
       doc.text(`Paid on: ${input.paidAt}`);
       doc.moveDown();
-      doc.fontSize(13).text(`Amount paid: PKR ${pkr(input.amount)}`, { align: 'right' });
+      doc
+        .fontSize(13)
+        .text(`Amount paid: PKR ${pkr(input.amount)}`, { align: 'right' });
     });
   }
 

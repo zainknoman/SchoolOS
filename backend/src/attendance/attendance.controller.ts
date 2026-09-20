@@ -58,7 +58,10 @@ export class AttendanceController {
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('attendance/bulk')
-  async markBulk(@Body() dto: BulkMarkAttendanceDto, @Req() req: AuthenticatedRequest) {
+  async markBulk(
+    @Body() dto: BulkMarkAttendanceDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     for (const mark of dto.marks) {
       await this.studentAccess.assertCanAccessStudent(req.user, mark.studentId);
     }

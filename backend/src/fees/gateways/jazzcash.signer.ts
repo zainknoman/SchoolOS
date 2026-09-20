@@ -13,14 +13,25 @@ export class JazzCashSigner {
 
   sign(fields: Record<string, string>): string {
     const sortedValues = Object.keys(fields)
-      .filter((key) => key.startsWith('pp_') && key !== 'pp_SecureHash' && fields[key] !== '')
+      .filter(
+        (key) =>
+          key.startsWith('pp_') &&
+          key !== 'pp_SecureHash' &&
+          fields[key] !== '',
+      )
       .sort()
       .map((key) => fields[key]);
     const stringToHash = [this.integritySalt, ...sortedValues].join('&');
-    return createHmac('sha256', this.integritySalt).update(stringToHash).digest('hex').toUpperCase();
+    return createHmac('sha256', this.integritySalt)
+      .update(stringToHash)
+      .digest('hex')
+      .toUpperCase();
   }
 
-  verify(fields: Record<string, string>, providedHash: string | undefined): boolean {
+  verify(
+    fields: Record<string, string>,
+    providedHash: string | undefined,
+  ): boolean {
     if (!providedHash) return false;
     const expected = Buffer.from(this.sign(fields));
     const provided = Buffer.from(providedHash.toUpperCase());

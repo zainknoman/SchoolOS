@@ -10,7 +10,12 @@ async function bootstrap() {
   // previewed parent-app (`flutter run -d chrome`). Scoped to a known allow-list in
   // staging/production (env-driven via CORS_ORIGINS, per Sprint B hardening) — see
   // buildCorsOriginOption for the dev/test-only localhost carve-out.
-  app.enableCors({ origin: buildCorsOriginOption(process.env.CORS_ORIGINS, process.env.NODE_ENV) });
+  app.enableCors({
+    origin: buildCorsOriginOption(
+      process.env.CORS_ORIGINS,
+      process.env.NODE_ENV,
+    ),
+  });
 
   // Enforces every DTO's class-validator decorators (e.g. LoginDto) on every request; without this
   // the decorators are inert and bad input reaches the service layer unchecked.

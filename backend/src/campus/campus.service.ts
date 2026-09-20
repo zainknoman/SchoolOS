@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { OrgStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
@@ -80,8 +84,14 @@ export class CampusService {
   ): Promise<CampusSummary & { provisionedLogin?: ProvisionedLogin }> {
     if (actingUser.role !== 'SUPER_ADMIN') {
       const scope = await this.orgScope.resolve(actingUser);
-      if (scope.denied || scope.campusId !== null || scope.schoolId !== dto.schoolId) {
-        throw new ForbiddenException('You can only create campuses for your own school');
+      if (
+        scope.denied ||
+        scope.campusId !== null ||
+        scope.schoolId !== dto.schoolId
+      ) {
+        throw new ForbiddenException(
+          'You can only create campuses for your own school',
+        );
       }
     }
     // `principal` (and any password in it) must never reach Prisma or the audit log.

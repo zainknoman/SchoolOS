@@ -9,7 +9,12 @@ import { EnrollmentService } from '../enrollment/enrollment.service';
 
 @Module({
   imports: [HolidaysModule, NotificationsModule],
-  providers: [AttendanceRiskService, AttendanceRiskJob, StudentAccessService, EnrollmentService],
+  providers: [
+    AttendanceRiskService,
+    AttendanceRiskJob,
+    StudentAccessService,
+    EnrollmentService,
+  ],
   controllers: [AttendanceRiskController],
 })
 export class AttendanceRiskModule {}

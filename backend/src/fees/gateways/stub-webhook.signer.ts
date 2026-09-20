@@ -1,4 +1,7 @@
-import { PaymentWebhookSigner, WebhookVerificationResult } from './webhook-signer';
+import {
+  PaymentWebhookSigner,
+  WebhookVerificationResult,
+} from './webhook-signer';
 
 /**
  * The stub gateway has no real signing scheme to reproduce — this exists only so local dev/tests

@@ -31,7 +31,11 @@ export class ConversationsController {
   }
 
   @Post(':id/messages')
-  reply(@Param('id') id: string, @Body() dto: SendMessageDto, @Req() req: AuthenticatedRequest) {
+  reply(
+    @Param('id') id: string,
+    @Body() dto: SendMessageDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.conversationsService.reply(id, req.user.id, dto);
   }
 

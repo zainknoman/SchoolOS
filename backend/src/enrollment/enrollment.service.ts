@@ -44,7 +44,9 @@ export class EnrollmentService {
       orderBy: { startDate: 'desc' },
     });
     if (!enrollment) {
-      throw new NotFoundException('Student has no enrollment covering this date');
+      throw new NotFoundException(
+        'Student has no enrollment covering this date',
+      );
     }
     return enrollment;
   }

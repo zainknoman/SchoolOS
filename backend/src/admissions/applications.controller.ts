@@ -1,5 +1,14 @@
 // backend/src/admissions/applications.controller.ts
-import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
@@ -28,7 +37,11 @@ export class ApplicationsController {
     @Query('academicSessionId') academicSessionId?: string,
     @Query('status') status?: string,
   ) {
-    return this.applicationsService.findMany(req.user, academicSessionId, status);
+    return this.applicationsService.findMany(
+      req.user,
+      academicSessionId,
+      status,
+    );
   }
 
   @Get(':id')
@@ -42,12 +55,20 @@ export class ApplicationsController {
   }
 
   @Post(':id/reject')
-  reject(@Param('id') id: string, @Body('decisionNotes') decisionNotes: string, @Req() req: AuthenticatedRequest) {
+  reject(
+    @Param('id') id: string,
+    @Body('decisionNotes') decisionNotes: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.applicationsService.reject(id, decisionNotes, req.user.id);
   }
 
   @Post(':id/approve')
-  approve(@Param('id') id: string, @Body() dto: ApproveApplicationDto, @Req() req: AuthenticatedRequest) {
+  approve(
+    @Param('id') id: string,
+    @Body() dto: ApproveApplicationDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.applicationsService.approve(id, dto, req.user.id);
   }
 }

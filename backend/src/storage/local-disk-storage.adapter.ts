@@ -6,7 +6,8 @@ import { StorageAdapter } from './storage-adapter';
 
 @Injectable()
 export class LocalDiskStorageAdapter implements StorageAdapter {
-  private readonly rootDir = process.env.UPLOADS_DIR ?? join(process.cwd(), 'uploads');
+  private readonly rootDir =
+    process.env.UPLOADS_DIR ?? join(process.cwd(), 'uploads');
 
   async save(buffer: Buffer, extension: string): Promise<string> {
     await mkdir(this.rootDir, { recursive: true });

@@ -36,7 +36,9 @@ export class OrgScopeService {
         allows: () => true,
       };
     }
-    const account = await this.prisma.user.findUnique({ where: { id: user.id } });
+    const account = await this.prisma.user.findUnique({
+      where: { id: user.id },
+    });
     if (!account?.schoolId) {
       return {
         unrestricted: false,
@@ -55,7 +57,9 @@ export class OrgScopeService {
       schoolId,
       campusId,
       campusWhere: campusId ? { id: campusId, schoolId } : { schoolId },
-      allows: (target) => target.schoolId === schoolId && (campusId === null || target.campusId === campusId),
+      allows: (target) =>
+        target.schoolId === schoolId &&
+        (campusId === null || target.campusId === campusId),
     };
   }
 
@@ -66,7 +70,10 @@ export class OrgScopeService {
       where: { id: campusId },
       select: { id: true, schoolId: true },
     });
-    if (!campus || !scope.allows({ campusId: campus.id, schoolId: campus.schoolId })) {
+    if (
+      !campus ||
+      !scope.allows({ campusId: campus.id, schoolId: campus.schoolId })
+    ) {
       throw new ForbiddenException('You do not have access to this campus');
     }
   }

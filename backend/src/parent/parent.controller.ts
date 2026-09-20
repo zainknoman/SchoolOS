@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { ParentService } from './parent.service';
 import { CreateParentDto } from './dto/create-parent.dto';
@@ -42,7 +51,11 @@ export class ParentController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateParentDto, @Req() req: AuthenticatedRequest) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateParentDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.parentService.update(id, dto, req.user.id);
   }
 

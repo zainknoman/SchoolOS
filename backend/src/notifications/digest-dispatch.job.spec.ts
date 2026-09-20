@@ -35,13 +35,27 @@ describe('DigestDispatchJob', () => {
     job = moduleRef.get(DigestDispatchJob);
   });
 
-  it('bundles a digest-enabled user\'s undispatched rows into one send() call and stamps them dispatched', async () => {
+  it("bundles a digest-enabled user's undispatched rows into one send() call and stamps them dispatched", async () => {
     prisma.user.findMany.mockResolvedValue([
       { id: 'user-1', notificationChannel: 'WHATSAPP' },
     ]);
     prisma.notification.findMany.mockResolvedValue([
-      { id: 'n1', userId: 'user-1', type: 'diary', title: 'Diary update', body: 'Homework added', createdAt: new Date('2026-09-11T08:00:00.000Z') },
-      { id: 'n2', userId: 'user-1', type: 'circular', title: 'PTM', body: 'Sept 20th', createdAt: new Date('2026-09-11T09:00:00.000Z') },
+      {
+        id: 'n1',
+        userId: 'user-1',
+        type: 'diary',
+        title: 'Diary update',
+        body: 'Homework added',
+        createdAt: new Date('2026-09-11T08:00:00.000Z'),
+      },
+      {
+        id: 'n2',
+        userId: 'user-1',
+        type: 'circular',
+        title: 'PTM',
+        body: 'Sept 20th',
+        createdAt: new Date('2026-09-11T09:00:00.000Z'),
+      },
     ]);
     prisma.notification.updateMany.mockResolvedValue({ count: 2 });
 
@@ -62,7 +76,7 @@ describe('DigestDispatchJob', () => {
     });
   });
 
-  it('never touches a non-digest user\'s rows (they are already dispatched immediately by notify())', async () => {
+  it("never touches a non-digest user's rows (they are already dispatched immediately by notify())", async () => {
     prisma.user.findMany.mockResolvedValue([]);
 
     await job.run();
@@ -75,7 +89,9 @@ describe('DigestDispatchJob', () => {
   });
 
   it('queries only undispatched rows scoped to digest-enabled user ids', async () => {
-    prisma.user.findMany.mockResolvedValue([{ id: 'user-1', notificationChannel: 'PUSH' }]);
+    prisma.user.findMany.mockResolvedValue([
+      { id: 'user-1', notificationChannel: 'PUSH' },
+    ]);
     prisma.notification.findMany.mockResolvedValue([]);
 
     await job.run();

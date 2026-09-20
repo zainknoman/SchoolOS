@@ -3,10 +3,15 @@ import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { createPrincipalUser, LoginProvisionDto } from './create-principal-user';
+import {
+  createPrincipalUser,
+  LoginProvisionDto,
+} from './create-principal-user';
 
 describe('createPrincipalUser', () => {
-  const makeTx = () => ({ user: { create: jest.fn().mockResolvedValue({ id: 'u1' }) } });
+  const makeTx = () => ({
+    user: { create: jest.fn().mockResolvedValue({ id: 'u1' }) },
+  });
 
   it('creates a SCHOOL_ADMIN principal who must change their password, and returns a generated password once', async () => {
     const tx = makeTx();
@@ -19,7 +24,9 @@ describe('createPrincipalUser', () => {
     expect(result.login.identifier).toBe('head@school.test');
     expect(result.userId).toBe('u1');
     expect(result.login.temporaryPassword).toEqual(expect.any(String));
-    expect((result.login.temporaryPassword as string).length).toBeGreaterThanOrEqual(16);
+    expect(
+      (result.login.temporaryPassword as string).length,
+    ).toBeGreaterThanOrEqual(16);
     const data = tx.user.create.mock.calls[0][0].data;
     expect(data).toMatchObject({
       identifier: 'head@school.test',
@@ -30,7 +37,12 @@ describe('createPrincipalUser', () => {
       campusId: null,
     });
     expect(data.passwordHash).not.toContain(result.login.temporaryPassword);
-    expect(await argon2.verify(data.passwordHash, result.login.temporaryPassword as string)).toBe(true);
+    expect(
+      await argon2.verify(
+        data.passwordHash,
+        result.login.temporaryPassword as string,
+      ),
+    ).toBe(true);
   });
 
   it('uses a caller-supplied password and does not echo it back', async () => {
@@ -62,10 +74,17 @@ describe('createPrincipalUser', () => {
   it('translates a duplicate identifier into a BadRequestException', async () => {
     const tx = makeTx();
     tx.user.create.mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x' }),
+      new Prisma.PrismaClientKnownRequestError('dup', {
+        code: 'P2002',
+        clientVersion: 'x',
+      }),
     );
     await expect(
-      createPrincipalUser(tx as never, { identifier: 'dup@x.test', schoolId: 's1', campusId: null }),
+      createPrincipalUser(tx as never, {
+        identifier: 'dup@x.test',
+        schoolId: 's1',
+        campusId: null,
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 

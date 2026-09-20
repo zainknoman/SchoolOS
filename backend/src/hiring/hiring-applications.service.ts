@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
 import { CreateHiringApplicationDto } from './dto/create-hiring-application.dto';
@@ -32,8 +36,14 @@ export class HiringApplicationsService {
   ) {}
 
   private toSummary(record: {
-    id: string; candidateId: string; candidate: { name: string }; employeeType: EmployeeType;
-    campusId: string; status: string; decisionNotes: string | null; reviewedById: string | null;
+    id: string;
+    candidateId: string;
+    candidate: { name: string };
+    employeeType: EmployeeType;
+    campusId: string;
+    status: string;
+    decisionNotes: string | null;
+    reviewedById: string | null;
     createdStaffId: string | null;
   }): HiringApplicationSummary {
     return {
@@ -49,7 +59,9 @@ export class HiringApplicationsService {
     };
   }
 
-  async create(dto: CreateHiringApplicationDto): Promise<HiringApplicationSummary> {
+  async create(
+    dto: CreateHiringApplicationDto,
+  ): Promise<HiringApplicationSummary> {
     const record = await this.prisma.hiringApplication.create({
       data: {
         candidateId: dto.candidateId,
@@ -67,7 +79,11 @@ export class HiringApplicationsService {
     return this.toSummary(existing);
   }
 
-  async findMany(actingUser: RequestUser, campusId?: string, status?: string): Promise<HiringApplicationSummary[]> {
+  async findMany(
+    actingUser: RequestUser,
+    campusId?: string,
+    status?: string,
+  ): Promise<HiringApplicationSummary[]> {
     let where: Prisma.HiringApplicationWhereInput = {
       ...(campusId ? { campusId } : {}),
       ...(status ? { status } : {}),
@@ -88,33 +104,49 @@ export class HiringApplicationsService {
   }
 
   private async getOrThrow(id: string) {
-    const existing = await this.prisma.hiringApplication.findUnique({ where: { id }, include: WITH_CANDIDATE });
+    const existing = await this.prisma.hiringApplication.findUnique({
+      where: { id },
+      include: WITH_CANDIDATE,
+    });
     if (!existing) {
       throw new NotFoundException('Hiring application not found');
     }
     return existing;
   }
 
-  async updateStatus(id: string, dto: UpdateHiringApplicationDto): Promise<HiringApplicationSummary> {
+  async updateStatus(
+    id: string,
+    dto: UpdateHiringApplicationDto,
+  ): Promise<HiringApplicationSummary> {
     const existing = await this.getOrThrow(id);
     if (TERMINAL_STATUSES.includes(existing.status)) {
-      throw new BadRequestException(`Application is already ${existing.status.toLowerCase()} and cannot be changed`);
+      throw new BadRequestException(
+        `Application is already ${existing.status.toLowerCase()} and cannot be changed`,
+      );
     }
     const record = await this.prisma.hiringApplication.update({
       where: { id },
       include: WITH_CANDIDATE,
       data: {
         ...(dto.status !== undefined ? { status: dto.status } : {}),
-        ...(dto.decisionNotes !== undefined ? { decisionNotes: dto.decisionNotes } : {}),
+        ...(dto.decisionNotes !== undefined
+          ? { decisionNotes: dto.decisionNotes }
+          : {}),
       },
     });
     return this.toSummary(record);
   }
 
-  async reject(id: string, decisionNotes: string, reviewedById: string): Promise<HiringApplicationSummary> {
+  async reject(
+    id: string,
+    decisionNotes: string,
+    reviewedById: string,
+  ): Promise<HiringApplicationSummary> {
     const existing = await this.getOrThrow(id);
     if (TERMINAL_STATUSES.includes(existing.status)) {
-      throw new BadRequestException(`Application is already ${existing.status.toLowerCase()}`);
+      throw new BadRequestException(
+        `Application is already ${existing.status.toLowerCase()}`,
+      );
     }
     const record = await this.prisma.hiringApplication.update({
       where: { id },
@@ -124,13 +156,21 @@ export class HiringApplicationsService {
     return this.toSummary(record);
   }
 
-  async approve(id: string, dto: ApproveHiringApplicationDto, reviewedById: string): Promise<HiringApplicationSummary> {
+  async approve(
+    id: string,
+    dto: ApproveHiringApplicationDto,
+    reviewedById: string,
+  ): Promise<HiringApplicationSummary> {
     const existing = await this.getOrThrow(id);
     if (TERMINAL_STATUSES.includes(existing.status)) {
-      throw new BadRequestException(`Application is already ${existing.status.toLowerCase()}`);
+      throw new BadRequestException(
+        `Application is already ${existing.status.toLowerCase()}`,
+      );
     }
     if (existing.employeeType === 'TEACHER' && !dto.login) {
-      throw new BadRequestException('A login identifier/password is required to hire a teacher.');
+      throw new BadRequestException(
+        'A login identifier/password is required to hire a teacher.',
+      );
     }
 
     let record: Parameters<HiringApplicationsService['toSummary']>[0];
@@ -154,8 +194,11 @@ export class HiringApplicationsService {
         });
       });
     } catch (error) {
-      assertCreatable(error, 'This CNIC or login identifier is already in use.');
+      assertCreatable(
+        error,
+        'This CNIC or login identifier is already in use.',
+      );
     }
     return this.toSummary(record);
-  }  
+  }
 }

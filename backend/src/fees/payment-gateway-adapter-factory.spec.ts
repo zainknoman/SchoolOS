@@ -10,8 +10,12 @@ function fakeConfig(values: Record<string, string>): ConfigService {
 
 describe('PaymentGatewayAdapterFactoryImpl', () => {
   it('falls back to the stub adapter for jazzcash when unconfigured', () => {
-    const factory = new PaymentGatewayAdapterFactoryImpl(fakeConfig({ NODE_ENV: 'test' }));
-    expect(factory.getAdapter('jazzcash')).toBeInstanceOf(StubPaymentGatewayAdapter);
+    const factory = new PaymentGatewayAdapterFactoryImpl(
+      fakeConfig({ NODE_ENV: 'test' }),
+    );
+    expect(factory.getAdapter('jazzcash')).toBeInstanceOf(
+      StubPaymentGatewayAdapter,
+    );
   });
 
   it('returns a real JazzCashAdapter when fully configured', () => {
@@ -42,7 +46,9 @@ describe('PaymentGatewayAdapterFactoryImpl', () => {
   });
 
   it('getSigner("stub") returns a signer using the resolved dev-only secret', () => {
-    const factory = new PaymentGatewayAdapterFactoryImpl(fakeConfig({ NODE_ENV: 'test' }));
+    const factory = new PaymentGatewayAdapterFactoryImpl(
+      fakeConfig({ NODE_ENV: 'test' }),
+    );
     const signer = factory.getSigner('stub');
     expect(
       signer?.verifyAndParse(
@@ -53,12 +59,16 @@ describe('PaymentGatewayAdapterFactoryImpl', () => {
   });
 
   it('getSigner returns undefined for an unconfigured real gateway', () => {
-    const factory = new PaymentGatewayAdapterFactoryImpl(fakeConfig({ NODE_ENV: 'test' }));
+    const factory = new PaymentGatewayAdapterFactoryImpl(
+      fakeConfig({ NODE_ENV: 'test' }),
+    );
     expect(factory.getSigner('jazzcash')).toBeUndefined();
   });
 
   it('getSigner returns undefined for an unknown gateway name', () => {
-    const factory = new PaymentGatewayAdapterFactoryImpl(fakeConfig({ NODE_ENV: 'test' }));
+    const factory = new PaymentGatewayAdapterFactoryImpl(
+      fakeConfig({ NODE_ENV: 'test' }),
+    );
     expect(factory.getSigner('bogus')).toBeUndefined();
   });
 });

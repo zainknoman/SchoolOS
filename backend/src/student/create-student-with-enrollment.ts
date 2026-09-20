@@ -1,7 +1,10 @@
 // backend/src/student/create-student-with-enrollment.ts
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { createParentWithUser, type CreateParentInput } from '../parent/create-parent-with-user';
+import {
+  createParentWithUser,
+  type CreateParentInput,
+} from '../parent/create-parent-with-user';
 import { normalizeIdentifier } from '../common/normalize-identifier';
 
 export interface CreateStudentWithEnrollmentInput {
@@ -35,7 +38,9 @@ export async function createStudentWithEnrollment(
 ): Promise<{ studentId: string }> {
   const hasExisting = input.parentProfileId != null;
 
-  const student = await tx.student.create({ data: { grNumber: input.grNumber, name: input.name } });
+  const student = await tx.student.create({
+    data: { grNumber: input.grNumber, name: input.name },
+  });
   await tx.enrollment.create({
     data: {
       studentId: student.id,
@@ -49,7 +54,9 @@ export async function createStudentWithEnrollment(
 
   let parentProfileId: string;
   if (hasExisting) {
-    const parent = await tx.parentProfile.findUnique({ where: { id: input.parentProfileId! } });
+    const parent = await tx.parentProfile.findUnique({
+      where: { id: input.parentProfileId! },
+    });
     if (!parent) {
       throw new BadRequestException('Parent not found');
     }
@@ -58,19 +65,27 @@ export async function createStudentWithEnrollment(
     // One parent, one login: if this mobile/email already belongs to a parent (a sibling was
     // admitted earlier), link to that parent instead of creating a second account.
     const existingParent = await tx.parentProfile.findFirst({
-      where: { user: { identifier: normalizeIdentifier(input.newParent!.identifier) } },
+      where: {
+        user: { identifier: normalizeIdentifier(input.newParent!.identifier) },
+      },
       select: { id: true },
     });
     if (existingParent) {
       parentProfileId = existingParent.id;
-      await tx.studentParent.create({ data: { studentId: student.id, parentProfileId } });
+      await tx.studentParent.create({
+        data: { studentId: student.id, parentProfileId },
+      });
       await tx.auditLog.create({
         data: {
           userId: actingUserId,
           action: 'student.create',
           entity: 'Student',
           entityId: student.id,
-          metadata: JSON.stringify({ grNumber: input.grNumber, name: input.name, sectionId: input.sectionId }),
+          metadata: JSON.stringify({
+            grNumber: input.grNumber,
+            name: input.name,
+            sectionId: input.sectionId,
+          }),
         },
       });
       return { studentId: student.id };
@@ -83,18 +98,27 @@ export async function createStudentWithEnrollment(
         action: 'parent.create',
         entity: 'ParentProfile',
         entityId: newParent.id,
-        metadata: JSON.stringify({ identifier: input.newParent!.identifier, name: input.newParent!.name }),
+        metadata: JSON.stringify({
+          identifier: input.newParent!.identifier,
+          name: input.newParent!.name,
+        }),
       },
     });
   }
-  await tx.studentParent.create({ data: { studentId: student.id, parentProfileId } });
+  await tx.studentParent.create({
+    data: { studentId: student.id, parentProfileId },
+  });
   await tx.auditLog.create({
     data: {
       userId: actingUserId,
       action: 'student.create',
       entity: 'Student',
       entityId: student.id,
-      metadata: JSON.stringify({ grNumber: input.grNumber, name: input.name, sectionId: input.sectionId }),
+      metadata: JSON.stringify({
+        grNumber: input.grNumber,
+        name: input.name,
+        sectionId: input.sectionId,
+      }),
     },
   });
 

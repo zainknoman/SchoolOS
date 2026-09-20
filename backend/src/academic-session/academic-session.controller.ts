@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { AcademicSessionService } from './academic-session.service';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
@@ -13,11 +22,16 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('api/v1')
 export class AcademicSessionController {
-  constructor(private readonly academicSessionService: AcademicSessionService) {}
+  constructor(
+    private readonly academicSessionService: AcademicSessionService,
+  ) {}
 
   @Roles('SUPER_ADMIN')
   @Post('academic-sessions')
-  create(@Body() dto: CreateAcademicSessionDto, @Req() req: AuthenticatedRequest) {
+  create(
+    @Body() dto: CreateAcademicSessionDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.academicSessionService.create(dto, req.user.id);
   }
 
@@ -37,12 +51,20 @@ export class AcademicSessionController {
     @Body() dto: CopyStructureDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.academicSessionService.copyStructure(id, dto.sourceSessionId, req.user);
+    return this.academicSessionService.copyStructure(
+      id,
+      dto.sourceSessionId,
+      req.user,
+    );
   }
 
   @Roles('SUPER_ADMIN')
   @Patch('academic-sessions/:id')
-  update(@Param('id') id: string, @Body() dto: UpdateAcademicSessionDto, @Req() req: AuthenticatedRequest) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAcademicSessionDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.academicSessionService.update(id, dto, req.user.id);
   }
 

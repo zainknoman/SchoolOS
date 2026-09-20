@@ -1,4 +1,12 @@
-import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { EmployeeType } from '@prisma/client';
 
@@ -28,5 +36,8 @@ export class CreateStaffDto {
   // Required when employeeType is TEACHER (enforced in the service, since the rule depends on
   // this DTO's own employeeType field, not just this field's shape). Ignored for every other
   // employeeType — mirrors ApproveHiringApplicationDto's login field.
-  @IsOptional() @ValidateNested() @Type(() => StaffLoginDto) login?: StaffLoginDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StaffLoginDto)
+  login?: StaffLoginDto;
 }

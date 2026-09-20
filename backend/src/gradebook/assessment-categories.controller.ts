@@ -1,10 +1,24 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { AssessmentCategoriesService } from './assessment-categories.service';
 import { CreateAssessmentCategoryDto } from './dto/create-assessment-category.dto';
 import { UpdateAssessmentCategoryDto } from './dto/update-assessment-category.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { StudentAccessService, type RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  type RequestUser,
+} from '../common/student-access.service';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;

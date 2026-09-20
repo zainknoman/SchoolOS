@@ -2,7 +2,10 @@ import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { LeaveService } from './leave.service';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
-import { StudentAccessService, RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  RequestUser,
+} from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 interface AuthenticatedRequest extends Request {
@@ -18,13 +21,19 @@ export class LeaveController {
 
   @Roles('PARENT')
   @Post('leave-requests')
-  async create(@Body() dto: CreateLeaveRequestDto, @Req() req: AuthenticatedRequest) {
+  async create(
+    @Body() dto: CreateLeaveRequestDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     await this.studentAccess.assertCanAccessStudent(req.user, dto.studentId);
     return this.leaveService.create(dto, req.user.id);
   }
 
   @Get('students/:id/leave-requests')
-  async getForStudent(@Param('id') studentId: string, @Req() req: AuthenticatedRequest) {
+  async getForStudent(
+    @Param('id') studentId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     await this.studentAccess.assertCanAccessStudent(req.user, studentId);
     return this.leaveService.listForStudent(studentId);
   }
@@ -33,7 +42,10 @@ export class LeaveController {
   // staff-facing list endpoints.
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Get('leave-requests')
-  listAll(@Query('status') status: string | undefined, @Req() req: AuthenticatedRequest) {
+  listAll(
+    @Query('status') status: string | undefined,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.leaveService.listAll(req.user, status);
   }
 

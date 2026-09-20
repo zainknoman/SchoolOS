@@ -25,6 +25,8 @@ export class FeeStructuresService {
   }
 
   list() {
-    return this.prisma.feeStructure.findMany({ orderBy: { createdAt: 'desc' } });
+    return this.prisma.feeStructure.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
   }
 }

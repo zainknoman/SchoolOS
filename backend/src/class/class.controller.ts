@@ -1,10 +1,22 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { ClassService } from './class.service';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { StudentAccessService, type RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  type RequestUser,
+} from '../common/student-access.service';
 import { OrgScopeService } from '../common/org-scope.service';
 
 interface AuthenticatedRequest extends Request {
@@ -35,7 +47,11 @@ export class ClassController {
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Patch('classes/:id')
-  async update(@Param('id') id: string, @Body() dto: UpdateClassDto, @Req() req: AuthenticatedRequest) {
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateClassDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     await this.studentAccess.assertCanAccessClass(req.user, id);
     return this.classService.update(id, dto, req.user.id);
   }

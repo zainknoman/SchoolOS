@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { EmployeeType } from '@prisma/client';
 import { StaffService } from './staff.service';
@@ -17,7 +27,10 @@ export class StaffController {
   constructor(private readonly staffService: StaffService) {}
 
   @Get()
-  list(@Query('employeeType') employeeType: EmployeeType | undefined, @Req() req: AuthenticatedRequest) {
+  list(
+    @Query('employeeType') employeeType: EmployeeType | undefined,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.staffService.list(req.user, employeeType);
   }
 
@@ -27,7 +40,11 @@ export class StaffController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateStaffDto, @Req() req: AuthenticatedRequest) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateStaffDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.staffService.update(id, dto, req.user);
   }
 

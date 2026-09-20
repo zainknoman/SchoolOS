@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Req, Delete, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Req,
+  Delete,
+  Post,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { StaffProfileService } from './staff-profile.service';
 import { UpdateStaffProfileDto } from './dto/update-staff-profile.dto';
@@ -34,7 +43,7 @@ export class StaffProfileController {
     return this.service.updateProfile(staffId, dto, req.user.id);
   }
 
-    @Get('emergency-contacts')
+  @Get('emergency-contacts')
   listEmergencyContacts(@Param('staffId') staffId: string) {
     return this.service.listEmergencyContacts(staffId);
   }
@@ -55,7 +64,12 @@ export class StaffProfileController {
     @Body() dto: UpdateStaffEmergencyContactDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.service.updateEmergencyContact(staffId, contactId, dto, req.user.id);
+    return this.service.updateEmergencyContact(
+      staffId,
+      contactId,
+      dto,
+      req.user.id,
+    );
   }
 
   @Delete('emergency-contacts/:contactId')
@@ -88,7 +102,12 @@ export class StaffProfileController {
     @Body() dto: UpdateStaffExperienceDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.service.updateExperience(staffId, experienceId, dto, req.user.id);
+    return this.service.updateExperience(
+      staffId,
+      experienceId,
+      dto,
+      req.user.id,
+    );
   }
 
   @Delete('experience/:experienceId')
@@ -121,6 +140,11 @@ export class StaffProfileController {
     @Body() dto: VerifyStaffDocumentDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.service.verifyDocument(staffId, documentId, dto.verified, req.user.id);
+    return this.service.verifyDocument(
+      staffId,
+      documentId,
+      dto.verified,
+      req.user.id,
+    );
   }
 }

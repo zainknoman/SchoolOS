@@ -22,7 +22,11 @@ describe('CircularsService', () => {
 
   beforeEach(async () => {
     prisma = {
-      circular: { create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn() },
+      circular: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+      },
       circularAttachment: { createMany: jest.fn() },
       circularRecipient: {
         createMany: jest.fn(),
@@ -46,7 +50,10 @@ describe('CircularsService', () => {
 
   it('publishing a school-wide circular fans out a recipient row to every parent', async () => {
     prisma.circular.create.mockResolvedValue({ id: 'circ-1' });
-    prisma.user.findMany.mockResolvedValue([{ id: 'parent-a' }, { id: 'parent-b' }]);
+    prisma.user.findMany.mockResolvedValue([
+      { id: 'parent-a' },
+      { id: 'parent-b' },
+    ]);
 
     await service.publish(
       { title: 'PTM', description: 'PTM in September.', scope: 'school' },
@@ -64,14 +71,20 @@ describe('CircularsService', () => {
     });
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ action: 'circular.publish', entity: 'Circular' }),
+        data: expect.objectContaining({
+          action: 'circular.publish',
+          entity: 'Circular',
+        }),
       }),
     );
   });
 
   it('notifies every recipient after publishing', async () => {
     prisma.circular.create.mockResolvedValue({ id: 'circ-1' });
-    prisma.user.findMany.mockResolvedValue([{ id: 'parent-a' }, { id: 'parent-b' }]);
+    prisma.user.findMany.mockResolvedValue([
+      { id: 'parent-a' },
+      { id: 'parent-b' },
+    ]);
 
     await service.publish(
       { title: 'PTM', description: 'PTM in September.', scope: 'school' },
@@ -79,10 +92,18 @@ describe('CircularsService', () => {
     );
 
     expect(notifications.notify).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'parent-a', type: 'circular', entityRef: 'circ-1' }),
+      expect.objectContaining({
+        userId: 'parent-a',
+        type: 'circular',
+        entityRef: 'circ-1',
+      }),
     );
     expect(notifications.notify).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'parent-b', type: 'circular', entityRef: 'circ-1' }),
+      expect.objectContaining({
+        userId: 'parent-b',
+        type: 'circular',
+        entityRef: 'circ-1',
+      }),
     );
   });
 
@@ -91,7 +112,12 @@ describe('CircularsService', () => {
     prisma.user.findMany.mockResolvedValue([{ id: 'parent-a' }]);
 
     await service.publish(
-      { title: 'Trip', description: 'Field trip.', scope: 'section', sectionId: 'sec-1' },
+      {
+        title: 'Trip',
+        description: 'Field trip.',
+        scope: 'section',
+        sectionId: 'sec-1',
+      },
       'admin-1',
     );
 
@@ -103,7 +129,9 @@ describe('CircularsService', () => {
             children: {
               some: {
                 student: {
-                  enrollments: { some: { sectionId: 'sec-1', status: 'ACTIVE' } },
+                  enrollments: {
+                    some: { sectionId: 'sec-1', status: 'ACTIVE' },
+                  },
                 },
               },
             },
@@ -122,17 +150,23 @@ describe('CircularsService', () => {
     });
 
     prisma.circularRecipient.updateMany.mockResolvedValue({ count: 0 });
-    await expect(service.markRead('circ-1', 'not-a-recipient')).rejects.toThrow(NotFoundException);
+    await expect(service.markRead('circ-1', 'not-a-recipient')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('stats reports delivered and read counts, and 404s for an unknown circular', async () => {
     prisma.circular.findUnique.mockResolvedValue({ id: 'circ-1' });
-    prisma.circularRecipient.count.mockResolvedValueOnce(5).mockResolvedValueOnce(2);
+    prisma.circularRecipient.count
+      .mockResolvedValueOnce(5)
+      .mockResolvedValueOnce(2);
 
     const stats = await service.getStats('circ-1');
     expect(stats).toEqual({ delivered: 5, read: 2 });
 
     prisma.circular.findUnique.mockResolvedValue(null);
-    await expect(service.getStats('missing')).rejects.toThrow(NotFoundException);
+    await expect(service.getStats('missing')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

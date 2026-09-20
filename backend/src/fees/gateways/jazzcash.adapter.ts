@@ -1,5 +1,11 @@
-import { PaymentGatewayAdapter, PaymentInitiation } from '../payment-gateway-adapter';
-import { PaymentWebhookSigner, WebhookVerificationResult } from './webhook-signer';
+import {
+  PaymentGatewayAdapter,
+  PaymentInitiation,
+} from '../payment-gateway-adapter';
+import {
+  PaymentWebhookSigner,
+  WebhookVerificationResult,
+} from './webhook-signer';
 import { JazzCashSigner } from './jazzcash.signer';
 
 export interface JazzCashConfig {
@@ -23,7 +29,11 @@ function formatJazzCashDateTime(date: Date): string {
 export class JazzCashAdapter implements PaymentGatewayAdapter {
   constructor(private readonly config: JazzCashConfig) {}
 
-  async initiate(input: { amount: number; reference: string }): Promise<PaymentInitiation> {
+  // eslint-disable-next-line @typescript-eslint/require-await -- the adapter interface is Promise-based
+  async initiate(input: {
+    amount: number;
+    reference: string;
+  }): Promise<PaymentInitiation> {
     const signer = new JazzCashSigner(this.config.integritySalt);
     const now = new Date();
     const fields: Record<string, string> = {
@@ -36,7 +46,9 @@ export class JazzCashAdapter implements PaymentGatewayAdapter {
       pp_Amount: String(input.amount),
       pp_TxnCurrency: 'PKR',
       pp_TxnDateTime: formatJazzCashDateTime(now),
-      pp_TxnExpiryDateTime: formatJazzCashDateTime(new Date(now.getTime() + 60 * 60 * 1000)),
+      pp_TxnExpiryDateTime: formatJazzCashDateTime(
+        new Date(now.getTime() + 60 * 60 * 1000),
+      ),
       pp_BillReference: input.reference,
       pp_Description: 'SchoolOS school fee payment',
       pp_ReturnURL: this.config.returnUrl,
@@ -44,13 +56,22 @@ export class JazzCashAdapter implements PaymentGatewayAdapter {
     const pp_SecureHash = signer.sign(fields);
     const query = new URLSearchParams({ ...fields, pp_SecureHash }).toString();
 
-    return { redirectUrl: `${this.config.apiUrl}?${query}`, gatewayReference: input.reference };
+    return {
+      redirectUrl: `${this.config.apiUrl}?${query}`,
+      gatewayReference: input.reference,
+    };
   }
 }
 
 /** pp_ResponseCode "000" is JazzCash's documented success code. */
-export function parseJazzCashWebhook(body: Record<string, string>): { reference: string; status: 'completed' | 'failed' } {
-  return { reference: body.pp_TxnRefNo, status: body.pp_ResponseCode === '000' ? 'completed' : 'failed' };
+export function parseJazzCashWebhook(body: Record<string, string>): {
+  reference: string;
+  status: 'completed' | 'failed';
+} {
+  return {
+    reference: body.pp_TxnRefNo,
+    status: body.pp_ResponseCode === '000' ? 'completed' : 'failed',
+  };
 }
 
 export class JazzCashWebhookSigner implements PaymentWebhookSigner {
@@ -59,7 +80,10 @@ export class JazzCashWebhookSigner implements PaymentWebhookSigner {
     this.signer = new JazzCashSigner(integritySalt);
   }
 
-  verifyAndParse(body: Record<string, string>, _headers: Record<string, string | undefined>): WebhookVerificationResult {
+  verifyAndParse(
+    body: Record<string, string>,
+    _headers: Record<string, string | undefined>,
+  ): WebhookVerificationResult {
     if (!this.signer.verify(body, body.pp_SecureHash)) {
       return { valid: false };
     }

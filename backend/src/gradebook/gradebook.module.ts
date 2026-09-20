@@ -19,6 +19,11 @@ import { EnrollmentService } from '../enrollment/enrollment.service';
     StudentAccessService,
     EnrollmentService,
   ],
-  controllers: [TermsController, AssessmentCategoriesController, AssessmentsController, GradesController],
+  controllers: [
+    TermsController,
+    AssessmentCategoriesController,
+    AssessmentsController,
+    GradesController,
+  ],
 })
 export class GradebookModule {}

@@ -16,7 +16,10 @@ describe('FilesAccessService', () => {
       circularAttachment: { findFirst: jest.fn() },
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [FilesAccessService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        FilesAccessService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = moduleRef.get(FilesAccessService);
   });
@@ -28,13 +31,19 @@ describe('FilesAccessService', () => {
 
   it("allows a parent whose child's section has a diary entry with this attachment", async () => {
     prisma.diaryAttachment.findFirst.mockResolvedValue({ id: 'att-1' });
-    await service.assertCanAccessFile({ id: 'parent-1', role: 'PARENT' }, 'file-1');
+    await service.assertCanAccessFile(
+      { id: 'parent-1', role: 'PARENT' },
+      'file-1',
+    );
   });
 
   it('allows a parent who is a recipient of a circular with this attachment', async () => {
     prisma.diaryAttachment.findFirst.mockResolvedValue(null);
     prisma.circularAttachment.findFirst.mockResolvedValue({ id: 'att-1' });
-    await service.assertCanAccessFile({ id: 'parent-1', role: 'PARENT' }, 'file-1');
+    await service.assertCanAccessFile(
+      { id: 'parent-1', role: 'PARENT' },
+      'file-1',
+    );
   });
 
   it('rejects a parent with no diary or circular link to this file', async () => {

@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
@@ -55,7 +60,9 @@ export class AuthService {
     // a parent can sign in with "+92 300 1234567" or "Ali@Mail.com" however they type it.
     const user =
       (await this.prisma.user.findUnique({ where: { identifier } })) ??
-      (await this.prisma.user.findUnique({ where: { identifier: normalizeIdentifier(identifier) } }));
+      (await this.prisma.user.findUnique({
+        where: { identifier: normalizeIdentifier(identifier) },
+      }));
 
     // Unknown identifier and wrong password return the exact same error — never reveal which
     // field was wrong (FEAT-002 acceptance criteria).
@@ -161,11 +168,14 @@ export class AuthService {
       data: {
         userId: user.id,
         tokenHash: hashToken(token),
-        expiresAt: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_HOURS * 60 * 60_000),
+        expiresAt: new Date(
+          Date.now() + PASSWORD_RESET_TOKEN_TTL_HOURS * 60 * 60_000,
+        ),
       },
     });
 
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
     const resetLink = `${frontendUrl}/reset-password?token=${token}`;
     try {
       await this.mail.send(
@@ -186,7 +196,9 @@ export class AuthService {
    */
   async resetPassword(token: string, newPassword: string): Promise<void> {
     const tokenHash = hashToken(token);
-    const stored = await this.prisma.passwordResetToken.findUnique({ where: { tokenHash } });
+    const stored = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+    });
 
     if (!stored || stored.usedAt || stored.expiresAt.getTime() < Date.now()) {
       throw new BadRequestException(RESET_PASSWORD_GENERIC_ERROR);
@@ -195,7 +207,10 @@ export class AuthService {
     const passwordHash = await argon2.hash(newPassword);
 
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: stored.userId }, data: { passwordHash, mustChangePassword: false } }),
+      this.prisma.user.update({
+        where: { id: stored.userId },
+        data: { passwordHash, mustChangePassword: false },
+      }),
       this.prisma.passwordResetToken.update({
         where: { id: stored.id },
         data: { usedAt: new Date() },
@@ -222,7 +237,9 @@ export class AuthService {
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }
     if (currentPassword === newPassword) {
-      throw new BadRequestException('New password must differ from the current password.');
+      throw new BadRequestException(
+        'New password must differ from the current password.',
+      );
     }
 
     const passwordHash = await argon2.hash(newPassword);
@@ -237,7 +254,14 @@ export class AuthService {
       }),
     ]);
 
-    return this.issueSession(user.id, user.role, user.isPrincipal, false, user.campusId, user.schoolId);
+    return this.issueSession(
+      user.id,
+      user.role,
+      user.isPrincipal,
+      false,
+      user.campusId,
+      user.schoolId,
+    );
   }
 
   private async issueSession(

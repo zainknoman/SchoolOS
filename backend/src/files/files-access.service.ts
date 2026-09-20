@@ -26,7 +26,9 @@ export class FilesAccessService {
             enrollments: {
               some: {
                 status: 'ACTIVE',
-                student: { parents: { some: { parentProfile: { userId: user.id } } } },
+                student: {
+                  parents: { some: { parentProfile: { userId: user.id } } },
+                },
               },
             },
           },
@@ -36,7 +38,10 @@ export class FilesAccessService {
     if (viaDiary) return;
 
     const viaCircular = await this.prisma.circularAttachment.findFirst({
-      where: { fileId, circular: { recipients: { some: { userId: user.id } } } },
+      where: {
+        fileId,
+        circular: { recipients: { some: { userId: user.id } } },
+      },
     });
     if (viaCircular) return;
 

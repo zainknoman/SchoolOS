@@ -39,7 +39,10 @@ export class ComplaintsService {
     };
   }
 
-  async create(dto: CreateComplaintDto, raisedById: string): Promise<ComplaintSummary> {
+  async create(
+    dto: CreateComplaintDto,
+    raisedById: string,
+  ): Promise<ComplaintSummary> {
     const record = await this.prisma.complaint.create({
       data: {
         studentId: dto.studentId,
@@ -65,7 +68,10 @@ export class ComplaintsService {
     if (!existing) {
       throw new NotFoundException('Complaint not found');
     }
-    const record = await this.prisma.complaint.update({ where: { id }, data: { status } });
+    const record = await this.prisma.complaint.update({
+      where: { id },
+      data: { status },
+    });
     return this.toSummary(record);
   }
 }

@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTimetableEntryDto } from './dto/create-timetable-entry.dto';
 import { UpdateTimetableEntryDto } from './dto/update-timetable-entry.dto';
@@ -60,22 +64,35 @@ export class TimetableService {
    */
   private async findConflict(
     sectionId: string,
-    entry: { dayOfWeek: number; period: number; teacherId?: string | null; room?: string | null },
+    entry: {
+      dayOfWeek: number;
+      period: number;
+      teacherId?: string | null;
+      room?: string | null;
+    },
     exclude: { id?: string; sectionId?: string } = {},
   ) {
     const section = await this.prisma.section.findUnique({
       where: { id: sectionId },
-      select: { class: { select: { campusId: true, academicSessionId: true } } },
+      select: {
+        class: { select: { campusId: true, academicSessionId: true } },
+      },
     });
     if (!section) return null;
     const { campusId, academicSessionId } = section.class;
 
     const or: Array<Record<string, unknown>> = [];
     if (entry.teacherId) {
-      or.push({ teacherId: entry.teacherId, section: { class: { academicSessionId } } });
+      or.push({
+        teacherId: entry.teacherId,
+        section: { class: { academicSessionId } },
+      });
     }
     if (entry.room) {
-      or.push({ room: entry.room, section: { class: { campusId, academicSessionId } } });
+      or.push({
+        room: entry.room,
+        section: { class: { campusId, academicSessionId } },
+      });
     }
     if (or.length === 0) return null;
 
@@ -92,7 +109,12 @@ export class TimetableService {
 
   private async assertNoConflict(
     sectionId: string,
-    dto: { dayOfWeek: number; period: number; teacherId?: string | null; room?: string | null },
+    dto: {
+      dayOfWeek: number;
+      period: number;
+      teacherId?: string | null;
+      room?: string | null;
+    },
     excludeId?: string,
   ): Promise<void> {
     const conflict = await this.findConflict(sectionId, dto, { id: excludeId });
@@ -139,7 +161,11 @@ export class TimetableService {
     return entry;
   }
 
-  async updateEntry(id: string, dto: UpdateTimetableEntryDto, actingUserId: string) {
+  async updateEntry(
+    id: string,
+    dto: UpdateTimetableEntryDto,
+    actingUserId: string,
+  ) {
     const existing = await this.prisma.timetable.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Timetable entry not found');
@@ -149,12 +175,16 @@ export class TimetableService {
       {
         dayOfWeek: dto.dayOfWeek ?? existing.dayOfWeek,
         period: dto.period ?? existing.period,
-        teacherId: dto.teacherId !== undefined ? dto.teacherId : existing.teacherId,
+        teacherId:
+          dto.teacherId !== undefined ? dto.teacherId : existing.teacherId,
         room: dto.room !== undefined ? dto.room : existing.room,
       },
       id,
     );
-    const entry = await this.prisma.timetable.update({ where: { id }, data: dto });
+    const entry = await this.prisma.timetable.update({
+      where: { id },
+      data: dto,
+    });
     await this.prisma.auditLog.create({
       data: {
         userId: actingUserId,
@@ -202,7 +232,9 @@ export class TimetableService {
           );
         }
         if (a.room && a.room === b.room) {
-          throw new ConflictException('This room is double-booked within the submitted timetable.');
+          throw new ConflictException(
+            'This room is double-booked within the submitted timetable.',
+          );
         }
       }
     }
@@ -228,7 +260,11 @@ export class TimetableService {
     await this.prisma.$transaction([
       this.prisma.timetable.deleteMany({ where: { sectionId } }),
       ...(entries.length
-        ? [this.prisma.timetable.createMany({ data: entries.map((e) => ({ ...e, sectionId })) })]
+        ? [
+            this.prisma.timetable.createMany({
+              data: entries.map((e) => ({ ...e, sectionId })),
+            }),
+          ]
         : []),
     ]);
 

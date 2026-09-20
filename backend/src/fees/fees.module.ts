@@ -7,7 +7,10 @@ import { FeesController } from './fees.controller';
 import { PaymentsWebhookController } from './payments-webhook.controller';
 import { StudentAccessService } from '../common/student-access.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
-import { PAYMENT_GATEWAY_ADAPTER_FACTORY, PaymentGatewayAdapterFactoryImpl } from './payment-gateway-adapter-factory';
+import {
+  PAYMENT_GATEWAY_ADAPTER_FACTORY,
+  PaymentGatewayAdapterFactoryImpl,
+} from './payment-gateway-adapter-factory';
 
 @Module({
   providers: [
@@ -17,7 +20,10 @@ import { PAYMENT_GATEWAY_ADAPTER_FACTORY, PaymentGatewayAdapterFactoryImpl } fro
     FeesPdfService,
     StudentAccessService,
     EnrollmentService,
-    { provide: PAYMENT_GATEWAY_ADAPTER_FACTORY, useClass: PaymentGatewayAdapterFactoryImpl },
+    {
+      provide: PAYMENT_GATEWAY_ADAPTER_FACTORY,
+      useClass: PaymentGatewayAdapterFactoryImpl,
+    },
   ],
   controllers: [FeesController, PaymentsWebhookController],
 })

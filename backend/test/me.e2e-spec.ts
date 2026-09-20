@@ -47,7 +47,10 @@ describe('Me / children (e2e)', () => {
       .deleteMany({
         where: {
           identifier: {
-            in: ['me2e-parent-a@schoolos.edu.pk', 'me2e-parent-b@schoolos.edu.pk'],
+            in: [
+              'me2e-parent-a@schoolos.edu.pk',
+              'me2e-parent-b@schoolos.edu.pk',
+            ],
           },
         },
       })
@@ -178,7 +181,10 @@ describe('Me / children (e2e)', () => {
       .deleteMany({
         where: {
           identifier: {
-            in: ['me2e-parent-a@schoolos.edu.pk', 'me2e-parent-b@schoolos.edu.pk'],
+            in: [
+              'me2e-parent-a@schoolos.edu.pk',
+              'me2e-parent-b@schoolos.edu.pk',
+            ],
           },
         },
       })

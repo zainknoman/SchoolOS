@@ -15,7 +15,9 @@ function isDevOrTest(config: ConfigService): boolean {
  * adapter. A *partial* config outside dev/test is treated as a real misconfiguration and fails
  * loudly, same fail-fast spirit as resolveAccessTokenSecret (backend/src/auth/jwt-secret.ts).
  */
-export function resolveJazzCashConfig(config: ConfigService): JazzCashConfig | undefined {
+export function resolveJazzCashConfig(
+  config: ConfigService,
+): JazzCashConfig | undefined {
   const merchantId = config.get<string>('JAZZCASH_MERCHANT_ID');
   const password = config.get<string>('JAZZCASH_PASSWORD');
   const integritySalt = config.get<string>('JAZZCASH_INTEGRITY_SALT');
@@ -31,10 +33,18 @@ export function resolveJazzCashConfig(config: ConfigService): JazzCashConfig | u
     );
   }
   if (presentCount < values.length) return undefined;
-  return { merchantId: merchantId!, password: password!, integritySalt: integritySalt!, returnUrl: returnUrl!, apiUrl: apiUrl! };
+  return {
+    merchantId: merchantId!,
+    password: password!,
+    integritySalt: integritySalt!,
+    returnUrl: returnUrl!,
+    apiUrl: apiUrl!,
+  };
 }
 
-export function resolveEasyPaisaConfig(config: ConfigService): EasyPaisaConfig | undefined {
+export function resolveEasyPaisaConfig(
+  config: ConfigService,
+): EasyPaisaConfig | undefined {
   const storeId = config.get<string>('EASYPAISA_STORE_ID');
   const hashKey = config.get<string>('EASYPAISA_HASH_KEY');
   const returnUrl = config.get<string>('EASYPAISA_RETURN_URL');
@@ -49,14 +59,21 @@ export function resolveEasyPaisaConfig(config: ConfigService): EasyPaisaConfig |
     );
   }
   if (presentCount < values.length) return undefined;
-  return { storeId: storeId!, hashKey: hashKey!, returnUrl: returnUrl!, apiUrl: apiUrl! };
+  return {
+    storeId: storeId!,
+    hashKey: hashKey!,
+    returnUrl: returnUrl!,
+    apiUrl: apiUrl!,
+  };
 }
 
 export function resolveStubWebhookSecret(config: ConfigService): string {
   const secret = config.get<string>('PAYMENT_STUB_WEBHOOK_SECRET');
   if (!secret) {
     if (!isDevOrTest(config)) {
-      throw new Error('PAYMENT_STUB_WEBHOOK_SECRET must be set outside development/test.');
+      throw new Error(
+        'PAYMENT_STUB_WEBHOOK_SECRET must be set outside development/test.',
+      );
     }
     return DEV_STUB_WEBHOOK_SECRET;
   }

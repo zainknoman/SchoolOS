@@ -1,4 +1,13 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { FeeStructuresService } from './fee-structures.service';
 import { FeeVouchersService } from './fee-vouchers.service';
@@ -8,7 +17,10 @@ import { CreateFeeStructureDto } from './dto/create-fee-structure.dto';
 import { IssueVouchersDto } from './dto/issue-vouchers.dto';
 import { PayVoucherDto } from './dto/pay-voucher.dto';
 import { ReconcilePaymentDto } from './dto/reconcile-payment.dto';
-import { StudentAccessService, RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  RequestUser,
+} from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 interface AuthenticatedRequest extends Request {
@@ -27,7 +39,10 @@ export class FeesController {
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
   @Post('fee-structures')
-  createStructure(@Body() dto: CreateFeeStructureDto, @Req() req: AuthenticatedRequest) {
+  createStructure(
+    @Body() dto: CreateFeeStructureDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.feeStructures.create(dto, req.user.id);
   }
 
@@ -39,26 +54,42 @@ export class FeesController {
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
   @Post('fee-vouchers')
-  issueVouchers(@Body() dto: IssueVouchersDto, @Req() req: AuthenticatedRequest) {
+  issueVouchers(
+    @Body() dto: IssueVouchersDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.feeVouchers.issue(dto, req.user.id);
   }
 
   @Get('students/:id/fees')
-  async getForStudent(@Param('id') studentId: string, @Req() req: AuthenticatedRequest) {
+  async getForStudent(
+    @Param('id') studentId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     await this.studentAccess.assertCanAccessStudent(req.user, studentId);
     return this.feeVouchers.getForStudent(studentId);
   }
 
   @Get('students/:id/fees/payments')
-  async getPaymentsForStudent(@Param('id') studentId: string, @Req() req: AuthenticatedRequest) {
+  async getPaymentsForStudent(
+    @Param('id') studentId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     await this.studentAccess.assertCanAccessStudent(req.user, studentId);
     return this.feePayments.getForStudent(studentId);
   }
 
   @Get('fee-vouchers/:id/pdf')
-  async voucherPdf(@Param('id') id: string, @Req() req: AuthenticatedRequest, @Res() res: Response) {
+  async voucherPdf(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+  ) {
     const voucher = await this.feeVouchers.getById(id);
-    await this.studentAccess.assertCanAccessStudent(req.user, voucher.studentId);
+    await this.studentAccess.assertCanAccessStudent(
+      req.user,
+      voucher.studentId,
+    );
     const totalAmount = voucher.items.reduce((sum, i) => sum + i.amount, 0);
     const buffer = await this.feesPdf.renderVoucherPdf({
       studentName: voucher.student.name,
@@ -78,15 +109,26 @@ export class FeesController {
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
   @Post('fee-vouchers/:id/reconcile')
-  reconcile(@Param('id') id: string, @Body() dto: ReconcilePaymentDto, @Req() req: AuthenticatedRequest) {
+  reconcile(
+    @Param('id') id: string,
+    @Body() dto: ReconcilePaymentDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.feePayments.reconcile(id, dto, req.user.id);
   }
 
   @Roles('PARENT')
   @Post('fee-vouchers/:id/pay')
-  async pay(@Param('id') id: string, @Body() dto: PayVoucherDto, @Req() req: AuthenticatedRequest) {
+  async pay(
+    @Param('id') id: string,
+    @Body() dto: PayVoucherDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     const voucher = await this.feeVouchers.getById(id);
-    await this.studentAccess.assertCanAccessStudent(req.user, voucher.studentId);
+    await this.studentAccess.assertCanAccessStudent(
+      req.user,
+      voucher.studentId,
+    );
     return this.feePayments.pay(id, req.user.id, dto.method);
   }
 
@@ -102,7 +144,11 @@ export class FeesController {
   }
 
   @Get('fee-payments/:id/receipt.pdf')
-  async receiptPdf(@Param('id') id: string, @Req() req: AuthenticatedRequest, @Res() res: Response) {
+  async receiptPdf(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+  ) {
     const payment = await this.feePayments.getById(id);
     const studentId = payment.allocations[0]?.feeVoucher.studentId;
     if (!studentId) {

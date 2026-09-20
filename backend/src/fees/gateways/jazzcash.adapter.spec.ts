@@ -1,4 +1,8 @@
-import { JazzCashAdapter, parseJazzCashWebhook, JazzCashWebhookSigner } from './jazzcash.adapter';
+import {
+  JazzCashAdapter,
+  parseJazzCashWebhook,
+  JazzCashWebhookSigner,
+} from './jazzcash.adapter';
 import { JazzCashSigner } from './jazzcash.signer';
 
 const config = {
@@ -6,13 +10,17 @@ const config = {
   password: 'pw',
   integritySalt: 'salt',
   returnUrl: 'https://staff.example.com/pay/return',
-  apiUrl: 'https://sandbox.jazzcash.com.pk/CustomerPortal/transactionmanagement/merchantform',
+  apiUrl:
+    'https://sandbox.jazzcash.com.pk/CustomerPortal/transactionmanagement/merchantform',
 };
 
 describe('JazzCashAdapter', () => {
   it('initiate() returns a signed redirect URL carrying the reference as pp_TxnRefNo', async () => {
     const adapter = new JazzCashAdapter(config);
-    const result = await adapter.initiate({ amount: 500000, reference: 'pay_abc123' });
+    const result = await adapter.initiate({
+      amount: 500000,
+      reference: 'pay_abc123',
+    });
 
     expect(result.gatewayReference).toBe('pay_abc123');
     const url = new URL(result.redirectUrl);
@@ -29,14 +37,18 @@ describe('JazzCashAdapter', () => {
 
 describe('parseJazzCashWebhook', () => {
   it('maps pp_ResponseCode "000" to completed', () => {
-    expect(parseJazzCashWebhook({ pp_TxnRefNo: 'pay_1', pp_ResponseCode: '000' })).toEqual({
+    expect(
+      parseJazzCashWebhook({ pp_TxnRefNo: 'pay_1', pp_ResponseCode: '000' }),
+    ).toEqual({
       reference: 'pay_1',
       status: 'completed',
     });
   });
 
   it('maps any other response code to failed', () => {
-    expect(parseJazzCashWebhook({ pp_TxnRefNo: 'pay_1', pp_ResponseCode: '124' })).toEqual({
+    expect(
+      parseJazzCashWebhook({ pp_TxnRefNo: 'pay_1', pp_ResponseCode: '124' }),
+    ).toEqual({
       reference: 'pay_1',
       status: 'failed',
     });

@@ -39,7 +39,9 @@ describe('People CRUD (e2e)', () => {
     });
     for (const u of staleTeacherUsers) {
       if (u.teacher) {
-        await prisma.attendance.deleteMany({ where: { markedById: u.teacher.id } }).catch(() => undefined);
+        await prisma.attendance
+          .deleteMany({ where: { markedById: u.teacher.id } })
+          .catch(() => undefined);
       }
     }
     await prisma.user
@@ -48,40 +50,86 @@ describe('People CRUD (e2e)', () => {
     await prisma.student
       .deleteMany({ where: { grNumber: { startsWith: 'PC-' } } })
       .catch(() => undefined);
-    const stale = await prisma.school.findMany({ where: { name: 'PC E2E School' } });
+    const stale = await prisma.school.findMany({
+      where: { name: 'PC E2E School' },
+    });
     for (const s of stale) {
-      await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
+      await prisma.school
+        .delete({ where: { id: s.id } })
+        .catch(() => undefined);
     }
 
     const passwordHash = await argon2.hash(password);
-    const school = await prisma.school.create({ data: { name: 'PC E2E School' } });
+    const school = await prisma.school.create({
+      data: { name: 'PC E2E School' },
+    });
     const schoolAdminUser = await prisma.user.create({
-      data: { identifier: 'pc-school-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
+      data: {
+        identifier: 'pc-school-admin@schoolos.edu.pk',
+        passwordHash,
+        role: 'SCHOOL_ADMIN',
+        schoolId: school.id,
+      },
     });
     const parentUser = await prisma.user.create({
-      data: { identifier: 'pc-non-admin-parent@schoolos.edu.pk', passwordHash, role: 'PARENT' },
+      data: {
+        identifier: 'pc-non-admin-parent@schoolos.edu.pk',
+        passwordHash,
+        role: 'PARENT',
+      },
     });
 
-    const campus = await prisma.campus.create({ data: { schoolId: school.id, name: 'Main' } });
+    const campus = await prisma.campus.create({
+      data: { schoolId: school.id, name: 'Main' },
+    });
     const session = await prisma.academicSession.create({
-      data: { label: 'PC', startDate: new Date(), endDate: new Date(), isActive: true },
+      data: {
+        label: 'PC',
+        startDate: new Date(),
+        endDate: new Date(),
+        isActive: true,
+      },
     });
     const klass = await prisma.class.create({
-      data: { campusId: campus.id, academicSessionId: session.id, name: 'PC Grade' },
+      data: {
+        campusId: campus.id,
+        academicSessionId: session.id,
+        name: 'PC Grade',
+      },
     });
-    const section = await prisma.section.create({ data: { classId: klass.id, name: 'PC-A' } });
+    const section = await prisma.section.create({
+      data: { classId: klass.id, name: 'PC-A' },
+    });
 
-    Object.assign(ids, { school: school.id, campus: campus.id, section: section.id, schoolAdmin: schoolAdminUser.id, parent: parentUser.id });
+    Object.assign(ids, {
+      school: school.id,
+      campus: campus.id,
+      section: section.id,
+      schoolAdmin: schoolAdminUser.id,
+      parent: parentUser.id,
+    });
   });
 
   afterAll(async () => {
     if (ids.teacher) {
-      await prisma.attendance.deleteMany({ where: { markedById: ids.teacher } }).catch(() => undefined);
-      await prisma.teacher.delete({ where: { id: ids.teacher } }).catch(() => undefined);
+      await prisma.attendance
+        .deleteMany({ where: { markedById: ids.teacher } })
+        .catch(() => undefined);
+      await prisma.teacher
+        .delete({ where: { id: ids.teacher } })
+        .catch(() => undefined);
     }
-    if (ids.student) await prisma.student.delete({ where: { id: ids.student } }).catch(() => undefined);
-    if (ids.parentProfile) await prisma.parentProfile.delete({ where: { id: ids.parentProfile } }).catch(() => undefined);
-    await prisma.school.delete({ where: { id: ids.school } }).catch(() => undefined);
+    if (ids.student)
+      await prisma.student
+        .delete({ where: { id: ids.student } })
+        .catch(() => undefined);
+    if (ids.parentProfile)
+      await prisma.parentProfile
+        .delete({ where: { id: ids.parentProfile } })
+        .catch(() => undefined);
+    await prisma.school
+      .delete({ where: { id: ids.school } })
+      .catch(() => undefined);
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'pc-' } } })
       .catch(() => undefined);
@@ -94,17 +142,30 @@ describe('People CRUD (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${parentToken}`)
-      .send({ identifier: 'blocked@schoolos.edu.pk', password, name: 'Blocked' })
+      .send({
+        identifier: 'blocked@schoolos.edu.pk',
+        password,
+        name: 'Blocked',
+      })
       .expect(403);
     await request(app.getHttpServer())
       .post('/api/v1/admin/parents')
       .set('Authorization', `Bearer ${parentToken}`)
-      .send({ identifier: 'blocked2@schoolos.edu.pk', password, name: 'Blocked' })
+      .send({
+        identifier: 'blocked2@schoolos.edu.pk',
+        password,
+        name: 'Blocked',
+      })
       .expect(403);
     await request(app.getHttpServer())
       .post('/api/v1/admin/students')
       .set('Authorization', `Bearer ${parentToken}`)
-      .send({ grNumber: 'PC-BLOCKED', name: 'Blocked', sectionId: ids.section, parentProfileId: 'x' })
+      .send({
+        grNumber: 'PC-BLOCKED',
+        name: 'Blocked',
+        sectionId: ids.section,
+        parentProfileId: 'x',
+      })
       .expect(403);
   });
 
@@ -114,10 +175,19 @@ describe('People CRUD (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-teacher@schoolos.edu.pk', password: 'BrandNewPass1!', name: 'PC Teacher', campusId: ids.campus })
+      .send({
+        identifier: 'pc-new-teacher@schoolos.edu.pk',
+        password: 'BrandNewPass1!',
+        name: 'PC Teacher',
+        campusId: ids.campus,
+      })
       .expect(201);
     ids.teacher = res.body.id;
-    expect(res.body).toEqual({ id: ids.teacher, identifier: 'pc-new-teacher@schoolos.edu.pk', name: 'PC Teacher' });
+    expect(res.body).toEqual({
+      id: ids.teacher,
+      identifier: 'pc-new-teacher@schoolos.edu.pk',
+      name: 'PC Teacher',
+    });
 
     await loginAs('pc-new-teacher@schoolos.edu.pk', 'BrandNewPass1!');
   });
@@ -128,7 +198,12 @@ describe('People CRUD (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/v1/admin/teachers')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-teacher@schoolos.edu.pk', password: 'AnotherPass1!', name: 'Duplicate', campusId: ids.campus })
+      .send({
+        identifier: 'pc-new-teacher@schoolos.edu.pk',
+        password: 'AnotherPass1!',
+        name: 'Duplicate',
+        campusId: ids.campus,
+      })
       .expect(400);
   });
 
@@ -138,21 +213,35 @@ describe('People CRUD (e2e)', () => {
     const parentRes = await request(app.getHttpServer())
       .post('/api/v1/admin/parents')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ identifier: 'pc-new-parent@schoolos.edu.pk', password: 'ParentPass1!', name: 'PC Parent' })
+      .send({
+        identifier: 'pc-new-parent@schoolos.edu.pk',
+        password: 'ParentPass1!',
+        name: 'PC Parent',
+      })
       .expect(201);
     ids.parentProfile = parentRes.body.id;
 
     const studentRes = await request(app.getHttpServer())
       .post('/api/v1/admin/students')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ grNumber: 'PC-1001', name: 'PC Student', sectionId: ids.section, parentProfileId: ids.parentProfile })
+      .send({
+        grNumber: 'PC-1001',
+        name: 'PC Student',
+        sectionId: ids.section,
+        parentProfileId: ids.parentProfile,
+      })
       .expect(201);
     ids.student = studentRes.body.id;
     expect(studentRes.body.sectionName).toBe('PC-A');
     expect(studentRes.body.parentNames).toEqual(['PC Parent']);
 
     await prisma.attendance.create({
-      data: { studentId: ids.student, date: new Date(), status: 'PRESENT', markedById: ids.teacher },
+      data: {
+        studentId: ids.student,
+        date: new Date(),
+        status: 'PRESENT',
+        markedById: ids.teacher,
+      },
     });
 
     await request(app.getHttpServer())
@@ -173,7 +262,11 @@ describe('People CRUD (e2e)', () => {
         grNumber: 'PC-1002',
         name: 'PC Student Two',
         sectionId: ids.section,
-        newParent: { identifier: 'pc-inline-parent@schoolos.edu.pk', password: 'InlineParent1!', name: 'Inline Parent' },
+        newParent: {
+          identifier: 'pc-inline-parent@schoolos.edu.pk',
+          password: 'InlineParent1!',
+          name: 'Inline Parent',
+        },
       })
       .expect(201);
 

@@ -14,7 +14,9 @@ export function parseCsv(buffer: Buffer, maxRows: number): ParsedRow[] {
     trim: true,
   });
   if (records.length > maxRows) {
-    throw new BadRequestException(`This file has ${records.length} rows, which exceeds the ${maxRows}-row limit per import.`);
+    throw new BadRequestException(
+      `This file has ${records.length} rows, which exceeds the ${maxRows}-row limit per import.`,
+    );
   }
   // Line 1 is the header; data rows start at line 2, matching what a user sees in a spreadsheet.
   return records.map((row, i) => ({ line: i + 2, row }));

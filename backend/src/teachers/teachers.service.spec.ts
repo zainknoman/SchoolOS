@@ -32,15 +32,24 @@ describe('TeachersService', () => {
       term: { findMany: jest.fn().mockResolvedValue([]) },
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [TeachersService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
+      providers: [
+        TeachersService,
+        { provide: PrismaService, useValue: prisma },
+        OrgScopeService,
+      ],
     }).compile();
     service = moduleRef.get(TeachersService);
   });
 
   it('lists every teacher ordered by name for a SUPER_ADMIN', async () => {
-    prisma.teacher.findMany.mockResolvedValue([{ id: 't-1', name: 'Ms. Sample Teacher' }]);
+    prisma.teacher.findMany.mockResolvedValue([
+      { id: 't-1', name: 'Ms. Sample Teacher' },
+    ]);
 
-    const result = await service.listAll({ id: 'super-1', role: 'SUPER_ADMIN' });
+    const result = await service.listAll({
+      id: 'super-1',
+      role: 'SUPER_ADMIN',
+    });
 
     expect(prisma.teacher.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: undefined, orderBy: { name: 'asc' } }),
@@ -49,10 +58,18 @@ describe('TeachersService', () => {
   });
 
   it("scopes a SCHOOL_ADMIN's teacher list to their own school", async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
-    prisma.teacher.findMany.mockResolvedValue([{ id: 't-1', name: 'Ms. Sample Teacher' }]);
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'admin-1',
+      schoolId: 'school-1',
+    });
+    prisma.teacher.findMany.mockResolvedValue([
+      { id: 't-1', name: 'Ms. Sample Teacher' },
+    ]);
 
-    const result = await service.listAll({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+    const result = await service.listAll({
+      id: 'admin-1',
+      role: 'SCHOOL_ADMIN',
+    });
 
     expect(prisma.teacher.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { campus: { schoolId: 'school-1' } } }),
@@ -63,7 +80,10 @@ describe('TeachersService', () => {
   it('fails closed (returns an empty list) for a SCHOOL_ADMIN with no schoolId', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
 
-    const result = await service.listAll({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+    const result = await service.listAll({
+      id: 'admin-1',
+      role: 'SCHOOL_ADMIN',
+    });
 
     expect(result).toEqual([]);
     expect(prisma.teacher.findMany).not.toHaveBeenCalled();
@@ -80,7 +100,10 @@ describe('TeachersService', () => {
   });
 
   it('intersects the campusId filter with a SCHOOL_ADMIN school scope', async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'admin-1',
+      schoolId: 'school-1',
+    });
     prisma.teacher.findMany.mockResolvedValue([]);
 
     await service.listAll({ id: 'admin-1', role: 'SCHOOL_ADMIN' }, 'campus-9');
@@ -98,7 +121,9 @@ describe('TeachersService', () => {
     it('throws NotFoundException when the acting user has no Teacher profile', async () => {
       prisma.teacher.findUnique.mockResolvedValue(null);
 
-      await expect(service.getMyDay(teacherUser)).rejects.toThrow('No teacher profile for this account');
+      await expect(service.getMyDay(teacherUser)).rejects.toThrow(
+        'No teacher profile for this account',
+      );
     });
 
     it("lists today's timetable entries with an attendance-marked flag per section", async () => {
@@ -134,23 +159,38 @@ describe('TeachersService', () => {
         },
       ]);
       expect(prisma.timetable.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { teacherId: 'teacher-1', dayOfWeek: expect.any(Number) } }),
+        expect.objectContaining({
+          where: { teacherId: 'teacher-1', dayOfWeek: expect.any(Number) },
+        }),
       );
     });
 
     it('lists diary entries due today, authored by the acting teacher', async () => {
       prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-1' });
       prisma.diaryEntry.findMany.mockResolvedValue([
-        { id: 'd1', text: 'Ch. 4 exercises', section: { name: 'A', class: { name: '6' } }, subject: { name: 'Mathematics' } },
+        {
+          id: 'd1',
+          text: 'Ch. 4 exercises',
+          section: { name: 'A', class: { name: '6' } },
+          subject: { name: 'Mathematics' },
+        },
       ]);
 
       const result = await service.getMyDay(teacherUser);
 
       expect(result.diaryDueToday).toEqual([
-        { id: 'd1', className: '6', sectionName: 'A', subjectName: 'Mathematics', text: 'Ch. 4 exercises' },
+        {
+          id: 'd1',
+          className: '6',
+          sectionName: 'A',
+          subjectName: 'Mathematics',
+          text: 'Ch. 4 exercises',
+        },
       ]);
       expect(prisma.diaryEntry.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expect.objectContaining({ authorId: 'user-1' }) }),
+        expect.objectContaining({
+          where: expect.objectContaining({ authorId: 'user-1' }),
+        }),
       );
     });
   });
@@ -164,12 +204,18 @@ describe('TeachersService', () => {
         {
           sectionId: 'sec-1',
           subjectId: 'subj-1',
-          section: { name: 'A', class: { id: 'class-1', name: '6', academicSessionId: 'session-1' } },
+          section: {
+            name: 'A',
+            class: { id: 'class-1', name: '6', academicSessionId: 'session-1' },
+          },
           subject: { name: 'Mathematics' },
         },
       ]);
       prisma.enrollment.count.mockResolvedValue(34);
-      prisma.assessmentCategory.findFirst.mockResolvedValue({ id: 'cat-1', term: { label: 'Mid-term' } });
+      prisma.assessmentCategory.findFirst.mockResolvedValue({
+        id: 'cat-1',
+        term: { label: 'Mid-term' },
+      });
       prisma.assessment.findFirst.mockResolvedValue({ id: 'assess-1' });
       prisma.mark.count.mockResolvedValue(22);
 
@@ -195,7 +241,10 @@ describe('TeachersService', () => {
         {
           sectionId: 'sec-1',
           subjectId: 'subj-1',
-          section: { name: 'A', class: { id: 'class-1', name: '6', academicSessionId: 'session-1' } },
+          section: {
+            name: 'A',
+            class: { id: 'class-1', name: '6', academicSessionId: 'session-1' },
+          },
           subject: { name: 'Mathematics' },
         },
       ]);
@@ -204,7 +253,10 @@ describe('TeachersService', () => {
 
       const result = await service.getGradebookOverview(teacherUser);
 
-      expect(result.classes[0]).toMatchObject({ termLabel: null, marksEnteredCount: 0 });
+      expect(result.classes[0]).toMatchObject({
+        termLabel: null,
+        marksEnteredCount: 0,
+      });
       expect(prisma.mark.count).not.toHaveBeenCalled();
     });
 
@@ -214,18 +266,28 @@ describe('TeachersService', () => {
         {
           sectionId: 'sec-1',
           subjectId: 'subj-1',
-          section: { name: 'A', class: { id: 'class-1', name: '6', academicSessionId: 'session-1' } },
+          section: {
+            name: 'A',
+            class: { id: 'class-1', name: '6', academicSessionId: 'session-1' },
+          },
           subject: { name: 'Mathematics' },
         },
       ]);
       const future = new Date();
       future.setUTCDate(future.getUTCDate() + 10);
-      prisma.term.findMany.mockResolvedValue([{ id: 'term-1', label: 'Mid-term — Grade 6', startDate: future }]);
+      prisma.term.findMany.mockResolvedValue([
+        { id: 'term-1', label: 'Mid-term — Grade 6', startDate: future },
+      ]);
 
       const result = await service.getGradebookOverview(teacherUser);
 
       expect(result.upcomingExams).toEqual([
-        { termId: 'term-1', label: 'Mid-term — Grade 6', startDate: future.toISOString(), daysUntil: 10 },
+        {
+          termId: 'term-1',
+          label: 'Mid-term — Grade 6',
+          startDate: future.toISOString(),
+          daysUntil: 10,
+        },
       ]);
     });
   });

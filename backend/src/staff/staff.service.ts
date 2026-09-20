@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EmployeeType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
@@ -27,7 +32,10 @@ export class StaffService {
   ) {}
 
   private toSummary(record: {
-    id: string; name: string; employeeType: EmployeeType; employmentStatus: string;
+    id: string;
+    name: string;
+    employeeType: EmployeeType;
+    employmentStatus: string;
     campus: { name: string };
   }): StaffSummary {
     return {
@@ -39,8 +47,13 @@ export class StaffService {
     };
   }
 
-  async list(actingUser: RequestUser, employeeType?: EmployeeType): Promise<StaffSummary[]> {
-    let where: Prisma.StaffWhereInput | undefined = employeeType ? { employeeType } : undefined;
+  async list(
+    actingUser: RequestUser,
+    employeeType?: EmployeeType,
+  ): Promise<StaffSummary[]> {
+    let where: Prisma.StaffWhereInput | undefined = employeeType
+      ? { employeeType }
+      : undefined;
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
       return [];
@@ -65,20 +78,36 @@ export class StaffService {
       throw new NotFoundException('Staff member not found');
     }
     const scope = await this.orgScope.resolve(actingUser);
-    if (!scope.allows({ campusId: staff.campusId, schoolId: staff.campus.schoolId })) {
-      throw new ForbiddenException('Cannot access staff outside your own school');
+    if (
+      !scope.allows({
+        campusId: staff.campusId,
+        schoolId: staff.campus.schoolId,
+      })
+    ) {
+      throw new ForbiddenException(
+        'Cannot access staff outside your own school',
+      );
     }
     return staff;
   }
 
-  async update(id: string, dto: UpdateStaffDto, actingUser: RequestUser): Promise<StaffSummary> {
+  async update(
+    id: string,
+    dto: UpdateStaffDto,
+    actingUser: RequestUser,
+  ): Promise<StaffSummary> {
     await this.getScopedStaff(id, actingUser);
     const data: Prisma.StaffUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name.trim();
     if (dto.mobile !== undefined) data.mobile = dto.mobile.trim() || null;
     if (dto.email !== undefined) data.email = dto.email.trim() || null;
-    if (dto.employmentStatus !== undefined) data.employmentStatus = dto.employmentStatus;
-    const record = await this.prisma.staff.update({ where: { id }, data, include: WITH_CAMPUS });
+    if (dto.employmentStatus !== undefined)
+      data.employmentStatus = dto.employmentStatus;
+    const record = await this.prisma.staff.update({
+      where: { id },
+      data,
+      include: WITH_CAMPUS,
+    });
     await this.prisma.auditLog.create({
       data: {
         userId: actingUser.id,
@@ -109,14 +138,24 @@ export class StaffService {
       assertDeletable(error, 'staff member');
     }
     await this.prisma.auditLog.create({
-      data: { userId: actingUser.id, action: 'staff.delete', entity: 'Staff', entityId: id },
+      data: {
+        userId: actingUser.id,
+        action: 'staff.delete',
+        entity: 'Staff',
+        entityId: id,
+      },
     });
   }
 
-  async create(dto: CreateStaffDto, actingUser: RequestUser): Promise<{ id: string; name: string }> {
+  async create(
+    dto: CreateStaffDto,
+    actingUser: RequestUser,
+  ): Promise<{ id: string; name: string }> {
     await this.orgScope.assertCampusAccess(actingUser, dto.campusId);
     if (dto.employeeType === 'TEACHER' && !dto.login) {
-      throw new BadRequestException('A login identifier/password is required for a Teacher.');
+      throw new BadRequestException(
+        'A login identifier/password is required for a Teacher.',
+      );
     }
 
     let created: { id: string; name: string };
@@ -135,7 +174,10 @@ export class StaffService {
         }),
       );
     } catch (error) {
-      assertCreatable(error, 'This CNIC or login identifier is already in use.');
+      assertCreatable(
+        error,
+        'This CNIC or login identifier is already in use.',
+      );
     }
 
     await this.prisma.auditLog.create({
@@ -144,7 +186,10 @@ export class StaffService {
         action: 'staff.create',
         entity: 'Staff',
         entityId: created.id,
-        metadata: JSON.stringify({ ...dto, login: dto.login ? { identifier: dto.login.identifier } : undefined }),
+        metadata: JSON.stringify({
+          ...dto,
+          login: dto.login ? { identifier: dto.login.identifier } : undefined,
+        }),
       },
     });
     return created;

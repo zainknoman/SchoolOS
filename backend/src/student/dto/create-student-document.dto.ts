@@ -1,4 +1,10 @@
-import { IsDateString, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 import { DocumentType } from '@prisma/client';
 
 export class CreateStudentDocumentDto {

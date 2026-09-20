@@ -37,7 +37,9 @@ describe('Diary + Circulars (e2e)', () => {
       where: { identifier: 'dc-admin@schoolos.edu.pk' },
     });
     if (staleAdmin) {
-      await prisma.circular.deleteMany({ where: { authorId: staleAdmin.id } }).catch(() => undefined);
+      await prisma.circular
+        .deleteMany({ where: { authorId: staleAdmin.id } })
+        .catch(() => undefined);
     }
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'dc-' } } })
@@ -45,7 +47,9 @@ describe('Diary + Circulars (e2e)', () => {
     await prisma.student
       .deleteMany({ where: { grNumber: { startsWith: 'DC-' } } })
       .catch(() => undefined);
-    const stale = await prisma.school.findMany({ where: { name: 'DC E2E School' } });
+    const stale = await prisma.school.findMany({
+      where: { name: 'DC E2E School' },
+    });
     for (const s of stale) {
       // DiaryEntry.section is Restrict (Sprint: Org Structure CRUD), so a stale DiaryEntry row
       // from a prior run silently blocks this school delete too.
@@ -54,21 +58,42 @@ describe('Diary + Circulars (e2e)', () => {
         select: { id: true },
       });
       await prisma.diaryEntry
-        .deleteMany({ where: { sectionId: { in: staleSections.map((sec) => sec.id) } } })
+        .deleteMany({
+          where: { sectionId: { in: staleSections.map((sec) => sec.id) } },
+        })
         .catch(() => undefined);
-      await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
+      await prisma.school
+        .delete({ where: { id: s.id } })
+        .catch(() => undefined);
     }
 
-    const school = await prisma.school.create({ data: { name: 'DC E2E School' } });
-    const campus = await prisma.campus.create({ data: { schoolId: school.id, name: 'Main' } });
+    const school = await prisma.school.create({
+      data: { name: 'DC E2E School' },
+    });
+    const campus = await prisma.campus.create({
+      data: { schoolId: school.id, name: 'Main' },
+    });
     const session = await prisma.academicSession.create({
-      data: { label: 'DC', startDate: new Date(), endDate: new Date(), isActive: true },
+      data: {
+        label: 'DC',
+        startDate: new Date(),
+        endDate: new Date(),
+        isActive: true,
+      },
     });
     const klass = await prisma.class.create({
-      data: { campusId: campus.id, academicSessionId: session.id, name: 'DC Grade' },
+      data: {
+        campusId: campus.id,
+        academicSessionId: session.id,
+        name: 'DC Grade',
+      },
     });
-    const sectionA = await prisma.section.create({ data: { classId: klass.id, name: 'DC-A' } });
-    const sectionB = await prisma.section.create({ data: { classId: klass.id, name: 'DC-B' } });
+    const sectionA = await prisma.section.create({
+      data: { classId: klass.id, name: 'DC-A' },
+    });
+    const sectionB = await prisma.section.create({
+      data: { classId: klass.id, name: 'DC-B' },
+    });
     const subject = await prisma.subject.upsert({
       where: { name: 'DC Urdu' },
       update: {},
@@ -81,7 +106,11 @@ describe('Diary + Circulars (e2e)', () => {
 
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'dc-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
+      data: {
+        identifier: 'dc-teacher@schoolos.edu.pk',
+        passwordHash,
+        role: 'TEACHER',
+      },
     });
     const teacher = await prisma.teacher.create({
       data: { userId: teacherUser.id, name: 'DC Teacher', campusId: campus.id },
@@ -97,23 +126,44 @@ describe('Diary + Circulars (e2e)', () => {
       data: { schoolId: school.id, name: 'DC Campus B' },
     });
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'dc-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
+      data: {
+        identifier: 'dc-teacher-b@schoolos.edu.pk',
+        passwordHash,
+        role: 'TEACHER',
+      },
     });
     const teacherB = await prisma.teacher.create({
-      data: { userId: teacherBUser.id, name: 'DC Teacher B', campusId: campusB.id },
+      data: {
+        userId: teacherBUser.id,
+        name: 'DC Teacher B',
+        campusId: campusB.id,
+      },
     });
     ids.campusB = campusB.id;
     ids.teacherB = teacherB.id;
     const adminUser = await prisma.user.create({
-      data: { identifier: 'dc-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
+      data: {
+        identifier: 'dc-admin@schoolos.edu.pk',
+        passwordHash,
+        role: 'SCHOOL_ADMIN',
+        schoolId: school.id,
+      },
     });
     ids.adminUserId = adminUser.id;
 
     const parentAUser = await prisma.user.create({
-      data: { identifier: 'dc-parent-a@schoolos.edu.pk', passwordHash, role: 'PARENT' },
+      data: {
+        identifier: 'dc-parent-a@schoolos.edu.pk',
+        passwordHash,
+        role: 'PARENT',
+      },
     });
     const parentBUser = await prisma.user.create({
-      data: { identifier: 'dc-parent-b@schoolos.edu.pk', passwordHash, role: 'PARENT' },
+      data: {
+        identifier: 'dc-parent-b@schoolos.edu.pk',
+        passwordHash,
+        role: 'PARENT',
+      },
     });
     const parentAProfile = await prisma.parentProfile.create({
       data: { userId: parentAUser.id, name: 'DC Parent A' },
@@ -155,7 +205,11 @@ describe('Diary + Circulars (e2e)', () => {
       data: { studentId: childB.id, parentProfileId: parentBProfile.id },
     });
 
-    Object.assign(ids, { teacher: teacher.id, childA: childA.id, childB: childB.id });
+    Object.assign(ids, {
+      teacher: teacher.id,
+      childA: childA.id,
+      childB: childB.id,
+    });
   });
 
   afterAll(async () => {
@@ -166,10 +220,16 @@ describe('Diary + Circulars (e2e)', () => {
     // school can be deleted — otherwise this delete silently no-ops (wrapped in .catch) and the
     // next run's beforeAll self-heal has to do it.
     await prisma.diaryEntry
-      .deleteMany({ where: { sectionId: { in: [ids.sectionA, ids.sectionB] } } })
+      .deleteMany({
+        where: { sectionId: { in: [ids.sectionA, ids.sectionB] } },
+      })
       .catch(() => undefined);
-    await prisma.school.delete({ where: { id: ids.school } }).catch(() => undefined);
-    await prisma.circular.deleteMany({ where: { authorId: ids.adminUserId } }).catch(() => undefined);
+    await prisma.school
+      .delete({ where: { id: ids.school } })
+      .catch(() => undefined);
+    await prisma.circular
+      .deleteMany({ where: { authorId: ids.adminUserId } })
+      .catch(() => undefined);
     await prisma.user
       .deleteMany({
         where: {
@@ -195,7 +255,9 @@ describe('Diary + Circulars (e2e)', () => {
       if (fileRecord) {
         await storage.delete(fileRecord.storageKey).catch(() => undefined);
       }
-      await prisma.file.deleteMany({ where: { id: ids.uploadedFileId } }).catch(() => undefined);
+      await prisma.file
+        .deleteMany({ where: { id: ids.uploadedFileId } })
+        .catch(() => undefined);
     }
 
     await app.close();
@@ -226,7 +288,10 @@ describe('Diary + Circulars (e2e)', () => {
 
     expect(res.body).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ subject: 'DC Urdu', text: 'کتاب صفحہ 12 مکمل کریں' }),
+        expect.objectContaining({
+          subject: 'DC Urdu',
+          text: 'کتاب صفحہ 12 مکمل کریں',
+        }),
       ]),
     );
   });
@@ -269,7 +334,9 @@ describe('Diary + Circulars (e2e)', () => {
       .expect(200);
     expect(sectionView.body).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ text: 'Admin-posted reminder: bring permission slips.' }),
+        expect.objectContaining({
+          text: 'Admin-posted reminder: bring permission slips.',
+        }),
       ]),
     );
 
@@ -281,7 +348,9 @@ describe('Diary + Circulars (e2e)', () => {
       .expect(200);
     expect(parentView.body).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ text: 'Admin-posted reminder: bring permission slips.' }),
+        expect.objectContaining({
+          text: 'Admin-posted reminder: bring permission slips.',
+        }),
       ]),
     );
   });
@@ -306,7 +375,12 @@ describe('Diary + Circulars (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/diary')
       .set('Authorization', `Bearer ${token}`)
-      .send({ sectionId: ids.sectionA, subjectId: ids.subject, date: '2026-09-12', text: 'Test entry' });
+      .send({
+        sectionId: ids.sectionA,
+        subjectId: ids.subject,
+        date: '2026-09-12',
+        text: 'Test entry',
+      });
     expect(res.status).toBe(403);
   });
 
@@ -335,7 +409,9 @@ describe('Diary + Circulars (e2e)', () => {
       .set('Authorization', `Bearer ${parentAToken}`)
       .expect(200);
     expect(inboxA.body).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: ids.schoolCircular, readAt: null })]),
+      expect.arrayContaining([
+        expect.objectContaining({ id: ids.schoolCircular, readAt: null }),
+      ]),
     );
 
     // Prove the OTHER fixture parent got it too — not just an aggregate delivered count,
@@ -346,7 +422,9 @@ describe('Diary + Circulars (e2e)', () => {
       .set('Authorization', `Bearer ${parentBToken}`)
       .expect(200);
     expect(inboxB.body).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: ids.schoolCircular, readAt: null })]),
+      expect.arrayContaining([
+        expect.objectContaining({ id: ids.schoolCircular, readAt: null }),
+      ]),
     );
 
     await request(app.getHttpServer())
@@ -381,14 +459,18 @@ describe('Diary + Circulars (e2e)', () => {
       .get('/api/v1/circulars')
       .set('Authorization', `Bearer ${parentAToken}`)
       .expect(200);
-    expect(inboxA.body.map((c: { id: string }) => c.id)).toContain(publish.body.id);
+    expect(inboxA.body.map((c: { id: string }) => c.id)).toContain(
+      publish.body.id,
+    );
 
     const parentBToken = await loginAs('dc-parent-b@schoolos.edu.pk');
     const inboxB = await request(app.getHttpServer())
       .get('/api/v1/circulars')
       .set('Authorization', `Bearer ${parentBToken}`)
       .expect(200);
-    expect(inboxB.body.map((c: { id: string }) => c.id)).not.toContain(publish.body.id);
+    expect(inboxB.body.map((c: { id: string }) => c.id)).not.toContain(
+      publish.body.id,
+    );
   });
 
   it("a PARENT cannot publish a circular or read another circular's stats", async () => {

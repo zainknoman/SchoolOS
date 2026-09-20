@@ -59,7 +59,10 @@ export class MeService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Throws unless [studentId] is linked to this user's ParentProfile — the parent-side access gate. */
-  private async assertChildLinked(userId: string, studentId: string): Promise<void> {
+  private async assertChildLinked(
+    userId: string,
+    studentId: string,
+  ): Promise<void> {
     const link = await this.prisma.studentParent.findFirst({
       where: { studentId, parentProfile: { userId } },
       select: { id: true },
@@ -69,7 +72,10 @@ export class MeService {
     }
   }
 
-  async getChildDetail(userId: string, studentId: string): Promise<ChildDetail> {
+  async getChildDetail(
+    userId: string,
+    studentId: string,
+  ): Promise<ChildDetail> {
     await this.assertChildLinked(userId, studentId);
     const student = await this.prisma.student.findUniqueOrThrow({
       where: { id: studentId },
@@ -77,7 +83,9 @@ export class MeService {
         currentAddress: true,
         medicalInfo: true,
         emergencyContacts: { orderBy: { priority: 'asc' } },
-        parents: { include: { parentProfile: { select: { name: true, phone: true } } } },
+        parents: {
+          include: { parentProfile: { select: { name: true, phone: true } } },
+        },
         enrollments: {
           where: { status: 'ACTIVE' },
           orderBy: { startDate: 'desc' },
@@ -138,7 +146,11 @@ export class MeService {
    * Parent-editable subset of a child's profile (contact details, current address, emergency
    * contacts, and the free-text medical notes). Everything else about the student stays admin-only.
    */
-  async updateChild(userId: string, studentId: string, dto: UpdateChildDto): Promise<ChildDetail> {
+  async updateChild(
+    userId: string,
+    studentId: string,
+    dto: UpdateChildDto,
+  ): Promise<ChildDetail> {
     await this.assertChildLinked(userId, studentId);
     await this.prisma.$transaction(async (tx) => {
       const student = await tx.student.findUniqueOrThrow({
@@ -147,8 +159,10 @@ export class MeService {
       });
 
       const data: Prisma.StudentUpdateInput = {};
-      if (dto.studentMobile !== undefined) data.studentMobile = dto.studentMobile || null;
-      if (dto.studentEmail !== undefined) data.studentEmail = dto.studentEmail || null;
+      if (dto.studentMobile !== undefined)
+        data.studentMobile = dto.studentMobile || null;
+      if (dto.studentEmail !== undefined)
+        data.studentEmail = dto.studentEmail || null;
       if (dto.currentAddress) {
         data.currentAddress = student.currentAddressId
           ? { update: dto.currentAddress }
@@ -159,13 +173,19 @@ export class MeService {
       }
 
       const medical: Prisma.StudentMedicalInfoUpdateInput = {};
-      if (dto.allergies !== undefined) medical.allergies = dto.allergies || null;
-      if (dto.medicalConditions !== undefined) medical.medicalConditions = dto.medicalConditions || null;
-      if (dto.medicationNotes !== undefined) medical.medicationNotes = dto.medicationNotes || null;
+      if (dto.allergies !== undefined)
+        medical.allergies = dto.allergies || null;
+      if (dto.medicalConditions !== undefined)
+        medical.medicalConditions = dto.medicalConditions || null;
+      if (dto.medicationNotes !== undefined)
+        medical.medicationNotes = dto.medicationNotes || null;
       if (Object.keys(medical).length > 0) {
         await tx.studentMedicalInfo.upsert({
           where: { studentId },
-          create: { studentId, ...medical } as Prisma.StudentMedicalInfoUncheckedCreateInput,
+          create: {
+            studentId,
+            ...medical,
+          } as Prisma.StudentMedicalInfoUncheckedCreateInput,
           update: medical,
         });
       }
@@ -278,7 +298,9 @@ export class MeService {
       where: { id: userId },
       data: {
         ...(dto.channel !== undefined && { notificationChannel: dto.channel }),
-        ...(dto.digestEnabled !== undefined && { digestEnabled: dto.digestEnabled }),
+        ...(dto.digestEnabled !== undefined && {
+          digestEnabled: dto.digestEnabled,
+        }),
       },
     });
   }

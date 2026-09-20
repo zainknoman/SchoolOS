@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IssueVouchersDto } from './dto/issue-vouchers.dto';
 
@@ -22,14 +26,23 @@ export class FeeVouchersService {
    * This system runs a single active AcademicSession at a time (same assumption
    * EnrollmentService already makes) — the caller never picks one, it's resolved here.
    */
-  async issue(dto: IssueVouchersDto, actingUserId: string): Promise<VoucherSummary[]> {
+  async issue(
+    dto: IssueVouchersDto,
+    actingUserId: string,
+  ): Promise<VoucherSummary[]> {
     if ((dto.studentIds?.length ? 1 : 0) + (dto.sectionId ? 1 : 0) !== 1) {
-      throw new BadRequestException('Provide exactly one of studentIds or sectionId');
+      throw new BadRequestException(
+        'Provide exactly one of studentIds or sectionId',
+      );
     }
 
-    const activeSession = await this.prisma.academicSession.findFirst({ where: { isActive: true } });
+    const activeSession = await this.prisma.academicSession.findFirst({
+      where: { isActive: true },
+    });
     if (!activeSession) {
-      throw new BadRequestException('No active academic session — cannot issue a voucher');
+      throw new BadRequestException(
+        'No active academic session — cannot issue a voucher',
+      );
     }
 
     const structures = await this.prisma.feeStructure.findMany({
@@ -49,7 +62,11 @@ export class FeeVouchersService {
         ).map((e) => e.studentId);
 
     const existing = await this.prisma.feeVoucher.findMany({
-      where: { studentId: { in: studentIds }, academicSessionId: activeSession.id, month: dto.month },
+      where: {
+        studentId: { in: studentIds },
+        academicSessionId: activeSession.id,
+        month: dto.month,
+      },
       select: { studentId: true },
     });
     if (existing.length > 0) {
@@ -68,7 +85,12 @@ export class FeeVouchersService {
           month: dto.month,
           issueDate: new Date(),
           dueDate,
-          items: { create: structures.map((s) => ({ label: s.name, amount: s.amount })) },
+          items: {
+            create: structures.map((s) => ({
+              label: s.name,
+              amount: s.amount,
+            })),
+          },
         },
         include: { items: true },
       });
@@ -81,7 +103,10 @@ export class FeeVouchersService {
         action: 'fee-voucher.issue',
         entity: 'FeeVoucher',
         entityId: created.map((v) => v.id).join(','),
-        metadata: JSON.stringify({ studentCount: studentIds.length, month: dto.month }),
+        metadata: JSON.stringify({
+          studentCount: studentIds.length,
+          month: dto.month,
+        }),
       },
     });
 
@@ -95,7 +120,10 @@ export class FeeVouchersService {
       orderBy: { issueDate: 'desc' },
     });
     return vouchers.map((v) =>
-      this.toSummary(v, v.allocations.reduce((sum, a) => sum + a.amount, 0)),
+      this.toSummary(
+        v,
+        v.allocations.reduce((sum, a) => sum + a.amount, 0),
+      ),
     );
   }
 

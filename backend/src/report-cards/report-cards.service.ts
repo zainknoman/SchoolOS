@@ -43,7 +43,9 @@ export class ReportCardsService {
       where: { studentId_academicSessionId: { studentId, academicSessionId } },
     });
     if (existing) {
-      throw new ConflictException('A report card already exists for this student and session');
+      throw new ConflictException(
+        'A report card already exists for this student and session',
+      );
     }
 
     const uploaded = await this.filesService.upload(file, uploadedById);
@@ -62,7 +64,9 @@ export class ReportCardsService {
   }
 
   async getFileIdForDownload(reportCardId: string): Promise<string | null> {
-    const record = await this.prisma.reportCard.findUnique({ where: { id: reportCardId } });
+    const record = await this.prisma.reportCard.findUnique({
+      where: { id: reportCardId },
+    });
     return record?.fileId ?? null;
   }
 }

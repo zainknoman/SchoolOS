@@ -9,7 +9,10 @@ describe('SubjectsService', () => {
   beforeEach(async () => {
     prisma = { subject: { findMany: jest.fn() } };
     const moduleRef = await Test.createTestingModule({
-      providers: [SubjectsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        SubjectsService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = moduleRef.get(SubjectsService);
   });
@@ -19,7 +22,9 @@ describe('SubjectsService', () => {
 
     const result = await service.listAll();
 
-    expect(prisma.subject.findMany).toHaveBeenCalledWith({ orderBy: { name: 'asc' } });
+    expect(prisma.subject.findMany).toHaveBeenCalledWith({
+      orderBy: { name: 'asc' },
+    });
     expect(result).toEqual([{ id: 'sub-1', name: 'Urdu' }]);
   });
 });

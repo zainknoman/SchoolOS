@@ -2,7 +2,11 @@ import { EasyPaisaSigner } from './easypaisa.signer';
 
 describe('EasyPaisaSigner', () => {
   const hashKey = 'test-hash-key';
-  const fields = { storeId: 'ST1', amount: '5000.00', orderRefNum: 'pay_abc123' };
+  const fields = {
+    storeId: 'ST1',
+    amount: '5000.00',
+    orderRefNum: 'pay_abc123',
+  };
 
   it('produces a deterministic hex hash for the same fields', () => {
     const signer = new EasyPaisaSigner(hashKey);

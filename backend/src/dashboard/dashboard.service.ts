@@ -96,7 +96,9 @@ export class DashboardService {
     const records = await this.prisma.attendance.findMany({
       where: {
         date: dateOnlyUtc(date),
-        ...(campusWhere ? { student: { enrollments: { some: { campus: campusWhere } } } } : {}),
+        ...(campusWhere
+          ? { student: { enrollments: { some: { campus: campusWhere } } } }
+          : {}),
       },
       select: { status: true },
     });
@@ -111,10 +113,17 @@ export class DashboardService {
       else if (r.status === 'LEAVE') leave++;
     }
     const countable = present + absent + late + leave;
-    return { percent: countable === 0 ? 0 : Math.round((present / countable) * 100), absent };
+    return {
+      percent: countable === 0 ? 0 : Math.round((present / countable) * 100),
+      absent,
+    };
   }
 
-  private async feesCollectedPkrForRange(from: Date, to?: Date, campusWhere?: Prisma.CampusWhereInput): Promise<number> {
+  private async feesCollectedPkrForRange(
+    from: Date,
+    to?: Date,
+    campusWhere?: Prisma.CampusWhereInput,
+  ): Promise<number> {
     const result = await this.prisma.feePayment.aggregate({
       _sum: { amount: true },
       where: {
@@ -123,7 +132,11 @@ export class DashboardService {
         ...(campusWhere
           ? {
               allocations: {
-                some: { feeVoucher: { student: { enrollments: { some: { campus: campusWhere } } } } },
+                some: {
+                  feeVoucher: {
+                    student: { enrollments: { some: { campus: campusWhere } } },
+                  },
+                },
               },
             }
           : {}),
@@ -132,10 +145,17 @@ export class DashboardService {
     return (result._sum.amount ?? 0) / 100;
   }
 
-  private async feesOutstandingPkr(campusWhere?: Prisma.CampusWhereInput): Promise<number> {
+  private async feesOutstandingPkr(
+    campusWhere?: Prisma.CampusWhereInput,
+  ): Promise<number> {
     const vouchers = await this.prisma.feeVoucher.findMany({
-      where: campusWhere ? { student: { enrollments: { some: { campus: campusWhere } } } } : undefined,
-      select: { items: { select: { amount: true } }, allocations: { select: { amount: true } } },
+      where: campusWhere
+        ? { student: { enrollments: { some: { campus: campusWhere } } } }
+        : undefined,
+      select: {
+        items: { select: { amount: true } },
+        allocations: { select: { amount: true } },
+      },
     });
     let totalPaisa = 0;
     for (const v of vouchers) {
@@ -147,7 +167,9 @@ export class DashboardService {
     return totalPaisa / 100;
   }
 
-  private async weeklyTrend(campusWhere?: Prisma.CampusWhereInput): Promise<DashboardWeeklyPoint[]> {
+  private async weeklyTrend(
+    campusWhere?: Prisma.CampusWhereInput,
+  ): Promise<DashboardWeeklyPoint[]> {
     const points: DashboardWeeklyPoint[] = [];
     for (let offset = 6; offset >= 0; offset--) {
       const day = new Date();
@@ -159,7 +181,11 @@ export class DashboardService {
         this.attendancePercentAndAbsent(day, campusWhere),
         this.feesCollectedPkrForRange(dayStart, dayEnd, campusWhere),
       ]);
-      points.push({ day: DAY_ABBREVIATIONS[day.getUTCDay()], attendancePercent: percent, feesCollectedPkr });
+      points.push({
+        day: DAY_ABBREVIATIONS[day.getUTCDay()],
+        attendancePercent: percent,
+        feesCollectedPkr,
+      });
     }
     return points;
   }
@@ -170,7 +196,10 @@ export class DashboardService {
     let userIdFilter: Prisma.NotificationWhereInput | undefined;
     if (scope && !scope.unrestricted && scope.schoolId) {
       const users = await this.prisma.user.findMany({
-        where: { schoolId: scope.schoolId, ...(scope.campusId ? { campusId: scope.campusId } : {}) },
+        where: {
+          schoolId: scope.schoolId,
+          ...(scope.campusId ? { campusId: scope.campusId } : {}),
+        },
         select: { id: true },
       });
       userIdFilter = { userId: { in: users.map((u) => u.id) } };
@@ -181,7 +210,11 @@ export class DashboardService {
       take: 5,
       select: { id: true, title: true, createdAt: true },
     });
-    return notifications.map((n) => ({ id: n.id, message: n.title, createdAt: n.createdAt.toISOString() }));
+    return notifications.map((n) => ({
+      id: n.id,
+      message: n.title,
+      createdAt: n.createdAt.toISOString(),
+    }));
   }
 
   private static readonly EMPTY_SUMMARY: DashboardSummary = {
@@ -202,23 +235,31 @@ export class DashboardService {
     const campusWhere = scope.campusWhere;
 
     const now = new Date();
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
 
-    const [studentsTotal, today, feesCollectedPkr, feesOutstandingPkr, weeklyTrend, recentAlerts] =
-      await Promise.all([
-        this.prisma.enrollment.count({
-          where: {
-            status: 'ACTIVE',
-            academicSession: { isActive: true },
-            ...(campusWhere ? { campus: campusWhere } : {}),
-          },
-        }),
-        this.attendancePercentAndAbsent(now, campusWhere),
-        this.feesCollectedPkrForRange(monthStart, undefined, campusWhere),
-        this.feesOutstandingPkr(campusWhere),
-        this.weeklyTrend(campusWhere),
-        this.recentAlerts(scope),
-      ]);
+    const [
+      studentsTotal,
+      today,
+      feesCollectedPkr,
+      feesOutstandingPkr,
+      weeklyTrend,
+      recentAlerts,
+    ] = await Promise.all([
+      this.prisma.enrollment.count({
+        where: {
+          status: 'ACTIVE',
+          academicSession: { isActive: true },
+          ...(campusWhere ? { campus: campusWhere } : {}),
+        },
+      }),
+      this.attendancePercentAndAbsent(now, campusWhere),
+      this.feesCollectedPkrForRange(monthStart, undefined, campusWhere),
+      this.feesOutstandingPkr(campusWhere),
+      this.weeklyTrend(campusWhere),
+      this.recentAlerts(scope),
+    ]);
 
     return {
       studentsTotal,
@@ -233,46 +274,77 @@ export class DashboardService {
 
   // --- School Admin / Accounts "Operations" dashboard --------------------------------------
 
-  async getOperationsSummary(actingUser: RequestUser): Promise<OperationsSummary> {
+  async getOperationsSummary(
+    actingUser: RequestUser,
+  ): Promise<OperationsSummary> {
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
-      return { admissionsPending: 0, feeDefaulters: 0, leaveRequestsPending: 0, documentsToVerify: 0, recentActivity: [] };
+      return {
+        admissionsPending: 0,
+        feeDefaulters: 0,
+        leaveRequestsPending: 0,
+        documentsToVerify: 0,
+        recentActivity: [],
+      };
     }
     const campusWhere = scope.campusWhere;
 
-    const [admissionsPending, feeDefaulters, leaveRequestsPending, documentsToVerify, recentActivity] =
-      await Promise.all([
-        this.prisma.application.count({
-          where: {
-            status: 'SUBMITTED',
-            ...(campusWhere ? { desiredClass: { campus: campusWhere } } : {}),
-          },
-        }),
-        this.feeDefaultersCount(campusWhere),
-        this.prisma.leaveRequest.count({
-          where: {
-            status: 'pending',
-            ...(campusWhere ? { student: { enrollments: { some: { campus: campusWhere } } } } : {}),
-          },
-        }),
-        this.prisma.studentDocument.count({
-          where: {
-            verificationStatus: 'PENDING',
-            ...(campusWhere ? { student: { enrollments: { some: { campus: campusWhere } } } } : {}),
-          },
-        }),
-        this.recentAlerts(scope),
-      ]);
+    const [
+      admissionsPending,
+      feeDefaulters,
+      leaveRequestsPending,
+      documentsToVerify,
+      recentActivity,
+    ] = await Promise.all([
+      this.prisma.application.count({
+        where: {
+          status: 'SUBMITTED',
+          ...(campusWhere ? { desiredClass: { campus: campusWhere } } : {}),
+        },
+      }),
+      this.feeDefaultersCount(campusWhere),
+      this.prisma.leaveRequest.count({
+        where: {
+          status: 'pending',
+          ...(campusWhere
+            ? { student: { enrollments: { some: { campus: campusWhere } } } }
+            : {}),
+        },
+      }),
+      this.prisma.studentDocument.count({
+        where: {
+          verificationStatus: 'PENDING',
+          ...(campusWhere
+            ? { student: { enrollments: { some: { campus: campusWhere } } } }
+            : {}),
+        },
+      }),
+      this.recentAlerts(scope),
+    ]);
 
-    return { admissionsPending, feeDefaulters, leaveRequestsPending, documentsToVerify, recentActivity };
+    return {
+      admissionsPending,
+      feeDefaulters,
+      leaveRequestsPending,
+      documentsToVerify,
+      recentActivity,
+    };
   }
 
   // Distinct students with a positive amount due — a student with two overdue vouchers still
   // counts once, matching "how many families need a reminder", not "how many overdue vouchers".
-  private async feeDefaultersCount(campusWhere?: Prisma.CampusWhereInput): Promise<number> {
+  private async feeDefaultersCount(
+    campusWhere?: Prisma.CampusWhereInput,
+  ): Promise<number> {
     const vouchers = await this.prisma.feeVoucher.findMany({
-      where: campusWhere ? { student: { enrollments: { some: { campus: campusWhere } } } } : undefined,
-      select: { studentId: true, items: { select: { amount: true } }, allocations: { select: { amount: true } } },
+      where: campusWhere
+        ? { student: { enrollments: { some: { campus: campusWhere } } } }
+        : undefined,
+      select: {
+        studentId: true,
+        items: { select: { amount: true } },
+        allocations: { select: { amount: true } },
+      },
     });
     const defaulters = new Set<string>();
     for (const v of vouchers) {
@@ -288,19 +360,32 @@ export class DashboardService {
   async getNetworkOverview(): Promise<NetworkOverview> {
     const schools = await this.prisma.school.findMany({
       orderBy: { name: 'asc' },
-      select: { id: true, name: true, status: true, campuses: { select: { id: true } } },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        campuses: { select: { id: true } },
+      },
     });
 
     const [totalStudents, totalStaff, schoolRows] = await Promise.all([
-      this.prisma.enrollment.count({ where: { status: 'ACTIVE', academicSession: { isActive: true } } }),
+      this.prisma.enrollment.count({
+        where: { status: 'ACTIVE', academicSession: { isActive: true } },
+      }),
       this.prisma.staff.count({ where: { employmentStatus: 'ACTIVE' } }),
       Promise.all(
         schools.map(async (school): Promise<SchoolOverviewRow> => {
           const [studentsCount, collected, outstanding] = await Promise.all([
             this.prisma.enrollment.count({
-              where: { status: 'ACTIVE', academicSession: { isActive: true }, campus: { schoolId: school.id } },
+              where: {
+                status: 'ACTIVE',
+                academicSession: { isActive: true },
+                campus: { schoolId: school.id },
+              },
             }),
-            this.feesCollectedPkrForRange(new Date(0), undefined, { schoolId: school.id }),
+            this.feesCollectedPkrForRange(new Date(0), undefined, {
+              schoolId: school.id,
+            }),
             this.feesOutstandingPkr({ schoolId: school.id }),
           ]);
           const billed = collected + outstanding;
@@ -310,23 +395,35 @@ export class DashboardService {
             status: school.status,
             campusesCount: school.campuses.length,
             studentsCount,
-            feeCollectionPercent: billed === 0 ? 100 : Math.round((collected / billed) * 100),
+            feeCollectionPercent:
+              billed === 0 ? 100 : Math.round((collected / billed) * 100),
           };
         }),
       ),
     ]);
 
-    return { totalSchools: schools.length, totalStudents, totalStaff, schools: schoolRows };
+    return {
+      totalSchools: schools.length,
+      totalStudents,
+      totalStaff,
+      schools: schoolRows,
+    };
   }
 
   // --- Principal "Academics & Staff" dashboard --------------------------------------------
   // A Principal is a SCHOOL_ADMIN user with isPrincipal=true (there is no separate Role) — the
   // controller only gates on @Roles('SCHOOL_ADMIN'), so this service enforces the extra flag.
 
-  async getPrincipalAcademicsSummary(actingUser: RequestUser): Promise<PrincipalAcademicsSummary> {
-    const admin = await this.prisma.user.findUnique({ where: { id: actingUser.id } });
+  async getPrincipalAcademicsSummary(
+    actingUser: RequestUser,
+  ): Promise<PrincipalAcademicsSummary> {
+    const admin = await this.prisma.user.findUnique({
+      where: { id: actingUser.id },
+    });
     if (!admin?.isPrincipal) {
-      throw new ForbiddenException('This dashboard is only available to a school Principal.');
+      throw new ForbiddenException(
+        'This dashboard is only available to a school Principal.',
+      );
     }
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
@@ -344,10 +441,15 @@ export class DashboardService {
       orderBy: { name: 'asc' },
     });
 
-    const classHealth = await Promise.all(sections.map((section) => this.classHealthForSection(section)));
+    const classHealth = await Promise.all(
+      sections.map((section) => this.classHealthForSection(section)),
+    );
 
     const categories = await this.prisma.assessmentCategory.findMany({
-      where: { class: { campus: scope.campusWhere }, term: { academicSession: { isActive: true } } },
+      where: {
+        class: { campus: scope.campusWhere },
+        term: { academicSession: { isActive: true } },
+      },
       select: {
         id: true,
         name: true,
@@ -377,11 +479,17 @@ export class DashboardService {
     const today = dateOnlyUtc(new Date());
     const [attendanceRecords, latestCategory] = await Promise.all([
       this.prisma.attendance.findMany({
-        where: { date: today, student: { enrollments: { some: { sectionId: section.id } } } },
+        where: {
+          date: today,
+          student: { enrollments: { some: { sectionId: section.id } } },
+        },
         select: { status: true },
       }),
       this.prisma.assessmentCategory.findFirst({
-        where: { classId: section.class.id, term: { academicSession: { isActive: true } } },
+        where: {
+          classId: section.class.id,
+          term: { academicSession: { isActive: true } },
+        },
         orderBy: { createdAt: 'desc' },
         select: { id: true },
       }),
@@ -394,7 +502,8 @@ export class DashboardService {
       countable++;
       if (r.status === 'PRESENT') present++;
     }
-    const attendancePercent = countable === 0 ? 0 : Math.round((present / countable) * 100);
+    const attendancePercent =
+      countable === 0 ? 0 : Math.round((present / countable) * 100);
 
     let averageMarksPercent: number | null = null;
     if (latestCategory) {
@@ -403,10 +512,16 @@ export class DashboardService {
           assessment: { assessmentCategoryId: latestCategory.id },
           student: { enrollments: { some: { sectionId: section.id } } },
         },
-        select: { obtainedMarks: true, assessment: { select: { maxMarks: true } } },
+        select: {
+          obtainedMarks: true,
+          assessment: { select: { maxMarks: true } },
+        },
       });
       if (marks.length > 0) {
-        const percentSum = marks.reduce((sum, m) => sum + (m.obtainedMarks / m.assessment.maxMarks) * 100, 0);
+        const percentSum = marks.reduce(
+          (sum, m) => sum + (m.obtainedMarks / m.assessment.maxMarks) * 100,
+          0,
+        );
         averageMarksPercent = Math.round(percentSum / marks.length);
       }
     }

@@ -1,5 +1,9 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
@@ -12,7 +16,12 @@ describe('ConversationsService', () => {
     section: { findUnique: jest.Mock };
     teacher: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock };
-    conversation: { create: jest.Mock; findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
+    conversation: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
+    };
     message: { create: jest.Mock };
     auditLog: { create: jest.Mock };
   };
@@ -36,7 +45,9 @@ describe('ConversationsService', () => {
     };
     enrollment = { getCurrentEnrollment: jest.fn() };
     notifications = { notify: jest.fn().mockResolvedValue(undefined) };
-    studentAccess = { assertCanAccessStudent: jest.fn().mockResolvedValue(undefined) };
+    studentAccess = {
+      assertCanAccessStudent: jest.fn().mockResolvedValue(undefined),
+    };
     const moduleRef = await Test.createTestingModule({
       providers: [
         ConversationsService,
@@ -51,8 +62,14 @@ describe('ConversationsService', () => {
 
   it('starting a CLASS_TEACHER conversation resolves the staff user via the section class teacher', async () => {
     enrollment.getCurrentEnrollment.mockResolvedValue({ sectionId: 'sec-1' });
-    prisma.section.findUnique.mockResolvedValue({ id: 'sec-1', classTeacherId: 'teacher-1' });
-    prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-1', userId: 'teacher-user-1' });
+    prisma.section.findUnique.mockResolvedValue({
+      id: 'sec-1',
+      classTeacherId: 'teacher-1',
+    });
+    prisma.teacher.findUnique.mockResolvedValue({
+      id: 'teacher-1',
+      userId: 'teacher-user-1',
+    });
     prisma.conversation.create.mockResolvedValue({ id: 'conv-1' });
 
     const result = await service.create(
@@ -71,11 +88,18 @@ describe('ConversationsService', () => {
       }),
     );
     expect(notifications.notify).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'teacher-user-1', type: 'message', entityRef: 'conv-1' }),
+      expect.objectContaining({
+        userId: 'teacher-user-1',
+        type: 'message',
+        entityRef: 'conv-1',
+      }),
     );
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ action: 'conversation.create', entity: 'Conversation' }),
+        data: expect.objectContaining({
+          action: 'conversation.create',
+          entity: 'Conversation',
+        }),
       }),
     );
     expect(result).toEqual({ id: 'conv-1' });
@@ -83,7 +107,10 @@ describe('ConversationsService', () => {
 
   it('throws BadRequestException if the section has no class teacher assigned', async () => {
     enrollment.getCurrentEnrollment.mockResolvedValue({ sectionId: 'sec-1' });
-    prisma.section.findUnique.mockResolvedValue({ id: 'sec-1', classTeacherId: null });
+    prisma.section.findUnique.mockResolvedValue({
+      id: 'sec-1',
+      classTeacherId: null,
+    });
 
     await expect(
       service.create(
@@ -98,7 +125,10 @@ describe('ConversationsService', () => {
     prisma.user.findFirst.mockResolvedValue({ id: 'admin-1' });
     prisma.conversation.create.mockResolvedValue({ id: 'conv-2' });
 
-    await service.create({ recipientType: 'SCHOOL_ADMIN', body: 'Question' }, { id: 'parent-1', role: 'PARENT' });
+    await service.create(
+      { recipientType: 'SCHOOL_ADMIN', body: 'Question' },
+      { id: 'parent-1', role: 'PARENT' },
+    );
 
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
       where: { role: 'SCHOOL_ADMIN' },
@@ -110,7 +140,10 @@ describe('ConversationsService', () => {
     prisma.user.findFirst.mockResolvedValue({ id: 'admin-1' });
     prisma.conversation.create.mockResolvedValue({ id: 'conv-3' });
 
-    await service.create({ recipientType: 'PRINCIPAL', body: 'Question' }, { id: 'parent-1', role: 'PARENT' });
+    await service.create(
+      { recipientType: 'PRINCIPAL', body: 'Question' },
+      { id: 'parent-1', role: 'PARENT' },
+    );
 
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
       where: { isPrincipal: true },
@@ -122,12 +155,17 @@ describe('ConversationsService', () => {
     prisma.user.findFirst.mockResolvedValue(null);
 
     await expect(
-      service.create({ recipientType: 'ACCOUNTS', body: 'Hi' }, { id: 'parent-1', role: 'PARENT' }),
+      service.create(
+        { recipientType: 'ACCOUNTS', body: 'Hi' },
+        { id: 'parent-1', role: 'PARENT' },
+      ),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('throws ForbiddenException if the parent cannot access the given student', async () => {
-    studentAccess.assertCanAccessStudent.mockRejectedValue(new ForbiddenException());
+    studentAccess.assertCanAccessStudent.mockRejectedValue(
+      new ForbiddenException(),
+    );
 
     await expect(
       service.create(
@@ -144,15 +182,24 @@ describe('ConversationsService', () => {
         id: 'conv-1',
         recipientType: 'CLASS_TEACHER',
         studentId: 'student-1',
-        parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
-        staffUser: { identifier: 'teacher@schoolos.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+        parentUser: {
+          identifier: 'parent-a@schoolos.edu.pk',
+          parentProfile: { name: 'Parent A' },
+        },
+        staffUser: {
+          identifier: 'teacher@schoolos.edu.pk',
+          teacher: { name: 'Ms. Sample Teacher' },
+        },
         parentReadAt: new Date('2026-08-01T00:00:00.000Z'),
         staffReadAt: null,
         lastMessageAt: new Date('2026-08-02T00:00:00.000Z'),
       },
     ]);
 
-    const result = await service.listForUser({ id: 'parent-1', role: 'PARENT' });
+    const result = await service.listForUser({
+      id: 'parent-1',
+      role: 'PARENT',
+    });
 
     expect(prisma.conversation.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { parentUserId: 'parent-1' } }),
@@ -172,23 +219,35 @@ describe('ConversationsService', () => {
         id: 'conv-1',
         recipientType: 'CLASS_TEACHER',
         studentId: 'student-1',
-        parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
-        staffUser: { identifier: 'teacher@schoolos.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+        parentUser: {
+          identifier: 'parent-a@schoolos.edu.pk',
+          parentProfile: { name: 'Parent A' },
+        },
+        staffUser: {
+          identifier: 'teacher@schoolos.edu.pk',
+          teacher: { name: 'Ms. Sample Teacher' },
+        },
         parentReadAt: new Date(),
         staffReadAt: new Date(),
         lastMessageAt: new Date('2026-08-02T00:00:00.000Z'),
       },
     ]);
 
-    const matched = await service.listForUser({ id: 'teacher-user-1', role: 'TEACHER' }, 'parent a');
+    const matched = await service.listForUser(
+      { id: 'teacher-user-1', role: 'TEACHER' },
+      'parent a',
+    );
     expect(matched).toHaveLength(1);
     expect(matched[0].otherPartyName).toBe('Parent A');
 
-    const unmatched = await service.listForUser({ id: 'teacher-user-1', role: 'TEACHER' }, 'nobody');
+    const unmatched = await service.listForUser(
+      { id: 'teacher-user-1', role: 'TEACHER' },
+      'nobody',
+    );
     expect(unmatched).toHaveLength(0);
   });
 
-  it('reply appends a message, bumps lastMessageAt, marks the sender\'s own read, and notifies the other party', async () => {
+  it("reply appends a message, bumps lastMessageAt, marks the sender's own read, and notifies the other party", async () => {
     prisma.conversation.findUnique.mockResolvedValue({
       id: 'conv-1',
       parentUserId: 'parent-1',
@@ -198,7 +257,11 @@ describe('ConversationsService', () => {
     await service.reply('conv-1', 'teacher-user-1', { body: 'Sure thing' });
 
     expect(prisma.message.create).toHaveBeenCalledWith({
-      data: { conversationId: 'conv-1', senderId: 'teacher-user-1', body: 'Sure thing' },
+      data: {
+        conversationId: 'conv-1',
+        senderId: 'teacher-user-1',
+        body: 'Sure thing',
+      },
     });
     expect(prisma.conversation.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -226,7 +289,9 @@ describe('ConversationsService', () => {
 
   it('reply 404s for an unknown conversation', async () => {
     prisma.conversation.findUnique.mockResolvedValue(null);
-    await expect(service.reply('missing', 'user-1', { body: 'x' })).rejects.toThrow(NotFoundException);
+    await expect(
+      service.reply('missing', 'user-1', { body: 'x' }),
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('getById is rejected for anyone not a party, 404s for unknown', async () => {
@@ -237,8 +302,14 @@ describe('ConversationsService', () => {
       recipientType: 'CLASS_TEACHER',
       studentId: 'student-1',
       messages: [],
-      parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
-      staffUser: { identifier: 'teacher@schoolos.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+      parentUser: {
+        identifier: 'parent-a@schoolos.edu.pk',
+        parentProfile: { name: 'Parent A' },
+      },
+      staffUser: {
+        identifier: 'teacher@schoolos.edu.pk',
+        teacher: { name: 'Ms. Sample Teacher' },
+      },
     });
 
     await expect(
@@ -251,7 +322,7 @@ describe('ConversationsService', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
-  it('getById labels each message with its sender\'s display name', async () => {
+  it("getById labels each message with its sender's display name", async () => {
     prisma.conversation.findUnique.mockResolvedValue({
       id: 'conv-1',
       parentUserId: 'parent-1',
@@ -259,18 +330,45 @@ describe('ConversationsService', () => {
       recipientType: 'CLASS_TEACHER',
       studentId: 'student-1',
       messages: [
-        { id: 'm1', senderId: 'parent-1', body: 'Hi', createdAt: new Date('2026-08-29T00:00:00.000Z') },
-        { id: 'm2', senderId: 'teacher-user-1', body: 'Sure', createdAt: new Date('2026-08-29T01:00:00.000Z') },
+        {
+          id: 'm1',
+          senderId: 'parent-1',
+          body: 'Hi',
+          createdAt: new Date('2026-08-29T00:00:00.000Z'),
+        },
+        {
+          id: 'm2',
+          senderId: 'teacher-user-1',
+          body: 'Sure',
+          createdAt: new Date('2026-08-29T01:00:00.000Z'),
+        },
       ],
-      parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
-      staffUser: { identifier: 'teacher@schoolos.edu.pk', teacher: { name: 'Ms. Sample Teacher' } },
+      parentUser: {
+        identifier: 'parent-a@schoolos.edu.pk',
+        parentProfile: { name: 'Parent A' },
+      },
+      staffUser: {
+        identifier: 'teacher@schoolos.edu.pk',
+        teacher: { name: 'Ms. Sample Teacher' },
+      },
     });
 
-    const result = await service.getById('conv-1', { id: 'parent-1', role: 'PARENT' });
+    const result = await service.getById('conv-1', {
+      id: 'parent-1',
+      role: 'PARENT',
+    });
 
     expect(result.messages).toEqual([
-      expect.objectContaining({ id: 'm1', senderId: 'parent-1', senderName: 'Parent A' }),
-      expect.objectContaining({ id: 'm2', senderId: 'teacher-user-1', senderName: 'Ms. Sample Teacher' }),
+      expect.objectContaining({
+        id: 'm1',
+        senderId: 'parent-1',
+        senderName: 'Parent A',
+      }),
+      expect.objectContaining({
+        id: 'm2',
+        senderId: 'teacher-user-1',
+        senderName: 'Ms. Sample Teacher',
+      }),
     ]);
   });
 
@@ -282,13 +380,24 @@ describe('ConversationsService', () => {
       recipientType: 'SCHOOL_ADMIN',
       studentId: null,
       messages: [
-        { id: 'm1', senderId: 'admin-user-1', body: 'Hi', createdAt: new Date('2026-08-29T00:00:00.000Z') },
+        {
+          id: 'm1',
+          senderId: 'admin-user-1',
+          body: 'Hi',
+          createdAt: new Date('2026-08-29T00:00:00.000Z'),
+        },
       ],
-      parentUser: { identifier: 'parent-a@schoolos.edu.pk', parentProfile: { name: 'Parent A' } },
+      parentUser: {
+        identifier: 'parent-a@schoolos.edu.pk',
+        parentProfile: { name: 'Parent A' },
+      },
       staffUser: { identifier: 'admin@schoolos.edu.pk', teacher: null },
     });
 
-    const result = await service.getById('conv-1', { id: 'parent-1', role: 'PARENT' });
+    const result = await service.getById('conv-1', {
+      id: 'parent-1',
+      role: 'PARENT',
+    });
 
     expect(result.messages[0]).toEqual(
       expect.objectContaining({ senderName: 'admin@schoolos.edu.pk' }),

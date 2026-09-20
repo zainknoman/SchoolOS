@@ -8,7 +8,10 @@ import { Prisma } from '@prisma/client';
  * a raw 500 reach the client. Any other error is rethrown unchanged.
  */
 export function assertDeletable(error: unknown, entityLabel: string): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2003'
+  ) {
     throw new BadRequestException(
       `Cannot delete this ${entityLabel}: other records still reference it.`,
     );

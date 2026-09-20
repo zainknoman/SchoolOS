@@ -127,7 +127,10 @@ describe('HolidaysService', () => {
   it('findMany applies from/to date-range filters for a SUPER_ADMIN', async () => {
     prisma.holiday.findMany.mockResolvedValue([]);
 
-    await service.findMany(superAdmin, { from: '2026-01-01', to: '2026-01-31' });
+    await service.findMany(superAdmin, {
+      from: '2026-01-01',
+      to: '2026-01-31',
+    });
 
     expect(prisma.holiday.findMany).toHaveBeenCalledWith({
       where: {
@@ -140,20 +143,35 @@ describe('HolidaysService', () => {
 
   describe('caller scoping (cross-school leak fix)', () => {
     it("scopes a SCHOOL_ADMIN's calendar to their own school's campuses plus school-wide rows", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
-      prisma.campus.findMany.mockResolvedValue([{ id: 'campus-1' }, { id: 'campus-2' }]);
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        schoolId: 'school-1',
+      });
+      prisma.campus.findMany.mockResolvedValue([
+        { id: 'campus-1' },
+        { id: 'campus-2' },
+      ]);
       prisma.holiday.findMany.mockResolvedValue([]);
 
       await service.findMany({ id: 'admin-1', role: 'SCHOOL_ADMIN' }, {});
 
       expect(prisma.holiday.findMany).toHaveBeenCalledWith({
-        where: { OR: [{ campusId: null }, { campusId: { in: ['campus-1', 'campus-2'] } }] },
+        where: {
+          OR: [
+            { campusId: null },
+            { campusId: { in: ['campus-1', 'campus-2'] } },
+          ],
+        },
         orderBy: { startDate: 'asc' },
       });
     });
 
     it("scopes a campus principal's calendar to their own campus only", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 'p1', schoolId: 's1', campusId: 'c1' });
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'p1',
+        schoolId: 's1',
+        campusId: 'c1',
+      });
       prisma.campus.findMany.mockResolvedValue([{ id: 'c1' }]);
       prisma.holiday.findMany.mockResolvedValue([]);
 
@@ -170,7 +188,10 @@ describe('HolidaysService', () => {
     });
 
     it("scopes a TEACHER's calendar to their own campus plus school-wide rows", async () => {
-      prisma.teacher.findUnique.mockResolvedValue({ id: 't1', campusId: 'campus-1' });
+      prisma.teacher.findUnique.mockResolvedValue({
+        id: 't1',
+        campusId: 'campus-1',
+      });
       prisma.holiday.findMany.mockResolvedValue([]);
 
       await service.findMany({ id: 'teacher-1', role: 'TEACHER' }, {});
@@ -189,7 +210,11 @@ describe('HolidaysService', () => {
 
       expect(prisma.enrollment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { student: { parents: { some: { parentProfile: { userId: 'parent-1' } } } } },
+          where: {
+            student: {
+              parents: { some: { parentProfile: { userId: 'parent-1' } } },
+            },
+          },
         }),
       );
       expect(prisma.holiday.findMany).toHaveBeenCalledWith({
@@ -199,10 +224,16 @@ describe('HolidaysService', () => {
     });
 
     it("combines a caller's campus scope with an explicit campusId query param via AND", async () => {
-      prisma.teacher.findUnique.mockResolvedValue({ id: 't1', campusId: 'campus-1' });
+      prisma.teacher.findUnique.mockResolvedValue({
+        id: 't1',
+        campusId: 'campus-1',
+      });
       prisma.holiday.findMany.mockResolvedValue([]);
 
-      await service.findMany({ id: 'teacher-1', role: 'TEACHER' }, { campusId: 'campus-1' });
+      await service.findMany(
+        { id: 'teacher-1', role: 'TEACHER' },
+        { campusId: 'campus-1' },
+      );
 
       expect(prisma.holiday.findMany).toHaveBeenCalledWith({
         where: {
@@ -216,9 +247,15 @@ describe('HolidaysService', () => {
     });
 
     it('fails closed (returns an empty list) for a SCHOOL_ADMIN with no schoolId', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        schoolId: null,
+      });
 
-      const result = await service.findMany({ id: 'admin-1', role: 'SCHOOL_ADMIN' }, {});
+      const result = await service.findMany(
+        { id: 'admin-1', role: 'SCHOOL_ADMIN' },
+        {},
+      );
 
       expect(result).toEqual([]);
       expect(prisma.holiday.findMany).not.toHaveBeenCalled();
@@ -227,7 +264,10 @@ describe('HolidaysService', () => {
     it('fails closed (returns an empty list) for a TEACHER with no Teacher profile', async () => {
       prisma.teacher.findUnique.mockResolvedValue(null);
 
-      const result = await service.findMany({ id: 'ghost-1', role: 'TEACHER' }, {});
+      const result = await service.findMany(
+        { id: 'ghost-1', role: 'TEACHER' },
+        {},
+      );
 
       expect(result).toEqual([]);
       expect(prisma.holiday.findMany).not.toHaveBeenCalled();

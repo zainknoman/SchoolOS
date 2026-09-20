@@ -10,5 +10,8 @@ export interface PaymentInitiation {
  * not a real abstraction.
  */
 export interface PaymentGatewayAdapter {
-  initiate(input: { amount: number; reference: string }): Promise<PaymentInitiation>;
+  initiate(input: {
+    amount: number;
+    reference: string;
+  }): Promise<PaymentInitiation>;
 }

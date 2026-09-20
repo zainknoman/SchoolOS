@@ -86,8 +86,12 @@ export class AcademicSessionService {
       throw new BadRequestException('Source and target sessions must differ');
     }
     const [target, source] = await Promise.all([
-      this.prisma.academicSession.findUnique({ where: { id: targetSessionId } }),
-      this.prisma.academicSession.findUnique({ where: { id: sourceSessionId } }),
+      this.prisma.academicSession.findUnique({
+        where: { id: targetSessionId },
+      }),
+      this.prisma.academicSession.findUnique({
+        where: { id: sourceSessionId },
+      }),
     ]);
     if (!target || !source) {
       throw new NotFoundException('Academic session not found');
@@ -109,12 +113,20 @@ export class AcademicSessionService {
       let sectionsCreated = 0;
       for (const src of sourceClasses) {
         let dest = await tx.class.findFirst({
-          where: { academicSessionId: targetSessionId, campusId: src.campusId, name: src.name },
+          where: {
+            academicSessionId: targetSessionId,
+            campusId: src.campusId,
+            name: src.name,
+          },
           include: { sections: true },
         });
         if (!dest) {
           dest = await tx.class.create({
-            data: { academicSessionId: targetSessionId, campusId: src.campusId, name: src.name },
+            data: {
+              academicSessionId: targetSessionId,
+              campusId: src.campusId,
+              name: src.name,
+            },
             include: { sections: true },
           });
           classesCreated += 1;
@@ -122,7 +134,9 @@ export class AcademicSessionService {
         const existing = new Set(dest.sections.map((s) => s.name));
         for (const section of src.sections) {
           if (existing.has(section.name)) continue;
-          await tx.section.create({ data: { classId: dest.id, name: section.name } });
+          await tx.section.create({
+            data: { classId: dest.id, name: section.name },
+          });
           sectionsCreated += 1;
         }
       }

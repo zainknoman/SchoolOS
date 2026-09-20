@@ -31,33 +31,62 @@ describe('Leave applications (e2e)', () => {
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'lv-' } } })
       .catch(() => undefined);
-    const staleStudents = await prisma.student.findMany({ where: { grNumber: { startsWith: 'LV-' } } });
+    const staleStudents = await prisma.student.findMany({
+      where: { grNumber: { startsWith: 'LV-' } },
+    });
     for (const s of staleStudents) {
-      await prisma.attendance.deleteMany({ where: { studentId: s.id } }).catch(() => undefined);
-      await prisma.leaveRequest.deleteMany({ where: { studentId: s.id } }).catch(() => undefined);
+      await prisma.attendance
+        .deleteMany({ where: { studentId: s.id } })
+        .catch(() => undefined);
+      await prisma.leaveRequest
+        .deleteMany({ where: { studentId: s.id } })
+        .catch(() => undefined);
     }
     await prisma.student
       .deleteMany({ where: { grNumber: { startsWith: 'LV-' } } })
       .catch(() => undefined);
-    const stale = await prisma.school.findMany({ where: { name: 'LV E2E School' } });
+    const stale = await prisma.school.findMany({
+      where: { name: 'LV E2E School' },
+    });
     for (const s of stale) {
-      await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
+      await prisma.school
+        .delete({ where: { id: s.id } })
+        .catch(() => undefined);
     }
 
-    const school = await prisma.school.create({ data: { name: 'LV E2E School' } });
-    const campus = await prisma.campus.create({ data: { schoolId: school.id, name: 'Main' } });
+    const school = await prisma.school.create({
+      data: { name: 'LV E2E School' },
+    });
+    const campus = await prisma.campus.create({
+      data: { schoolId: school.id, name: 'Main' },
+    });
     const session = await prisma.academicSession.create({
-      data: { label: 'LV', startDate: new Date(), endDate: new Date(), isActive: true },
+      data: {
+        label: 'LV',
+        startDate: new Date(),
+        endDate: new Date(),
+        isActive: true,
+      },
     });
     const klass = await prisma.class.create({
-      data: { campusId: campus.id, academicSessionId: session.id, name: 'LV Grade' },
+      data: {
+        campusId: campus.id,
+        academicSessionId: session.id,
+        name: 'LV Grade',
+      },
     });
 
     const passwordHash = await argon2.hash(password);
     const teacherUser = await prisma.user.create({
-      data: { identifier: 'lv-teacher@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
+      data: {
+        identifier: 'lv-teacher@schoolos.edu.pk',
+        passwordHash,
+        role: 'TEACHER',
+      },
     });
-    const teacher = await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'LV Teacher', campusId: campus.id } });
+    const teacher = await prisma.teacher.create({
+      data: { userId: teacherUser.id, name: 'LV Teacher', campusId: campus.id },
+    });
 
     const section = await prisma.section.create({
       data: { classId: klass.id, name: 'LV-A', classTeacherId: teacher.id },
@@ -68,15 +97,28 @@ describe('Leave applications (e2e)', () => {
       data: { classId: klass.id, name: 'LV-NoTeacher' },
     });
 
-    const adminUser = await prisma.user.create({
-      data: { identifier: 'lv-admin@schoolos.edu.pk', passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
+    await prisma.user.create({
+      data: {
+        identifier: 'lv-admin@schoolos.edu.pk',
+        passwordHash,
+        role: 'SCHOOL_ADMIN',
+        schoolId: school.id,
+      },
     });
 
     const parentAUser = await prisma.user.create({
-      data: { identifier: 'lv-parent-a@schoolos.edu.pk', passwordHash, role: 'PARENT' },
+      data: {
+        identifier: 'lv-parent-a@schoolos.edu.pk',
+        passwordHash,
+        role: 'PARENT',
+      },
     });
     const parentBUser = await prisma.user.create({
-      data: { identifier: 'lv-parent-b@schoolos.edu.pk', passwordHash, role: 'PARENT' },
+      data: {
+        identifier: 'lv-parent-b@schoolos.edu.pk',
+        passwordHash,
+        role: 'PARENT',
+      },
     });
     const parentAProfile = await prisma.parentProfile.create({
       data: { userId: parentAUser.id, name: 'LV Parent A' },
@@ -85,8 +127,12 @@ describe('Leave applications (e2e)', () => {
       data: { userId: parentBUser.id, name: 'LV Parent B' },
     });
 
-    const childA = await prisma.student.create({ data: { grNumber: 'LV-A1', name: 'LV Child A' } });
-    const childB = await prisma.student.create({ data: { grNumber: 'LV-B1', name: 'LV Child B' } });
+    const childA = await prisma.student.create({
+      data: { grNumber: 'LV-A1', name: 'LV Child A' },
+    });
+    const childB = await prisma.student.create({
+      data: { grNumber: 'LV-B1', name: 'LV Child B' },
+    });
     await prisma.enrollment.create({
       data: {
         studentId: childA.id,
@@ -107,18 +153,29 @@ describe('Leave applications (e2e)', () => {
         status: 'ACTIVE',
       },
     });
-    await prisma.studentParent.create({ data: { studentId: childA.id, parentProfileId: parentAProfile.id } });
-    await prisma.studentParent.create({ data: { studentId: childB.id, parentProfileId: parentBProfile.id } });
+    await prisma.studentParent.create({
+      data: { studentId: childA.id, parentProfileId: parentAProfile.id },
+    });
+    await prisma.studentParent.create({
+      data: { studentId: childB.id, parentProfileId: parentBProfile.id },
+    });
 
     // One day inside the leave range is already a HOLIDAY — approval must leave it untouched.
     await prisma.attendance.create({
-      data: { studentId: childA.id, date: new Date('2026-09-02T00:00:00.000Z'), status: 'HOLIDAY', markedById: teacher.id },
+      data: {
+        studentId: childA.id,
+        date: new Date('2026-09-02T00:00:00.000Z'),
+        status: 'HOLIDAY',
+        markedById: teacher.id,
+      },
     });
 
     // Child enrolled in a section with no class teacher, plus a pending leave request for them —
     // used to prove a failed approve() precondition rolls back cleanly (see the persisted-state
     // regression test below).
-    const childC = await prisma.student.create({ data: { grNumber: 'LV-C1', name: 'LV Child C' } });
+    const childC = await prisma.student.create({
+      data: { grNumber: 'LV-C1', name: 'LV Child C' },
+    });
     await prisma.enrollment.create({
       data: {
         studentId: childC.id,
@@ -149,20 +206,31 @@ describe('Leave applications (e2e)', () => {
 
   afterAll(async () => {
     await prisma.attendance
-      .deleteMany({ where: { studentId: { in: [ids.childA, ids.childB, ids.childC] } } })
+      .deleteMany({
+        where: { studentId: { in: [ids.childA, ids.childB, ids.childC] } },
+      })
       .catch(() => undefined);
     await prisma.leaveRequest
-      .deleteMany({ where: { studentId: { in: [ids.childA, ids.childB, ids.childC] } } })
+      .deleteMany({
+        where: { studentId: { in: [ids.childA, ids.childB, ids.childC] } },
+      })
       .catch(() => undefined);
     await prisma.student
       .deleteMany({ where: { grNumber: { in: ['LV-A1', 'LV-B1', 'LV-C1'] } } })
       .catch(() => undefined);
-    await prisma.school.delete({ where: { id: ids.school } }).catch(() => undefined);
+    await prisma.school
+      .delete({ where: { id: ids.school } })
+      .catch(() => undefined);
     await prisma.user
       .deleteMany({
         where: {
           identifier: {
-            in: ['lv-teacher@schoolos.edu.pk', 'lv-admin@schoolos.edu.pk', 'lv-parent-a@schoolos.edu.pk', 'lv-parent-b@schoolos.edu.pk'],
+            in: [
+              'lv-teacher@schoolos.edu.pk',
+              'lv-admin@schoolos.edu.pk',
+              'lv-parent-a@schoolos.edu.pk',
+              'lv-parent-b@schoolos.edu.pk',
+            ],
           },
         },
       })
@@ -170,22 +238,34 @@ describe('Leave applications (e2e)', () => {
     await app.close();
   });
 
-  it('a parent can submit a leave request for their own child, but not for another parent\'s child', async () => {
+  it("a parent can submit a leave request for their own child, but not for another parent's child", async () => {
     const tokenA = await loginAs('lv-parent-a@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/leave-requests')
       .set('Authorization', `Bearer ${tokenA}`)
-      .send({ studentId: ids.childA, startDate: '2026-09-01', endDate: '2026-09-03', reason: 'Family trip' })
+      .send({
+        studentId: ids.childA,
+        startDate: '2026-09-01',
+        endDate: '2026-09-03',
+        reason: 'Family trip',
+      })
       .expect(201);
 
-    expect(res.body).toEqual(expect.objectContaining({ status: 'pending', studentName: 'LV Child A' }));
+    expect(res.body).toEqual(
+      expect.objectContaining({ status: 'pending', studentName: 'LV Child A' }),
+    );
     ids.leaveRequest = res.body.id;
 
     await request(app.getHttpServer())
       .post('/api/v1/leave-requests')
       .set('Authorization', `Bearer ${tokenA}`)
-      .send({ studentId: ids.childB, startDate: '2026-09-01', endDate: '2026-09-03', reason: 'x' })
+      .send({
+        studentId: ids.childB,
+        startDate: '2026-09-01',
+        endDate: '2026-09-03',
+        reason: 'x',
+      })
       .expect(403);
   });
 
@@ -214,7 +294,9 @@ describe('Leave applications (e2e)', () => {
       .get('/api/v1/leave-requests?status=pending')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
-    expect(pending.body.map((r: { id: string }) => r.id)).toContain(ids.leaveRequest);
+    expect(pending.body.map((r: { id: string }) => r.id)).toContain(
+      ids.leaveRequest,
+    );
 
     const approved = await request(app.getHttpServer())
       .post(`/api/v1/leave-requests/${ids.leaveRequest}/approve`)
@@ -255,7 +337,9 @@ describe('Leave applications (e2e)', () => {
       .expect(400);
 
     // The real, persisted row — not a mock's call log — must still say 'pending'.
-    const persisted = await prisma.leaveRequest.findUnique({ where: { id: ids.noTeacherLeaveRequest } });
+    const persisted = await prisma.leaveRequest.findUnique({
+      where: { id: ids.noTeacherLeaveRequest },
+    });
     expect(persisted?.status).toBe('pending');
 
     // And, being still pending, it must remain retryable (e.g. rejectable) rather than stuck.

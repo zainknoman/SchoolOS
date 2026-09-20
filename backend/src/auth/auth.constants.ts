@@ -17,4 +17,5 @@ export const FORGOT_PASSWORD_GENERIC_MESSAGE =
   'If an account exists for that identifier, a password reset link has been sent.';
 // Returned for every reset-password failure branch (expired/used/unknown token) — never
 // distinguish "expired" from "wrong" (same enumeration-defense reasoning as login).
-export const RESET_PASSWORD_GENERIC_ERROR = 'This reset link is invalid or has expired.';
+export const RESET_PASSWORD_GENERIC_ERROR =
+  'This reset link is invalid or has expired.';

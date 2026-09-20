@@ -93,7 +93,10 @@ describe('AuthService', () => {
     prisma.user.update.mockResolvedValue({});
     prisma.refreshToken.create.mockResolvedValue({});
 
-    const result = await service.login('parent@schoolos.edu.pk', 'correct-horse');
+    const result = await service.login(
+      'parent@schoolos.edu.pk',
+      'correct-horse',
+    );
 
     expect(result.accessToken).toBe('signed-access-token');
     expect(typeof result.refreshToken).toBe('string');
@@ -180,7 +183,10 @@ describe('AuthService', () => {
     prisma.user.update.mockResolvedValue({});
     prisma.refreshToken.create.mockResolvedValue({});
 
-    const result = await service.login('parent@schoolos.edu.pk', 'correct-horse');
+    const result = await service.login(
+      'parent@schoolos.edu.pk',
+      'correct-horse',
+    );
     expect(result.accessToken).toBe('signed-access-token');
   });
 
@@ -190,7 +196,10 @@ describe('AuthService', () => {
     prisma.user.update.mockResolvedValue({});
     prisma.refreshToken.create.mockResolvedValue({});
 
-    const result = await service.login('parent@schoolos.edu.pk', 'correct-horse');
+    const result = await service.login(
+      'parent@schoolos.edu.pk',
+      'correct-horse',
+    );
 
     expect(JSON.stringify(result)).not.toContain(passwordHash);
     expect(JSON.stringify(result)).not.toContain('correct-horse');
@@ -265,14 +274,20 @@ describe('AuthService', () => {
     });
 
     it('stores a new hash, clears mustChangePassword, revokes refresh tokens and returns a fresh session', async () => {
-      const session = await service.changePassword('u1', 'Right1234!', 'NewPass123!');
+      const session = await service.changePassword(
+        'u1',
+        'Right1234!',
+        'NewPass123!',
+      );
       expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'u1' },
           data: expect.objectContaining({ mustChangePassword: false }),
         }),
       );
-      expect(prisma.user.update.mock.calls[0][0].data.passwordHash).not.toBe(passwordHash);
+      expect(prisma.user.update.mock.calls[0][0].data.passwordHash).not.toBe(
+        passwordHash,
+      );
       expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
         where: { userId: 'u1', revokedAt: null },
         data: { revokedAt: expect.any(Date) },
@@ -319,7 +334,10 @@ describe('AuthService', () => {
     it('returns the user schoolId on refresh', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(storedToken);
       prisma.refreshToken.update.mockResolvedValue({});
-      prisma.user.findUnique.mockResolvedValue({ ...baseUser, schoolId: 'school-1' });
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        schoolId: 'school-1',
+      });
       prisma.refreshToken.create.mockResolvedValue({});
 
       const result = await service.refresh('some-raw-refresh-token');

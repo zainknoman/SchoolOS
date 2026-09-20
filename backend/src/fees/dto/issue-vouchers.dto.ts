@@ -1,4 +1,11 @@
-import { ArrayMinSize, IsArray, IsDateString, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsDateString,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class IssueVouchersDto {
   @IsOptional()

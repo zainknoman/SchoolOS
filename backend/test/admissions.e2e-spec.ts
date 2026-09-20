@@ -25,7 +25,9 @@ describe('Admissions (e2e)', () => {
       imports: [AppModule],
     }).compile();
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     prisma = moduleFixture.get(PrismaService);
     await app.init();
 
@@ -50,7 +52,9 @@ describe('Admissions (e2e)', () => {
       where: { name: 'ADM E2E School' },
     });
     for (const s of stale) {
-      await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
+      await prisma.school
+        .delete({ where: { id: s.id } })
+        .catch(() => undefined);
     }
 
     const school = await prisma.school.create({
@@ -100,7 +104,11 @@ describe('Admissions (e2e)', () => {
       },
     });
     await prisma.teacher.create({
-      data: { userId: teacherUser.id, name: 'ADM Teacher', campusId: campus.id },
+      data: {
+        userId: teacherUser.id,
+        name: 'ADM Teacher',
+        campusId: campus.id,
+      },
     });
   });
 
@@ -120,7 +128,11 @@ describe('Admissions (e2e)', () => {
       .deleteMany({ where: { academicSessionId: ids.session } })
       .catch(() => undefined);
     await prisma.applicant
-      .deleteMany({ where: { guardianPhone: { in: ['03001234567', '03000000000', '03009998888'] } } })
+      .deleteMany({
+        where: {
+          guardianPhone: { in: ['03001234567', '03000000000', '03009998888'] },
+        },
+      })
       .catch(() => undefined);
     await prisma.student
       .deleteMany({ where: { grNumber: { startsWith: 'ADM-' } } })
@@ -129,7 +141,11 @@ describe('Admissions (e2e)', () => {
       .delete({ where: { id: ids.school } })
       .catch(() => undefined);
     await prisma.user
-      .deleteMany({ where: { identifier: { in: ['adm-admin', 'adm-teacher', 'adm-newparent'] } } })
+      .deleteMany({
+        where: {
+          identifier: { in: ['adm-admin', 'adm-teacher', 'adm-newparent'] },
+        },
+      })
       .catch(() => undefined);
     await app.close();
   });
@@ -140,7 +156,12 @@ describe('Admissions (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/applicants')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ name: 'Zainab Ali', dateOfBirth: '2019-04-01', guardianName: 'Ali Khan', guardianPhone: '03001234567' })
+        .send({
+          name: 'Zainab Ali',
+          dateOfBirth: '2019-04-01',
+          guardianName: 'Ali Khan',
+          guardianPhone: '03001234567',
+        })
         .expect(201);
       ids.applicant1 = res.body.applicant.id;
       expect(res.body.possibleDuplicate).toBeNull();
@@ -148,7 +169,12 @@ describe('Admissions (e2e)', () => {
       const res2 = await request(app.getHttpServer())
         .post('/api/v1/applicants')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ name: 'Zainab Ali', dateOfBirth: '2019-04-01', guardianName: 'Ali Khan', guardianPhone: '03001234567' })
+        .send({
+          name: 'Zainab Ali',
+          dateOfBirth: '2019-04-01',
+          guardianName: 'Ali Khan',
+          guardianPhone: '03001234567',
+        })
         .expect(201);
       expect(res2.body.possibleDuplicate?.id).toBe(ids.applicant1);
     });
@@ -158,7 +184,12 @@ describe('Admissions (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/applicants')
         .set('Authorization', `Bearer ${teacherToken}`)
-        .send({ name: 'Someone', dateOfBirth: '2020-01-01', guardianName: 'Guardian', guardianPhone: '03000000000' })
+        .send({
+          name: 'Someone',
+          dateOfBirth: '2020-01-01',
+          guardianName: 'Guardian',
+          guardianPhone: '03000000000',
+        })
         .expect(403);
     });
   });
@@ -169,7 +200,11 @@ describe('Admissions (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/applications')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ applicantId: ids.applicant1, desiredClassId: ids.class, academicSessionId: ids.session })
+        .send({
+          applicantId: ids.applicant1,
+          desiredClassId: ids.class,
+          academicSessionId: ids.session,
+        })
         .expect(201);
       ids.application1 = res.body.id;
       expect(res.body.status).toBe('SUBMITTED');
@@ -201,15 +236,24 @@ describe('Admissions (e2e)', () => {
         .send({
           grNumber: 'ADM-STU-1',
           sectionId: ids.section,
-          newParent: { identifier: 'adm-newparent', password: 'CorrectHorseBattery9!', name: 'New Parent', phone: '03001112222' },
+          newParent: {
+            identifier: 'adm-newparent',
+            password: 'CorrectHorseBattery9!',
+            name: 'New Parent',
+            phone: '03001112222',
+          },
         })
         .expect(201);
       expect(res.body.status).toBe('APPROVED');
       expect(res.body.createdStudentId).toBeTruthy();
 
-      const student = await prisma.student.findUnique({ where: { grNumber: 'ADM-STU-1' } });
+      const student = await prisma.student.findUnique({
+        where: { grNumber: 'ADM-STU-1' },
+      });
       expect(student).not.toBeNull();
-      const enrollment = await prisma.enrollment.findFirst({ where: { studentId: student!.id } });
+      const enrollment = await prisma.enrollment.findFirst({
+        where: { studentId: student!.id },
+      });
       expect(enrollment).not.toBeNull();
     });
 
@@ -218,7 +262,11 @@ describe('Admissions (e2e)', () => {
       const secondApplication = await request(app.getHttpServer())
         .post('/api/v1/applications')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ applicantId: ids.applicant1, desiredClassId: ids.class, academicSessionId: ids.session })
+        .send({
+          applicantId: ids.applicant1,
+          desiredClassId: ids.class,
+          academicSessionId: ids.session,
+        })
         .expect(201);
 
       await request(app.getHttpServer())
@@ -230,14 +278,20 @@ describe('Admissions (e2e)', () => {
       await request(app.getHttpServer())
         .post(`/api/v1/applications/${secondApplication.body.id}/approve`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ grNumber: 'ADM-STU-1', sectionId: ids.section, parentProfileId: 'not-a-real-parent-id' })
+        .send({
+          grNumber: 'ADM-STU-1',
+          sectionId: ids.section,
+          parentProfileId: 'not-a-real-parent-id',
+        })
         .expect(400);
 
       const stillUnderReview = await request(app.getHttpServer())
         .get(`/api/v1/applications?academicSessionId=${ids.session}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      const found = stillUnderReview.body.find((a: { id: string }) => a.id === secondApplication.body.id);
+      const found = stillUnderReview.body.find(
+        (a: { id: string }) => a.id === secondApplication.body.id,
+      );
       expect(found.status).toBe('UNDER_REVIEW');
     });
 
@@ -246,12 +300,21 @@ describe('Admissions (e2e)', () => {
       const applicantRes = await request(app.getHttpServer())
         .post('/api/v1/applicants')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ name: 'Reject Me', dateOfBirth: '2020-01-01', guardianName: 'G', guardianPhone: '03009998888' })
+        .send({
+          name: 'Reject Me',
+          dateOfBirth: '2020-01-01',
+          guardianName: 'G',
+          guardianPhone: '03009998888',
+        })
         .expect(201);
       const applicationRes = await request(app.getHttpServer())
         .post('/api/v1/applications')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ applicantId: applicantRes.body.applicant.id, desiredClassId: ids.class, academicSessionId: ids.session })
+        .send({
+          applicantId: applicantRes.body.applicant.id,
+          desiredClassId: ids.class,
+          academicSessionId: ids.session,
+        })
         .expect(201);
 
       await request(app.getHttpServer())
@@ -269,7 +332,11 @@ describe('Admissions (e2e)', () => {
       await request(app.getHttpServer())
         .post(`/api/v1/applications/${applicationRes.body.id}/approve`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ grNumber: 'ADM-STU-2', sectionId: ids.section, parentProfileId: 'irrelevant' })
+        .send({
+          grNumber: 'ADM-STU-2',
+          sectionId: ids.section,
+          parentProfileId: 'irrelevant',
+        })
         .expect(400);
     });
   });

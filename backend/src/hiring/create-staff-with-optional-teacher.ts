@@ -47,7 +47,9 @@ export async function createStaffWithOptionalTeacher(
       campusId: input.campusId,
     });
     teacherId = teacher.id;
-    const teacherRow = await tx.teacher.findUniqueOrThrow({ where: { id: teacher.id } });
+    const teacherRow = await tx.teacher.findUniqueOrThrow({
+      where: { id: teacher.id },
+    });
     userId = teacherRow.userId;
   }
 

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
@@ -76,7 +80,10 @@ export class AssessmentsService {
     return records.map((r) => this.toSummary(r));
   }
 
-  async update(id: string, dto: UpdateAssessmentDto): Promise<AssessmentSummary> {
+  async update(
+    id: string,
+    dto: UpdateAssessmentDto,
+  ): Promise<AssessmentSummary> {
     const existing = await this.prisma.assessment.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Assessment not found');
@@ -103,10 +110,17 @@ export class AssessmentsService {
     }
   }
 
-  async saveMarksBulk(assessmentId: string, dto: BulkMarksDto, enteredById: string) {
+  async saveMarksBulk(
+    assessmentId: string,
+    dto: BulkMarksDto,
+    enteredById: string,
+  ) {
     const assessment = await this.prisma.assessment.findUnique({
       where: { id: assessmentId },
-      select: { maxMarks: true, assessmentCategory: { select: { classId: true } } },
+      select: {
+        maxMarks: true,
+        assessmentCategory: { select: { classId: true } },
+      },
     });
     if (!assessment) {
       throw new NotFoundException('Assessment not found');
@@ -121,13 +135,18 @@ export class AssessmentsService {
     }
 
     const enrolled = await this.prisma.enrollment.findMany({
-      where: { status: 'ACTIVE', section: { classId: assessment.assessmentCategory.classId } },
+      where: {
+        status: 'ACTIVE',
+        section: { classId: assessment.assessmentCategory.classId },
+      },
       select: { studentId: true },
     });
     const enrolledIds = new Set(enrolled.map((e) => e.studentId));
     for (const mark of dto.marks) {
       if (!enrolledIds.has(mark.studentId)) {
-        throw new BadRequestException(`Student ${mark.studentId} is not enrolled in this assessment's class`);
+        throw new BadRequestException(
+          `Student ${mark.studentId} is not enrolled in this assessment's class`,
+        );
       }
     }
 
@@ -135,8 +154,15 @@ export class AssessmentsService {
       const results: Awaited<ReturnType<typeof tx.mark.upsert>>[] = [];
       for (const mark of dto.marks) {
         const record = await tx.mark.upsert({
-          where: { assessmentId_studentId: { assessmentId, studentId: mark.studentId } },
-          create: { assessmentId, studentId: mark.studentId, obtainedMarks: mark.obtainedMarks, enteredById },
+          where: {
+            assessmentId_studentId: { assessmentId, studentId: mark.studentId },
+          },
+          create: {
+            assessmentId,
+            studentId: mark.studentId,
+            obtainedMarks: mark.obtainedMarks,
+            enteredById,
+          },
           update: { obtainedMarks: mark.obtainedMarks, enteredById },
         });
         results.push(record);
@@ -147,7 +173,10 @@ export class AssessmentsService {
           action: 'gradebook.marks-bulk',
           entity: 'Assessment',
           entityId: assessmentId,
-          metadata: JSON.stringify({ count: dto.marks.length, studentIds: dto.marks.map((m) => m.studentId) }),
+          metadata: JSON.stringify({
+            count: dto.marks.length,
+            studentIds: dto.marks.map((m) => m.studentId),
+          }),
         },
       });
       return results;

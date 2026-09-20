@@ -37,5 +37,8 @@ export class CreateCampusDto {
   @IsOptional() @IsString() phone?: string;
   @IsOptional() @IsEmail() email?: string;
 
-  @IsOptional() @ValidateNested() @Type(() => LoginProvisionDto) principal?: LoginProvisionDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LoginProvisionDto)
+  principal?: LoginProvisionDto;
 }

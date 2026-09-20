@@ -1,4 +1,14 @@
-import { Body, Controller, HttpCode, Inject, NotFoundException, Param, Post, UnauthorizedException, Headers } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Inject,
+  NotFoundException,
+  Param,
+  Post,
+  UnauthorizedException,
+  Headers,
+} from '@nestjs/common';
 import { Public } from '../auth/decorators/public.decorator';
 import { FeePaymentsService } from './fee-payments.service';
 import { PAYMENT_GATEWAY_ADAPTER_FACTORY } from './payment-gateway-adapter-factory';
@@ -12,7 +22,8 @@ import type { PaymentWebhookSignerRegistry } from './payment-gateway-adapter-fac
 @Controller('api/v1/payments')
 export class PaymentsWebhookController {
   constructor(
-    @Inject(PAYMENT_GATEWAY_ADAPTER_FACTORY) private readonly signers: PaymentWebhookSignerRegistry,
+    @Inject(PAYMENT_GATEWAY_ADAPTER_FACTORY)
+    private readonly signers: PaymentWebhookSignerRegistry,
     private readonly feePayments: FeePaymentsService,
   ) {}
 
@@ -26,7 +37,9 @@ export class PaymentsWebhookController {
   ) {
     const signer = this.signers.getSigner(gateway);
     if (!signer) {
-      throw new NotFoundException(`Unknown or unconfigured payment gateway "${gateway}"`);
+      throw new NotFoundException(
+        `Unknown or unconfigured payment gateway "${gateway}"`,
+      );
     }
     const result = signer.verifyAndParse(body, headers);
     if (!result.valid || !result.reference || !result.status) {

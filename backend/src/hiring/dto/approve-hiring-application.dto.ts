@@ -1,4 +1,11 @@
-import { IsDateString, IsEmail, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsOptional,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class HiringLoginDto {
@@ -16,5 +23,8 @@ export class ApproveHiringApplicationDto {
   // here, since the rule depends on the application record, not just this DTO's own shape).
   // Ignored for every other employeeType — see this sub-project's scope cut in
   // docs/database/data-model-design.md.
-  @IsOptional() @ValidateNested() @Type(() => HiringLoginDto) login?: HiringLoginDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HiringLoginDto)
+  login?: HiringLoginDto;
 }

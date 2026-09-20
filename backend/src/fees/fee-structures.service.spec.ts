@@ -15,15 +15,25 @@ describe('FeeStructuresService', () => {
       auditLog: { create: jest.fn() },
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [FeeStructuresService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        FeeStructuresService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = moduleRef.get(FeeStructuresService);
   });
 
   it('creates a fee structure and writes an AuditLog row', async () => {
-    prisma.feeStructure.create.mockResolvedValue({ id: 'fs-1', name: 'Tuition Fee', amount: 500000 });
+    prisma.feeStructure.create.mockResolvedValue({
+      id: 'fs-1',
+      name: 'Tuition Fee',
+      amount: 500000,
+    });
 
-    const result = await service.create({ name: 'Tuition Fee', amount: 500000 }, 'admin-1');
+    const result = await service.create(
+      { name: 'Tuition Fee', amount: 500000 },
+      'admin-1',
+    );
 
     expect(prisma.feeStructure.create).toHaveBeenCalledWith({
       data: { name: 'Tuition Fee', amount: 500000 },
@@ -40,11 +50,15 @@ describe('FeeStructuresService', () => {
   });
 
   it('lists fee structures newest first', async () => {
-    prisma.feeStructure.findMany.mockResolvedValue([{ id: 'fs-1', name: 'Tuition Fee', amount: 500000 }]);
+    prisma.feeStructure.findMany.mockResolvedValue([
+      { id: 'fs-1', name: 'Tuition Fee', amount: 500000 },
+    ]);
 
     const result = await service.list();
 
-    expect(prisma.feeStructure.findMany).toHaveBeenCalledWith({ orderBy: { createdAt: 'desc' } });
+    expect(prisma.feeStructure.findMany).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'desc' },
+    });
     expect(result).toHaveLength(1);
   });
 });

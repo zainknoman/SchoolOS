@@ -45,9 +45,13 @@ export class StudentsBulkImportService {
       const hasExisting = !!parentIdentifier;
       const hasNew = !!newParentIdentifier || !!newParentName;
       if (hasExisting === hasNew) {
-        errors.push('Provide exactly one of parentIdentifier or newParentIdentifier+newParentName');
+        errors.push(
+          'Provide exactly one of parentIdentifier or newParentIdentifier+newParentName',
+        );
       } else if (hasNew && (!newParentIdentifier || !newParentName)) {
-        errors.push('newParentIdentifier and newParentName are both required when creating a new parent');
+        errors.push(
+          'newParentIdentifier and newParentName are both required when creating a new parent',
+        );
       }
 
       if (grNumber) {
@@ -58,25 +62,43 @@ export class StudentsBulkImportService {
       }
 
       if (sectionId) {
-        const section = await this.prisma.section.findUnique({ where: { id: sectionId } });
+        const section = await this.prisma.section.findUnique({
+          where: { id: sectionId },
+        });
         if (!section) errors.push(`Section "${sectionId}" not found`);
       }
       if (parentIdentifier) {
-        const parent = await this.prisma.parentProfile.findFirst({ where: { user: { identifier: parentIdentifier } } });
-        if (!parent) errors.push(`Parent with identifier "${parentIdentifier}" not found`);
+        const parent = await this.prisma.parentProfile.findFirst({
+          where: { user: { identifier: parentIdentifier } },
+        });
+        if (!parent)
+          errors.push(`Parent with identifier "${parentIdentifier}" not found`);
       }
       if (grNumber) {
-        const existing = await this.prisma.student.findUnique({ where: { grNumber } });
+        const existing = await this.prisma.student.findUnique({
+          where: { grNumber },
+        });
         if (existing) errors.push(`grNumber "${grNumber}" already exists`);
       }
       if (newParentIdentifier) {
-        const existingUser = await this.prisma.user.findUnique({ where: { identifier: newParentIdentifier } });
-        if (existingUser) errors.push(`Identifier "${newParentIdentifier}" is already in use`);
+        const existingUser = await this.prisma.user.findUnique({
+          where: { identifier: newParentIdentifier },
+        });
+        if (existingUser)
+          errors.push(`Identifier "${newParentIdentifier}" is already in use`);
       }
 
       outcomes.push({
         line,
-        data: { grNumber, name, sectionId, parentIdentifier, newParentIdentifier, newParentName, newParentPhone } as Record<string, string>,
+        data: {
+          grNumber,
+          name,
+          sectionId,
+          parentIdentifier,
+          newParentIdentifier,
+          newParentName,
+          newParentPhone,
+        } as Record<string, string>,
         errors,
       });
     }
@@ -85,21 +107,35 @@ export class StudentsBulkImportService {
 
   async preview(buffer: Buffer): Promise<PreviewResult> {
     const rows = await this.validateRows(buffer);
-    return { rows, validCount: rows.filter((r) => r.errors.length === 0).length, errorCount: rows.filter((r) => r.errors.length > 0).length };
+    return {
+      rows,
+      validCount: rows.filter((r) => r.errors.length === 0).length,
+      errorCount: rows.filter((r) => r.errors.length > 0).length,
+    };
   }
 
-  async commit(buffer: Buffer, actingUserId: string): Promise<{ createdCount: number; studentIds: string[] }> {
+  async commit(
+    buffer: Buffer,
+    actingUserId: string,
+  ): Promise<{ createdCount: number; studentIds: string[] }> {
     const rows = await this.validateRows(buffer);
     const invalid = rows.filter((r) => r.errors.length > 0);
     if (invalid.length > 0) {
-      throw Object.assign(new Error('One or more rows are invalid; nothing was imported.'), { rows: invalid });
+      throw Object.assign(
+        new Error('One or more rows are invalid; nothing was imported.'),
+        { rows: invalid },
+      );
     }
 
     // Enroll every imported student into the currently active academic session — the same rule
     // StudentService.create() uses for a single admin-created student.
-    const activeSession = await this.prisma.academicSession.findFirst({ where: { isActive: true } });
+    const activeSession = await this.prisma.academicSession.findFirst({
+      where: { isActive: true },
+    });
     if (!activeSession) {
-      throw new BadRequestException('No active academic session — cannot enroll students');
+      throw new BadRequestException(
+        'No active academic session — cannot enroll students',
+      );
     }
 
     const studentIds = await this.prisma.$transaction(async (tx) => {
@@ -118,10 +154,19 @@ export class StudentsBulkImportService {
             campusId: section.class.campusId,
             academicSessionId: activeSession.id,
             parentProfileId: data.parentIdentifier
-              ? (await tx.parentProfile.findFirstOrThrow({ where: { user: { identifier: data.parentIdentifier } } })).id
+              ? (
+                  await tx.parentProfile.findFirstOrThrow({
+                    where: { user: { identifier: data.parentIdentifier } },
+                  })
+                ).id
               : undefined,
             newParent: data.newParentIdentifier
-              ? { identifier: data.newParentIdentifier, password: randomBytes(24).toString('base64url'), name: data.newParentName, phone: data.newParentPhone || undefined }
+              ? {
+                  identifier: data.newParentIdentifier,
+                  password: randomBytes(24).toString('base64url'),
+                  name: data.newParentName,
+                  phone: data.newParentPhone || undefined,
+                }
               : undefined,
           },
           actingUserId,

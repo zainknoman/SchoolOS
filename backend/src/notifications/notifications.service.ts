@@ -2,9 +2,14 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PUSH_ADAPTER } from './push-adapter';
 import type { PushAdapter } from './push-adapter';
-import { WHATSAPP_ADAPTER, SMS_ADAPTER, resolveAdapterFor } from './channel-registry';
+import {
+  WHATSAPP_ADAPTER,
+  SMS_ADAPTER,
+  resolveAdapterFor,
+} from './channel-registry';
 
-export type NotificationType = 'diary' | 'circular' | 'message' | 'attendance-risk';
+export type NotificationType =
+  'diary' | 'circular' | 'message' | 'attendance-risk';
 
 export interface NotifyInput {
   userId: string;

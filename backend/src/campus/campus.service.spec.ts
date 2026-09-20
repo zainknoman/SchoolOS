@@ -1,5 +1,9 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { OrgStatus, Prisma } from '@prisma/client';
 import { CampusService } from './campus.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -55,44 +59,82 @@ describe('CampusService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
-      user: { findUnique: jest.fn(), create: jest.fn().mockResolvedValue({ id: 'u1' }) },
+      user: {
+        findUnique: jest.fn(),
+        create: jest.fn().mockResolvedValue({ id: 'u1' }),
+      },
       enrollment: { count: jest.fn().mockResolvedValue(0) },
       staff: { count: jest.fn().mockResolvedValue(0) },
       auditLog: { create: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [CampusService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
+      providers: [
+        CampusService,
+        { provide: PrismaService, useValue: prisma },
+        OrgScopeService,
+      ],
     }).compile();
     service = moduleRef.get(CampusService);
   });
 
   it('rejects a campus principal creating a campus', async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'p1', schoolId: 's1', campusId: 'c1' });
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'p1',
+      schoolId: 's1',
+      campusId: 'c1',
+    });
     await expect(
-      service.create({ schoolId: 's1', name: 'New' }, 'p1', { id: 'p1', role: 'SCHOOL_ADMIN' }),
+      service.create({ schoolId: 's1', name: 'New' }, 'p1', {
+        id: 'p1',
+        role: 'SCHOOL_ADMIN',
+      }),
     ).rejects.toThrow(ForbiddenException);
   });
 
   it('rejects a school admin creating a campus in another school', async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'a1', schoolId: 's1', campusId: null });
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'a1',
+      schoolId: 's1',
+      campusId: null,
+    });
     await expect(
-      service.create({ schoolId: 's2', name: 'New' }, 'a1', { id: 'a1', role: 'SCHOOL_ADMIN' }),
+      service.create({ schoolId: 's2', name: 'New' }, 'a1', {
+        id: 'a1',
+        role: 'SCHOOL_ADMIN',
+      }),
     ).rejects.toThrow(ForbiddenException);
   });
 
   it('rejects a user with no school scope creating a campus', async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'a1', schoolId: null, campusId: null });
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'a1',
+      schoolId: null,
+      campusId: null,
+    });
     await expect(
-      service.create({ schoolId: 's1', name: 'New' }, 'a1', { id: 'a1', role: 'SCHOOL_ADMIN' }),
+      service.create({ schoolId: 's1', name: 'New' }, 'a1', {
+        id: 'a1',
+        role: 'SCHOOL_ADMIN',
+      }),
     ).rejects.toThrow(ForbiddenException);
   });
 
   it('lets a school-wide admin create a campus in their own school', async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'a1', schoolId: 's1', campusId: null });
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'a1',
+      schoolId: 's1',
+      campusId: null,
+    });
     prisma.campus.create.mockResolvedValue({
-      id: 'c9', name: 'New', schoolId: 's1', ...NEW_PROFILE_FIELDS,
-      address: null, phone: null, email: null, school: { name: 'S' },
+      id: 'c9',
+      name: 'New',
+      schoolId: 's1',
+      ...NEW_PROFILE_FIELDS,
+      address: null,
+      phone: null,
+      email: null,
+      school: { name: 'S' },
     });
     const result = await service.create({ schoolId: 's1', name: 'New' }, 'a1', {
       id: 'a1',
@@ -466,21 +508,36 @@ describe('CampusService', () => {
   describe('principal provisioning', () => {
     beforeEach(() => {
       prisma.campus.create.mockResolvedValue({
-        id: 'camp1', name: 'North', schoolId: 's1', ...NEW_PROFILE_FIELDS,
-        address: null, phone: null, email: null, school: { name: 'S' },
+        id: 'camp1',
+        name: 'North',
+        schoolId: 's1',
+        ...NEW_PROFILE_FIELDS,
+        address: null,
+        phone: null,
+        email: null,
+        school: { name: 'S' },
       });
     });
 
     it('creates a campus principal login scoped to the new campus, in the same transaction', async () => {
       const result = await service.create(
-        { schoolId: 's1', name: 'North', principal: { identifier: 'north@alpha.test' } },
+        {
+          schoolId: 's1',
+          name: 'North',
+          principal: { identifier: 'north@alpha.test' },
+        },
         'super-1',
         { id: 'super-1', role: 'SUPER_ADMIN' },
       );
 
       expect(prisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ schoolId: 's1', campusId: 'camp1', isPrincipal: true, role: 'SCHOOL_ADMIN' }),
+          data: expect.objectContaining({
+            schoolId: 's1',
+            campusId: 'camp1',
+            isPrincipal: true,
+            role: 'SCHOOL_ADMIN',
+          }),
         }),
       );
       expect(result.provisionedLogin?.identifier).toBe('north@alpha.test');
@@ -489,30 +546,57 @@ describe('CampusService', () => {
     it('audits user.create with the created user id as entityId (not the campus id) and no password', async () => {
       prisma.user.create.mockResolvedValue({ id: 'user-42' });
       await service.create(
-        { schoolId: 's1', name: 'North', principal: { identifier: 'North@Alpha.test', password: 'Sup3rSecret!' } },
+        {
+          schoolId: 's1',
+          name: 'North',
+          principal: {
+            identifier: 'North@Alpha.test',
+            password: 'Sup3rSecret!',
+          },
+        },
         'super-1',
         { id: 'super-1', role: 'SUPER_ADMIN' },
       );
-      const row = prisma.auditLog.create.mock.calls.map((c) => c[0].data).find((d) => d.action === 'user.create');
-      expect(row).toMatchObject({ entity: 'User', entityId: 'user-42', userId: 'super-1' });
-      expect(JSON.parse(row.metadata)).toEqual({ identifier: 'north@alpha.test', role: 'SCHOOL_ADMIN', campusId: 'camp1' });
+      const row = prisma.auditLog.create.mock.calls
+        .map((c) => c[0].data as { action: string; metadata: string })
+        .find((d) => d.action === 'user.create')!;
+      expect(row).toMatchObject({
+        entity: 'User',
+        entityId: 'user-42',
+        userId: 'super-1',
+      });
+      expect(JSON.parse(row.metadata)).toEqual({
+        identifier: 'north@alpha.test',
+        role: 'SCHOOL_ADMIN',
+        campusId: 'camp1',
+      });
       expect(row.metadata).not.toContain('Sup3rSecret!');
     });
 
     it('does not put the principal block or a password in the campus row or audit metadata', async () => {
       await service.create(
-        { schoolId: 's1', name: 'North', principal: { identifier: 'n@x.test', password: 'Sup3rSecret!' } },
+        {
+          schoolId: 's1',
+          name: 'North',
+          principal: { identifier: 'n@x.test', password: 'Sup3rSecret!' },
+        },
         'super-1',
         { id: 'super-1', role: 'SUPER_ADMIN' },
       );
-      expect(prisma.campus.create.mock.calls[0][0].data).not.toHaveProperty('principal');
+      expect(prisma.campus.create.mock.calls[0][0].data).not.toHaveProperty(
+        'principal',
+      );
       for (const call of prisma.auditLog.create.mock.calls) {
         expect(JSON.stringify(call[0])).not.toContain('Sup3rSecret!');
       }
     });
 
     it('creates no user and no provisionedLogin key when principal is omitted', async () => {
-      const result = await service.create({ schoolId: 's1', name: 'North' }, 'super-1', { id: 'super-1', role: 'SUPER_ADMIN' });
+      const result = await service.create(
+        { schoolId: 's1', name: 'North' },
+        'super-1',
+        { id: 'super-1', role: 'SUPER_ADMIN' },
+      );
       expect(prisma.user.create).not.toHaveBeenCalled();
       expect(result).not.toHaveProperty('provisionedLogin');
     });

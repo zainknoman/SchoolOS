@@ -10,13 +10,19 @@ describe('EnrollmentService', () => {
   beforeEach(async () => {
     prisma = { enrollment: { findFirst: jest.fn() } };
     const moduleRef = await Test.createTestingModule({
-      providers: [EnrollmentService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        EnrollmentService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = moduleRef.get(EnrollmentService);
   });
 
   it("returns the student's active enrollment", async () => {
-    prisma.enrollment.findFirst.mockResolvedValue({ id: 'enr-1', sectionId: 'sec-1' });
+    prisma.enrollment.findFirst.mockResolvedValue({
+      id: 'enr-1',
+      sectionId: 'sec-1',
+    });
 
     const result = await service.getCurrentEnrollment('s1');
 
@@ -29,11 +35,16 @@ describe('EnrollmentService', () => {
   it('throws NotFoundException when the student has no active enrollment', async () => {
     prisma.enrollment.findFirst.mockResolvedValue(null);
 
-    await expect(service.getCurrentEnrollment('s1')).rejects.toThrow(NotFoundException);
+    await expect(service.getCurrentEnrollment('s1')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('resolves the enrollment covering a given date, not the current one', async () => {
-    prisma.enrollment.findFirst.mockResolvedValue({ id: 'enr-old', sectionId: 'sec-old' });
+    prisma.enrollment.findFirst.mockResolvedValue({
+      id: 'enr-old',
+      sectionId: 'sec-old',
+    });
     const date = new Date('2026-08-01T00:00:00.000Z');
 
     const result = await service.getEnrollmentForDate('s1', date);
@@ -59,11 +70,18 @@ describe('EnrollmentService', () => {
   });
 
   it('widens the match to an overlap window when windowEnd is provided, for an enrollment that started after date but before windowEnd', async () => {
-    prisma.enrollment.findFirst.mockResolvedValue({ id: 'enr-mid-month', sectionId: 'sec-new' });
+    prisma.enrollment.findFirst.mockResolvedValue({
+      id: 'enr-mid-month',
+      sectionId: 'sec-new',
+    });
     const monthStart = new Date('2026-08-01T00:00:00.000Z');
     const monthEnd = new Date('2026-09-01T00:00:00.000Z');
 
-    const result = await service.getEnrollmentForDate('s1', monthStart, monthEnd);
+    const result = await service.getEnrollmentForDate(
+      's1',
+      monthStart,
+      monthEnd,
+    );
 
     expect(prisma.enrollment.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({

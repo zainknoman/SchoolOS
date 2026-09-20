@@ -24,7 +24,9 @@ interface CircularWithAttachments {
   priority: string;
   publishedAt: Date;
   expiresAt: Date | null;
-  attachments: { file: { id: string; originalName: string; mimeType: string } }[];
+  attachments: {
+    file: { id: string; originalName: string; mimeType: string };
+  }[];
 }
 
 @Injectable()
@@ -49,13 +51,19 @@ export class CircularsService {
 
     if (dto.fileIds?.length) {
       await this.prisma.circularAttachment.createMany({
-        data: dto.fileIds.map((fileId) => ({ circularId: circular.id, fileId })),
+        data: dto.fileIds.map((fileId) => ({
+          circularId: circular.id,
+          fileId,
+        })),
       });
     }
 
     const recipients =
       dto.scope === 'school'
-        ? await this.prisma.user.findMany({ where: { role: 'PARENT' }, select: { id: true } })
+        ? await this.prisma.user.findMany({
+            where: { role: 'PARENT' },
+            select: { id: true },
+          })
         : await this.prisma.user.findMany({
             where: {
               role: 'PARENT',
@@ -63,7 +71,9 @@ export class CircularsService {
                 children: {
                   some: {
                     student: {
-                      enrollments: { some: { sectionId: dto.sectionId, status: 'ACTIVE' } },
+                      enrollments: {
+                        some: { sectionId: dto.sectionId, status: 'ACTIVE' },
+                      },
                     },
                   },
                 },
@@ -74,7 +84,10 @@ export class CircularsService {
 
     if (recipients.length) {
       await this.prisma.circularRecipient.createMany({
-        data: recipients.map((r) => ({ circularId: circular.id, userId: r.id })),
+        data: recipients.map((r) => ({
+          circularId: circular.id,
+          userId: r.id,
+        })),
       });
     }
 
@@ -111,7 +124,9 @@ export class CircularsService {
     if (user.role === 'PARENT') {
       const rows = await this.prisma.circularRecipient.findMany({
         where: { userId: user.id },
-        include: { circular: { include: { attachments: { include: { file: true } } } } },
+        include: {
+          circular: { include: { attachments: { include: { file: true } } } },
+        },
         orderBy: { circular: { publishedAt: 'desc' } },
       });
       return rows.map((r) => this.toSummary(r.circular, r.readAt));
@@ -135,23 +150,37 @@ export class CircularsService {
     }
 
     await this.prisma.auditLog.create({
-      data: { userId, action: 'circular.read', entity: 'Circular', entityId: circularId },
+      data: {
+        userId,
+        action: 'circular.read',
+        entity: 'Circular',
+        entityId: circularId,
+      },
     });
   }
 
-  async getStats(circularId: string): Promise<{ delivered: number; read: number }> {
-    const circular = await this.prisma.circular.findUnique({ where: { id: circularId } });
+  async getStats(
+    circularId: string,
+  ): Promise<{ delivered: number; read: number }> {
+    const circular = await this.prisma.circular.findUnique({
+      where: { id: circularId },
+    });
     if (!circular) {
       throw new NotFoundException('Circular not found');
     }
-    const delivered = await this.prisma.circularRecipient.count({ where: { circularId } });
+    const delivered = await this.prisma.circularRecipient.count({
+      where: { circularId },
+    });
     const read = await this.prisma.circularRecipient.count({
       where: { circularId, readAt: { not: null } },
     });
     return { delivered, read };
   }
 
-  private toSummary(circular: CircularWithAttachments, readAt: Date | null): CircularSummary {
+  private toSummary(
+    circular: CircularWithAttachments,
+    readAt: Date | null,
+  ): CircularSummary {
     return {
       id: circular.id,
       title: circular.title,

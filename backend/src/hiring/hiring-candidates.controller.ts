@@ -6,7 +6,9 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @Controller('api/v1/hiring/candidates')
 @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
 export class HiringCandidatesController {
-  constructor(private readonly hiringCandidatesService: HiringCandidatesService) {}
+  constructor(
+    private readonly hiringCandidatesService: HiringCandidatesService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateHiringCandidateDto) {

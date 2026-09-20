@@ -8,7 +8,12 @@ import { EnrollmentService } from '../enrollment/enrollment.service';
 describe('LeaveService', () => {
   let service: LeaveService;
   let prisma: {
-    leaveRequest: { create: jest.Mock; findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
+    leaveRequest: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
+    };
     section: { findUnique: jest.Mock };
     attendance: { findMany: jest.Mock; upsert: jest.Mock };
     auditLog: { create: jest.Mock };
@@ -21,7 +26,12 @@ describe('LeaveService', () => {
 
   beforeEach(async () => {
     prisma = {
-      leaveRequest: { create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+      leaveRequest: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
       section: { findUnique: jest.fn() },
       attendance: { findMany: jest.fn(), upsert: jest.fn() },
       auditLog: { create: jest.fn() },
@@ -52,7 +62,10 @@ describe('LeaveService', () => {
     });
 
     it("scopes a SCHOOL_ADMIN's leave-request list to students enrolled in their own school", async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: 'school-1' });
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        schoolId: 'school-1',
+      });
       prisma.leaveRequest.findMany.mockResolvedValue([]);
 
       await service.listAll({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
@@ -60,16 +73,28 @@ describe('LeaveService', () => {
       expect(prisma.leaveRequest.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            student: { enrollments: { some: { section: { class: { campus: { schoolId: 'school-1' } } } } } },
+            student: {
+              enrollments: {
+                some: {
+                  section: { class: { campus: { schoolId: 'school-1' } } },
+                },
+              },
+            },
           },
         }),
       );
     });
 
     it('fails closed (returns an empty list) for a SCHOOL_ADMIN with no schoolId', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        schoolId: null,
+      });
 
-      const result = await service.listAll({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+      const result = await service.listAll({
+        id: 'admin-1',
+        role: 'SCHOOL_ADMIN',
+      });
 
       expect(result).toEqual([]);
       expect(prisma.leaveRequest.findMany).not.toHaveBeenCalled();
@@ -136,7 +161,11 @@ describe('LeaveService', () => {
   });
 
   it('approving writes a LEAVE attendance row per day, skipping any day already marked HOLIDAY, attributed to the class teacher', async () => {
-    prisma.leaveRequest.findUnique.mockResolvedValue({ id: 'lr-1', status: 'pending', studentId: 's1' });
+    prisma.leaveRequest.findUnique.mockResolvedValue({
+      id: 'lr-1',
+      status: 'pending',
+      studentId: 's1',
+    });
     prisma.leaveRequest.update.mockResolvedValue({
       id: 'lr-1',
       studentId: 's1',
@@ -147,8 +176,13 @@ describe('LeaveService', () => {
       createdAt: new Date('2026-09-01'),
       ...studentRow,
     });
-    enrollmentService.getCurrentEnrollment.mockResolvedValue({ sectionId: 'sec-1' });
-    prisma.section.findUnique.mockResolvedValue({ id: 'sec-1', classTeacherId: 'teacher-1' });
+    enrollmentService.getCurrentEnrollment.mockResolvedValue({
+      sectionId: 'sec-1',
+    });
+    prisma.section.findUnique.mockResolvedValue({
+      id: 'sec-1',
+      classTeacherId: 'teacher-1',
+    });
     prisma.attendance.findMany.mockResolvedValue([
       { date: new Date('2026-09-06T00:00:00.000Z'), status: 'HOLIDAY' },
     ]);
@@ -158,26 +192,52 @@ describe('LeaveService', () => {
     expect(prisma.attendance.upsert).toHaveBeenCalledTimes(2);
     expect(prisma.attendance.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { studentId_date: { studentId: 's1', date: new Date('2026-09-05T00:00:00.000Z') } },
-        create: expect.objectContaining({ status: 'LEAVE', markedById: 'teacher-1' }),
+        where: {
+          studentId_date: {
+            studentId: 's1',
+            date: new Date('2026-09-05T00:00:00.000Z'),
+          },
+        },
+        create: expect.objectContaining({
+          status: 'LEAVE',
+          markedById: 'teacher-1',
+        }),
       }),
     );
     expect(prisma.attendance.upsert).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { studentId_date: { studentId: 's1', date: new Date('2026-09-06T00:00:00.000Z') } },
+        where: {
+          studentId_date: {
+            studentId: 's1',
+            date: new Date('2026-09-06T00:00:00.000Z'),
+          },
+        },
       }),
     );
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ action: 'leave-request.approve' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'leave-request.approve' }),
+      }),
     );
   });
 
-  it('refuses to approve when the student\'s section has no class teacher assigned, and never touches the LeaveRequest row', async () => {
-    prisma.leaveRequest.findUnique.mockResolvedValue({ id: 'lr-1', status: 'pending', studentId: 's1' });
-    enrollmentService.getCurrentEnrollment.mockResolvedValue({ sectionId: 'sec-1' });
-    prisma.section.findUnique.mockResolvedValue({ id: 'sec-1', classTeacherId: null });
+  it("refuses to approve when the student's section has no class teacher assigned, and never touches the LeaveRequest row", async () => {
+    prisma.leaveRequest.findUnique.mockResolvedValue({
+      id: 'lr-1',
+      status: 'pending',
+      studentId: 's1',
+    });
+    enrollmentService.getCurrentEnrollment.mockResolvedValue({
+      sectionId: 'sec-1',
+    });
+    prisma.section.findUnique.mockResolvedValue({
+      id: 'sec-1',
+      classTeacherId: null,
+    });
 
-    await expect(service.approve('lr-1', 'admin-1')).rejects.toThrow(BadRequestException);
+    await expect(service.approve('lr-1', 'admin-1')).rejects.toThrow(
+      BadRequestException,
+    );
 
     // The class-teacher precondition is resolved BEFORE the write — a $transaction (and therefore
     // the status update inside it) must never even be opened, so the LeaveRequest stays 'pending'
@@ -190,12 +250,18 @@ describe('LeaveService', () => {
   });
 
   it('refuses to approve when the student has no active enrollment, and never touches the LeaveRequest row', async () => {
-    prisma.leaveRequest.findUnique.mockResolvedValue({ id: 'lr-1', status: 'pending', studentId: 's1' });
+    prisma.leaveRequest.findUnique.mockResolvedValue({
+      id: 'lr-1',
+      status: 'pending',
+      studentId: 's1',
+    });
     enrollmentService.getCurrentEnrollment.mockRejectedValue(
       new NotFoundException('Student has no active enrollment'),
     );
 
-    await expect(service.approve('lr-1', 'admin-1')).rejects.toThrow(NotFoundException);
+    await expect(service.approve('lr-1', 'admin-1')).rejects.toThrow(
+      NotFoundException,
+    );
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(prisma.leaveRequest.update).not.toHaveBeenCalled();
@@ -204,15 +270,22 @@ describe('LeaveService', () => {
   });
 
   it('refuses to decide a request that is not pending', async () => {
-    prisma.leaveRequest.findUnique.mockResolvedValue({ id: 'lr-1', status: 'approved' });
+    prisma.leaveRequest.findUnique.mockResolvedValue({
+      id: 'lr-1',
+      status: 'approved',
+    });
 
-    await expect(service.reject('lr-1', 'admin-1')).rejects.toThrow(BadRequestException);
+    await expect(service.reject('lr-1', 'admin-1')).rejects.toThrow(
+      BadRequestException,
+    );
     expect(prisma.leaveRequest.update).not.toHaveBeenCalled();
   });
 
   it('throws NotFoundException when deciding a request that does not exist', async () => {
     prisma.leaveRequest.findUnique.mockResolvedValue(null);
 
-    await expect(service.approve('missing', 'admin-1')).rejects.toThrow(NotFoundException);
+    await expect(service.approve('missing', 'admin-1')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

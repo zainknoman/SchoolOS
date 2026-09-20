@@ -11,7 +11,9 @@ export class SubjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listAll(): Promise<SubjectSummary[]> {
-    const subjects = await this.prisma.subject.findMany({ orderBy: { name: 'asc' } });
+    const subjects = await this.prisma.subject.findMany({
+      orderBy: { name: 'asc' },
+    });
     return subjects.map((s) => ({ id: s.id, name: s.name }));
   }
 }

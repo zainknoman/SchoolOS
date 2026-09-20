@@ -29,7 +29,11 @@ describe('SectionsService', () => {
     name: '3A',
     classId: 'cl1',
     classTeacherId: 't1',
-    class: { name: 'Grade 3', academicSessionId: 'sess1', campus: { name: 'Gulistan-e-Jauhar' } },
+    class: {
+      name: 'Grade 3',
+      academicSessionId: 'sess1',
+      campus: { name: 'Gulistan-e-Jauhar' },
+    },
     classTeacher: { name: 'Ms. Ayesha' },
   };
   const expectedSummary = {
@@ -73,7 +77,10 @@ describe('SectionsService', () => {
   it('lists every section for a SUPER_ADMIN including their class teacher', async () => {
     prisma.section.findMany.mockResolvedValue([fullRecord]);
 
-    const result = await service.listAll({ id: 'super-1', role: 'SUPER_ADMIN' });
+    const result = await service.listAll({
+      id: 'super-1',
+      role: 'SUPER_ADMIN',
+    });
 
     expect(result).toEqual([expectedSummary]);
     expect(prisma.section.findMany).toHaveBeenCalledWith(
@@ -86,7 +93,10 @@ describe('SectionsService', () => {
       { ...fullRecord, classTeacherId: null, classTeacher: null },
     ]);
 
-    const [result] = await service.listAll({ id: 'super-1', role: 'SUPER_ADMIN' });
+    const [result] = await service.listAll({
+      id: 'super-1',
+      role: 'SUPER_ADMIN',
+    });
     expect(result.classTeacherId).toBeNull();
     expect(result.classTeacherName).toBeNull();
   });
@@ -99,25 +109,36 @@ describe('SectionsService', () => {
 
     expect(result).toEqual([expectedSummary]);
     expect(prisma.section.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { class: { campus: { schoolId: 's1' } } } }),
+      expect.objectContaining({
+        where: { class: { campus: { schoolId: 's1' } } },
+      }),
     );
   });
 
   it('scopes a campus principal to their own campus sections', async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'p1', schoolId: 's1', campusId: 'c1' });
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'p1',
+      schoolId: 's1',
+      campusId: 'c1',
+    });
     prisma.section.findMany.mockResolvedValue([]);
 
     await service.listAll({ id: 'p1', role: 'SCHOOL_ADMIN' });
 
     expect(prisma.section.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { class: { campus: { id: 'c1', schoolId: 's1' } } } }),
+      expect.objectContaining({
+        where: { class: { campus: { id: 'c1', schoolId: 's1' } } },
+      }),
     );
   });
 
   it('fails closed (returns an empty list) for a non-SUPER_ADMIN caller with no schoolId', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
 
-    const result = await service.listAll({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+    const result = await service.listAll({
+      id: 'admin-1',
+      role: 'SCHOOL_ADMIN',
+    });
 
     expect(result).toEqual([]);
     expect(prisma.section.findMany).not.toHaveBeenCalled();
@@ -125,13 +146,17 @@ describe('SectionsService', () => {
 
   it("scopes a TEACHER's section list to sections they're assigned to teach", async () => {
     prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-row-1' });
-    studentAccess.getTeacherSectionIds.mockResolvedValue(new Set(['sec1', 'sec9']));
+    studentAccess.getTeacherSectionIds.mockResolvedValue(
+      new Set(['sec1', 'sec9']),
+    );
     prisma.section.findMany.mockResolvedValue([fullRecord]);
 
     const result = await service.listAll({ id: 'teacher-1', role: 'TEACHER' });
 
     expect(result).toEqual([expectedSummary]);
-    expect(studentAccess.getTeacherSectionIds).toHaveBeenCalledWith('teacher-row-1');
+    expect(studentAccess.getTeacherSectionIds).toHaveBeenCalledWith(
+      'teacher-row-1',
+    );
     expect(prisma.section.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: { in: ['sec1', 'sec9'] } } }),
     );
@@ -297,13 +322,19 @@ describe('SectionsService', () => {
     prisma.teacher.findUnique.mockResolvedValue({ campusId: 'other-campus' });
 
     await expect(
-      service.create({ classId: 'cl1', name: '3A', classTeacherId: 't-other' }, 'admin-1'),
+      service.create(
+        { classId: 'cl1', name: '3A', classTeacherId: 't-other' },
+        'admin-1',
+      ),
     ).rejects.toThrow(BadRequestException);
     expect(prisma.section.create).not.toHaveBeenCalled();
   });
 
   it('rejects updating a section to a class teacher from another campus', async () => {
-    prisma.section.findUnique.mockResolvedValue({ id: 'sec1', class: { campusId: 'c1' } });
+    prisma.section.findUnique.mockResolvedValue({
+      id: 'sec1',
+      class: { campusId: 'c1' },
+    });
     prisma.teacher.findUnique.mockResolvedValue({ campusId: 'other-campus' });
 
     await expect(
@@ -313,10 +344,21 @@ describe('SectionsService', () => {
   });
 
   it('allows clearing the class teacher (null) without a campus check', async () => {
-    prisma.section.findUnique.mockResolvedValue({ id: 'sec1', class: { campusId: 'c1' } });
-    prisma.section.update.mockResolvedValue({ ...fullRecord, classTeacherId: null, classTeacher: null });
+    prisma.section.findUnique.mockResolvedValue({
+      id: 'sec1',
+      class: { campusId: 'c1' },
+    });
+    prisma.section.update.mockResolvedValue({
+      ...fullRecord,
+      classTeacherId: null,
+      classTeacher: null,
+    });
 
-    await service.update('sec1', { classTeacherId: null as unknown as undefined }, 'admin-1');
+    await service.update(
+      'sec1',
+      { classTeacherId: null as unknown as undefined },
+      'admin-1',
+    );
 
     expect(prisma.teacher.findUnique).not.toHaveBeenCalled();
   });

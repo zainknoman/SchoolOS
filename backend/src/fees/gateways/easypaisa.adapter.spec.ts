@@ -11,7 +11,10 @@ const config = {
 describe('EasyPaisaAdapter', () => {
   it('initiate() returns a signed redirect URL carrying the reference as orderRefNum', async () => {
     const adapter = new EasyPaisaAdapter(config);
-    const result = await adapter.initiate({ amount: 500000, reference: 'pay_abc123' });
+    const result = await adapter.initiate({
+      amount: 500000,
+      reference: 'pay_abc123',
+    });
 
     expect(result.gatewayReference).toBe('pay_abc123');
     const url = new URL(result.redirectUrl);
@@ -42,11 +45,13 @@ describe('EasyPaisaWebhookSigner', () => {
     const body = { orderRefNum: 'pay_1', status: 'SUCCESS' };
     const merchantHashedReq = signer.sign(body);
     const verifier = new EasyPaisaWebhookSigner(config.hashKey);
-    expect(verifier.verifyAndParse({ ...body, merchantHashedReq }, {})).toEqual({
-      valid: true,
-      reference: 'pay_1',
-      status: 'completed',
-    });
+    expect(verifier.verifyAndParse({ ...body, merchantHashedReq }, {})).toEqual(
+      {
+        valid: true,
+        reference: 'pay_1',
+        status: 'completed',
+      },
+    );
   });
 
   it('maps any non-SUCCESS status to failed', () => {
@@ -54,6 +59,8 @@ describe('EasyPaisaWebhookSigner', () => {
     const body = { orderRefNum: 'pay_1', status: 'FAILED' };
     const merchantHashedReq = signer.sign(body);
     const verifier = new EasyPaisaWebhookSigner(config.hashKey);
-    expect(verifier.verifyAndParse({ ...body, merchantHashedReq }, {}).status).toBe('failed');
+    expect(
+      verifier.verifyAndParse({ ...body, merchantHashedReq }, {}).status,
+    ).toBe('failed');
   });
 });

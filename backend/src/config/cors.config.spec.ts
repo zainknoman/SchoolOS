@@ -10,19 +10,23 @@ describe('parseCorsOrigins', () => {
   });
 
   it('splits a comma-separated list and trims whitespace', () => {
-    expect(parseCorsOrigins('https://staff.example.com, https://staff2.example.com')).toEqual([
-      'https://staff.example.com',
-      'https://staff2.example.com',
-    ]);
+    expect(
+      parseCorsOrigins('https://staff.example.com, https://staff2.example.com'),
+    ).toEqual(['https://staff.example.com', 'https://staff2.example.com']);
   });
 
   it('drops empty entries from a trailing comma', () => {
-    expect(parseCorsOrigins('https://staff.example.com,')).toEqual(['https://staff.example.com']);
+    expect(parseCorsOrigins('https://staff.example.com,')).toEqual([
+      'https://staff.example.com',
+    ]);
   });
 });
 
 describe('buildCorsOriginOption', () => {
-  function allow(option: ReturnType<typeof buildCorsOriginOption>, origin: string | undefined) {
+  function allow(
+    option: ReturnType<typeof buildCorsOriginOption>,
+    origin: string | undefined,
+  ) {
     if (Array.isArray(option)) {
       return origin !== undefined && option.includes(origin);
     }
@@ -67,7 +71,10 @@ describe('buildCorsOriginOption', () => {
   });
 
   it('still honors an explicit CORS_ORIGINS entry in development', () => {
-    const option = buildCorsOriginOption('https://staff.example.com', 'development');
+    const option = buildCorsOriginOption(
+      'https://staff.example.com',
+      'development',
+    );
 
     expect(allow(option, 'https://staff.example.com')).toBe(true);
     expect(allow(option, 'http://localhost:5173')).toBe(true);

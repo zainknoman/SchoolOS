@@ -18,7 +18,9 @@ function isDevOrTest(config: ConfigService): boolean {
  * (LoggingMailAdapter used); a partial config outside dev/test is a startup error; a partial
  * config inside dev/test is treated the same as unset.
  */
-export function resolveSmtpConfig(config: ConfigService): SmtpConfig | undefined {
+export function resolveSmtpConfig(
+  config: ConfigService,
+): SmtpConfig | undefined {
   const host = config.get<string>('SMTP_HOST');
   const portRaw = config.get<string>('SMTP_PORT');
   const user = config.get<string>('SMTP_USER');

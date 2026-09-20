@@ -8,6 +8,7 @@ import { PushAdapter, PushPayload } from './push-adapter';
  */
 @Injectable()
 export class LoggingPushAdapter implements PushAdapter {
+  // eslint-disable-next-line @typescript-eslint/require-await -- the adapter interface is Promise-based
   async send(userId: string, payload: PushPayload): Promise<void> {
     console.log(`[push:noop] would notify user ${userId}:`, payload.title);
   }

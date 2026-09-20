@@ -30,16 +30,27 @@ describe('MeService — child detail / parent edit', () => {
     currentAddress: null,
     medicalInfo: null,
     emergencyContacts: [],
-    parents: [{ relationship: 'mother', parentProfile: { name: 'Sana', phone: '0300' } }],
+    parents: [
+      {
+        relationship: 'mother',
+        parentProfile: { name: 'Sana', phone: '0300' },
+      },
+    ],
     enrollments: [
-      { rollNumber: '4', campus: { name: 'Main' }, section: { name: '3A', class: { name: 'Grade 3' } } },
+      {
+        rollNumber: '4',
+        campus: { name: 'Main' },
+        section: { name: '3A', class: { name: 'Grade 3' } },
+      },
     ],
   };
 
   beforeEach(async () => {
     tx = {
       student: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue({ currentAddressId: null }),
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ currentAddressId: null }),
         update: jest.fn(),
       },
       studentMedicalInfo: { upsert: jest.fn() },
@@ -59,10 +70,12 @@ describe('MeService — child detail / parent edit', () => {
 
   it('rejects a child that is not linked to the parent', async () => {
     prisma.studentParent.findFirst.mockResolvedValue(null);
-    await expect(service.getChildDetail('u1', 's9')).rejects.toBeInstanceOf(NotFoundException);
-    await expect(service.updateChild('u1', 's9', { studentMobile: '1' })).rejects.toBeInstanceOf(
+    await expect(service.getChildDetail('u1', 's9')).rejects.toBeInstanceOf(
       NotFoundException,
     );
+    await expect(
+      service.updateChild('u1', 's9', { studentMobile: '1' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -86,7 +99,10 @@ describe('MeService — child detail / parent edit', () => {
   });
 
   it('writes only the supplied contact fields and never touches identity fields', async () => {
-    await service.updateChild('u1', 's1', { studentMobile: '0311', studentEmail: 'e@x.pk' });
+    await service.updateChild('u1', 's1', {
+      studentMobile: '0311',
+      studentEmail: 'e@x.pk',
+    });
     expect(tx.student.update).toHaveBeenCalledWith({
       where: { id: 's1' },
       data: { studentMobile: '0311', studentEmail: 'e@x.pk' },
@@ -97,10 +113,14 @@ describe('MeService — child detail / parent edit', () => {
   });
 
   it('creates the current address when none exists yet', async () => {
-    await service.updateChild('u1', 's1', { currentAddress: { line1: '12 Rose St', city: 'Karachi' } });
+    await service.updateChild('u1', 's1', {
+      currentAddress: { line1: '12 Rose St', city: 'Karachi' },
+    });
     expect(tx.student.update).toHaveBeenCalledWith({
       where: { id: 's1' },
-      data: { currentAddress: { create: { line1: '12 Rose St', city: 'Karachi' } } },
+      data: {
+        currentAddress: { create: { line1: '12 Rose St', city: 'Karachi' } },
+      },
     });
   });
 
@@ -113,11 +133,21 @@ describe('MeService — child detail / parent edit', () => {
       ],
     });
     expect(tx.studentMedicalInfo.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { studentId: 's1' }, update: { allergies: 'Peanuts' } }),
+      expect.objectContaining({
+        where: { studentId: 's1' },
+        update: { allergies: 'Peanuts' },
+      }),
     );
-    expect(tx.studentEmergencyContact.deleteMany).toHaveBeenCalledWith({ where: { studentId: 's1' } });
+    expect(tx.studentEmergencyContact.deleteMany).toHaveBeenCalledWith({
+      where: { studentId: 's1' },
+    });
     const rows = tx.studentEmergencyContact.createMany.mock.calls[0][0].data;
-    expect(rows.map((r: { priority: number; isPrimary: boolean }) => [r.priority, r.isPrimary])).toEqual([
+    expect(
+      rows.map((r: { priority: number; isPrimary: boolean }) => [
+        r.priority,
+        r.isPrimary,
+      ]),
+    ).toEqual([
       [1, true],
       [2, false],
     ]);

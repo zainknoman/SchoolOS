@@ -1,4 +1,12 @@
-import { ArrayMinSize, IsArray, IsDateString, IsIn, IsString, MinLength, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsDateString,
+  IsIn,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ATTENDANCE_STATUSES } from './mark-attendance.dto';
 

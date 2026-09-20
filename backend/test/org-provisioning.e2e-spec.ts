@@ -65,7 +65,10 @@ describe('Org provisioning and campus scoping (e2e)', () => {
   // Scans every audit row written by any prov- actor since the test started (broadest window),
   // plus rows keyed to the given entity ids, for any known password string. Also proves the
   // `entity: 'User'` rows exist and record the identifier, so the scan provably covers them.
-  async function expectNoPasswordInAudit(userIdentifiers: string[], extraEntityIds: string[] = []) {
+  async function expectNoPasswordInAudit(
+    userIdentifiers: string[],
+    extraEntityIds: string[] = [],
+  ) {
     const actors = await prisma.user.findMany({
       where: { identifier: { startsWith: ID_PREFIX } },
       select: { id: true },
@@ -73,7 +76,10 @@ describe('Org provisioning and campus scoping (e2e)', () => {
     const rows = await prisma.auditLog.findMany({
       where: {
         OR: [
-          { userId: { in: actors.map((a) => a.id) }, createdAt: { gte: startedAt } },
+          {
+            userId: { in: actors.map((a) => a.id) },
+            createdAt: { gte: startedAt },
+          },
           { entityId: { in: extraEntityIds } },
         ],
       },
@@ -88,7 +94,9 @@ describe('Org provisioning and campus scoping (e2e)', () => {
     }
     const userRows = rows.filter((r) => r.entity === 'User');
     for (const identifier of userIdentifiers) {
-      expect(userRows.some((r) => (r.metadata ?? '').includes(identifier))).toBe(true);
+      expect(
+        userRows.some((r) => (r.metadata ?? '').includes(identifier)),
+      ).toBe(true);
     }
   }
 
@@ -152,18 +160,26 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       select: { id: true },
     });
     const studentIds = fixtureStudents.map((x) => x.id);
-    await prisma.leaveRequest.deleteMany({ where: { studentId: { in: studentIds } } });
-    await prisma.enrollment.deleteMany({ where: { campusId: { in: campusIds } } });
+    await prisma.leaveRequest.deleteMany({
+      where: { studentId: { in: studentIds } },
+    });
+    await prisma.enrollment.deleteMany({
+      where: { campusId: { in: campusIds } },
+    });
     await prisma.student.deleteMany({ where: { id: { in: studentIds } } });
     await prisma.staff.deleteMany({ where: { campusId: { in: campusIds } } });
 
     await prisma.section.deleteMany({ where: { classId: { in: classIds } } });
     await prisma.class.deleteMany({ where: { id: { in: classIds } } });
     await prisma.teacher.deleteMany({ where: { campusId: { in: campusIds } } });
-    await prisma.user.deleteMany({ where: { identifier: { startsWith: ID_PREFIX } } });
+    await prisma.user.deleteMany({
+      where: { identifier: { startsWith: ID_PREFIX } },
+    });
     await prisma.campus.deleteMany({ where: { id: { in: campusIds } } });
     await prisma.school.deleteMany({ where: { id: { in: schoolIds } } });
-    await prisma.academicSession.deleteMany({ where: { label: SCHOOL_PREFIX } });
+    await prisma.academicSession.deleteMany({
+      where: { label: SCHOOL_PREFIX },
+    });
   }
 
   beforeAll(async () => {
@@ -172,7 +188,9 @@ describe('Org provisioning and campus scoping (e2e)', () => {
     }).compile();
     app = moduleFixture.createNestApplication();
     // Same global pipe as src/main.ts: nested admin/principal DTO validation depends on it.
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     prisma = moduleFixture.get(PrismaService);
     await app.init();
 
@@ -186,10 +204,17 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       },
     });
     const session = await prisma.academicSession.create({
-      data: { label: SCHOOL_PREFIX, startDate: new Date(), endDate: new Date(), isActive: false },
+      data: {
+        label: SCHOOL_PREFIX,
+        startDate: new Date(),
+        endDate: new Date(),
+        isActive: false,
+      },
     });
     s.sessionId = session.id;
-    const other = await prisma.school.create({ data: { name: OTHER_SCHOOL_NAME } });
+    const other = await prisma.school.create({
+      data: { name: OTHER_SCHOOL_NAME },
+    });
     s.otherSchoolId = other.id;
     s.superToken = (await loginOk(SUPER_ID, SUPER_PASSWORD)).accessToken;
   });
@@ -232,7 +257,10 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       const res = await http()
         .post('/api/v1/auth/change-password')
         .set(auth(s.adminToken))
-        .send({ currentPassword: s.tempPassword, newPassword: ADMIN_NEW_PASSWORD })
+        .send({
+          currentPassword: s.tempPassword,
+          newPassword: ADMIN_NEW_PASSWORD,
+        })
         .expect(201);
       expect(res.body.mustChangePassword).toBe(false);
       expect(res.body.isPrincipal).toBe(true);
@@ -258,7 +286,9 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .set(auth(s.superToken))
         .send({ name: DUP_SCHOOL_NAME, admin: { identifier: ADMIN_ID } })
         .expect(400);
-      expect(await prisma.school.count({ where: { name: DUP_SCHOOL_NAME } })).toBe(0);
+      expect(
+        await prisma.school.count({ where: { name: DUP_SCHOOL_NAME } }),
+      ).toBe(0);
     });
   });
 
@@ -267,9 +297,18 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       const res = await http()
         .post('/api/v1/schools')
         .set(auth(s.superToken))
-        .send({ name: SUPPLIED_SCHOOL_NAME, admin: { identifier: 'prov-admin2@x.test', password: SUPPLIED_ADMIN_PASSWORD } })
+        .send({
+          name: SUPPLIED_SCHOOL_NAME,
+          admin: {
+            identifier: 'prov-admin2@x.test',
+            password: SUPPLIED_ADMIN_PASSWORD,
+          },
+        })
         .expect(201);
-      expect(res.body.provisionedLogin).toEqual({ identifier: 'prov-admin2@x.test', temporaryPassword: null });
+      expect(res.body.provisionedLogin).toEqual({
+        identifier: 'prov-admin2@x.test',
+        temporaryPassword: null,
+      });
       secrets.push(SUPPLIED_ADMIN_PASSWORD);
       await expectNoPasswordInAudit(['prov-admin2@x.test'], [res.body.id]);
       const body = await loginOk('prov-admin2@x.test', SUPPLIED_ADMIN_PASSWORD);
@@ -279,7 +318,10 @@ describe('Org provisioning and campus scoping (e2e)', () => {
 
   describe('Campus provisioning by the school admin', () => {
     it('the admin of a school with zero campuses creates its first campus with a supplied principal password (temporaryPassword null)', async () => {
-      const before = await http().get('/api/v1/campuses').set(auth(s.adminToken)).expect(200);
+      const before = await http()
+        .get('/api/v1/campuses')
+        .set(auth(s.adminToken))
+        .expect(200);
       expect(before.body).toEqual([]);
 
       const res = await http()
@@ -292,7 +334,10 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         })
         .expect(201);
       s.northId = res.body.id;
-      expect(res.body.provisionedLogin).toEqual({ identifier: NORTH_ID, temporaryPassword: null });
+      expect(res.body.provisionedLogin).toEqual({
+        identifier: NORTH_ID,
+        temporaryPassword: null,
+      });
     });
 
     it('creates a second campus, and a third whose generated temporary password is returned once and kept out of the audit log', async () => {
@@ -329,7 +374,10 @@ describe('Org provisioning and campus scoping (e2e)', () => {
 
     it('does not write a supplied principal password into the audit log', async () => {
       secrets.push(NORTH_PASSWORD, SOUTH_PASSWORD, ADMIN_NEW_PASSWORD);
-      await expectNoPasswordInAudit([NORTH_ID, SOUTH_ID], [s.northId, s.southId]);
+      await expectNoPasswordInAudit(
+        [NORTH_ID, SOUTH_ID],
+        [s.northId, s.southId],
+      );
     });
 
     it('rejects a duplicate principal identifier with 400 and leaves no Campus row behind', async () => {
@@ -342,7 +390,9 @@ describe('Org provisioning and campus scoping (e2e)', () => {
           principal: { identifier: NORTH_ID, password: 'Whatever123!' },
         })
         .expect(400);
-      expect(await prisma.campus.count({ where: { name: DUP_CAMPUS_NAME } })).toBe(0);
+      expect(
+        await prisma.campus.count({ where: { name: DUP_CAMPUS_NAME } }),
+      ).toBe(0);
     });
 
     it('forbids the school admin from creating a campus for a different school', async () => {
@@ -351,7 +401,9 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .set(auth(s.adminToken))
         .send({ schoolId: s.otherSchoolId, name: 'Intruder' })
         .expect(403);
-      expect(await prisma.campus.count({ where: { schoolId: s.otherSchoolId } })).toBe(0);
+      expect(
+        await prisma.campus.count({ where: { schoolId: s.otherSchoolId } }),
+      ).toBe(0);
     });
 
     it('forbids the school-wide admin from patching or deleting a campus, and from creating an academic session', async () => {
@@ -367,11 +419,19 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       await http()
         .post('/api/v1/academic-sessions')
         .set(auth(s.adminToken))
-        .send({ label: SCHOOL_PREFIX, startDate: '2030-01-01', endDate: '2030-12-31' })
+        .send({
+          label: SCHOOL_PREFIX,
+          startDate: '2030-01-01',
+          endDate: '2030-12-31',
+        })
         .expect(403);
       // Only the fixture session exists: the 403 created nothing.
-      expect(await prisma.academicSession.count({ where: { label: SCHOOL_PREFIX } })).toBe(1);
-      expect(await prisma.campus.findUnique({ where: { id: s.northId } })).toMatchObject({ name: 'North' });
+      expect(
+        await prisma.academicSession.count({ where: { label: SCHOOL_PREFIX } }),
+      ).toBe(1);
+      expect(
+        await prisma.campus.findUnique({ where: { id: s.northId } }),
+      ).toMatchObject({ name: 'North' });
     });
 
     it('provisioned campus principals log in with mustChangePassword, isPrincipal, schoolId and their campusId', async () => {
@@ -388,7 +448,10 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       const changed = await http()
         .post('/api/v1/auth/change-password')
         .set(auth(north.accessToken))
-        .send({ currentPassword: NORTH_PASSWORD, newPassword: 'NorthNewPass123!' })
+        .send({
+          currentPassword: NORTH_PASSWORD,
+          newPassword: 'NorthNewPass123!',
+        })
         .expect(201);
       expect(changed.body).toMatchObject({
         mustChangePassword: false,
@@ -406,7 +469,11 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       const cls = await http()
         .post('/api/v1/classes')
         .set(auth(s.adminToken))
-        .send({ campusId: s.southId, academicSessionId: s.sessionId, name: 'PROV South Grade' })
+        .send({
+          campusId: s.southId,
+          academicSessionId: s.sessionId,
+          name: 'PROV South Grade',
+        })
         .expect(201);
       s.southClassId = cls.body.id;
       const sec = await http()
@@ -417,8 +484,11 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       s.southSectionId = sec.body.id;
     });
 
-    it('lists exactly the principal\'s own campus', async () => {
-      const res = await http().get('/api/v1/campuses').set(auth(s.northToken)).expect(200);
+    it("lists exactly the principal's own campus", async () => {
+      const res = await http()
+        .get('/api/v1/campuses')
+        .set(auth(s.northToken))
+        .expect(200);
       expect(res.body.map((c: { id: string }) => c.id)).toEqual([s.northId]);
       expect(res.body[0].name).toBe('North');
     });
@@ -429,22 +499,38 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .set(auth(s.northToken))
         .send({ schoolId: s.schoolId, name: 'Rogue' })
         .expect(403);
-      expect(await prisma.campus.count({ where: { name: 'Rogue', schoolId: s.schoolId } })).toBe(0);
+      expect(
+        await prisma.campus.count({
+          where: { name: 'Rogue', schoolId: s.schoolId },
+        }),
+      ).toBe(0);
     });
 
     it('forbids creating a class in another campus, and allows creating one in the own campus', async () => {
-      const classesBefore = await prisma.class.count({ where: { campusId: s.southId } });
+      const classesBefore = await prisma.class.count({
+        where: { campusId: s.southId },
+      });
       await http()
         .post('/api/v1/classes')
         .set(auth(s.northToken))
-        .send({ campusId: s.southId, academicSessionId: s.sessionId, name: 'Sneaky' })
+        .send({
+          campusId: s.southId,
+          academicSessionId: s.sessionId,
+          name: 'Sneaky',
+        })
         .expect(403);
-      expect(await prisma.class.count({ where: { campusId: s.southId } })).toBe(classesBefore);
+      expect(await prisma.class.count({ where: { campusId: s.southId } })).toBe(
+        classesBefore,
+      );
 
       const ok = await http()
         .post('/api/v1/classes')
         .set(auth(s.northToken))
-        .send({ campusId: s.northId, academicSessionId: s.sessionId, name: 'PROV North Grade' })
+        .send({
+          campusId: s.northId,
+          academicSessionId: s.sessionId,
+          name: 'PROV North Grade',
+        })
         .expect(201);
       s.northClassId = ok.body.id;
     });
@@ -458,16 +544,18 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       s.northSectionId = res.body.id;
     });
 
-    it('forbids creating a section under another campus\'s class', async () => {
+    it("forbids creating a section under another campus's class", async () => {
       await http()
         .post('/api/v1/sections')
         .set(auth(s.northToken))
         .send({ classId: s.southClassId, name: 'Sneaky' })
         .expect(403);
-      expect(await prisma.section.count({ where: { classId: s.southClassId } })).toBe(1);
+      expect(
+        await prisma.section.count({ where: { classId: s.southClassId } }),
+      ).toBe(1);
     });
 
-    it('forbids updating and deleting another campus\'s class', async () => {
+    it("forbids updating and deleting another campus's class", async () => {
       await http()
         .patch(`/api/v1/classes/${s.southClassId}`)
         .set(auth(s.northToken))
@@ -477,12 +565,14 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .delete(`/api/v1/classes/${s.southClassId}`)
         .set(auth(s.northToken))
         .expect(403);
-      expect(await prisma.class.findUnique({ where: { id: s.southClassId } })).toMatchObject({
+      expect(
+        await prisma.class.findUnique({ where: { id: s.southClassId } }),
+      ).toMatchObject({
         name: 'PROV South Grade',
       });
     });
 
-    it('forbids updating and deleting another campus\'s section', async () => {
+    it("forbids updating and deleting another campus's section", async () => {
       await http()
         .patch(`/api/v1/sections/${s.southSectionId}`)
         .set(auth(s.northToken))
@@ -492,17 +582,29 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .delete(`/api/v1/sections/${s.southSectionId}`)
         .set(auth(s.northToken))
         .expect(403);
-      expect(await prisma.section.findUnique({ where: { id: s.southSectionId } })).toMatchObject({
+      expect(
+        await prisma.section.findUnique({ where: { id: s.southSectionId } }),
+      ).toMatchObject({
         name: 'S-A',
       });
     });
 
     it('returns only own-campus classes and sections when listing', async () => {
-      const classes = await http().get('/api/v1/classes').set(auth(s.northToken)).expect(200);
-      expect(classes.body.map((c: { id: string }) => c.id)).toEqual([s.northClassId]);
+      const classes = await http()
+        .get('/api/v1/classes')
+        .set(auth(s.northToken))
+        .expect(200);
+      expect(classes.body.map((c: { id: string }) => c.id)).toEqual([
+        s.northClassId,
+      ]);
 
-      const sections = await http().get('/api/v1/sections').set(auth(s.northToken)).expect(200);
-      expect(sections.body.map((x: { id: string }) => x.id)).toEqual([s.northSectionId]);
+      const sections = await http()
+        .get('/api/v1/sections')
+        .set(auth(s.northToken))
+        .expect(200);
+      expect(sections.body.map((x: { id: string }) => x.id)).toEqual([
+        s.northSectionId,
+      ]);
     });
 
     it('allows the principal to update a section in the own campus', async () => {
@@ -519,18 +621,28 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       const north = await http()
         .post('/api/v1/admin/teachers')
         .set(auth(s.superToken))
-        .send({ identifier: 'prov-teacher-north', password: TEACHER_PASSWORD, name: 'PROV North Teacher', campusId: s.northId })
+        .send({
+          identifier: 'prov-teacher-north',
+          password: TEACHER_PASSWORD,
+          name: 'PROV North Teacher',
+          campusId: s.northId,
+        })
         .expect(201);
       s.northTeacherId = north.body.id;
       const south = await http()
         .post('/api/v1/admin/teachers')
         .set(auth(s.superToken))
-        .send({ identifier: 'prov-teacher-south', password: TEACHER_PASSWORD, name: 'PROV South Teacher', campusId: s.southId })
+        .send({
+          identifier: 'prov-teacher-south',
+          password: TEACHER_PASSWORD,
+          name: 'PROV South Teacher',
+          campusId: s.southId,
+        })
         .expect(201);
       s.southTeacherId = south.body.id;
     });
 
-    it('returns an empty list when a campus principal asks for another campus\'s teachers', async () => {
+    it("returns an empty list when a campus principal asks for another campus's teachers", async () => {
       const res = await http()
         .get(`/api/v1/teachers?campusId=${s.southId}`)
         .set(auth(s.northToken))
@@ -539,24 +651,41 @@ describe('Org provisioning and campus scoping (e2e)', () => {
     });
 
     it('lists only the own-campus teacher by default', async () => {
-      const res = await http().get('/api/v1/teachers').set(auth(s.northToken)).expect(200);
-      expect(res.body.map((t: { id: string }) => t.id)).toEqual([s.northTeacherId]);
+      const res = await http()
+        .get('/api/v1/teachers')
+        .set(auth(s.northToken))
+        .expect(200);
+      expect(res.body.map((t: { id: string }) => t.id)).toEqual([
+        s.northTeacherId,
+      ]);
     });
 
     it('rejects a section whose class teacher belongs to another campus with 400', async () => {
       await http()
         .post('/api/v1/sections')
         .set(auth(s.northToken))
-        .send({ classId: s.northClassId, name: 'N-B', classTeacherId: s.southTeacherId })
+        .send({
+          classId: s.northClassId,
+          name: 'N-B',
+          classTeacherId: s.southTeacherId,
+        })
         .expect(400);
-      expect(await prisma.section.count({ where: { classId: s.northClassId, name: 'N-B' } })).toBe(0);
+      expect(
+        await prisma.section.count({
+          where: { classId: s.northClassId, name: 'N-B' },
+        }),
+      ).toBe(0);
     });
 
     it('accepts a section whose class teacher belongs to the own campus', async () => {
       await http()
         .post('/api/v1/sections')
         .set(auth(s.northToken))
-        .send({ classId: s.northClassId, name: 'N-C', classTeacherId: s.northTeacherId })
+        .send({
+          classId: s.northClassId,
+          name: 'N-C',
+          classTeacherId: s.northTeacherId,
+        })
         .expect(201);
     });
   });
@@ -564,42 +693,97 @@ describe('Org provisioning and campus scoping (e2e)', () => {
   describe('Campus principal confinement: staff, students, parents, leave', () => {
     beforeAll(async () => {
       const mkStaff = (name: string, campusId: string) =>
-        prisma.staff.create({ data: { name, employeeType: 'JANITORIAL', campusId } });
+        prisma.staff.create({
+          data: { name, employeeType: 'JANITORIAL', campusId },
+        });
       s.northStaffId = (await mkStaff('PROV North Janitor', s.northId)).id;
       s.southStaffId = (await mkStaff('PROV South Janitor', s.southId)).id;
 
-      const mkStudent = async (grNumber: string, name: string, campusId: string, sectionId: string) => {
-        const student = await prisma.student.create({ data: { grNumber, name } });
+      const mkStudent = async (
+        grNumber: string,
+        name: string,
+        campusId: string,
+        sectionId: string,
+      ) => {
+        const student = await prisma.student.create({
+          data: { grNumber, name },
+        });
         await prisma.enrollment.create({
-          data: { studentId: student.id, campusId, sectionId, academicSessionId: s.sessionId, startDate: new Date() },
+          data: {
+            studentId: student.id,
+            campusId,
+            sectionId,
+            academicSessionId: s.sessionId,
+            startDate: new Date(),
+          },
         });
         return student.id;
       };
-      s.northStudentId = await mkStudent('PROV-GR-N', 'PROV North Student', s.northId, s.northSectionId);
-      s.southStudentId = await mkStudent('PROV-GR-S', 'PROV South Student', s.southId, s.southSectionId);
+      s.northStudentId = await mkStudent(
+        'PROV-GR-N',
+        'PROV North Student',
+        s.northId,
+        s.northSectionId,
+      );
+      s.southStudentId = await mkStudent(
+        'PROV-GR-S',
+        'PROV South Student',
+        s.southId,
+        s.southSectionId,
+      );
 
-      const mkParent = async (identifier: string, name: string, studentId: string) => {
+      const mkParent = async (
+        identifier: string,
+        name: string,
+        studentId: string,
+      ) => {
         const user = await prisma.user.create({
-          data: { identifier, passwordHash: await argon2.hash('ParentPass123!'), role: 'PARENT' },
+          data: {
+            identifier,
+            passwordHash: await argon2.hash('ParentPass123!'),
+            role: 'PARENT',
+          },
         });
-        const profile = await prisma.parentProfile.create({ data: { userId: user.id, name } });
-        await prisma.studentParent.create({ data: { studentId, parentProfileId: profile.id } });
+        const profile = await prisma.parentProfile.create({
+          data: { userId: user.id, name },
+        });
+        await prisma.studentParent.create({
+          data: { studentId, parentProfileId: profile.id },
+        });
         return profile.id;
       };
-      s.northParentId = await mkParent('prov-parent-north', 'PROV North Parent', s.northStudentId);
-      s.southParentId = await mkParent('prov-parent-south', 'PROV South Parent', s.southStudentId);
+      s.northParentId = await mkParent(
+        'prov-parent-north',
+        'PROV North Parent',
+        s.northStudentId,
+      );
+      s.southParentId = await mkParent(
+        'prov-parent-south',
+        'PROV South Parent',
+        s.southStudentId,
+      );
 
       const mkLeave = (studentId: string) =>
         prisma.leaveRequest.create({
-          data: { studentId, startDate: new Date('2030-01-01'), endDate: new Date('2030-01-02'), reason: 'PROV leave' },
+          data: {
+            studentId,
+            startDate: new Date('2030-01-01'),
+            endDate: new Date('2030-01-02'),
+            reason: 'PROV leave',
+          },
         });
       s.northLeaveId = (await mkLeave(s.northStudentId)).id;
       s.southLeaveId = (await mkLeave(s.southStudentId)).id;
     });
 
     it("GET /admin/staff returns only the principal's own campus staff", async () => {
-      const res = await http().get('/api/v1/admin/staff').set(auth(s.northToken)).expect(200);
-      expect(res.body.map((x: { id: string }) => x.id)).toEqual([s.northStaffId]);
+      const res = await http()
+        .get('/api/v1/admin/staff')
+        .set(auth(s.northToken))
+        .expect(200);
+      expect(res.body.map((x: { id: string }) => x.id)).toEqual([
+        s.northStaffId,
+      ]);
     });
 
     it("PATCH and DELETE of another campus's staff member are 403 and change nothing", async () => {
@@ -608,45 +792,85 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .set(auth(s.northToken))
         .send({ name: 'Hacked' })
         .expect(403);
-      await http().delete(`/api/v1/admin/staff/${s.southStaffId}`).set(auth(s.northToken)).expect(403);
-      expect(await prisma.staff.findUnique({ where: { id: s.southStaffId } })).toMatchObject({
+      await http()
+        .delete(`/api/v1/admin/staff/${s.southStaffId}`)
+        .set(auth(s.northToken))
+        .expect(403);
+      expect(
+        await prisma.staff.findUnique({ where: { id: s.southStaffId } }),
+      ).toMatchObject({
         name: 'PROV South Janitor',
       });
     });
 
     it('POST /admin/staff into another campus is 403 and creates no row; into the own campus is 201', async () => {
-      const southBefore = await prisma.staff.count({ where: { campusId: s.southId } });
+      const southBefore = await prisma.staff.count({
+        where: { campusId: s.southId },
+      });
       await http()
         .post('/api/v1/admin/staff')
         .set(auth(s.northToken))
-        .send({ name: 'PROV Sneaky Guard', employeeType: 'GUARD', campusId: s.southId })
+        .send({
+          name: 'PROV Sneaky Guard',
+          employeeType: 'GUARD',
+          campusId: s.southId,
+        })
         .expect(403);
-      expect(await prisma.staff.count({ where: { campusId: s.southId } })).toBe(southBefore);
-      expect(await prisma.staff.count({ where: { name: 'PROV Sneaky Guard' } })).toBe(0);
+      expect(await prisma.staff.count({ where: { campusId: s.southId } })).toBe(
+        southBefore,
+      );
+      expect(
+        await prisma.staff.count({ where: { name: 'PROV Sneaky Guard' } }),
+      ).toBe(0);
 
-      const northBefore = await prisma.staff.count({ where: { campusId: s.northId } });
+      const northBefore = await prisma.staff.count({
+        where: { campusId: s.northId },
+      });
       const ok = await http()
         .post('/api/v1/admin/staff')
         .set(auth(s.northToken))
-        .send({ name: 'PROV North Guard', employeeType: 'GUARD', campusId: s.northId })
+        .send({
+          name: 'PROV North Guard',
+          employeeType: 'GUARD',
+          campusId: s.northId,
+        })
         .expect(201);
-      expect(await prisma.staff.count({ where: { campusId: s.northId } })).toBe(northBefore + 1);
-      expect(await prisma.staff.findUnique({ where: { id: ok.body.id } })).toMatchObject({ campusId: s.northId });
+      expect(await prisma.staff.count({ where: { campusId: s.northId } })).toBe(
+        northBefore + 1,
+      );
+      expect(
+        await prisma.staff.findUnique({ where: { id: ok.body.id } }),
+      ).toMatchObject({ campusId: s.northId });
     });
 
     it("GET /admin/students returns only students enrolled in the principal's campus", async () => {
-      const res = await http().get('/api/v1/admin/students').set(auth(s.northToken)).expect(200);
-      expect(res.body.map((x: { id: string }) => x.id)).toEqual([s.northStudentId]);
+      const res = await http()
+        .get('/api/v1/admin/students')
+        .set(auth(s.northToken))
+        .expect(200);
+      expect(res.body.map((x: { id: string }) => x.id)).toEqual([
+        s.northStudentId,
+      ]);
     });
 
     it("GET /admin/parents returns only parents with a child in the principal's campus", async () => {
-      const res = await http().get('/api/v1/admin/parents').set(auth(s.northToken)).expect(200);
-      expect(res.body.map((x: { id: string }) => x.id)).toEqual([s.northParentId]);
+      const res = await http()
+        .get('/api/v1/admin/parents')
+        .set(auth(s.northToken))
+        .expect(200);
+      expect(res.body.map((x: { id: string }) => x.id)).toEqual([
+        s.northParentId,
+      ]);
     });
 
     it("GET /leave-requests returns only leave requests of students in the principal's campus", async () => {
-      const res = await http().get('/api/v1/leave-requests').set(auth(s.northToken)).expect(200);
-      expect(res.body.map((x: { id: string }) => x.id)).toEqual([s.northLeaveId]);
+      const res = await http()
+        .get('/api/v1/leave-requests')
+        .set(auth(s.northToken))
+        .expect(200);
+      expect(res.body.map((x: { id: string }) => x.id)).toEqual([
+        s.northLeaveId,
+      ]);
       expect(res.body[0].studentId).toBe(s.northStudentId);
     });
 
@@ -657,8 +881,13 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         .expect(400);
       // Express's simple query parser keeps `campusId[not]` as an unrelated literal key, so it is
       // ignored (whitelisted away) rather than reaching Prisma as an object; the scope still holds.
-      const nested = await http().get('/api/v1/teachers?campusId[not]=x').set(auth(s.northToken)).expect(200);
-      expect(nested.body.map((t: { id: string }) => t.id)).toEqual([s.northTeacherId]);
+      const nested = await http()
+        .get('/api/v1/teachers?campusId[not]=x')
+        .set(auth(s.northToken))
+        .expect(200);
+      expect(nested.body.map((t: { id: string }) => t.id)).toEqual([
+        s.northTeacherId,
+      ]);
     });
   });
 
@@ -670,11 +899,20 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       const res = await http()
         .post('/api/v1/campuses')
         .set(auth(s.adminToken))
-        .send({ schoolId: s.schoolId, name: 'West', principal: { identifier: ` ${MIXED} `, password: WEST_PASSWORD } })
+        .send({
+          schoolId: s.schoolId,
+          name: 'West',
+          principal: { identifier: ` ${MIXED} `, password: WEST_PASSWORD },
+        })
         .expect(201);
       const stored = MIXED.toLowerCase();
-      expect(res.body.provisionedLogin).toEqual({ identifier: stored, temporaryPassword: null });
-      const user = await prisma.user.findUnique({ where: { identifier: stored } });
+      expect(res.body.provisionedLogin).toEqual({
+        identifier: stored,
+        temporaryPassword: null,
+      });
+      const user = await prisma.user.findUnique({
+        where: { identifier: stored },
+      });
       expect(user).toMatchObject({ campusId: res.body.id, isPrincipal: true });
       expect(await prisma.user.count({ where: { identifier: MIXED } })).toBe(0);
 
@@ -684,7 +922,9 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       expect(typedMixed.campusId).toBe(res.body.id);
 
       // The user.create audit row points at the created user, not the campus.
-      const audit = await prisma.auditLog.findFirst({ where: { action: 'user.create', entityId: user!.id } });
+      const audit = await prisma.auditLog.findFirst({
+        where: { action: 'user.create', entityId: user!.id },
+      });
       expect(audit).toMatchObject({ entity: 'User' });
       expect(audit!.metadata).toContain(stored);
     });
@@ -694,7 +934,11 @@ describe('Org provisioning and campus scoping (e2e)', () => {
       await http()
         .post('/api/v1/campuses')
         .set(auth(s.adminToken))
-        .send({ schoolId: s.schoolId, name, principal: { identifier: '     ' } })
+        .send({
+          schoolId: s.schoolId,
+          name,
+          principal: { identifier: '     ' },
+        })
         .expect(400);
       expect(await prisma.campus.count({ where: { name } })).toBe(0);
     });

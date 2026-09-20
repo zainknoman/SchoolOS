@@ -1,4 +1,10 @@
-import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 import { EmploymentStatus } from '@prisma/client';
 
 /** Quick-edit fields for the Staff list (the full profile has its own, wider update DTO). */

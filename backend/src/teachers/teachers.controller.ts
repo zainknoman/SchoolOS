@@ -17,7 +17,10 @@ export class TeachersController {
   // Admin/Super Admin only (matches POST /timetable's existing @Roles).
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Get()
-  listAll(@Req() req: AuthenticatedRequest, @Query() query: ListTeachersQueryDto) {
+  listAll(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: ListTeachersQueryDto,
+  ) {
     return this.teachersService.listAll(req.user, query.campusId);
   }
 

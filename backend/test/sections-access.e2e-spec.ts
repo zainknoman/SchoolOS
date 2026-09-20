@@ -27,29 +27,60 @@ describe('Sections cross-campus access (e2e)', () => {
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'sa-' } } })
       .catch(() => undefined);
-    const stale = await prisma.school.findMany({ where: { name: 'SA E2E School' } });
+    const stale = await prisma.school.findMany({
+      where: { name: 'SA E2E School' },
+    });
     for (const s of stale) {
-      await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
+      await prisma.school
+        .delete({ where: { id: s.id } })
+        .catch(() => undefined);
     }
 
-    const school = await prisma.school.create({ data: { name: 'SA E2E School' } });
-    const campusA = await prisma.campus.create({ data: { schoolId: school.id, name: 'SA Campus A' } });
-    const campusB = await prisma.campus.create({ data: { schoolId: school.id, name: 'SA Campus B' } });
+    const school = await prisma.school.create({
+      data: { name: 'SA E2E School' },
+    });
+    const campusA = await prisma.campus.create({
+      data: { schoolId: school.id, name: 'SA Campus A' },
+    });
+    const campusB = await prisma.campus.create({
+      data: { schoolId: school.id, name: 'SA Campus B' },
+    });
     const session = await prisma.academicSession.create({
-      data: { label: 'SA', startDate: new Date(), endDate: new Date(), isActive: true },
+      data: {
+        label: 'SA',
+        startDate: new Date(),
+        endDate: new Date(),
+        isActive: true,
+      },
     });
     const classA = await prisma.class.create({
-      data: { campusId: campusA.id, academicSessionId: session.id, name: 'SA Grade' },
+      data: {
+        campusId: campusA.id,
+        academicSessionId: session.id,
+        name: 'SA Grade',
+      },
     });
-    const sectionA = await prisma.section.create({ data: { classId: classA.id, name: 'SA-A' } });
+    const sectionA = await prisma.section.create({
+      data: { classId: classA.id, name: 'SA-A' },
+    });
     ids.school = school.id;
     ids.sectionA = sectionA.id;
 
     const passwordHash = await argon2.hash('ChangeMe123!');
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'sa-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
+      data: {
+        identifier: 'sa-teacher-b@schoolos.edu.pk',
+        passwordHash,
+        role: 'TEACHER',
+      },
     });
-    await prisma.teacher.create({ data: { userId: teacherBUser.id, name: 'SA Teacher B', campusId: campusB.id } });
+    await prisma.teacher.create({
+      data: {
+        userId: teacherBUser.id,
+        name: 'SA Teacher B',
+        campusId: campusB.id,
+      },
+    });
   });
 
   afterAll(async () => {
@@ -60,14 +91,19 @@ describe('Sections cross-campus access (e2e)', () => {
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'sa-' } } })
       .catch(() => undefined);
-    await prisma.school.delete({ where: { id: ids.school } }).catch(() => undefined);
+    await prisma.school
+      .delete({ where: { id: ids.school } })
+      .catch(() => undefined);
     await app.close();
   });
 
   it("denies a teacher reading another campus section's roster", async () => {
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ identifier: 'sa-teacher-b@schoolos.edu.pk', password: 'ChangeMe123!' })
+      .send({
+        identifier: 'sa-teacher-b@schoolos.edu.pk',
+        password: 'ChangeMe123!',
+      })
       .expect(201);
     const teacherBToken = loginRes.body.accessToken as string;
 

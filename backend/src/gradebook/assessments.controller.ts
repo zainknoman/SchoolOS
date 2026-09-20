@@ -1,11 +1,24 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { AssessmentsService } from './assessments.service';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { UpdateAssessmentDto } from './dto/update-assessment.dto';
 import { BulkMarksDto } from './dto/bulk-marks.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { StudentAccessService, type RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  type RequestUser,
+} from '../common/student-access.service';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -20,21 +33,34 @@ export class AssessmentsController {
   ) {}
 
   @Post()
-  async create(@Body() dto: CreateAssessmentDto, @Req() req: AuthenticatedRequest) {
-    const classId = await this.assessmentsService.classIdForCategory(dto.assessmentCategoryId);
+  async create(
+    @Body() dto: CreateAssessmentDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const classId = await this.assessmentsService.classIdForCategory(
+      dto.assessmentCategoryId,
+    );
     await this.studentAccess.assertCanAccessClass(req.user, classId);
     return this.assessmentsService.create(dto);
   }
 
   @Get()
-  async list(@Query('assessmentCategoryId') assessmentCategoryId: string, @Req() req: AuthenticatedRequest) {
-    const classId = await this.assessmentsService.classIdForCategory(assessmentCategoryId);
+  async list(
+    @Query('assessmentCategoryId') assessmentCategoryId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const classId =
+      await this.assessmentsService.classIdForCategory(assessmentCategoryId);
     await this.studentAccess.assertCanAccessClass(req.user, classId);
     return this.assessmentsService.findMany(assessmentCategoryId);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateAssessmentDto, @Req() req: AuthenticatedRequest) {
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAssessmentDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     const classId = await this.assessmentsService.classIdForAssessment(id);
     await this.studentAccess.assertCanAccessClass(req.user, classId);
     return this.assessmentsService.update(id, dto);
@@ -48,7 +74,11 @@ export class AssessmentsController {
   }
 
   @Post(':id/marks')
-  async saveMarks(@Param('id') id: string, @Body() dto: BulkMarksDto, @Req() req: AuthenticatedRequest) {
+  async saveMarks(
+    @Param('id') id: string,
+    @Body() dto: BulkMarksDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     const classId = await this.assessmentsService.classIdForAssessment(id);
     await this.studentAccess.assertCanAccessClass(req.user, classId);
     return this.assessmentsService.saveMarksBulk(id, dto, req.user.id);

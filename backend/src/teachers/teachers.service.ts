@@ -69,21 +69,33 @@ export class TeachersService {
     private readonly orgScope: OrgScopeService,
   ) {}
 
-  async listAll(actingUser: RequestUser, campusId?: string): Promise<TeacherSummary[]> {
+  async listAll(
+    actingUser: RequestUser,
+    campusId?: string,
+  ): Promise<TeacherSummary[]> {
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
       return [];
     }
     const where: Prisma.TeacherWhereInput | undefined =
       scope.campusWhere || campusId
-        ? { ...(scope.campusWhere ? { campus: scope.campusWhere } : {}), ...(campusId ? { campusId } : {}) }
+        ? {
+            ...(scope.campusWhere ? { campus: scope.campusWhere } : {}),
+            ...(campusId ? { campusId } : {}),
+          }
         : undefined;
-    const teachers = await this.prisma.teacher.findMany({ where, orderBy: { name: 'asc' } });
+    const teachers = await this.prisma.teacher.findMany({
+      where,
+      orderBy: { name: 'asc' },
+    });
     return teachers.map((t) => ({ id: t.id, name: t.name }));
   }
 
   private async requireTeacher(userId: string): Promise<{ id: string }> {
-    const teacher = await this.prisma.teacher.findUnique({ where: { userId }, select: { id: true } });
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
     if (!teacher) {
       throw new NotFoundException('No teacher profile for this account');
     }
@@ -113,7 +125,10 @@ export class TeachersService {
     const classesToday = await Promise.all(
       entries.map(async (e): Promise<MyDayClass> => {
         const marked = await this.prisma.attendance.count({
-          where: { date: today, student: { enrollments: { some: { sectionId: e.sectionId } } } },
+          where: {
+            date: today,
+            student: { enrollments: { some: { sectionId: e.sectionId } } },
+          },
         });
         return {
           timetableId: e.id,
@@ -152,7 +167,9 @@ export class TeachersService {
     return { classesToday, diaryDueToday };
   }
 
-  async getGradebookOverview(actingUser: RequestUser): Promise<GradebookOverview> {
+  async getGradebookOverview(
+    actingUser: RequestUser,
+  ): Promise<GradebookOverview> {
     const teacher = await this.requireTeacher(actingUser.id);
 
     const taught = await this.prisma.timetable.findMany({
@@ -162,7 +179,12 @@ export class TeachersService {
         sectionId: true,
         subjectId: true,
         section: {
-          select: { name: true, class: { select: { id: true, name: true, academicSessionId: true } } },
+          select: {
+            name: true,
+            class: {
+              select: { id: true, name: true, academicSessionId: true },
+            },
+          },
         },
         subject: { select: { name: true } },
       },
@@ -171,9 +193,14 @@ export class TeachersService {
     const classes = await Promise.all(
       taught.map(async (t): Promise<GradebookClassRow> => {
         const [studentsCount, category] = await Promise.all([
-          this.prisma.enrollment.count({ where: { sectionId: t.sectionId, status: 'ACTIVE' } }),
+          this.prisma.enrollment.count({
+            where: { sectionId: t.sectionId, status: 'ACTIVE' },
+          }),
           this.prisma.assessmentCategory.findFirst({
-            where: { classId: t.section.class.id, term: { academicSession: { isActive: true } } },
+            where: {
+              classId: t.section.class.id,
+              term: { academicSession: { isActive: true } },
+            },
             orderBy: { createdAt: 'desc' },
             select: { id: true, term: { select: { label: true } } },
           }),
@@ -184,7 +211,10 @@ export class TeachersService {
         if (category) {
           termLabel = category.term.label;
           const assessment = await this.prisma.assessment.findFirst({
-            where: { assessmentCategoryId: category.id, subjectId: t.subjectId },
+            where: {
+              assessmentCategoryId: category.id,
+              subjectId: t.subjectId,
+            },
             select: { id: true },
           });
           if (assessment) {
@@ -216,7 +246,10 @@ export class TeachersService {
       classIds.length === 0
         ? []
         : await this.prisma.term.findMany({
-            where: { academicSession: { classes: { some: { id: { in: classIds } } } }, startDate: { gte: today } },
+            where: {
+              academicSession: { classes: { some: { id: { in: classIds } } } },
+              startDate: { gte: today },
+            },
             orderBy: { startDate: 'asc' },
             take: 5,
             select: { id: true, label: true, startDate: true },
@@ -225,7 +258,10 @@ export class TeachersService {
       termId: term.id,
       label: term.label,
       startDate: term.startDate.toISOString(),
-      daysUntil: Math.round((dateOnlyUtc(term.startDate).getTime() - today.getTime()) / (24 * 60 * 60 * 1000)),
+      daysUntil: Math.round(
+        (dateOnlyUtc(term.startDate).getTime() - today.getTime()) /
+          (24 * 60 * 60 * 1000),
+      ),
     }));
 
     return { classes, upcomingExams };

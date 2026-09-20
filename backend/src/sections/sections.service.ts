@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
@@ -6,7 +10,10 @@ import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertValidReferences } from '../common/prisma-create-guard';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
-import { StudentAccessService, type RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  type RequestUser,
+} from '../common/student-access.service';
 
 export interface SectionSummary {
   id: string;
@@ -37,7 +44,11 @@ export class SectionsService {
     name: string;
     classTeacherId: string | null;
     classId: string;
-    class: { name: string; academicSessionId: string; campus: { name: string } };
+    class: {
+      name: string;
+      academicSessionId: string;
+      campus: { name: string };
+    };
     classTeacher: { name: string } | null;
   }): SectionSummary {
     return {
@@ -58,11 +69,15 @@ export class SectionsService {
   async listAll(actingUser: RequestUser): Promise<SectionSummary[]> {
     let where: Prisma.SectionWhereInput | undefined;
     if (actingUser.role === 'TEACHER') {
-      const teacher = await this.prisma.teacher.findUnique({ where: { userId: actingUser.id } });
+      const teacher = await this.prisma.teacher.findUnique({
+        where: { userId: actingUser.id },
+      });
       if (!teacher) {
         return [];
       }
-      const sectionIds = await this.studentAccess.getTeacherSectionIds(teacher.id);
+      const sectionIds = await this.studentAccess.getTeacherSectionIds(
+        teacher.id,
+      );
       where = { id: { in: [...sectionIds] } };
     } else {
       const scope = await this.orgScope.resolve(actingUser);
@@ -90,14 +105,19 @@ export class SectionsService {
     return rows.map((r) => r.student);
   }
 
-  private async assertTeacherInCampus(classTeacherId: string, campusId: string): Promise<void> {
+  private async assertTeacherInCampus(
+    classTeacherId: string,
+    campusId: string,
+  ): Promise<void> {
     const teacher = await this.prisma.teacher.findUnique({
       where: { id: classTeacherId },
       select: { campusId: true },
     });
     // A missing teacher is left to the FK handler (P2003 -> "Invalid ... reference").
     if (teacher && teacher.campusId !== campusId) {
-      throw new BadRequestException('Class teacher must belong to the same campus as the class.');
+      throw new BadRequestException(
+        'Class teacher must belong to the same campus as the class.',
+      );
     }
   }
 
@@ -154,7 +174,10 @@ export class SectionsService {
       throw new NotFoundException('Section not found');
     }
     if (dto.classTeacherId) {
-      await this.assertTeacherInCampus(dto.classTeacherId, existing.class.campusId);
+      await this.assertTeacherInCampus(
+        dto.classTeacherId,
+        existing.class.campusId,
+      );
     }
     const record = await this.prisma.section
       .update({

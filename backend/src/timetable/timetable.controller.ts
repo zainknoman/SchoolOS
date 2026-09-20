@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { TimetableService } from './timetable.service';
@@ -26,7 +37,9 @@ export class TimetableController {
   @Roles('TEACHER')
   @Get('teachers/me/timetable')
   async getForCurrentTeacher(@Req() req: AuthenticatedRequest) {
-    const teacher = await this.prisma.teacher.findUnique({ where: { userId: req.user.id } });
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { userId: req.user.id },
+    });
     if (!teacher) {
       throw new NotFoundException('No teacher profile for this account');
     }
@@ -59,12 +72,19 @@ export class TimetableController {
     @Body() dto: ReplaceSectionTimetableDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.timetableService.replaceForSection(sectionId, dto.entries, req.user.id);
+    return this.timetableService.replaceForSection(
+      sectionId,
+      dto.entries,
+      req.user.id,
+    );
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('timetable')
-  createEntry(@Body() dto: CreateTimetableEntryDto, @Req() req: AuthenticatedRequest) {
+  createEntry(
+    @Body() dto: CreateTimetableEntryDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.timetableService.createEntry(dto, req.user.id);
   }
 

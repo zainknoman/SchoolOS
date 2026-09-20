@@ -24,7 +24,10 @@ export class MeController {
   }
 
   @Get('children/:studentId')
-  childDetail(@Param('studentId') studentId: string, @Req() req: AuthenticatedRequest) {
+  childDetail(
+    @Param('studentId') studentId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.meService.getChildDetail(req.user.id, studentId);
   }
 

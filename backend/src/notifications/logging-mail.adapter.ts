@@ -10,7 +10,10 @@ import { MailAdapter } from './mail-adapter';
 export class LoggingMailAdapter implements MailAdapter {
   private readonly logger = new Logger(LoggingMailAdapter.name);
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- the adapter interface is Promise-based
   async send(to: string, subject: string, body: string): Promise<void> {
-    this.logger.log(`[mail:not-configured] to=${to} subject="${subject}" body=${body}`);
+    this.logger.log(
+      `[mail:not-configured] to=${to} subject="${subject}" body=${body}`,
+    );
   }
 }

@@ -1,5 +1,9 @@
 // backend/src/admissions/applications.service.ts
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
@@ -74,7 +78,11 @@ export class ApplicationsService {
     return this.toSummary(existing);
   }
 
-  async findMany(actingUser: RequestUser, academicSessionId?: string, status?: string): Promise<ApplicationSummary[]> {
+  async findMany(
+    actingUser: RequestUser,
+    academicSessionId?: string,
+    status?: string,
+  ): Promise<ApplicationSummary[]> {
     let where: Prisma.ApplicationWhereInput = {
       ...(academicSessionId ? { academicSessionId } : {}),
       ...(status ? { status } : {}),
@@ -96,33 +104,49 @@ export class ApplicationsService {
   }
 
   private async getOrThrow(id: string) {
-    const existing = await this.prisma.application.findUnique({ where: { id }, include: WITH_APPLICANT });
+    const existing = await this.prisma.application.findUnique({
+      where: { id },
+      include: WITH_APPLICANT,
+    });
     if (!existing) {
       throw new NotFoundException('Application not found');
     }
     return existing;
   }
 
-  async updateStatus(id: string, dto: UpdateApplicationDto): Promise<ApplicationSummary> {
+  async updateStatus(
+    id: string,
+    dto: UpdateApplicationDto,
+  ): Promise<ApplicationSummary> {
     const existing = await this.getOrThrow(id);
     if (TERMINAL_STATUSES.includes(existing.status)) {
-      throw new BadRequestException(`Application is already ${existing.status.toLowerCase()} and cannot be changed`);
+      throw new BadRequestException(
+        `Application is already ${existing.status.toLowerCase()} and cannot be changed`,
+      );
     }
     const record = await this.prisma.application.update({
       where: { id },
       include: WITH_APPLICANT,
       data: {
         ...(dto.status !== undefined ? { status: dto.status } : {}),
-        ...(dto.decisionNotes !== undefined ? { decisionNotes: dto.decisionNotes } : {}),
+        ...(dto.decisionNotes !== undefined
+          ? { decisionNotes: dto.decisionNotes }
+          : {}),
       },
     });
     return this.toSummary(record);
   }
 
-  async reject(id: string, decisionNotes: string, reviewedById: string): Promise<ApplicationSummary> {
+  async reject(
+    id: string,
+    decisionNotes: string,
+    reviewedById: string,
+  ): Promise<ApplicationSummary> {
     const existing = await this.getOrThrow(id);
     if (TERMINAL_STATUSES.includes(existing.status)) {
-      throw new BadRequestException(`Application is already ${existing.status.toLowerCase()}`);
+      throw new BadRequestException(
+        `Application is already ${existing.status.toLowerCase()}`,
+      );
     }
     const record = await this.prisma.application.update({
       where: { id },
@@ -132,15 +156,23 @@ export class ApplicationsService {
     return this.toSummary(record);
   }
 
-  async approve(id: string, dto: ApproveApplicationDto, reviewedById: string): Promise<ApplicationSummary> {
+  async approve(
+    id: string,
+    dto: ApproveApplicationDto,
+    reviewedById: string,
+  ): Promise<ApplicationSummary> {
     const existing = await this.getOrThrow(id);
     if (TERMINAL_STATUSES.includes(existing.status)) {
-      throw new BadRequestException(`Application is already ${existing.status.toLowerCase()}`);
+      throw new BadRequestException(
+        `Application is already ${existing.status.toLowerCase()}`,
+      );
     }
     const hasExisting = dto.parentProfileId != null;
     const hasNew = dto.newParent != null;
     if (hasExisting === hasNew) {
-      throw new BadRequestException('Provide exactly one of parentProfileId or newParent');
+      throw new BadRequestException(
+        'Provide exactly one of parentProfileId or newParent',
+      );
     }
     const section = await this.prisma.section.findUnique({
       where: { id: dto.sectionId },
@@ -171,11 +203,18 @@ export class ApplicationsService {
         return tx.application.update({
           where: { id },
           include: WITH_APPLICANT,
-          data: { status: 'APPROVED', reviewedById, createdStudentId: studentId },
+          data: {
+            status: 'APPROVED',
+            reviewedById,
+            createdStudentId: studentId,
+          },
         });
       });
     } catch (error) {
-      assertCreatable(error, 'This GR number or parent identifier is already in use.');
+      assertCreatable(
+        error,
+        'This GR number or parent identifier is already in use.',
+      );
     }
     return this.toSummary(record);
   }

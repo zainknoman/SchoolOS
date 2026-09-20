@@ -2,7 +2,10 @@ import { Controller, Get, Param, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { AttendanceRiskService } from './attendance-risk.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { StudentAccessService, RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  RequestUser,
+} from '../common/student-access.service';
 import { OrgScopeService } from '../common/org-scope.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 
@@ -20,7 +23,10 @@ export class AttendanceRiskController {
   ) {}
 
   @Get('students/:id/attendance-risk')
-  async getForStudent(@Param('id') studentId: string, @Req() req: AuthenticatedRequest) {
+  async getForStudent(
+    @Param('id') studentId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     await this.studentAccess.assertCanAccessStudent(req.user, studentId);
     return this.attendanceRiskService.getForStudent(studentId);
   }
@@ -42,7 +48,9 @@ export class AttendanceRiskController {
       });
       return this.attendanceRiskService.getFlagged(sections.map((s) => s.id));
     }
-    const teacher = await this.prisma.teacher.findUnique({ where: { userId: req.user.id } });
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { userId: req.user.id },
+    });
     if (!teacher) {
       return this.attendanceRiskService.getFlagged([]);
     }

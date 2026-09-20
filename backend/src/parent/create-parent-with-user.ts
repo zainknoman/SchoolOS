@@ -30,10 +30,19 @@ export async function createParentWithUser(
 ): Promise<CreatedParent> {
   const passwordHash = await argon2.hash(dto.password);
   const user = await tx.user.create({
-    data: { identifier: normalizeIdentifier(dto.identifier), passwordHash, role: 'PARENT' },
+    data: {
+      identifier: normalizeIdentifier(dto.identifier),
+      passwordHash,
+      role: 'PARENT',
+    },
   });
   const parentProfile = await tx.parentProfile.create({
     data: { userId: user.id, name: dto.name, phone: dto.phone },
   });
-  return { id: parentProfile.id, identifier: user.identifier, name: parentProfile.name, phone: parentProfile.phone };
+  return {
+    id: parentProfile.id,
+    identifier: user.identifier,
+    name: parentProfile.name,
+    phone: parentProfile.phone,
+  };
 }

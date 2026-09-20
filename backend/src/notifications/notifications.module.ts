@@ -48,7 +48,10 @@ import { resolveSmtpConfig } from './smtp-config';
       useFactory: (config: ConfigService, prisma: PrismaService) => {
         const whatsAppConfig = resolveWhatsAppConfig(config);
         if (!whatsAppConfig) return new LoggingPushAdapter();
-        return new WhatsAppAdapter(new HttpWhatsAppSender(whatsAppConfig), prisma);
+        return new WhatsAppAdapter(
+          new HttpWhatsAppSender(whatsAppConfig),
+          prisma,
+        );
       },
       inject: [ConfigService, PrismaService],
     },

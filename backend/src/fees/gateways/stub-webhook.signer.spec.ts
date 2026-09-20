@@ -7,15 +7,24 @@ describe('StubWebhookSigner', () => {
       { reference: 'stub_1', status: 'completed' },
       { 'x-stub-signature': 'secret-1' },
     );
-    expect(result).toEqual({ valid: true, reference: 'stub_1', status: 'completed' });
+    expect(result).toEqual({
+      valid: true,
+      reference: 'stub_1',
+      status: 'completed',
+    });
   });
 
   it('rejects a missing or wrong signature header', () => {
     const signer = new StubWebhookSigner('secret-1');
-    expect(signer.verifyAndParse({ reference: 'stub_1', status: 'completed' }, {}).valid).toBe(false);
     expect(
-      signer.verifyAndParse({ reference: 'stub_1', status: 'completed' }, { 'x-stub-signature': 'wrong' })
+      signer.verifyAndParse({ reference: 'stub_1', status: 'completed' }, {})
         .valid,
+    ).toBe(false);
+    expect(
+      signer.verifyAndParse(
+        { reference: 'stub_1', status: 'completed' },
+        { 'x-stub-signature': 'wrong' },
+      ).valid,
     ).toBe(false);
   });
 

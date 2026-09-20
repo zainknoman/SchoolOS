@@ -17,13 +17,20 @@ export class HiringCandidatesService {
   constructor(private readonly prisma: PrismaService) {}
 
   private toSummary(record: {
-    id: string; name: string; dateOfBirth: Date | null; cnic: string | null;
-    contactPhone: string; contactEmail: string | null; resumeFileId: string | null;
+    id: string;
+    name: string;
+    dateOfBirth: Date | null;
+    cnic: string | null;
+    contactPhone: string;
+    contactEmail: string | null;
+    resumeFileId: string | null;
   }): HiringCandidateSummary {
     return {
       id: record.id,
       name: record.name,
-      dateOfBirth: record.dateOfBirth ? record.dateOfBirth.toISOString().slice(0, 10) : null,
+      dateOfBirth: record.dateOfBirth
+        ? record.dateOfBirth.toISOString().slice(0, 10)
+        : null,
       cnic: record.cnic,
       contactPhone: record.contactPhone,
       contactEmail: record.contactEmail,
@@ -31,13 +38,18 @@ export class HiringCandidatesService {
     };
   }
 
-  async create(
-    dto: CreateHiringCandidateDto,
-  ): Promise<{ candidate: HiringCandidateSummary; possibleDuplicate: HiringCandidateSummary | null }> {
+  async create(dto: CreateHiringCandidateDto): Promise<{
+    candidate: HiringCandidateSummary;
+    possibleDuplicate: HiringCandidateSummary | null;
+  }> {
     if (dto.resumeFileId) {
-      const file = await this.prisma.file.findUnique({ where: { id: dto.resumeFileId } });
+      const file = await this.prisma.file.findUnique({
+        where: { id: dto.resumeFileId },
+      });
       if (!file) {
-        throw new BadRequestException('Upload the résumé first via POST /api/v1/files, then link it here.');
+        throw new BadRequestException(
+          'Upload the résumé first via POST /api/v1/files, then link it here.',
+        );
       }
     }
     const existingMatch = await this.prisma.hiringCandidate.findFirst({

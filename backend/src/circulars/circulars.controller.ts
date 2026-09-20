@@ -29,7 +29,11 @@ export class CircularsController {
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post('draft-suggestion')
   suggestDraft(@Body() dto: SuggestDraftDto, @Req() req: AuthenticatedRequest) {
-    return this.aiDraftingService.suggestDraft(req.user.id, 'circular', dto.context);
+    return this.aiDraftingService.suggestDraft(
+      req.user.id,
+      'circular',
+      dto.context,
+    );
   }
 
   @Get()

@@ -41,7 +41,12 @@ describe('DiaryService', () => {
     prisma.diaryEntry.upsert.mockResolvedValue({ id: 'entry-1' });
 
     await service.createEntry(
-      { sectionId: 'sec-1', subjectId: 'sub-1', date: '2026-08-27', text: 'Read chapter 3.' },
+      {
+        sectionId: 'sec-1',
+        subjectId: 'sub-1',
+        date: '2026-08-27',
+        text: 'Read chapter 3.',
+      },
       'user-1',
     );
 
@@ -54,13 +59,22 @@ describe('DiaryService', () => {
             date: new Date('2026-08-27'),
           },
         },
-        create: expect.objectContaining({ text: 'Read chapter 3.', authorId: 'user-1' }),
-        update: expect.objectContaining({ text: 'Read chapter 3.', authorId: 'user-1' }),
+        create: expect.objectContaining({
+          text: 'Read chapter 3.',
+          authorId: 'user-1',
+        }),
+        update: expect.objectContaining({
+          text: 'Read chapter 3.',
+          authorId: 'user-1',
+        }),
       }),
     );
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ action: 'diary.create', entity: 'DiaryEntry' }),
+        data: expect.objectContaining({
+          action: 'diary.create',
+          entity: 'DiaryEntry',
+        }),
       }),
     );
   });
@@ -70,7 +84,12 @@ describe('DiaryService', () => {
     prisma.diaryEntry.upsert.mockResolvedValue({ id: 'entry-2' });
 
     await service.createEntry(
-      { sectionId: 'sec-1', subjectId: 'sub-1', date: '2026-08-27', text: 'Admin-posted note.' },
+      {
+        sectionId: 'sec-1',
+        subjectId: 'sub-1',
+        date: '2026-08-27',
+        text: 'Admin-posted note.',
+      },
       'admin-user-1',
     );
 
@@ -109,10 +128,18 @@ describe('DiaryService', () => {
 
   it('notifies every parent whose child is enrolled in the section', async () => {
     prisma.diaryEntry.upsert.mockResolvedValue({ id: 'entry-1' });
-    prisma.user.findMany.mockResolvedValue([{ id: 'parent-1' }, { id: 'parent-2' }]);
+    prisma.user.findMany.mockResolvedValue([
+      { id: 'parent-1' },
+      { id: 'parent-2' },
+    ]);
 
     await service.createEntry(
-      { sectionId: 'sec-1', subjectId: 'sub-1', date: '2026-08-27', text: 'Read chapter 3.' },
+      {
+        sectionId: 'sec-1',
+        subjectId: 'sub-1',
+        date: '2026-08-27',
+        text: 'Read chapter 3.',
+      },
       'teacher-user-1',
     );
 
@@ -124,7 +151,9 @@ describe('DiaryService', () => {
             children: expect.objectContaining({
               some: expect.objectContaining({
                 student: expect.objectContaining({
-                  enrollments: { some: { sectionId: 'sec-1', status: 'ACTIVE' } },
+                  enrollments: {
+                    some: { sectionId: 'sec-1', status: 'ACTIVE' },
+                  },
                 }),
               }),
             }),
@@ -133,15 +162,25 @@ describe('DiaryService', () => {
       }),
     );
     expect(notifications.notify).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'parent-1', type: 'diary', entityRef: 'entry-1' }),
+      expect.objectContaining({
+        userId: 'parent-1',
+        type: 'diary',
+        entityRef: 'entry-1',
+      }),
     );
     expect(notifications.notify).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'parent-2', type: 'diary', entityRef: 'entry-1' }),
+      expect.objectContaining({
+        userId: 'parent-2',
+        type: 'diary',
+        entityRef: 'entry-1',
+      }),
     );
   });
 
   it("resolves the student's enrolled section as of the requested month before listing that section's entries", async () => {
-    enrollmentService.getEnrollmentForDate.mockResolvedValue({ sectionId: 'sec-1' });
+    enrollmentService.getEnrollmentForDate.mockResolvedValue({
+      sectionId: 'sec-1',
+    });
     prisma.diaryEntry.findMany.mockResolvedValue([]);
 
     await service.getForStudent('s1', '2026-08');
@@ -152,13 +191,19 @@ describe('DiaryService', () => {
       new Date('2026-09-01T00:00:00.000Z'),
     );
     expect(prisma.diaryEntry.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ sectionId: 'sec-1' }) }),
+      expect.objectContaining({
+        where: expect.objectContaining({ sectionId: 'sec-1' }),
+      }),
     );
   });
 
   it('propagates NotFoundException when the student has no enrollment covering that month', async () => {
-    enrollmentService.getEnrollmentForDate.mockRejectedValue(new NotFoundException());
-    await expect(service.getForStudent('s1', '2026-08')).rejects.toThrow(NotFoundException);
+    enrollmentService.getEnrollmentForDate.mockRejectedValue(
+      new NotFoundException(),
+    );
+    await expect(service.getForStudent('s1', '2026-08')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('maps entries to the summary shape the clients expect', async () => {
@@ -170,7 +215,13 @@ describe('DiaryService', () => {
         text: 'Read chapter 3.',
         subject: { name: 'Urdu' },
         attachments: [
-          { file: { id: 'file-1', originalName: 'sheet.pdf', mimeType: 'application/pdf' } },
+          {
+            file: {
+              id: 'file-1',
+              originalName: 'sheet.pdf',
+              mimeType: 'application/pdf',
+            },
+          },
         ],
       },
     ]);
@@ -184,7 +235,13 @@ describe('DiaryService', () => {
         dueDate: '2026-08-29',
         subject: 'Urdu',
         text: 'Read chapter 3.',
-        attachments: [{ id: 'file-1', originalName: 'sheet.pdf', mimeType: 'application/pdf' }],
+        attachments: [
+          {
+            id: 'file-1',
+            originalName: 'sheet.pdf',
+            mimeType: 'application/pdf',
+          },
+        ],
       },
     ]);
   });

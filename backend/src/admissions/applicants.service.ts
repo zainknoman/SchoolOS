@@ -31,7 +31,10 @@ export class ApplicantsService {
     };
   }
 
-  async create(dto: CreateApplicantDto): Promise<{ applicant: ApplicantSummary; possibleDuplicate: ApplicantSummary | null }> {
+  async create(dto: CreateApplicantDto): Promise<{
+    applicant: ApplicantSummary;
+    possibleDuplicate: ApplicantSummary | null;
+  }> {
     const existingMatch = await this.prisma.applicant.findFirst({
       where: { name: dto.name, guardianPhone: dto.guardianPhone },
     });

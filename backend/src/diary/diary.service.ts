@@ -35,7 +35,11 @@ export class DiaryService {
     const date = new Date(dto.date);
     const entry = await this.prisma.diaryEntry.upsert({
       where: {
-        sectionId_subjectId_date: { sectionId: dto.sectionId, subjectId: dto.subjectId, date },
+        sectionId_subjectId_date: {
+          sectionId: dto.sectionId,
+          subjectId: dto.subjectId,
+          date,
+        },
       },
       create: {
         sectionId: dto.sectionId,
@@ -55,7 +59,9 @@ export class DiaryService {
     if (dto.fileIds?.length) {
       // Clear any previous attachments, then attach the current set — keeps re-posting the same
       // section+subject+day idempotent instead of accumulating stale files.
-      await this.prisma.diaryAttachment.deleteMany({ where: { diaryEntryId: entry.id } });
+      await this.prisma.diaryAttachment.deleteMany({
+        where: { diaryEntryId: entry.id },
+      });
       await this.prisma.diaryAttachment.createMany({
         data: dto.fileIds.map((fileId) => ({ diaryEntryId: entry.id, fileId })),
       });
@@ -81,7 +87,11 @@ export class DiaryService {
         parentProfile: {
           children: {
             some: {
-              student: { enrollments: { some: { sectionId: dto.sectionId, status: 'ACTIVE' } } },
+              student: {
+                enrollments: {
+                  some: { sectionId: dto.sectionId, status: 'ACTIVE' },
+                },
+              },
             },
           },
         },
@@ -103,7 +113,10 @@ export class DiaryService {
     return entry;
   }
 
-  async getForSection(sectionId: string, month: string): Promise<DiaryEntrySummary[]> {
+  async getForSection(
+    sectionId: string,
+    month: string,
+  ): Promise<DiaryEntrySummary[]> {
     const start = new Date(`${month}-01T00:00:00.000Z`);
     const end = new Date(start);
     end.setUTCMonth(end.getUTCMonth() + 1);
@@ -128,11 +141,18 @@ export class DiaryService {
     }));
   }
 
-  async getForStudent(studentId: string, month: string): Promise<DiaryEntrySummary[]> {
+  async getForStudent(
+    studentId: string,
+    month: string,
+  ): Promise<DiaryEntrySummary[]> {
     const monthStart = new Date(`${month}-01T00:00:00.000Z`);
     const monthEnd = new Date(monthStart);
     monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
-    const enrollment = await this.enrollmentService.getEnrollmentForDate(studentId, monthStart, monthEnd);
+    const enrollment = await this.enrollmentService.getEnrollmentForDate(
+      studentId,
+      monthStart,
+      monthEnd,
+    );
     return this.getForSection(enrollment.sectionId, month);
   }
 }

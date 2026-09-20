@@ -27,7 +27,9 @@ export function parseCorsOrigins(raw: string | undefined): string[] {
 }
 
 type CorsOriginCallback = (err: Error | null, allow?: boolean) => void;
-export type CorsOriginOption = string[] | ((origin: string | undefined, callback: CorsOriginCallback) => void);
+export type CorsOriginOption =
+  | string[]
+  | ((origin: string | undefined, callback: CorsOriginCallback) => void);
 
 /**
  * Builds the `origin` option for `app.enableCors()`. Outside development/test this is just the
@@ -47,7 +49,11 @@ export function buildCorsOriginOption(
   }
 
   return (origin, callback) => {
-    if (!origin || allowList.includes(origin) || LOCALHOST_ORIGIN_PATTERN.test(origin)) {
+    if (
+      !origin ||
+      allowList.includes(origin) ||
+      LOCALHOST_ORIGIN_PATTERN.test(origin)
+    ) {
       callback(null, true);
       return;
     }

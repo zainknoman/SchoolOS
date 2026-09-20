@@ -17,7 +17,10 @@ import type { Request, Response } from 'express';
 import { ReportCardsService } from './report-cards.service';
 import { FilesService } from '../files/files.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { StudentAccessService, RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  RequestUser,
+} from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { MAX_UPLOAD_BYTES } from '../files/files.controller';
 
@@ -36,22 +39,41 @@ export class ReportCardsController {
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post()
-  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES } }))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_UPLOAD_BYTES },
+    }),
+  )
   async upload(
     @UploadedFile() file: Express.Multer.File,
     @Req() req: AuthenticatedRequest,
   ) {
-    const studentId = req.body.studentId as string;
-    const academicSessionId = req.body.academicSessionId as string;
+    const body = req.body as {
+      studentId?: string;
+      academicSessionId?: string;
+    };
+    const studentId = body.studentId;
+    const academicSessionId = body.academicSessionId;
     if (!studentId || !academicSessionId) {
-      throw new BadRequestException('studentId and academicSessionId are required');
+      throw new BadRequestException(
+        'studentId and academicSessionId are required',
+      );
     }
     await this.studentAccess.assertCanAccessStudent(req.user, studentId);
-    return this.reportCardsService.upload(studentId, academicSessionId, file, req.user.id);
+    return this.reportCardsService.upload(
+      studentId,
+      academicSessionId,
+      file,
+      req.user.id,
+    );
   }
 
   @Get()
-  async findForStudent(@Query('studentId') studentId: string, @Req() req: AuthenticatedRequest) {
+  async findForStudent(
+    @Query('studentId') studentId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     if (!studentId) {
       throw new BadRequestException('studentId is required');
     }
@@ -60,13 +82,19 @@ export class ReportCardsController {
   }
 
   @Get(':id/pdf')
-  async download(@Param('id') id: string, @Req() req: AuthenticatedRequest, @Res() res: Response) {
+  async download(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+  ) {
     const record = await this.prisma.reportCard.findUnique({ where: { id } });
     if (!record) {
       throw new NotFoundException('Report card not found');
     }
     await this.studentAccess.assertCanAccessStudent(req.user, record.studentId);
-    const { buffer, originalName, mimeType } = await this.filesService.read(record.fileId);
+    const { buffer, originalName, mimeType } = await this.filesService.read(
+      record.fileId,
+    );
     const safeName = originalName.replace(/"/g, '');
     res.set({
       'Content-Type': mimeType,

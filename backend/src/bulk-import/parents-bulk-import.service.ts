@@ -31,25 +31,42 @@ export class ParentsBulkImportService {
           errors.push(`Duplicate identifier "${identifier}" within this file`);
         }
         seenIdentifiers.add(identifier);
-        const existing = await this.prisma.user.findUnique({ where: { identifier } });
-        if (existing) errors.push(`Identifier "${identifier}" is already in use`);
+        const existing = await this.prisma.user.findUnique({
+          where: { identifier },
+        });
+        if (existing)
+          errors.push(`Identifier "${identifier}" is already in use`);
       }
 
-      outcomes.push({ line, data: { identifier, name, phone } as Record<string, string>, errors });
+      outcomes.push({
+        line,
+        data: { identifier, name, phone },
+        errors,
+      });
     }
     return outcomes;
   }
 
   async preview(buffer: Buffer): Promise<PreviewResult> {
     const rows = await this.validateRows(buffer);
-    return { rows, validCount: rows.filter((r) => r.errors.length === 0).length, errorCount: rows.filter((r) => r.errors.length > 0).length };
+    return {
+      rows,
+      validCount: rows.filter((r) => r.errors.length === 0).length,
+      errorCount: rows.filter((r) => r.errors.length > 0).length,
+    };
   }
 
-  async commit(buffer: Buffer, actingUserId: string): Promise<{ createdCount: number; parentIds: string[] }> {
+  async commit(
+    buffer: Buffer,
+    actingUserId: string,
+  ): Promise<{ createdCount: number; parentIds: string[] }> {
     const rows = await this.validateRows(buffer);
     const invalid = rows.filter((r) => r.errors.length > 0);
     if (invalid.length > 0) {
-      throw Object.assign(new Error('One or more rows are invalid; nothing was imported.'), { rows: invalid });
+      throw Object.assign(
+        new Error('One or more rows are invalid; nothing was imported.'),
+        { rows: invalid },
+      );
     }
 
     const parentIds = await this.prisma.$transaction(async (tx) => {

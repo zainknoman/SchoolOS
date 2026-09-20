@@ -41,46 +41,102 @@ describe('Cross-tenant boundary (e2e)', () => {
     // Teacher rows that would otherwise Restrict-block the Campus/School cascade below), then
     // Students (Enrollment.studentId is Cascade, removing stale Enrollment rows that would
     // otherwise Restrict-block Campus/Section deletion), then the Schools themselves.
-    await prisma.user.deleteMany({ where: { identifier: { startsWith: 'ctb-' } } }).catch(() => undefined);
-    await prisma.student.deleteMany({ where: { grNumber: { startsWith: 'CTB-' } } }).catch(() => undefined);
+    await prisma.user
+      .deleteMany({ where: { identifier: { startsWith: 'ctb-' } } })
+      .catch(() => undefined);
+    await prisma.student
+      .deleteMany({ where: { grNumber: { startsWith: 'CTB-' } } })
+      .catch(() => undefined);
     const stale = await prisma.school.findMany({
       where: { name: { in: ['CTB School A', 'CTB School B'] } },
     });
     for (const s of stale) {
-      await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
+      await prisma.school
+        .delete({ where: { id: s.id } })
+        .catch(() => undefined);
     }
 
     const passwordHash = await argon2.hash(password);
 
     // --- School A: its own Campus/AcademicSession/Class/Section/Teacher ---
-    const schoolA = await prisma.school.create({ data: { name: 'CTB School A' } });
-    const campusA = await prisma.campus.create({ data: { schoolId: schoolA.id, name: 'CTB Campus A' } });
+    const schoolA = await prisma.school.create({
+      data: { name: 'CTB School A' },
+    });
+    const campusA = await prisma.campus.create({
+      data: { schoolId: schoolA.id, name: 'CTB Campus A' },
+    });
     const sessionA = await prisma.academicSession.create({
-      data: { label: 'CTB A', startDate: new Date(), endDate: new Date(), isActive: true },
+      data: {
+        label: 'CTB A',
+        startDate: new Date(),
+        endDate: new Date(),
+        isActive: true,
+      },
     });
     const classA = await prisma.class.create({
-      data: { campusId: campusA.id, academicSessionId: sessionA.id, name: 'CTB Grade A' },
+      data: {
+        campusId: campusA.id,
+        academicSessionId: sessionA.id,
+        name: 'CTB Grade A',
+      },
     });
-    const sectionA = await prisma.section.create({ data: { classId: classA.id, name: 'CTB-A' } });
+    const sectionA = await prisma.section.create({
+      data: { classId: classA.id, name: 'CTB-A' },
+    });
     const teacherAUser = await prisma.user.create({
-      data: { identifier: 'ctb-teacher-a@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
+      data: {
+        identifier: 'ctb-teacher-a@schoolos.edu.pk',
+        passwordHash,
+        role: 'TEACHER',
+      },
     });
-    await prisma.teacher.create({ data: { userId: teacherAUser.id, name: 'CTB Teacher A', campusId: campusA.id } });
+    await prisma.teacher.create({
+      data: {
+        userId: teacherAUser.id,
+        name: 'CTB Teacher A',
+        campusId: campusA.id,
+      },
+    });
 
     // --- School B: a fully separate tenant, its own Campus/AcademicSession/Class/Section/Teacher ---
-    const schoolB = await prisma.school.create({ data: { name: 'CTB School B' } });
-    const campusB = await prisma.campus.create({ data: { schoolId: schoolB.id, name: 'CTB Campus B' } });
+    const schoolB = await prisma.school.create({
+      data: { name: 'CTB School B' },
+    });
+    const campusB = await prisma.campus.create({
+      data: { schoolId: schoolB.id, name: 'CTB Campus B' },
+    });
     const sessionB = await prisma.academicSession.create({
-      data: { label: 'CTB B', startDate: new Date(), endDate: new Date(), isActive: true },
+      data: {
+        label: 'CTB B',
+        startDate: new Date(),
+        endDate: new Date(),
+        isActive: true,
+      },
     });
     const classB = await prisma.class.create({
-      data: { campusId: campusB.id, academicSessionId: sessionB.id, name: 'CTB Grade B' },
+      data: {
+        campusId: campusB.id,
+        academicSessionId: sessionB.id,
+        name: 'CTB Grade B',
+      },
     });
-    const sectionB = await prisma.section.create({ data: { classId: classB.id, name: 'CTB-B' } });
+    const sectionB = await prisma.section.create({
+      data: { classId: classB.id, name: 'CTB-B' },
+    });
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'ctb-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
+      data: {
+        identifier: 'ctb-teacher-b@schoolos.edu.pk',
+        passwordHash,
+        role: 'TEACHER',
+      },
     });
-    await prisma.teacher.create({ data: { userId: teacherBUser.id, name: 'CTB Teacher B', campusId: campusB.id } });
+    await prisma.teacher.create({
+      data: {
+        userId: teacherBUser.id,
+        name: 'CTB Teacher B',
+        campusId: campusB.id,
+      },
+    });
 
     // --- School A's staff: SCHOOL_ADMIN and ACCOUNTS, both scoped to School A ---
     const schoolAdminUser = await prisma.user.create({
@@ -101,7 +157,9 @@ describe('Cross-tenant boundary (e2e)', () => {
     });
 
     // --- One student enrolled in each School ---
-    const studentA = await prisma.student.create({ data: { grNumber: 'CTB-A1', name: 'CTB Student A' } });
+    const studentA = await prisma.student.create({
+      data: { grNumber: 'CTB-A1', name: 'CTB Student A' },
+    });
     await prisma.enrollment.create({
       data: {
         studentId: studentA.id,
@@ -112,7 +170,9 @@ describe('Cross-tenant boundary (e2e)', () => {
         status: 'ACTIVE',
       },
     });
-    const studentB = await prisma.student.create({ data: { grNumber: 'CTB-B1', name: 'CTB Student B' } });
+    const studentB = await prisma.student.create({
+      data: { grNumber: 'CTB-B1', name: 'CTB Student B' },
+    });
     await prisma.enrollment.create({
       data: {
         studentId: studentB.id,
@@ -137,10 +197,18 @@ describe('Cross-tenant boundary (e2e)', () => {
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({ where: { identifier: { startsWith: 'ctb-' } } }).catch(() => undefined);
-    await prisma.student.deleteMany({ where: { grNumber: { startsWith: 'CTB-' } } }).catch(() => undefined);
-    await prisma.school.delete({ where: { id: ids.schoolA } }).catch(() => undefined);
-    await prisma.school.delete({ where: { id: ids.schoolB } }).catch(() => undefined);
+    await prisma.user
+      .deleteMany({ where: { identifier: { startsWith: 'ctb-' } } })
+      .catch(() => undefined);
+    await prisma.student
+      .deleteMany({ where: { grNumber: { startsWith: 'CTB-' } } })
+      .catch(() => undefined);
+    await prisma.school
+      .delete({ where: { id: ids.schoolA } })
+      .catch(() => undefined);
+    await prisma.school
+      .delete({ where: { id: ids.schoolB } })
+      .catch(() => undefined);
     await app.close();
   });
 
@@ -180,7 +248,7 @@ describe('Cross-tenant boundary (e2e)', () => {
       .expect(403);
   });
 
-  it('GET /api/v1/campuses as a SCHOOL_ADMIN returns only their own school campus(es), never another tenant\'s', async () => {
+  it("GET /api/v1/campuses as a SCHOOL_ADMIN returns only their own school campus(es), never another tenant's", async () => {
     const token = await loginAs('ctb-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
@@ -193,7 +261,7 @@ describe('Cross-tenant boundary (e2e)', () => {
     expect(returnedIds).not.toContain(ids.campusB);
   });
 
-  it('a SCHOOL_ADMIN creating a teacher in another school\'s campus is rejected (403)', async () => {
+  it("a SCHOOL_ADMIN creating a teacher in another school's campus is rejected (403)", async () => {
     const token = await loginAs('ctb-school-admin@schoolos.edu.pk');
 
     await request(app.getHttpServer())

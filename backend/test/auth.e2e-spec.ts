@@ -132,8 +132,12 @@ describe('Auth (e2e)', () => {
     });
 
     afterAll(async () => {
-      await prisma.refreshToken.deleteMany({ where: { user: { identifier: cpIdentifier } } });
-      await prisma.user.delete({ where: { identifier: cpIdentifier } }).catch(() => undefined);
+      await prisma.refreshToken.deleteMany({
+        where: { user: { identifier: cpIdentifier } },
+      });
+      await prisma.user
+        .delete({ where: { identifier: cpIdentifier } })
+        .catch(() => undefined);
     });
 
     it('requires authentication', async () => {

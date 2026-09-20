@@ -2,7 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { HolidaysService } from '../holidays/holidays.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { RISK_MIN_TRACKED_DAYS, RISK_THRESHOLD, RISK_WINDOW_DAYS } from './attendance-risk.constants';
+import {
+  RISK_MIN_TRACKED_DAYS,
+  RISK_THRESHOLD,
+  RISK_WINDOW_DAYS,
+} from './attendance-risk.constants';
 
 export interface AttendanceRiskSummary {
   studentId: string;
@@ -68,7 +72,10 @@ export class AttendanceRiskService {
       let trackedDays = 0;
       let absentDays = 0;
       for (const record of records) {
-        const isHoliday = await this.holidaysService.isHoliday(record.date, enrollment.campusId);
+        const isHoliday = await this.holidaysService.isHoliday(
+          record.date,
+          enrollment.campusId,
+        );
         if (isHoliday) continue;
         trackedDays++;
         if (record.status === 'ABSENT') absentDays++;
@@ -88,12 +95,22 @@ export class AttendanceRiskService {
 
       await this.prisma.attendanceRiskFlag.upsert({
         where: { studentId: enrollment.studentId },
-        create: { studentId: enrollment.studentId, absenceRate, flagged, windowStart, windowEnd },
+        create: {
+          studentId: enrollment.studentId,
+          absenceRate,
+          flagged,
+          windowStart,
+          windowEnd,
+        },
         update: { absenceRate, flagged, windowStart, windowEnd },
       });
 
       if (flagged && !wasFlagged) {
-        await this.notifyClassTeacher(enrollment.studentId, enrollment.sectionId, absenceRate);
+        await this.notifyClassTeacher(
+          enrollment.studentId,
+          enrollment.sectionId,
+          absenceRate,
+        );
       }
     }
   }
@@ -103,11 +120,17 @@ export class AttendanceRiskService {
     sectionId: string,
     absenceRate: number,
   ): Promise<void> {
-    const section = await this.prisma.section.findUnique({ where: { id: sectionId } });
+    const section = await this.prisma.section.findUnique({
+      where: { id: sectionId },
+    });
     if (!section?.classTeacherId) return;
-    const teacher = await this.prisma.teacher.findUnique({ where: { id: section.classTeacherId } });
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { id: section.classTeacherId },
+    });
     if (!teacher) return;
-    const student = await this.prisma.student.findUnique({ where: { id: studentId } });
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+    });
 
     await this.notificationsService.notify({
       userId: teacher.userId,
@@ -124,7 +147,9 @@ export class AttendanceRiskService {
       include: { student: { select: { name: true } } },
     });
     if (!record) {
-      throw new NotFoundException('No attendance-risk data for this student yet');
+      throw new NotFoundException(
+        'No attendance-risk data for this student yet',
+      );
     }
     return this.toSummary(record);
   }
@@ -134,7 +159,13 @@ export class AttendanceRiskService {
       where: {
         flagged: true,
         ...(sectionIds
-          ? { student: { enrollments: { some: { sectionId: { in: sectionIds }, status: 'ACTIVE' } } } }
+          ? {
+              student: {
+                enrollments: {
+                  some: { sectionId: { in: sectionIds }, status: 'ACTIVE' },
+                },
+              },
+            }
           : {}),
       },
       include: { student: { select: { name: true } } },

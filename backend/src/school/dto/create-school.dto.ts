@@ -35,5 +35,8 @@ export class CreateSchoolDto {
   @IsOptional() @IsString() phone?: string;
   @IsOptional() @IsEmail() email?: string;
 
-  @IsOptional() @ValidateNested() @Type(() => LoginProvisionDto) admin?: LoginProvisionDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LoginProvisionDto)
+  admin?: LoginProvisionDto;
 }

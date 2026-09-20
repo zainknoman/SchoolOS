@@ -11,7 +11,11 @@ describe('ParentService — profile / guardian links', () => {
     auditLog: { create: jest.Mock };
   };
   let prisma: {
-    parentProfile: { findUnique: jest.Mock; findUniqueOrThrow: jest.Mock; update: jest.Mock };
+    parentProfile: {
+      findUnique: jest.Mock;
+      findUniqueOrThrow: jest.Mock;
+      update: jest.Mock;
+    };
     studentParent: { findFirst: jest.Mock; findUnique: jest.Mock };
     user: { findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
@@ -47,7 +51,9 @@ describe('ParentService — profile / guardian links', () => {
           id: 's1',
           name: 'Eshaal',
           grNumber: 'GR-1',
-          enrollments: [{ section: { name: '3A', class: { name: 'Grade 3' } } }],
+          enrollments: [
+            { section: { name: '3A', class: { name: 'Grade 3' } } },
+          ],
         },
       },
     ],
@@ -60,20 +66,37 @@ describe('ParentService — profile / guardian links', () => {
     };
     prisma = {
       parentProfile: {
-        findUnique: jest.fn().mockResolvedValue({ id: 'p1', userId: 'pu1', currentAddressId: null, permanentAddressId: null }),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'p1',
+          userId: 'pu1',
+          currentAddressId: null,
+          permanentAddressId: null,
+        }),
         findUniqueOrThrow: jest.fn().mockResolvedValue(profileRow),
-        update: jest.fn().mockResolvedValue({ id: 'p1', name: 'Sana', phone: '0300', user: { identifier: 'sana@x.pk' }, _count: { children: 1 } }),
+        update: jest.fn().mockResolvedValue({
+          id: 'p1',
+          name: 'Sana',
+          phone: '0300',
+          user: { identifier: 'sana@x.pk' },
+          _count: { children: 1 },
+        }),
       },
       studentParent: {
         findFirst: jest.fn().mockResolvedValue({ id: 'link' }),
         findUnique: jest.fn().mockResolvedValue({ id: 'link1' }),
       },
-      user: { findUnique: jest.fn().mockResolvedValue({ schoolId: 'school-1' }) },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ schoolId: 'school-1' }),
+      },
       auditLog: { create: jest.fn() },
       $transaction: jest.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [ParentService, { provide: PrismaService, useValue: prisma }, OrgScopeService],
+      providers: [
+        ParentService,
+        { provide: PrismaService, useValue: prisma },
+        OrgScopeService,
+      ],
     }).compile();
     service = moduleRef.get(ParentService);
   });
@@ -86,19 +109,29 @@ describe('ParentService — profile / guardian links', () => {
       occupation: 'Doctor',
       childrenCount: 1,
       children: [
-        { studentName: 'Eshaal', className: 'Grade 3', sectionName: '3A', isPrimary: true, isEmergencyContact: true },
+        {
+          studentName: 'Eshaal',
+          className: 'Grade 3',
+          sectionName: '3A',
+          isPrimary: true,
+          isEmergencyContact: true,
+        },
       ],
     });
   });
 
   it('404s for an unknown parent', async () => {
     prisma.parentProfile.findUnique.mockResolvedValue(null);
-    await expect(service.getProfile('nope', superAdmin)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.getProfile('nope', superAdmin)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('refuses a school admin reading a parent with no child in their school', async () => {
     prisma.studentParent.findFirst.mockResolvedValue(null);
-    await expect(service.getProfile('p1', schoolAdmin)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.getProfile('p1', schoolAdmin)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('demotes other primary guardians when one is marked primary', async () => {
@@ -107,23 +140,39 @@ describe('ParentService — profile / guardian links', () => {
       where: { studentId: 's1', NOT: { parentProfileId: 'p1' } },
       data: { isPrimary: false },
     });
-    expect(tx.studentParent.update).toHaveBeenCalledWith({ where: { id: 'link1' }, data: { isPrimary: true } });
+    expect(tx.studentParent.update).toHaveBeenCalledWith({
+      where: { id: 'link1' },
+      data: { isPrimary: true },
+    });
   });
 
   it('does not touch other guardians when un-marking primary or setting the emergency flag', async () => {
-    await service.updateChildLink('p1', 's1', { isEmergencyContact: false, isPrimary: false }, superAdmin);
+    await service.updateChildLink(
+      'p1',
+      's1',
+      { isEmergencyContact: false, isPrimary: false },
+      superAdmin,
+    );
     expect(tx.studentParent.updateMany).not.toHaveBeenCalled();
   });
 
   it('404s when the parent is not linked to the student', async () => {
     prisma.studentParent.findUnique.mockResolvedValue(null);
-    await expect(service.updateChildLink('p1', 's9', { isPrimary: true }, superAdmin)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.updateChildLink('p1', 's9', { isPrimary: true }, superAdmin),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('creates a current address when none exists and blanks empty text fields to null', async () => {
-    await service.update('p1', { cnic: ' ', occupation: 'Teacher', currentAddress: { line1: '5 Rose St' } }, 'u0');
+    await service.update(
+      'p1',
+      {
+        cnic: ' ',
+        occupation: 'Teacher',
+        currentAddress: { line1: '5 Rose St' },
+      },
+      'u0',
+    );
     const data = prisma.parentProfile.update.mock.calls[0][0].data;
     expect(data.cnic).toBeNull();
     expect(data.occupation).toBe('Teacher');

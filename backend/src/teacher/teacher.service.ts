@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
@@ -8,7 +12,10 @@ import { assertCreatable } from '../common/prisma-create-guard';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
 import type { RequestUser } from '../common/student-access.service';
-import { createTeacherWithUser, type CreatedTeacher } from './create-teacher-with-user';
+import {
+  createTeacherWithUser,
+  type CreatedTeacher,
+} from './create-teacher-with-user';
 
 export interface TeacherAdminSummary {
   id: string;
@@ -25,21 +32,39 @@ export class TeacherService {
     private readonly orgScope: OrgScopeService,
   ) {}
 
-  private toSummary(record: { id: string; name: string; user: { identifier: string } }): TeacherAdminSummary {
-    return { id: record.id, identifier: record.user.identifier, name: record.name };
+  private toSummary(record: {
+    id: string;
+    name: string;
+    user: { identifier: string };
+  }): TeacherAdminSummary {
+    return {
+      id: record.id,
+      identifier: record.user.identifier,
+      name: record.name,
+    };
   }
 
-  async create(dto: CreateTeacherDto, actingUser: RequestUser): Promise<TeacherAdminSummary> {
+  async create(
+    dto: CreateTeacherDto,
+    actingUser: RequestUser,
+  ): Promise<TeacherAdminSummary> {
     const scope = await this.orgScope.resolve(actingUser);
     if (!scope.unrestricted) {
-      const campus = await this.prisma.campus.findUnique({ where: { id: dto.campusId } });
-      if (!campus || !scope.allows({ campusId: campus.id, schoolId: campus.schoolId })) {
+      const campus = await this.prisma.campus.findUnique({
+        where: { id: dto.campusId },
+      });
+      if (
+        !campus ||
+        !scope.allows({ campusId: campus.id, schoolId: campus.schoolId })
+      ) {
         throw new ForbiddenException('You do not have access to this campus');
       }
     }
     let created: CreatedTeacher;
     try {
-      created = await this.prisma.$transaction((tx) => createTeacherWithUser(tx, dto));
+      created = await this.prisma.$transaction((tx) =>
+        createTeacherWithUser(tx, dto),
+      );
     } catch (error) {
       assertCreatable(error, 'This identifier is already in use.');
     }
@@ -49,7 +74,10 @@ export class TeacherService {
         action: 'teacher.create',
         entity: 'Teacher',
         entityId: created.id,
-        metadata: JSON.stringify({ identifier: dto.identifier, name: dto.name }),
+        metadata: JSON.stringify({
+          identifier: dto.identifier,
+          name: dto.name,
+        }),
       },
     });
     return created;
@@ -60,19 +88,32 @@ export class TeacherService {
     if (scope.denied) {
       return [];
     }
-    const where: Prisma.TeacherWhereInput | undefined = scope.campusWhere ? { campus: scope.campusWhere } : undefined;
-    const records = await this.prisma.teacher.findMany({ where, include: WITH_USER, orderBy: { name: 'asc' } });
+    const where: Prisma.TeacherWhereInput | undefined = scope.campusWhere
+      ? { campus: scope.campusWhere }
+      : undefined;
+    const records = await this.prisma.teacher.findMany({
+      where,
+      include: WITH_USER,
+      orderBy: { name: 'asc' },
+    });
     return records.map((r) => this.toSummary(r));
   }
 
-  async update(id: string, dto: UpdateTeacherDto, actingUserId: string): Promise<TeacherAdminSummary> {
+  async update(
+    id: string,
+    dto: UpdateTeacherDto,
+    actingUserId: string,
+  ): Promise<TeacherAdminSummary> {
     const existing = await this.prisma.teacher.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Teacher not found');
     }
     if (dto.password !== undefined) {
       const passwordHash = await argon2.hash(dto.password);
-      await this.prisma.user.update({ where: { id: existing.userId }, data: { passwordHash } });
+      await this.prisma.user.update({
+        where: { id: existing.userId },
+        data: { passwordHash },
+      });
     }
     const record = await this.prisma.teacher.update({
       where: { id },
@@ -85,7 +126,10 @@ export class TeacherService {
         action: 'teacher.update',
         entity: 'Teacher',
         entityId: id,
-        metadata: JSON.stringify({ name: dto.name, passwordChanged: dto.password !== undefined }),
+        metadata: JSON.stringify({
+          name: dto.name,
+          passwordChanged: dto.password !== undefined,
+        }),
       },
     });
     return this.toSummary(record);
@@ -105,7 +149,12 @@ export class TeacherService {
       assertDeletable(error, 'Teacher');
     }
     await this.prisma.auditLog.create({
-      data: { userId: actingUserId, action: 'teacher.delete', entity: 'Teacher', entityId: id },
+      data: {
+        userId: actingUserId,
+        action: 'teacher.delete',
+        entity: 'Teacher',
+        entityId: id,
+      },
     });
   }
 }

@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { Gender } from '@prisma/client';
 import { AddressDto } from '../../common/dto/address.dto';
 
@@ -29,6 +37,12 @@ export class UpdateParentDto {
   @IsOptional() @IsString() occupation?: string;
   @IsOptional() @IsString() employerName?: string;
   @IsOptional() @IsString() designation?: string;
-  @IsOptional() @ValidateNested() @Type(() => AddressDto) currentAddress?: AddressDto;
-  @IsOptional() @ValidateNested() @Type(() => AddressDto) permanentAddress?: AddressDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AddressDto)
+  currentAddress?: AddressDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AddressDto)
+  permanentAddress?: AddressDto;
 }

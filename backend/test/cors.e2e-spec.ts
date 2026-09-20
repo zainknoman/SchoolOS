@@ -27,7 +27,9 @@ describe('CORS (e2e)', () => {
       .set('Origin', 'http://localhost:5173')
       .set('Access-Control-Request-Method', 'POST');
 
-    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(res.headers['access-control-allow-origin']).toBe(
+      'http://localhost:5173',
+    );
   });
 
   it('omits Access-Control-Allow-Origin for a disallowed origin', async () => {

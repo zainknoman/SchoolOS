@@ -35,7 +35,9 @@ export class AttendanceService {
   async assertNotHoliday(date: Date, campusId: string): Promise<void> {
     const isHoliday = await this.holidaysService.isHoliday(date, campusId);
     if (isHoliday) {
-      throw new BadRequestException('Cannot mark attendance on a declared holiday');
+      throw new BadRequestException(
+        'Cannot mark attendance on a declared holiday',
+      );
     }
   }
 
@@ -51,14 +53,18 @@ export class AttendanceService {
    * real acting user (markingUserId), regardless of whose Teacher id the FK points at.
    */
   async markAttendance(dto: MarkAttendanceDto, markingUserId: string) {
-    const enrollment = await this.enrollmentService.getCurrentEnrollment(dto.studentId);
+    const enrollment = await this.enrollmentService.getCurrentEnrollment(
+      dto.studentId,
+    );
     const date = new Date(dto.date);
     await this.assertNotHoliday(date, enrollment.campusId);
 
     const teacher = await this.prisma.teacher.findUnique({
       where: { userId: markingUserId },
     });
-    const markedById = teacher ? teacher.id : await this.resolveClassTeacherIdFrom(enrollment);
+    const markedById = teacher
+      ? teacher.id
+      : await this.resolveClassTeacherIdFrom(enrollment);
 
     const record = await this.prisma.attendance.upsert({
       where: { studentId_date: { studentId: dto.studentId, date } },
@@ -88,8 +94,12 @@ export class AttendanceService {
     return record;
   }
 
-  private async resolveClassTeacherIdFrom(enrollment: { sectionId: string }): Promise<string> {
-    const section = await this.prisma.section.findUnique({ where: { id: enrollment.sectionId } });
+  private async resolveClassTeacherIdFrom(enrollment: {
+    sectionId: string;
+  }): Promise<string> {
+    const section = await this.prisma.section.findUnique({
+      where: { id: enrollment.sectionId },
+    });
     if (!section?.classTeacherId) {
       throw new BadRequestException(
         "Cannot mark attendance: this student's section has no class teacher assigned",
@@ -109,10 +119,14 @@ export class AttendanceService {
     }
 
     const date = new Date(dto.date);
-    const enrollment = await this.enrollmentService.getCurrentEnrollment(dto.marks[0].studentId);
+    const enrollment = await this.enrollmentService.getCurrentEnrollment(
+      dto.marks[0].studentId,
+    );
     await this.assertNotHoliday(date, enrollment.campusId);
 
-    const teacher = await this.prisma.teacher.findUnique({ where: { userId: markingUserId } });
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { userId: markingUserId },
+    });
 
     const records = await this.prisma.$transaction(async (tx) => {
       const results: Awaited<ReturnType<typeof tx.attendance.upsert>>[] = [];
@@ -124,7 +138,12 @@ export class AttendanceService {
             );
         const record = await tx.attendance.upsert({
           where: { studentId_date: { studentId: mark.studentId, date } },
-          create: { studentId: mark.studentId, date, status: mark.status, markedById },
+          create: {
+            studentId: mark.studentId,
+            date,
+            status: mark.status,
+            markedById,
+          },
           update: { status: mark.status, markedById },
         });
         results.push(record);
@@ -155,10 +174,16 @@ export class AttendanceService {
    * sees a blank roster and has to re-mark everyone, even though their earlier marks are already
    * saved (markAttendance upserts, so nothing was lost — it just was never shown back).
    */
-  async getForSection(sectionId: string, dateStr: string): Promise<Record<string, string>> {
+  async getForSection(
+    sectionId: string,
+    dateStr: string,
+  ): Promise<Record<string, string>> {
     const date = new Date(`${dateStr}T00:00:00.000Z`);
     const records = await this.prisma.attendance.findMany({
-      where: { date, student: { enrollments: { some: { sectionId, status: 'ACTIVE' } } } },
+      where: {
+        date,
+        student: { enrollments: { some: { sectionId, status: 'ACTIVE' } } },
+      },
       select: { studentId: true, status: true },
     });
     return Object.fromEntries(records.map((r) => [r.studentId, r.status]));
@@ -209,7 +234,11 @@ export class AttendanceService {
 
     let calendarHolidayCount = 0;
     try {
-      const enrollment = await this.enrollmentService.getEnrollmentForDate(studentId, start, end);
+      const enrollment = await this.enrollmentService.getEnrollmentForDate(
+        studentId,
+        start,
+        end,
+      );
       // System-internal lookup for a campusId already derived from the student's own enrollment
       // (not caller-supplied), so it bypasses HolidaysService's caller-scoping (SUPER_ADMIN skips
       // it) rather than needing this request's actingUser threaded all the way down here.

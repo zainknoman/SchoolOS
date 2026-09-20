@@ -3,7 +3,11 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { PUSH_ADAPTER } from './push-adapter';
 import type { PushAdapter } from './push-adapter';
-import { WHATSAPP_ADAPTER, SMS_ADAPTER, resolveAdapterFor } from './channel-registry';
+import {
+  WHATSAPP_ADAPTER,
+  SMS_ADAPTER,
+  resolveAdapterFor,
+} from './channel-registry';
 
 /** Named constant so the interval is a one-line change later, not a magic string. */
 export const DIGEST_DISPATCH_CRON = '*/15 * * * *';
@@ -75,7 +79,10 @@ export class DigestDispatchJob {
       } catch (err) {
         // Best-effort, same as NotificationsService.notify() — leave dispatchedAt null so the
         // next run retries this user's bundle rather than silently dropping it.
-        this.logger.error(`Digest delivery failed for user ${user.id}`, err as Error);
+        this.logger.error(
+          `Digest delivery failed for user ${user.id}`,
+          err as Error,
+        );
       }
     }
   }

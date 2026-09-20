@@ -8,7 +8,12 @@ describe('FeePaymentsService', () => {
   let service: FeePaymentsService;
   let prisma: {
     feeVoucher: { findUnique: jest.Mock };
-    feePayment: { create: jest.Mock; findUnique: jest.Mock; update: jest.Mock; findMany: jest.Mock };
+    feePayment: {
+      create: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
+      findMany: jest.Mock;
+    };
     feePaymentAllocation: { deleteMany: jest.Mock; updateMany: jest.Mock };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
@@ -19,7 +24,12 @@ describe('FeePaymentsService', () => {
   beforeEach(async () => {
     prisma = {
       feeVoucher: { findUnique: jest.fn() },
-      feePayment: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), findMany: jest.fn() },
+      feePayment: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        findMany: jest.fn(),
+      },
       feePaymentAllocation: { deleteMany: jest.fn(), updateMany: jest.fn() },
       auditLog: { create: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
@@ -43,7 +53,9 @@ describe('FeePaymentsService', () => {
       allocations: [{ amount: 500000 }],
     });
 
-    await expect(service.pay('v1', 'parent-1', 'jazzcash')).rejects.toThrow(BadRequestException);
+    await expect(service.pay('v1', 'parent-1', 'jazzcash')).rejects.toThrow(
+      BadRequestException,
+    );
     expect(adapter.initiate).not.toHaveBeenCalled();
   });
 
@@ -53,13 +65,18 @@ describe('FeePaymentsService', () => {
       items: [{ amount: 500000 }],
       allocations: [{ amount: 200000 }],
     });
-    adapter.initiate.mockResolvedValue({ redirectUrl: '/pay/x', gatewayReference: 'stub_1' });
+    adapter.initiate.mockResolvedValue({
+      redirectUrl: '/pay/x',
+      gatewayReference: 'stub_1',
+    });
     prisma.feePayment.create.mockResolvedValue({ id: 'pay-1' });
 
     const result = await service.pay('v1', 'parent-1', 'easypaisa');
 
     expect(gatewayFactory.getAdapter).toHaveBeenCalledWith('easypaisa');
-    expect(adapter.initiate).toHaveBeenCalledWith(expect.objectContaining({ amount: 300000 }));
+    expect(adapter.initiate).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 300000 }),
+    );
     expect(prisma.feePayment.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -98,11 +115,18 @@ describe('FeePaymentsService', () => {
     );
     expect(prisma.feePayment.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ status: 'completed', receipt: { create: expect.anything() } }),
+        data: expect.objectContaining({
+          status: 'completed',
+          receipt: { create: expect.anything() },
+        }),
       }),
     );
     expect(result).toEqual(
-      expect.objectContaining({ status: 'completed', receiptId: 'r1', voucherIds: ['v1'] }),
+      expect.objectContaining({
+        status: 'completed',
+        receiptId: 'r1',
+        voucherIds: ['v1'],
+      }),
     );
   });
 
@@ -165,7 +189,11 @@ describe('FeePaymentsService', () => {
       id: 'pay-1',
       status: 'failed',
       allocations: [
-        { feeVoucherId: 'v1', amount: 0, feeVoucher: { studentId: 's1', student: { id: 's1' } } },
+        {
+          feeVoucherId: 'v1',
+          amount: 0,
+          feeVoucher: { studentId: 's1', student: { id: 's1' } },
+        },
       ],
       receipt: null,
     });
@@ -196,7 +224,9 @@ describe('FeePaymentsService', () => {
 
   it('confirmFromWebhook throws NotFoundException for an unknown reference', async () => {
     prisma.feePayment.findUnique.mockResolvedValue(null);
-    await expect(service.confirmFromWebhook('unknown-ref', 'completed')).rejects.toThrow(NotFoundException);
+    await expect(
+      service.confirmFromWebhook('unknown-ref', 'completed'),
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('getById throws NotFoundException for a missing payment', async () => {
@@ -220,15 +250,25 @@ describe('FeePaymentsService', () => {
       createdAt: new Date('2026-09-10'),
     });
 
-    const result = await service.reconcile('v1', { amount: 300000, method: 'cash' }, 'admin-1');
+    const result = await service.reconcile(
+      'v1',
+      { amount: 300000, method: 'cash' },
+      'admin-1',
+    );
 
     expect(adapter.initiate).not.toHaveBeenCalled();
     expect(prisma.feePayment.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ amount: 300000, method: 'cash', status: 'completed' }),
+        data: expect.objectContaining({
+          amount: 300000,
+          method: 'cash',
+          status: 'completed',
+        }),
       }),
     );
-    expect(result).toEqual(expect.objectContaining({ status: 'completed', receiptId: 'r2' }));
+    expect(result).toEqual(
+      expect.objectContaining({ status: 'completed', receiptId: 'r2' }),
+    );
   });
 
   it("reconcile() rejects an amount greater than the voucher's remaining balance", async () => {
@@ -246,8 +286,8 @@ describe('FeePaymentsService', () => {
 
   it('reconcile() throws NotFoundException for a missing voucher', async () => {
     prisma.feeVoucher.findUnique.mockResolvedValue(null);
-    await expect(service.reconcile('missing', { amount: 100, method: 'cash' }, 'admin-1')).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      service.reconcile('missing', { amount: 100, method: 'cash' }, 'admin-1'),
+    ).rejects.toThrow(NotFoundException);
   });
 });

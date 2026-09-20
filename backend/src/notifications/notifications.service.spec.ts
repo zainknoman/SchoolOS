@@ -9,7 +9,11 @@ describe('NotificationsService', () => {
   let service: NotificationsService;
   let prisma: {
     user: { findUnique: jest.Mock };
-    notification: { create: jest.Mock; findMany: jest.Mock; updateMany: jest.Mock };
+    notification: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      updateMany: jest.Mock;
+    };
   };
   let push: { send: jest.Mock };
   let whatsapp: { send: jest.Mock };
@@ -18,7 +22,11 @@ describe('NotificationsService', () => {
   beforeEach(async () => {
     prisma = {
       user: { findUnique: jest.fn() },
-      notification: { create: jest.fn(), findMany: jest.fn(), updateMany: jest.fn() },
+      notification: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        updateMany: jest.fn(),
+      },
     };
     push = { send: jest.fn().mockResolvedValue(undefined) };
     whatsapp = { send: jest.fn().mockResolvedValue(undefined) };
@@ -76,7 +84,12 @@ describe('NotificationsService', () => {
     });
     prisma.notification.create.mockResolvedValue({ id: 'n1' });
 
-    await service.notify({ userId: 'user-1', type: 'circular', title: 'T', body: 'B' });
+    await service.notify({
+      userId: 'user-1',
+      type: 'circular',
+      title: 'T',
+      body: 'B',
+    });
 
     expect(whatsapp.send).toHaveBeenCalledWith('user-1', {
       title: 'T',
@@ -93,7 +106,12 @@ describe('NotificationsService', () => {
     });
     prisma.notification.create.mockResolvedValue({ id: 'n1' });
 
-    await service.notify({ userId: 'user-1', type: 'diary', title: 'T', body: 'B' });
+    await service.notify({
+      userId: 'user-1',
+      type: 'diary',
+      title: 'T',
+      body: 'B',
+    });
 
     expect(prisma.notification.create).toHaveBeenCalledWith({
       data: {
@@ -119,7 +137,12 @@ describe('NotificationsService', () => {
     push.send.mockRejectedValue(new Error('no provider configured'));
 
     await expect(
-      service.notify({ userId: 'user-1', type: 'diary', title: 'x', body: 'y' }),
+      service.notify({
+        userId: 'user-1',
+        type: 'diary',
+        title: 'x',
+        body: 'y',
+      }),
     ).resolves.toBeUndefined();
     expect(prisma.notification.create).toHaveBeenCalled();
   });
@@ -165,10 +188,12 @@ describe('NotificationsService', () => {
     });
 
     prisma.notification.updateMany.mockResolvedValue({ count: 0 });
-    await expect(service.markRead('n1', 'someone-else')).rejects.toThrow(NotFoundException);
+    await expect(service.markRead('n1', 'someone-else')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
-  it('markAllRead only touches the caller\'s unread rows', async () => {
+  it("markAllRead only touches the caller's unread rows", async () => {
     prisma.notification.updateMany.mockResolvedValue({ count: 3 });
     await service.markAllRead('user-1');
     expect(prisma.notification.updateMany).toHaveBeenCalledWith({

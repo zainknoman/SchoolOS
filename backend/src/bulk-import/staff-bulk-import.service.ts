@@ -35,35 +35,58 @@ export class StaffBulkImportService {
       if (!employeeType) {
         errors.push('employeeType is required');
       } else if (!EMPLOYEE_TYPES.has(employeeType)) {
-        errors.push(`employeeType "${employeeType}" is not a recognized employee type`);
+        errors.push(
+          `employeeType "${employeeType}" is not a recognized employee type`,
+        );
       }
       if (!campusId) errors.push('campusId is required');
 
       if (employeeType === 'TEACHER') {
         if (!loginIdentifier) {
-          errors.push('loginIdentifier is required when employeeType is TEACHER');
+          errors.push(
+            'loginIdentifier is required when employeeType is TEACHER',
+          );
         } else {
           if (seenLoginIdentifiers.has(loginIdentifier)) {
-            errors.push(`Duplicate loginIdentifier "${loginIdentifier}" within this file`);
+            errors.push(
+              `Duplicate loginIdentifier "${loginIdentifier}" within this file`,
+            );
           }
           seenLoginIdentifiers.add(loginIdentifier);
-          const existingUser = await this.prisma.user.findUnique({ where: { identifier: loginIdentifier } });
-          if (existingUser) errors.push(`Identifier "${loginIdentifier}" is already in use`);
+          const existingUser = await this.prisma.user.findUnique({
+            where: { identifier: loginIdentifier },
+          });
+          if (existingUser)
+            errors.push(`Identifier "${loginIdentifier}" is already in use`);
         }
       }
 
       if (campusId) {
-        const campus = await this.prisma.campus.findUnique({ where: { id: campusId } });
+        const campus = await this.prisma.campus.findUnique({
+          where: { id: campusId },
+        });
         if (!campus) errors.push(`Campus "${campusId}" not found`);
       }
       if (cnic) {
-        const existingStaff = await this.prisma.staff.findUnique({ where: { cnic } });
+        const existingStaff = await this.prisma.staff.findUnique({
+          where: { cnic },
+        });
         if (existingStaff) errors.push(`CNIC "${cnic}" is already in use`);
       }
 
       outcomes.push({
         line,
-        data: { name, employeeType, campusId, dateOfBirth, cnic, mobile, email, joiningDate, loginIdentifier } as Record<string, string>,
+        data: {
+          name,
+          employeeType,
+          campusId,
+          dateOfBirth,
+          cnic,
+          mobile,
+          email,
+          joiningDate,
+          loginIdentifier,
+        } as Record<string, string>,
         errors,
       });
     }
@@ -72,14 +95,24 @@ export class StaffBulkImportService {
 
   async preview(buffer: Buffer): Promise<PreviewResult> {
     const rows = await this.validateRows(buffer);
-    return { rows, validCount: rows.filter((r) => r.errors.length === 0).length, errorCount: rows.filter((r) => r.errors.length > 0).length };
+    return {
+      rows,
+      validCount: rows.filter((r) => r.errors.length === 0).length,
+      errorCount: rows.filter((r) => r.errors.length > 0).length,
+    };
   }
 
-  async commit(buffer: Buffer, actingUserId: string): Promise<{ createdCount: number; staffIds: string[] }> {
+  async commit(
+    buffer: Buffer,
+    actingUserId: string,
+  ): Promise<{ createdCount: number; staffIds: string[] }> {
     const rows = await this.validateRows(buffer);
     const invalid = rows.filter((r) => r.errors.length > 0);
     if (invalid.length > 0) {
-      throw Object.assign(new Error('One or more rows are invalid; nothing was imported.'), { rows: invalid });
+      throw Object.assign(
+        new Error('One or more rows are invalid; nothing was imported.'),
+        { rows: invalid },
+      );
     }
 
     const staffIds = await this.prisma.$transaction(async (tx) => {
@@ -96,7 +129,10 @@ export class StaffBulkImportService {
           joiningDate: data.joiningDate || undefined,
           login:
             data.employeeType === 'TEACHER'
-              ? { identifier: data.loginIdentifier, password: randomBytes(24).toString('base64url') }
+              ? {
+                  identifier: data.loginIdentifier,
+                  password: randomBytes(24).toString('base64url'),
+                }
               : undefined,
         });
         ids.push(id);

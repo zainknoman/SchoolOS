@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertCreatable } from '../common/prisma-create-guard';
@@ -11,26 +15,44 @@ import { AddressDto } from '../common/dto/address.dto';
 import { CreateStaffDocumentDto } from './dto/create-staff-document.dto';
 
 export const STAFF_PROFILE_INCLUDE = {
-  campus: { select: { id: true, name: true, code: true, school: { select: { id: true, name: true } } } },
+  campus: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      school: { select: { id: true, name: true } },
+    },
+  },
   currentAddress: true,
   permanentAddress: true,
   teacher: { include: { user: { select: { identifier: true } } } },
-  emergencyContacts: { include: { address: true }, orderBy: { priority: 'asc' as const } },
+  emergencyContacts: {
+    include: { address: true },
+    orderBy: { priority: 'asc' as const },
+  },
   experience: { orderBy: { fromDate: 'desc' as const } },
-  documents: { include: { file: true }, orderBy: { createdAt: 'desc' as const } },
+  documents: {
+    include: { file: true },
+    orderBy: { createdAt: 'desc' as const },
+  },
 };
 
 @Injectable()
 export class StaffProfileService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private addressWrite(address: AddressDto | undefined, existingAddressId: string | null | undefined) {
+  private addressWrite(
+    address: AddressDto | undefined,
+    existingAddressId: string | null | undefined,
+  ) {
     if (!address) return undefined;
     return existingAddressId ? { update: address } : { create: address };
   }
 
   private async requireStaff(staffId: string) {
-    const staff = await this.prisma.staff.findUnique({ where: { id: staffId } });
+    const staff = await this.prisma.staff.findUnique({
+      where: { id: staffId },
+    });
     if (!staff) {
       throw new NotFoundException('Staff member not found');
     }
@@ -39,42 +61,77 @@ export class StaffProfileService {
 
   async getProfile(staffId: string) {
     await this.requireStaff(staffId);
-    return this.prisma.staff.findUniqueOrThrow({ where: { id: staffId }, include: STAFF_PROFILE_INCLUDE });
+    return this.prisma.staff.findUniqueOrThrow({
+      where: { id: staffId },
+      include: STAFF_PROFILE_INCLUDE,
+    });
   }
 
-  async updateProfile(staffId: string, dto: UpdateStaffProfileDto, actingUserId: string) {
+  async updateProfile(
+    staffId: string,
+    dto: UpdateStaffProfileDto,
+    actingUserId: string,
+  ) {
     const existing = await this.requireStaff(staffId);
 
     if (dto.profilePhotoFileId !== undefined) {
-      const file = await this.prisma.file.findUnique({ where: { id: dto.profilePhotoFileId } });
+      const file = await this.prisma.file.findUnique({
+        where: { id: dto.profilePhotoFileId },
+      });
       if (!file) {
-        throw new BadRequestException('Upload the photo first via POST /api/v1/files, then link it here.');
+        throw new BadRequestException(
+          'Upload the photo first via POST /api/v1/files, then link it here.',
+        );
       }
     }
 
     const data: Prisma.StaffUpdateInput = {
       profilePhoto:
-        dto.profilePhotoFileId !== undefined ? { connect: { id: dto.profilePhotoFileId } } : undefined,
+        dto.profilePhotoFileId !== undefined
+          ? { connect: { id: dto.profilePhotoFileId } }
+          : undefined,
       ...(dto.firstName !== undefined ? { firstName: dto.firstName } : {}),
       ...(dto.middleName !== undefined ? { middleName: dto.middleName } : {}),
       ...(dto.lastName !== undefined ? { lastName: dto.lastName } : {}),
       ...(dto.gender !== undefined ? { gender: dto.gender } : {}),
-      ...(dto.dateOfBirth !== undefined ? { dateOfBirth: new Date(dto.dateOfBirth) } : {}),
+      ...(dto.dateOfBirth !== undefined
+        ? { dateOfBirth: new Date(dto.dateOfBirth) }
+        : {}),
       ...(dto.cnic !== undefined ? { cnic: dto.cnic } : {}),
       ...(dto.mobile !== undefined ? { mobile: dto.mobile } : {}),
       ...(dto.email !== undefined ? { email: dto.email } : {}),
-      ...(dto.joiningDate !== undefined ? { joiningDate: new Date(dto.joiningDate) } : {}),
-      ...(dto.employmentStatus !== undefined ? { employmentStatus: dto.employmentStatus } : {}),
-      ...(dto.leavingDate !== undefined ? { leavingDate: new Date(dto.leavingDate) } : {}),
-      ...(dto.leavingReason !== undefined ? { leavingReason: dto.leavingReason } : {}),
+      ...(dto.joiningDate !== undefined
+        ? { joiningDate: new Date(dto.joiningDate) }
+        : {}),
+      ...(dto.employmentStatus !== undefined
+        ? { employmentStatus: dto.employmentStatus }
+        : {}),
+      ...(dto.leavingDate !== undefined
+        ? { leavingDate: new Date(dto.leavingDate) }
+        : {}),
+      ...(dto.leavingReason !== undefined
+        ? { leavingReason: dto.leavingReason }
+        : {}),
     };
 
-    data.currentAddress = this.addressWrite(dto.currentAddress, existing.currentAddressId);
-    data.permanentAddress = this.addressWrite(dto.permanentAddress, existing.permanentAddressId);
+    data.currentAddress = this.addressWrite(
+      dto.currentAddress,
+      existing.currentAddressId,
+    );
+    data.permanentAddress = this.addressWrite(
+      dto.permanentAddress,
+      existing.permanentAddressId,
+    );
 
-    let record;
+    let record: Prisma.StaffGetPayload<{
+      include: typeof STAFF_PROFILE_INCLUDE;
+    }>;
     try {
-      record = await this.prisma.staff.update({ where: { id: staffId }, data, include: STAFF_PROFILE_INCLUDE });
+      record = await this.prisma.staff.update({
+        where: { id: staffId },
+        data,
+        include: STAFF_PROFILE_INCLUDE,
+      });
     } catch (error) {
       assertCreatable(error, 'This CNIC is already in use.');
     }
@@ -101,7 +158,11 @@ export class StaffProfileService {
     });
   }
 
-  async createEmergencyContact(staffId: string, dto: CreateStaffEmergencyContactDto, actingUserId: string) {
+  async createEmergencyContact(
+    staffId: string,
+    dto: CreateStaffEmergencyContactDto,
+    actingUserId: string,
+  ) {
     await this.requireStaff(staffId);
     const record = await this.prisma.staffEmergencyContact.create({
       data: {
@@ -135,7 +196,9 @@ export class StaffProfileService {
     dto: UpdateStaffEmergencyContactDto,
     actingUserId: string,
   ) {
-    const existing = await this.prisma.staffEmergencyContact.findUnique({ where: { id: contactId } });
+    const existing = await this.prisma.staffEmergencyContact.findUnique({
+      where: { id: contactId },
+    });
     if (!existing || existing.staffId !== staffId) {
       throw new NotFoundException('Emergency contact not found');
     }
@@ -144,9 +207,13 @@ export class StaffProfileService {
       where: { id: contactId },
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
-        ...(dto.relationship !== undefined ? { relationship: dto.relationship } : {}),
+        ...(dto.relationship !== undefined
+          ? { relationship: dto.relationship }
+          : {}),
         ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
-        ...(dto.alternatePhone !== undefined ? { alternatePhone: dto.alternatePhone } : {}),
+        ...(dto.alternatePhone !== undefined
+          ? { alternatePhone: dto.alternatePhone }
+          : {}),
         ...(dto.email !== undefined ? { email: dto.email } : {}),
         ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
         ...(dto.isPrimary !== undefined ? { isPrimary: dto.isPrimary } : {}),
@@ -167,12 +234,20 @@ export class StaffProfileService {
     return record;
   }
 
-  async deleteEmergencyContact(staffId: string, contactId: string, actingUserId: string) {
-    const existing = await this.prisma.staffEmergencyContact.findUnique({ where: { id: contactId } });
+  async deleteEmergencyContact(
+    staffId: string,
+    contactId: string,
+    actingUserId: string,
+  ) {
+    const existing = await this.prisma.staffEmergencyContact.findUnique({
+      where: { id: contactId },
+    });
     if (!existing || existing.staffId !== staffId) {
       throw new NotFoundException('Emergency contact not found');
     }
-    await this.prisma.staffEmergencyContact.delete({ where: { id: contactId } });
+    await this.prisma.staffEmergencyContact.delete({
+      where: { id: contactId },
+    });
     await this.prisma.auditLog.create({
       data: {
         userId: actingUserId,
@@ -185,10 +260,17 @@ export class StaffProfileService {
 
   async listExperience(staffId: string) {
     await this.requireStaff(staffId);
-    return this.prisma.staffExperience.findMany({ where: { staffId }, orderBy: { fromDate: 'desc' } });
+    return this.prisma.staffExperience.findMany({
+      where: { staffId },
+      orderBy: { fromDate: 'desc' },
+    });
   }
 
-  async createExperience(staffId: string, dto: CreateStaffExperienceDto, actingUserId: string) {
+  async createExperience(
+    staffId: string,
+    dto: CreateStaffExperienceDto,
+    actingUserId: string,
+  ) {
     await this.requireStaff(staffId);
     const record = await this.prisma.staffExperience.create({
       data: {
@@ -212,19 +294,32 @@ export class StaffProfileService {
     return record;
   }
 
-  async updateExperience(staffId: string, experienceId: string, dto: UpdateStaffExperienceDto, actingUserId: string) {
-    const existing = await this.prisma.staffExperience.findUnique({ where: { id: experienceId } });
+  async updateExperience(
+    staffId: string,
+    experienceId: string,
+    dto: UpdateStaffExperienceDto,
+    actingUserId: string,
+  ) {
+    const existing = await this.prisma.staffExperience.findUnique({
+      where: { id: experienceId },
+    });
     if (!existing || existing.staffId !== staffId) {
       throw new NotFoundException('Experience entry not found');
     }
     const record = await this.prisma.staffExperience.update({
       where: { id: experienceId },
       data: {
-        ...(dto.organization !== undefined ? { organization: dto.organization } : {}),
+        ...(dto.organization !== undefined
+          ? { organization: dto.organization }
+          : {}),
         ...(dto.role !== undefined ? { role: dto.role } : {}),
-        ...(dto.fromDate !== undefined ? { fromDate: new Date(dto.fromDate) } : {}),
+        ...(dto.fromDate !== undefined
+          ? { fromDate: new Date(dto.fromDate) }
+          : {}),
         ...(dto.toDate !== undefined ? { toDate: new Date(dto.toDate) } : {}),
-        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
       },
     });
     await this.prisma.auditLog.create({
@@ -239,8 +334,14 @@ export class StaffProfileService {
     return record;
   }
 
-  async deleteExperience(staffId: string, experienceId: string, actingUserId: string) {
-    const existing = await this.prisma.staffExperience.findUnique({ where: { id: experienceId } });
+  async deleteExperience(
+    staffId: string,
+    experienceId: string,
+    actingUserId: string,
+  ) {
+    const existing = await this.prisma.staffExperience.findUnique({
+      where: { id: experienceId },
+    });
     if (!existing || existing.staffId !== staffId) {
       throw new NotFoundException('Experience entry not found');
     }
@@ -264,11 +365,19 @@ export class StaffProfileService {
     });
   }
 
-  async addDocument(staffId: string, dto: CreateStaffDocumentDto, actingUserId: string) {
+  async addDocument(
+    staffId: string,
+    dto: CreateStaffDocumentDto,
+    actingUserId: string,
+  ) {
     await this.requireStaff(staffId);
-    const file = await this.prisma.file.findUnique({ where: { id: dto.fileId } });
+    const file = await this.prisma.file.findUnique({
+      where: { id: dto.fileId },
+    });
     if (!file) {
-      throw new BadRequestException('Upload the file first via POST /api/v1/files, then link it here.');
+      throw new BadRequestException(
+        'Upload the file first via POST /api/v1/files, then link it here.',
+      );
     }
     const record = await this.prisma.staffDocument.create({
       data: {
@@ -286,14 +395,24 @@ export class StaffProfileService {
         action: 'staff.document.add',
         entity: 'StaffDocument',
         entityId: record.id,
-        metadata: JSON.stringify({ documentType: dto.documentType, fileId: dto.fileId }),
+        metadata: JSON.stringify({
+          documentType: dto.documentType,
+          fileId: dto.fileId,
+        }),
       },
     });
     return record;
   }
 
-  async verifyDocument(staffId: string, documentId: string, verified: boolean, actingUserId: string) {
-    const existing = await this.prisma.staffDocument.findUnique({ where: { id: documentId } });
+  async verifyDocument(
+    staffId: string,
+    documentId: string,
+    verified: boolean,
+    actingUserId: string,
+  ) {
+    const existing = await this.prisma.staffDocument.findUnique({
+      where: { id: documentId },
+    });
     if (!existing || existing.staffId !== staffId) {
       throw new NotFoundException('Document not found');
     }

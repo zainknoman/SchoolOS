@@ -3,15 +3,20 @@ import { Prisma } from '@prisma/client';
 import { assertDeletable } from './prisma-delete-guard';
 
 function makeP2003(): Prisma.PrismaClientKnownRequestError {
-  return new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', {
-    code: 'P2003',
-    clientVersion: 'test',
-  });
+  return new Prisma.PrismaClientKnownRequestError(
+    'Foreign key constraint failed',
+    {
+      code: 'P2003',
+      clientVersion: 'test',
+    },
+  );
 }
 
 describe('assertDeletable', () => {
   it('translates a P2003 foreign-key violation into a BadRequestException naming the entity', () => {
-    expect(() => assertDeletable(makeP2003(), 'Campus')).toThrow(BadRequestException);
+    expect(() => assertDeletable(makeP2003(), 'Campus')).toThrow(
+      BadRequestException,
+    );
     try {
       assertDeletable(makeP2003(), 'Campus');
     } catch (err) {
@@ -25,10 +30,13 @@ describe('assertDeletable', () => {
   });
 
   it('rethrows a Prisma error with a different code unchanged', () => {
-    const notFound = new Prisma.PrismaClientKnownRequestError('Record not found', {
-      code: 'P2025',
-      clientVersion: 'test',
-    });
+    const notFound = new Prisma.PrismaClientKnownRequestError(
+      'Record not found',
+      {
+        code: 'P2025',
+        clientVersion: 'test',
+      },
+    );
     expect(() => assertDeletable(notFound, 'Campus')).toThrow(notFound);
   });
 });

@@ -8,7 +8,9 @@ import { normalizeIdentifier } from './normalize-identifier';
 
 export class LoginProvisionDto {
   // Trimmed before validation so "   " / " ab " cannot pass @MinLength and then collapse to nothing.
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @MinLength(3)
   identifier!: string;
@@ -39,7 +41,9 @@ export async function createPrincipalUser(
 ): Promise<{ login: ProvisionedLogin; userId: string }> {
   // Stored in the same canonical form login() resolves, so what the operator types back matches.
   const identifier = normalizeIdentifier(input.identifier);
-  const generated = input.password ? null : randomBytes(12).toString('base64url');
+  const generated = input.password
+    ? null
+    : randomBytes(12).toString('base64url');
   const password = input.password ?? (generated as string);
   const passwordHash = await argon2.hash(password);
   let userId!: string;

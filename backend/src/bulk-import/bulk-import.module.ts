@@ -6,7 +6,12 @@ import { StaffBulkImportService } from './staff-bulk-import.service';
 import { BulkImportController } from './bulk-import.controller';
 
 @Module({
-  providers: [StudentsBulkImportService, ParentsBulkImportService, TeachersBulkImportService, StaffBulkImportService],
+  providers: [
+    StudentsBulkImportService,
+    ParentsBulkImportService,
+    TeachersBulkImportService,
+    StaffBulkImportService,
+  ],
   controllers: [BulkImportController],
 })
 export class BulkImportModule {}

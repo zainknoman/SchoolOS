@@ -14,8 +14,12 @@ export class AnthropicDraftingProvider implements AiDraftingProvider {
     this.client = new Anthropic({ apiKey: config.apiKey });
   }
 
-  async suggestDraft(input: { context: string; targetType: 'circular' | 'diary' }): Promise<string> {
-    const targetLabel = input.targetType === 'circular' ? 'school circular' : 'diary entry';
+  async suggestDraft(input: {
+    context: string;
+    targetType: 'circular' | 'diary';
+  }): Promise<string> {
+    const targetLabel =
+      input.targetType === 'circular' ? 'school circular' : 'diary entry';
     const response = await this.client.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,

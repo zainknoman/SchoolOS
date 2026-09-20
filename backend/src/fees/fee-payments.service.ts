@@ -1,8 +1,16 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PAYMENT_GATEWAY_ADAPTER_FACTORY } from './payment-gateway-adapter-factory';
-import type { PaymentGatewayAdapterFactory, PaymentMethod } from './payment-gateway-adapter-factory';
+import type {
+  PaymentGatewayAdapterFactory,
+  PaymentMethod,
+} from './payment-gateway-adapter-factory';
 
 export interface PaymentSummary {
   id: string;
@@ -18,7 +26,8 @@ export interface PaymentSummary {
 export class FeePaymentsService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(PAYMENT_GATEWAY_ADAPTER_FACTORY) private readonly gatewayFactory: PaymentGatewayAdapterFactory,
+    @Inject(PAYMENT_GATEWAY_ADAPTER_FACTORY)
+    private readonly gatewayFactory: PaymentGatewayAdapterFactory,
   ) {}
 
   async pay(
@@ -34,7 +43,10 @@ export class FeePaymentsService {
       throw new NotFoundException('Fee voucher not found');
     }
     const totalAmount = voucher.items.reduce((sum, i) => sum + i.amount, 0);
-    const alreadyAllocated = voucher.allocations.reduce((sum, a) => sum + a.amount, 0);
+    const alreadyAllocated = voucher.allocations.reduce(
+      (sum, a) => sum + a.amount,
+      0,
+    );
     const amountDue = totalAmount - alreadyAllocated;
     if (amountDue <= 0) {
       throw new BadRequestException('This voucher is already fully paid');
@@ -42,7 +54,10 @@ export class FeePaymentsService {
 
     const reference = `pay_${randomUUID()}`;
     const adapter = this.gatewayFactory.getAdapter(method);
-    const { redirectUrl, gatewayReference } = await adapter.initiate({ amount: amountDue, reference });
+    const { redirectUrl, gatewayReference } = await adapter.initiate({
+      amount: amountDue,
+      reference,
+    });
 
     // The allocation is created eagerly here (not on confirm) so amountDue immediately reflects a
     // payment in flight — a failed confirm removes it again (see confirmFromWebhook() below), so
@@ -53,7 +68,9 @@ export class FeePaymentsService {
         method,
         status: 'pending',
         reference: gatewayReference,
-        allocations: { create: [{ feeVoucherId: voucherId, amount: amountDue }] },
+        allocations: {
+          create: [{ feeVoucherId: voucherId, amount: amountDue }],
+        },
       },
     });
 
@@ -76,13 +93,18 @@ export class FeePaymentsService {
    * signature. Looks the payment up by its unique `reference`, never by an id a client could
    * supply, so nothing outside a verified webhook can move a payment out of "pending".
    */
-  async confirmFromWebhook(reference: string, status: 'completed' | 'failed'): Promise<PaymentSummary> {
+  async confirmFromWebhook(
+    reference: string,
+    status: 'completed' | 'failed',
+  ): Promise<PaymentSummary> {
     const payment = await this.prisma.feePayment.findUnique({
       where: { reference },
       include: { allocations: true, receipt: true },
     });
     if (!payment) {
-      throw new NotFoundException(`No payment found for reference "${reference}"`);
+      throw new NotFoundException(
+        `No payment found for reference "${reference}"`,
+      );
     }
     if (payment.status !== 'pending') {
       // Idempotent — gateways retry webhook delivery; a repeat call for an already-resolved
@@ -161,10 +183,15 @@ export class FeePaymentsService {
       throw new NotFoundException('Fee voucher not found');
     }
     const totalAmount = voucher.items.reduce((sum, i) => sum + i.amount, 0);
-    const alreadyAllocated = voucher.allocations.reduce((sum, a) => sum + a.amount, 0);
+    const alreadyAllocated = voucher.allocations.reduce(
+      (sum, a) => sum + a.amount,
+      0,
+    );
     const amountDue = totalAmount - alreadyAllocated;
     if (dto.amount > amountDue) {
-      throw new BadRequestException(`Amount exceeds this voucher's remaining balance of ${amountDue}`);
+      throw new BadRequestException(
+        `Amount exceeds this voucher's remaining balance of ${amountDue}`,
+      );
     }
 
     const receiptNumber = `RCPT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomUUID().slice(0, 6)}`;
@@ -174,7 +201,9 @@ export class FeePaymentsService {
         method: dto.method,
         status: 'completed',
         reference: `manual_${randomUUID()}`,
-        allocations: { create: [{ feeVoucherId: voucherId, amount: dto.amount }] },
+        allocations: {
+          create: [{ feeVoucherId: voucherId, amount: dto.amount }],
+        },
         receipt: { create: { receiptNumber } },
       },
       include: { allocations: true, receipt: true },
@@ -186,7 +215,12 @@ export class FeePaymentsService {
         action: 'fee-payment.reconcile',
         entity: 'FeePayment',
         entityId: payment.id,
-        metadata: JSON.stringify({ voucherId, amount: dto.amount, method: dto.method, note: dto.note }),
+        metadata: JSON.stringify({
+          voucherId,
+          amount: dto.amount,
+          method: dto.method,
+          note: dto.note,
+        }),
       },
     });
 
@@ -206,7 +240,9 @@ export class FeePaymentsService {
     const payment = await this.prisma.feePayment.findUnique({
       where: { id },
       include: {
-        allocations: { include: { feeVoucher: { include: { student: true } } } },
+        allocations: {
+          include: { feeVoucher: { include: { student: true } } },
+        },
         receipt: true,
       },
     });

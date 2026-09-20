@@ -14,7 +14,10 @@ describe('SmsAdapter', () => {
     const sender: SmsSender = { sendMessage };
     const adapter = new SmsAdapter(sender, prisma as never);
 
-    await adapter.send('user-1', { title: 'New circular', body: 'PTM in September' });
+    await adapter.send('user-1', {
+      title: 'New circular',
+      body: 'PTM in September',
+    });
 
     expect(prisma.parentProfile.findUnique).toHaveBeenCalledWith({
       where: { userId: 'user-1' },

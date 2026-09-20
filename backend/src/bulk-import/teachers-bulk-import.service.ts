@@ -32,29 +32,48 @@ export class TeachersBulkImportService {
           errors.push(`Duplicate identifier "${identifier}" within this file`);
         }
         seenIdentifiers.add(identifier);
-        const existing = await this.prisma.user.findUnique({ where: { identifier } });
-        if (existing) errors.push(`Identifier "${identifier}" is already in use`);
+        const existing = await this.prisma.user.findUnique({
+          where: { identifier },
+        });
+        if (existing)
+          errors.push(`Identifier "${identifier}" is already in use`);
       }
       if (campusId) {
-        const campus = await this.prisma.campus.findUnique({ where: { id: campusId } });
+        const campus = await this.prisma.campus.findUnique({
+          where: { id: campusId },
+        });
         if (!campus) errors.push(`Campus "${campusId}" not found`);
       }
 
-      outcomes.push({ line, data: { identifier, name, campusId } as Record<string, string>, errors });
+      outcomes.push({
+        line,
+        data: { identifier, name, campusId },
+        errors,
+      });
     }
     return outcomes;
   }
 
   async preview(buffer: Buffer): Promise<PreviewResult> {
     const rows = await this.validateRows(buffer);
-    return { rows, validCount: rows.filter((r) => r.errors.length === 0).length, errorCount: rows.filter((r) => r.errors.length > 0).length };
+    return {
+      rows,
+      validCount: rows.filter((r) => r.errors.length === 0).length,
+      errorCount: rows.filter((r) => r.errors.length > 0).length,
+    };
   }
 
-  async commit(buffer: Buffer, actingUserId: string): Promise<{ createdCount: number; teacherIds: string[] }> {
+  async commit(
+    buffer: Buffer,
+    actingUserId: string,
+  ): Promise<{ createdCount: number; teacherIds: string[] }> {
     const rows = await this.validateRows(buffer);
     const invalid = rows.filter((r) => r.errors.length > 0);
     if (invalid.length > 0) {
-      throw Object.assign(new Error('One or more rows are invalid; nothing was imported.'), { rows: invalid });
+      throw Object.assign(
+        new Error('One or more rows are invalid; nothing was imported.'),
+        { rows: invalid },
+      );
     }
 
     const teacherIds = await this.prisma.$transaction(async (tx) => {

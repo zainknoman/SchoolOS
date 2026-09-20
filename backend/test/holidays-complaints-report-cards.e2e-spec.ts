@@ -95,7 +95,11 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
       },
     });
     const teacher = await prisma.teacher.create({
-      data: { userId: teacherUser.id, name: 'HCR Teacher', campusId: campus.id },
+      data: {
+        userId: teacherUser.id,
+        name: 'HCR Teacher',
+        campusId: campus.id,
+      },
     });
     // hcr-teacher must actually be assigned to section HCR-A (as its homeroom/class teacher) for
     // the new subject/class assignment check (StudentAccessService) to allow them past
@@ -108,10 +112,18 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
       data: { schoolId: school.id, name: 'HCR Campus B' },
     });
     const teacherBUser = await prisma.user.create({
-      data: { identifier: 'hcr-teacher-b@schoolos.edu.pk', passwordHash, role: 'TEACHER' },
+      data: {
+        identifier: 'hcr-teacher-b@schoolos.edu.pk',
+        passwordHash,
+        role: 'TEACHER',
+      },
     });
     await prisma.teacher.create({
-      data: { userId: teacherBUser.id, name: 'HCR Teacher B', campusId: campusB.id },
+      data: {
+        userId: teacherBUser.id,
+        name: 'HCR Teacher B',
+        campusId: campusB.id,
+      },
     });
     await prisma.user.create({
       data: {

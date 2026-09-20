@@ -1,5 +1,9 @@
 import { ConfigService } from '@nestjs/config';
-import { resolveJazzCashConfig, resolveEasyPaisaConfig, resolveStubWebhookSecret } from './gateway-config';
+import {
+  resolveJazzCashConfig,
+  resolveEasyPaisaConfig,
+  resolveStubWebhookSecret,
+} from './gateway-config';
 
 function fakeConfig(values: Record<string, string>): ConfigService {
   return { get: (key: string) => values[key] } as unknown as ConfigService;
@@ -7,7 +11,9 @@ function fakeConfig(values: Record<string, string>): ConfigService {
 
 describe('resolveJazzCashConfig', () => {
   it('returns undefined (falls back to stub) when no JazzCash vars are set, in any environment', () => {
-    expect(resolveJazzCashConfig(fakeConfig({ NODE_ENV: 'production' }))).toBeUndefined();
+    expect(
+      resolveJazzCashConfig(fakeConfig({ NODE_ENV: 'production' })),
+    ).toBeUndefined();
   });
 
   it('returns a full config object when all vars are set', () => {
@@ -32,20 +38,26 @@ describe('resolveJazzCashConfig', () => {
 
   it('throws if only some JazzCash vars are set outside development/test', () => {
     expect(() =>
-      resolveJazzCashConfig(fakeConfig({ NODE_ENV: 'production', JAZZCASH_MERCHANT_ID: 'MC1' })),
+      resolveJazzCashConfig(
+        fakeConfig({ NODE_ENV: 'production', JAZZCASH_MERCHANT_ID: 'MC1' }),
+      ),
     ).toThrow(/Incomplete JazzCash configuration/);
   });
 
   it('does not throw on a partial config in development', () => {
     expect(
-      resolveJazzCashConfig(fakeConfig({ NODE_ENV: 'development', JAZZCASH_MERCHANT_ID: 'MC1' })),
+      resolveJazzCashConfig(
+        fakeConfig({ NODE_ENV: 'development', JAZZCASH_MERCHANT_ID: 'MC1' }),
+      ),
     ).toBeUndefined();
   });
 });
 
 describe('resolveEasyPaisaConfig', () => {
   it('returns undefined when no EasyPaisa vars are set', () => {
-    expect(resolveEasyPaisaConfig(fakeConfig({ NODE_ENV: 'production' }))).toBeUndefined();
+    expect(
+      resolveEasyPaisaConfig(fakeConfig({ NODE_ENV: 'production' })),
+    ).toBeUndefined();
   });
 
   it('returns a full config object when all vars are set', () => {
@@ -69,18 +81,25 @@ describe('resolveEasyPaisaConfig', () => {
 
 describe('resolveStubWebhookSecret', () => {
   it('falls back to a fixed dev-only secret in development/test', () => {
-    expect(resolveStubWebhookSecret(fakeConfig({ NODE_ENV: 'test' }))).toBe('dev-only-stub-webhook-secret');
+    expect(resolveStubWebhookSecret(fakeConfig({ NODE_ENV: 'test' }))).toBe(
+      'dev-only-stub-webhook-secret',
+    );
   });
 
   it('throws outside development/test if unset', () => {
-    expect(() => resolveStubWebhookSecret(fakeConfig({ NODE_ENV: 'production' }))).toThrow(
-      /PAYMENT_STUB_WEBHOOK_SECRET/,
-    );
+    expect(() =>
+      resolveStubWebhookSecret(fakeConfig({ NODE_ENV: 'production' })),
+    ).toThrow(/PAYMENT_STUB_WEBHOOK_SECRET/);
   });
 
   it('uses the configured value when set', () => {
     expect(
-      resolveStubWebhookSecret(fakeConfig({ NODE_ENV: 'production', PAYMENT_STUB_WEBHOOK_SECRET: 'real-secret' })),
+      resolveStubWebhookSecret(
+        fakeConfig({
+          NODE_ENV: 'production',
+          PAYMENT_STUB_WEBHOOK_SECRET: 'real-secret',
+        }),
+      ),
     ).toBe('real-secret');
   });
 });

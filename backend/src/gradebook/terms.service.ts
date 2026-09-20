@@ -49,7 +49,10 @@ export class TermsService {
         },
       });
     } catch (error) {
-      assertCreatable(error, 'A term with this label already exists for this academic session.');
+      assertCreatable(
+        error,
+        'A term with this label already exists for this academic session.',
+      );
     }
     return this.toSummary(record);
   }
@@ -72,8 +75,12 @@ export class TermsService {
       data: {
         ...(dto.label !== undefined ? { label: dto.label } : {}),
         ...(dto.order !== undefined ? { order: dto.order } : {}),
-        ...(dto.startDate !== undefined ? { startDate: new Date(dto.startDate) } : {}),
-        ...(dto.endDate !== undefined ? { endDate: new Date(dto.endDate) } : {}),
+        ...(dto.startDate !== undefined
+          ? { startDate: new Date(dto.startDate) }
+          : {}),
+        ...(dto.endDate !== undefined
+          ? { endDate: new Date(dto.endDate) }
+          : {}),
       },
     });
     return this.toSummary(record);
