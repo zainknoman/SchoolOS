@@ -1,7 +1,7 @@
 # Known Security and Isolation Gaps
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
-> Consolidates every `CODE ISSUE DISCOVERED` that has a security or data-isolation impact, and absorbs the archived `access-control-scoping-progress.md`. **None has been fixed by the documentation program.** Severity is an initial triage for the owner, not a risk assessment.
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Security Owner (Engineering Lead until assigned)
+> Consolidates every `CODE ISSUE DISCOVERED` that has a security or data-isolation impact, and absorbs the archived `access-control-scoping-progress.md`. **None has been fixed by the documentation program.** Owner decisions of 2026-09-20 ([OWNER-DECISIONS](../product/OWNER-DECISIONS.md)) now attach a decided remediation to each item (table below); all remain **open engineering work**. Severity is an initial triage for the owner, not a risk assessment.
 
 | ID | Sev. | Gap | Evidence | Related |
 |---|---|---|---|---|
@@ -25,9 +25,28 @@
 | KG-18 | Med | Payment gateways never verified against live systems; EasyPaisa hash field order unconfirmed; SMS sender targets a placeholder URL | `fees/gateways/*`, `sms-sender.ts:18` | — |
 | KG-19 | Low | No global exception filter / request logging; error shape and diagnostics inconsistent | [API-OVERVIEW](../api/API-OVERVIEW.md) | API-2 |
 | KG-20 | Low | Seed creates known-password accounts with no production guard; real-sounding demo school name | `prisma/seed.ts` | SEED-3/4 |
-| KG-21 | Low | No CHANGELOG/LICENSE/SECURITY contact; `package.json` says `UNLICENSED` | repo root | — |
+| KG-21 | Low | Proprietary `LICENSE` notice and `SECURITY.md` now exist as **placeholders** (`[LEGAL_ENTITY_NAME]`, `security@[production-domain]`); real entity, domain and mailbox pending (RD-1/RD-2); `package.json` stays `UNLICENSED` (correct for closed source) | repo root | — |
 | KG-23 | Med | `User.isLocked` exists in the schema but is never read or written by application logic, and no endpoint unlocks or disables an account; the only way to stop a compromised account is deleting it or editing the database | `schema.prisma:138`; `auth.service.ts:66` checks only `lockedUntil`; `isLocked` appears in `src/` only as a fixture field in `auth.service.spec.ts` | — |
 | KG-22 | Low | Notification failures swallowed, no retry/alerting | `notifications.service.ts:72` | — |
 
+## Decided remediation (owner, 2026-09-20) — all NOT YET IMPLEMENTED
+| Gap | Decision / work item | Phase |
+|---|---|---|
+| KG-1, KG-6 | Fix isolation; regression tests — BL-20 | B |
+| KG-2, KG-3, KG-4 | Reject placeholder secrets, require explicit `NODE_ENV`, never log reset links — BL-51 | A |
+| KG-5, KG-12, KG-13 | Dependency scanning + audit fixes, `helmet`, `trust proxy` — BL-12 | A |
+| KG-7 | School-scoped sessions (Q1) — BL-01 | B |
+| KG-8 | School-scoped subjects/terms/fee structures (Q2, Q3) — BL-02, BL-03 | B |
+| KG-9, KG-15 | Token-storage hardening review, remove query-string tokens (Q42) — BL-36 | A (decision at security review) |
+| KG-10, KG-11, KG-23 | Server-side disable/unlock/revocation/`mustChangePassword` — BL-21 | A |
+| KG-14 | Object storage + upload hardening (Q40) — BL-10, BL-52 | A |
+| KG-16 | Add guard/test that every service-scoped route asserts scope — BL-18 | H |
+| KG-17 | Archive instead of hard delete (Q7) — BL-07 | C |
+| KG-18 | Gateways behind feature config, post-pilot; FCM/SMTP verified for pilot — BL-14; SMS adapter — BL-38 | F / post-pilot |
+| KG-19 | Global exception filter, request logging — BL-11 | A |
+| KG-20 | Neutral demo data, production guard on seed — BL-34 | H |
+| KG-22 | Delivery status, retry, alerting — BL-11, BL-14 | A / F |
+| new | Privacy/breach/incident processes — BL-56 (non-code) | H |
+
 ## Verification standard
-An item moves out of this list only when a code change lands **and** a test or documented verification proves it. Owner decisions (Q1–Q9 in [BUSINESS-RULES](../product/BUSINESS-RULES.md)) gate KG-6, KG-7, KG-8, KG-17.
+An item moves out of this list only when a code change lands **and** a test or documented verification proves it. Q1–Q9 are decided ([BUSINESS-RULES §8](../product/BUSINESS-RULES.md)); the remaining owner inputs (RD-6 retention periods, RD-11 migration approach) gate the final design of KG-7, KG-8 and KG-17.

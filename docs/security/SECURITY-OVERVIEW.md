@@ -1,6 +1,6 @@
 # Security Overview and Control Status
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** cited per row · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** cited per row · **Owner:** Security Owner (Engineering Lead until assigned)
 > This is an **inventory of what the code does**, not an audit or a statement that SchoolOS is secure (decision G8: no "sufficient/secure" claims; disclosure contact left `REQUIRES-DECISION`). No penetration test, dependency scan or threat model exists in the repository. Nothing was fixed by this phase; every weakness is a `CODE ISSUE DISCOVERED`, consolidated in [KNOWN-GAPS.md](KNOWN-GAPS.md).
 > **Classification:** Implemented · Partial · Configuration required · External dependency · Missing · Unknown.
 

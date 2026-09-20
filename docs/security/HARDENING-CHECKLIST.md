@@ -1,6 +1,6 @@
 # Production Hardening Checklist
 
-> **Status:** CURRENT (checklist of configuration and controls to confirm **before** any production use) · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
+> **Status:** CURRENT (checklist of configuration and controls to confirm **before** any production use) · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Security Owner (Engineering Lead until assigned)
 > Each line is either a configuration step or an engineering gap. `[ ]` = not done/not verifiable from the repository. Engineering gaps cannot be closed by configuration and link to [KNOWN-GAPS](KNOWN-GAPS.md).
 
 ## Configuration (can be done without code changes)
