@@ -55,5 +55,27 @@ SchoolOS stores sensitive information about children and families in Pakistan (C
 **Ownership:** the Product Owner/organisation owns the privacy policy, consent policy and breach-notification process; Security/Engineering owns technical controls and incident escalation; legal counsel reviews the Pakistani legal requirements.
 **Third parties:** Sentry, Firebase, e-mail/SMS providers and (optionally) the AI provider must be configured to minimise personal data sent to them; AI drafting is off by default and, if enabled, must redact child data where possible.
 
-## Still `REQUIRES-DECISION`
-Retention period per data category (RD-6); who counts as a "privacy administrator" (RD-6); whether CNIC/medical fields need field-level encryption (RD-6); consent/notice content and the breach-notification process (RD-7); named owners (RD-5).
+## Retention categories (RD-6) — configurable, periods TBD
+No period below is invented. Each category needs a **configurable** period, approved by the `[PRIVACY_ADMINISTRATOR]` after legal/privacy review. **No automatic deletion is implemented or permitted until periods are approved** (BL-63; enforcement is post-pilot).
+| Category | Examples in the data model | Sensitivity | Period |
+|---|---|---|---|
+| Student records | `Student`, medical info, documents | high / very high | TBD |
+| Guardian records | `ParentProfile`, `StudentParent`, contacts | high | TBD |
+| Staff records | `Staff*`, `Teacher`, hiring data | high | TBD |
+| Attendance | `Attendance`, leave, risk flags | medium | TBD |
+| Academic results / report cards | marks, `ReportCard`, promotions | high | TBD |
+| Fee / financial records | vouchers, payments, receipts | medium; immutable | TBD |
+| Complaints | `Complaint` incl. internal notes | medium–high | TBD |
+| Audit logs | `AuditLog` | medium | TBD |
+| Authentication / security logs | refresh/reset tokens, login events, app logs | medium | TBD |
+| Uploaded documents | `File` objects in object storage | high | TBD |
+| Backups | database + object-storage backups | inherits the source data; interacts with the 30-day minimum retention | TBD |
+
+## Sensitive fields and encryption (RD-6)
+- **Sensitive:** CNIC and similar government identifiers (`ParentProfile.cnic`, staff `cnic`, student `bFormNumber`), and medical/health information (`StudentMedicalInfo`).
+- **Encryption at rest and restricted access** must be supported by the architecture (managed PostgreSQL and S3-compatible storage with provider encryption; role/scope-checked access).
+- **Field-level encryption is NOT declared mandatory** until the legal/security review determines the requirement. If it is later required it must be implementable without redesigning the data model — keep sensitive fields in dedicated columns/tables behind a single access layer (BL-07).
+- Privacy notice required before production use; consent/notice requirements and breach-notification timelines are **TBD pending legal review** (`[PRIVACY_ADMINISTRATOR]`); breach handling needs a documented incident-response process (BL-56).
+
+## Still open (placeholders / legal values only)
+Retention periods; whether field-level encryption is required; breach-notification obligations and timelines; notice/consent wording; the person assigned to `[PRIVACY_ADMINISTRATOR]`. None blocks architecture; the first three block privacy sign-off and any automatic deletion.

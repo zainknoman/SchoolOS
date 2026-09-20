@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 Documentation program (2026-09-19/20): canonical docs under `docs/`, rewritten README and status, archive of superseded material. No application code changed. See `docs/release/PRODUCTION-READINESS.md`.
-Owner decisions recorded 2026-09-20 (`docs/product/OWNER-DECISIONS.md`): business rules Q1–Q19, proprietary licence notice, `SECURITY.md` placeholders, operations targets, decided engineering backlog (BL-01…BL-59) and phased plan (`docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md`). Documentation only — **no behaviour has changed**.
+Owner decisions recorded 2026-09-20 (`docs/product/OWNER-DECISIONS.md`): business rules Q1–Q19, proprietary licence notice, `SECURITY.md` placeholders, operations targets, decided engineering backlog (BL-01…BL-59) and phased plan (`docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md`). Second ruling (RD-1…RD-15) incorporated the same day: placeholders, ownership roles, retention categories, attendance without class teacher, complaint scope, lifecycle terms, migration principles, internal incident targets, gateways off for the pilot; backlog extended to BL-64. Wave 0 correction pass (findings F1–F10): attendance root cause, guardian scope correction, circular/holiday anchors, leave recommender/decider, storage-key correction, lifecycle migration rule, new BL-65/BL-66 and `docs/release/EXECUTION-PLAN.md`. Documentation only — **no behaviour has changed**.
 
 **Versioning policy (decided):** Semantic Versioning with Git tags; the first production release will be **1.0.0**. Everything below is pre-1.0 history and carries no version numbers.
 

@@ -46,7 +46,7 @@
 | ID | Requirement | Feature | Acceptance | Evidence |
 |---|---|---|---|---|
 | FR-TT-01 | Admins maintain section timetables without teacher/room double-booking; teachers and parents view relevant timetables. | F-TT-01 | Conflicting entry → 409 | e2e `timetable-attendance` |
-| FR-ATT-01 | Teachers/admins mark attendance (single/bulk); not on holidays; section must have a class teacher; parents see their child's attendance. | F-ATT-01 | Holiday → 400; no class teacher → 400 | e2e `timetable-attendance` |
+| FR-ATT-01 | Teachers/admins mark attendance (single/bulk); not on holidays; a Teacher marks as themself, while an admin's write requires the section to have a class teacher (attributed to it; `Attendance.markedById` is a required Teacher FK) — *decided to change, BL-60*; parents see their child's attendance. | F-ATT-01 | Holiday → 400; no class teacher → 400 | e2e `timetable-attendance` |
 | FR-ATT-02 | The system flags students with high recent absence daily. | F-ATT-02 | Given ≥25 % over 30 days with ≥5 tracked days, then a flag exists | UNVERIFIED (unit only; cron not e2e) |
 | FR-DIA-01 | Teachers/admins publish diary entries; parents read their child's. | F-DIA-01 | Entry visible to linked parent only | e2e `diary-circulars` |
 | FR-GRD-01 | Admins configure terms and weighted categories; teachers create assessments and enter marks (≤ max, enrolled students only); grades computed as weighted %. | F-GRD-01 | Marks > max → 400; weights ≠100 → warning | e2e `gradebook` |

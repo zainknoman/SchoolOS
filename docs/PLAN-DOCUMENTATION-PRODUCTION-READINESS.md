@@ -33,15 +33,17 @@
 | 11 | User guides | ⚠ | 2026-09-20 | `docs/user-guides/*` (5 guides + index) | G10: no screenshots; **not click-tested** |
 | 12 | Release & production readiness | ✅ | 2026-09-20 | `docs/release/*`, `CHANGELOG.md` (reconstructed) | G11: license/versioning left to owner; original brief archived; verdict **NO-GO as-is** |
 | 13 | Final documentation audit | ✅ | 2026-09-20 | `docs/audit/2026-09-20-documentation-audit.md` | script: 250 links, 0 broken; 141 citations valid; 7 defects found & fixed in docs |
-| 14 | Owner decisions integrated (50 answers + conflict rulings) | ⚠ | 2026-09-20 | `docs/product/OWNER-DECISIONS.md`, rewritten `BACKLOG.md`, `docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md`, `docs/audit/2026-09-20-housekeeping-inspection.md`, `LICENSE` (placeholder notice), updated SECURITY/DATA-PROTECTION/operations/release/product docs | **DOCS_ONLY mode:** no code, config, schema or repository state changed; nothing committed; housekeeping inspected only. ⚠ = open owner inputs RD-1…RD-15 |
+| 14 | Owner decisions integrated (50 answers + conflict rulings) | ⚠ | 2026-09-20 | `docs/product/OWNER-DECISIONS.md`, rewritten `BACKLOG.md`, `docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md`, `docs/audit/2026-09-20-housekeeping-inspection.md`, `LICENSE` (placeholder notice), updated SECURITY/DATA-PROTECTION/operations/release/product docs | **DOCS_ONLY mode:** no code, config, schema or repository state changed; nothing committed; housekeeping inspected only. ⚠ = open placeholders/TBD values only (RD-1…RD-15 answered; see OWNER-DECISIONS) |
+
+| 14b | Wave 0 documentation/planning correction pass (findings F1–F10) | ✅ | 2026-09-20 | `docs/release/EXECUTION-PLAN.md`; corrections to BACKLOG, BUSINESS-RULES, KNOWN-ISSUES/GAPS, GAP-ANALYSIS, ADR-0006, TENANCY; new BL-65 (migration harness), BL-66 (doc generators) | documentation only; no code, schema, CI or repository change; not committed |
 
 ### Remaining work (status after Phase 14, 2026-09-20)
 | # | Item | Type | Status | Reference |
 |---|---|---|---|---|
-| R1 | Move `docs/UI-Screenshots/sample4`; review its two CSVs | housekeeping | ⏳ **inspected, not moved** — CSV edits contain another project's pasted credentials (do not commit) and 3 owner UI notes (KI-29); awaiting explicit authorisation (RD-15) | [housekeeping inspection](audit/2026-09-20-housekeeping-inspection.md) |
+| R1 | Move `docs/UI-Screenshots/sample4`; review its two CSVs | housekeeping | ⏳ **inspected only; owner ruled (RD-15): no cleanup yet** — recommended actions documented; a separate controlled housekeeping phase needs explicit authorisation. CSVs contain another project's credentials and 3 UI notes (KI-29) — must not be committed | [housekeeping inspection](audit/2026-09-20-housekeeping-inspection.md) |
 | R2 | Independent human review + click-test of user guides and role matrix | review | ⏳ remaining | audit §8 |
 | R3 | Decide Q1–Q9 | product decision | ✅ **done** (decided 2026-09-20); implementation = BL-01…BL-08 | [OWNER-DECISIONS](product/OWNER-DECISIONS.md), BUSINESS-RULES §8 |
-| R4 | Decide license, security contact, hosting, versioning, incident process | owner decision | ⚠ **mostly decided:** licence proprietary; SemVer/tags/1.0.0; incident model P1–P4; hosting provider-agnostic. **Open:** legal entity, domain/e-mail, hosting vendor, named owners (RD-1…RD-5, RD-13) | OWNER-DECISIONS |
+| R4 | Decide license, security contact, hosting, versioning, incident process | owner decision | ✅ **decided** (2026-09-20 ×2): proprietary; SemVer/tags/1.0.0; internal P1–P4 targets; provider-agnostic hosting. **Placeholders remain** for legal entity, domain, e-mail addresses, vendors, role assignees (T-1…T-3) | OWNER-DECISIONS |
 | R5 | Fix High items KG-1/2/3/4/5/6/7 | engineering | ⏳ remaining — now **decided and scheduled** as Phase A/B work (BL-20, BL-51, BL-12, BL-01) | [GAP-ANALYSIS](release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md) |
 | R6 | Build deployment target, backups + restore rehearsal, health, monitoring | engineering/ops | ⏳ remaining — targets decided (RPO 24 h, RTO 4 h, Sentry etc.); BL-11, BL-13 | same |
 | R7 | Verify integrations; SMS provider; S3 adapter | external + engineering | ⏳ remaining — provider direction decided; BL-10, BL-14, BL-38 | INTEGRATIONS |
@@ -49,8 +51,8 @@
 | R9 | Prune stale worktrees/branches | housekeeping | ⏳ **inspected, not pruned** — `staff-hiring-console-ui` (1 unique commit) and `stash@{0}` hold unique work | housekeeping inspection |
 | R10 | Commit the documentation changes | owner | ⚠ **Phase 0–13 docs were committed and pushed as `e4e9f27` on `main`/`origin/main` at 14:55 on 2026-09-20 — not by the Phase 14 session** (it also captured in-progress Phase 14 files). The Phase 14 finishing edits (~66 modified files, 3 new files) are **uncommitted**. The owner asked for separate logical commits with cleanup last and will authorise further commits (Q50) | — |
 | R11 | Keep docs current | ongoing | ⏳ ongoing; `Verified:` dates refreshed 2026-09-20 for touched docs | docs/README rules |
-| R12 | Resolve open owner inputs RD-1…RD-15 | owner | ⏳ new | OWNER-DECISIONS |
-| R13 | Implement the decided engineering backlog (BL-01…BL-59) in phases A–H | engineering (separately authorised; the owner said not to modify code yet) | ⏳ new | BACKLOG, GAP-ANALYSIS |
+| R12 | Resolve open owner inputs RD-1…RD-15 | owner | ✅ **answered 2026-09-20**; only TBD values remain (T-1…T-7) | OWNER-DECISIONS |
+| R13 | Implement the decided engineering backlog (BL-01…BL-64) in phases A–H | engineering (separately authorised) | ⏳ new; BL-60…BL-64 added by the second ruling | BACKLOG, GAP-ANALYSIS |
 
 ### Execution deviations from the plan (for the record)
 0. **Phase 14 (2026-09-20):** the owner's 50 answers and conflict rulings were applied in DOCS_ONLY mode. Where an answer implies a code/config change (rebrand of seed/`.env.example`/Postman/Firebase/CI, neutral demo data, UI permission for copy-structure) it was recorded as a decided work item, not performed. Housekeeping (Q47–Q49) was inspected only; this phase moved, deleted, staged or committed nothing. During the session an external commit `e4e9f27` (docs phases 0–13, pushed to `origin/main`) appeared; it was not made by this phase.

@@ -26,10 +26,10 @@ Retry: none. Monitoring: none (see [MONITORING-LOGGING](MONITORING-LOGGING.md)).
 ## Decided provider direction (owner, 2026-09-20)
 | Integration | Decision | Launch role | Work item |
 |---|---|---|---|
-| JazzCash, EasyPaisa | Supported behind feature configuration; activated only with merchant accounts and sandbox/production credentials; **manual payment recording is the launch fallback** | Not a launch blocker; post-pilot | BL-14 |
-| Firebase / FCM | Dedicated SchoolOS Firebase project; separate staging and production projects where practical; parent push + app config | Pilot (notifications operational) | BL-43, BL-14 |
-| SMTP / transactional e-mail | Production provider behind a provider abstraction, env-configured; **provider not chosen** (RD-4) | Pilot (reset, notifications) | BL-14 |
-| SMS | Behind an adapter/interface, **not coupled to the placeholder URL**; **provider not chosen** (RD-4) | Post-pilot unless required | BL-38 |
+| JazzCash, EasyPaisa | Supported behind feature configuration; activated only with merchant accounts and sandbox/production credentials; **OFF for the pilot (RD-14)** — manual payment recording, vouchers/receipts and manual reconciliation are the pilot path; enabling a gateway later must not require redesigning fees | Not a launch blocker; post-pilot | BL-08, BL-14 |
+| Firebase / FCM | Dedicated SchoolOS Firebase project (`[FIREBASE_PROJECT_ID]`, owner `[FIREBASE_OWNER]`); separate staging and production projects where practical; parent push + app config | Pilot (notifications operational) | BL-43, BL-14 |
+| SMTP / transactional e-mail | Production provider behind a provider abstraction, env-configured; **provider TBD**; e-mail may stay **disabled in the pilot** (RD-4) — then parent reset uses the admin-assisted path (BL-64) | Pilot if a provider is chosen | BL-14, BL-64 |
+| SMS | Behind an adapter/interface, **not coupled to the placeholder URL**; **provider TBD**; may stay disabled in the pilot (RD-4) | Post-pilot unless required | BL-38 |
 | WhatsApp | Future; official Business/Cloud API; **approved message templates** required (no unrestricted free text) | Post-pilot | BL-48 |
 | AI drafting | Optional, **feature-flagged**, off by default; org-provided credentials, server-side only; configurable usage/cost limits; redact child data where possible | Post-pilot | BL-49 |
 | File storage | **S3-compatible object storage** behind the storage service (student documents, report cards, certificates, admission documents, profile images); no persistent local disk | Pilot blocker | BL-10 |

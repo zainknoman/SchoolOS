@@ -1,7 +1,7 @@
 # Repository Housekeeping Inspection (read-only)
 
 > **Status:** CURRENT (dated record) · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `git worktree list`, `git branch -vv`, `git status`, `git diff`, `git ls-tree` run on 2026-09-20 · **Owner:** Engineering Lead
-> **Nothing was deleted, moved, pruned, renamed, migrated or discarded.** This report answers owner decisions Q47–Q49 ("inspect only") and proposes actions that need **explicit written authorisation** before anyone executes them ([RD-15](../product/OWNER-DECISIONS.md#still-requires-decision-not-answered-by-the-owner)).
+> **Nothing was deleted, moved, pruned, renamed, migrated or discarded.** This report answers owner decisions Q47–Q49 ("inspect only") and proposes actions that need **explicit written authorisation** before anyone executes them ([RD-15](../product/OWNER-DECISIONS.md#remaining-unresolved-decisions--tbds-only)).
 
 ## 1. Worktrees
 | Path | Registered in git? | State | Notes |

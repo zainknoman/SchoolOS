@@ -11,7 +11,7 @@
 | Term | A subdivision of an academic session used by the gradebook. | `Term` |
 | Class | A grade level within a campus **and** an academic session (e.g. "Grade 3"). The seed says "grade". Use "class". | `Class` |
 | Section | A division of a class (e.g. "A"); has an optional class teacher. | `Section` |
-| Class teacher | The teacher assigned to a section (`Section.classTeacherId`); required for attendance and leave approval; recipient of parent messages. | `Section.classTeacherId` |
+| Class teacher | The teacher assigned to a section (`Section.classTeacherId`); today a SCHOOL_ADMIN/SUPER_ADMIN can mark attendance or approve leave only if the section has one (the write is attributed to the class teacher because `Attendance.markedById` is a required Teacher FK) — *decided to become optional* (BL-60, BL-29); recipient of parent messages. | `Section.classTeacherId` |
 | Subject | A globally-unique named subject; can only be seeded today. *Decided:* school-scoped, reusable across campuses/classes, active/inactive instead of deletion (BL-02). | `Subject` |
 | Student | A learner record. **Students have no login.** | `Student` |
 | GR number | General Register (admission) number — the student's unique registration ID; also usable as a login identifier for parent accounts. | `Student.grNumber`, `User.identifier` |

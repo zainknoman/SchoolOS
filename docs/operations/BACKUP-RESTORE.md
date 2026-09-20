@@ -19,10 +19,10 @@
 | RTO (maximum restore time) | **4 hours** |
 | Backup retention | **30 days minimum** |
 | Uploaded files | held in external object storage (BL-10) with versioning/lifecycle so files and database restore consistently |
-Targets may be tightened after the pilot. Pilot exit requires a **tested** restore (BL-13, BL-57): rehearsal result and duration recorded in `docs/release/`.
+Restore must use the **provider-supported restore capability** of the (TBD) managed PostgreSQL and object-storage services. Backups are a retention category in the [privacy retention policy](../security/DATA-PROTECTION.md) (period TBD). Targets may be tightened after the pilot. Pilot exit requires a **tested** restore (BL-13, BL-57): rehearsal result and duration recorded in `docs/release/`.
 
-## Still `REQUIRES-DECISION`
-Backup encryption keys and off-site copy location (depends on hosting, RD-3); who is authorised to restore (Operations/Deployment Owner unnamed, RD-5); restore-test cadence after the pilot; interaction of backup retention with the future PII retention policy (RD-6).
+## Still open (vendor-dependent)
+Backup encryption keys and off-site copy location (depends on the TBD hosting provider); who is authorised to restore (role `[OPS_OWNER]`; person not yet assigned); restore-test cadence after the pilot; interaction of backup retention with the future PII retention policy (retention periods TBD, BL-63).
 
 ## Minimal procedure to write once tooling is chosen
 1. Scheduled logical (`pg_dump`) or physical backup of the database **and** snapshot of `UPLOADS_DIR` at the same time.

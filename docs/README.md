@@ -19,7 +19,7 @@
 | Live status & known gaps | [`../PROJECT-STATUS.md`](../PROJECT-STATUS.md) | CURRENT |
 | Design system | [`../DESIGN.md`](../DESIGN.md), [`../staff-console/design-system/schoolos-staff-console/MASTER.md`](../staff-console/design-system/schoolos-staff-console/MASTER.md) | CURRENT |
 | Product foundation (overview, roles, features, rules, glossary) | [`product/`](product/) | CURRENT (Phase 3) |
-| **Owner decisions register** (50 answers, open items RD-1…RD-15) | [`product/OWNER-DECISIONS.md`](product/OWNER-DECISIONS.md) | CURRENT (2026-09-20) |
+| **Owner decisions register** (50 answers, resolutions RD-1…RD-15, remaining TBDs) | [`product/OWNER-DECISIONS.md`](product/OWNER-DECISIONS.md) | CURRENT (2026-09-20) |
 | Requirements | [`product/requirements/`](product/requirements/README.md) | CURRENT (Phase 5; traceability completed in Phase 10) |
 | Journeys & workflows | [`workflows/`](workflows/) | CURRENT (Phase 4) |
 | Architecture / ADRs | [`architecture/`](architecture/README.md), [`decisions/`](decisions/README.md) | CURRENT |
@@ -31,6 +31,7 @@
 | User guides | [`user-guides/`](user-guides/README.md) | PARTIAL (not click-tested) |
 | Release / readiness | [`release/`](release/README.md), [`../CHANGELOG.md`](../CHANGELOG.md) | CURRENT — verdict: **not production-ready** |
 | **Gap analysis and phased implementation plan** | [`release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md`](release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md) | CURRENT (plan; nothing implemented) |
+| **Execution plan (Waves 0–7, migrations M1–M13, regeneration matrix, rollback)** | [`release/EXECUTION-PLAN.md`](release/EXECUTION-PLAN.md) | CURRENT (plan; nothing implemented) |
 | Licence / security policy | [`../LICENSE`](../LICENSE) (proprietary placeholder), [`../SECURITY.md`](../SECURITY.md) (placeholder contact) | PARTIAL — owner inputs pending |
 
 ## Reference and history

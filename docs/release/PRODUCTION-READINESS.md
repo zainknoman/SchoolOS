@@ -16,25 +16,25 @@ Legend: 🎯 decided by the owner (2026-09-20) but **not built** — an engineer
 | | Authorization & validation | ⚠ | guards + DTO validation ✅; 32 routes rely on service checks; tenant defects KG-1/6/7/8 🔧 |
 | | Error handling | 🔧 | no exception filter, no pagination (API-1/2) |
 | | Auditability | ⚠ | `AuditLog` on many writes; no old/new values; completeness unproven |
-| | Business-rule decisions | 🎯 | Q1–Q9 **decided** 2026-09-20 ([BUSINESS-RULES §8](../product/BUSINESS-RULES.md)); none implemented: BL-01..08, BL-23..29. Open inputs: RD-6/8/9/10/11 |
+| | Business-rule decisions | 🎯 | Q1–Q9 **decided** 2026-09-20 ([BUSINESS-RULES §8](../product/BUSINESS-RULES.md)); none implemented: BL-01..08, BL-23..29. Rulings RD-6/8/9/10/11 incorporated (BL-60…BL-63) |
 | **Database** | Migrations | ✅ | 13 additive, apply cleanly to an empty DB (verified 2026-09-20) |
 | | Backups / restore / DR | 🎯 🔧 | targets decided (RPO 24 h, RTO 4 h, 30 d) — nothing built ([BACKUP-RESTORE](../operations/BACKUP-RESTORE.md)); BL-13 |
 | | Indexing & constraints | ⚠ | 7 models unindexed; missing uniqueness for single-ACTIVE enrollment and per-month vouchers |
 | | Historical records | 🎯 ⚠ | enrollment/promotion ✅; staff assignment history (BL-25) and archive/soft delete (BL-07) decided, not built |
-| | Data retention / PII policy | 🎯 ⚖ | retain/archive decided (Q7); retention periods RD-6; BL-07 |
+| | Data retention / PII policy | 🎯 ⚖ | retain/archive decided (Q7); retention periods TBD (legal review); BL-07, BL-63 |
 | **Security** | AuthN, RBAC | ✅ | [SECURITY-OVERVIEW](../security/SECURITY-OVERVIEW.md) |
 | | Tenant isolation | 🔧 | TENANT-1..5 |
 | | Secrets/config safety | 🔧 | KG-2, KG-3, KG-4 |
 | | Security headers | 🔧 | KG-12 |
 | | Dependency security | 🔧 | 18 backend vulns (9 high) KG-5; no CI scan |
 | | Rate limiting | ⚠ | present; proxy behaviour unknown |
-| **Infrastructure** | Deployment (image/IaC/host) | 🎯 🔧 ⚖ | provider-agnostic design decided; staging/production layout decided; host vendor RD-3; nothing built ([DEPLOYMENT](../operations/DEPLOYMENT.md)); BL-13 |
+| **Infrastructure** | Deployment (image/IaC/host) | 🎯 🔧 ⚖ | provider-agnostic design decided; staging/production layout decided; host vendor TBD (provider-agnostic); nothing built ([DEPLOYMENT](../operations/DEPLOYMENT.md)); BL-13 |
 | | Health checks | 🔧 | no DB-backed endpoint |
 | | Monitoring / logging / alerting | 🎯 🔧 | Sentry + structured logs + uptime decided; nothing built; BL-11 |
 | | Scaling | 🎯 🔧 | single instance OK for pilot; horizontal-scale design decided; BL-10, BL-39 |
 | **Integrations** | Payments (JazzCash/EasyPaisa) | 🔑 | never verified; decided **not a launch blocker** — manual recording is the pilot path |
 | | Push (FCM) | 🎯 🔑 | dedicated Firebase project decided (staging + production); not created; BL-43 |
-| | Email (SMTP) | 🎯 🔑 | provider abstraction decided, provider not chosen (RD-4); otherwise reset links only in logs |
+| | Email (SMTP) | 🎯 🔑 | provider abstraction decided, provider TBD, may stay disabled in the pilot (RD-4); otherwise reset links only in logs |
 | | SMS | 🎯 🔧 🔑 | adapter decided, provider not chosen; post-pilot; placeholder URL in code (BL-38) |
 | | WhatsApp | 🎯 🔑 | post-pilot; templates required (BL-48) |
 | | Storage | 🎯 🔧 | S3-compatible storage decided; local disk only today; BL-10 |
@@ -53,7 +53,7 @@ Legend: 🎯 decided by the owner (2026-09-20) but **not built** — an engineer
 | **Documentation gaps closed** | status/README, product docs, journeys, requirements, architecture + ADRs, API/DB reference, security inventory, operations docs, testing docs, user guides, release docs |
 | **Engineering gaps (not closed; separate authorized work)** | KG-1..KG-23 ([KNOWN-GAPS](../security/KNOWN-GAPS.md)); [KNOWN-ISSUES](KNOWN-ISSUES.md); deploy tooling; backups; monitoring/health; pagination; exception filter; S3 adapter; SMS provider; CI scanning; tests for known defects |
 | **External blockers** | payment merchant accounts, Firebase project, SMTP account, SMS/WhatsApp providers, hosting, domain/TLS |
-| **Owner decisions still open** | RD-1…RD-15 ([OWNER-DECISIONS](../product/OWNER-DECISIONS.md)): legal entity, domain/e-mail, hosting vendor, SMTP/SMS/uptime providers, named owners, retention periods, consent/breach content, promotion enum mapping, migration approach |
+| **Owner decisions still open** | none of RD-1…RD-15 remains undecided; only **TBD values** remain ([OWNER-DECISIONS](../product/OWNER-DECISIONS.md#remaining-unresolved-decisions--tbds-only)): placeholders, hosting/e-mail/SMS/uptime vendors, retention periods, breach-notification timelines, customer SLA |
 
 ## 3. Pilot blockers (owner-defined pilot, 2026-09-20; ordered plan in [GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md))
 Pilot = one school, campuses as needed, ~500–2,000 students, single instance. Exit requires: stable auth · stable admissions/enrolment · attendance, fees, academic/session workflows, parent app and notifications operational · **backups tested** · monitoring operational · security review complete · no unresolved Critical/High defects · school sign-off.
@@ -64,4 +64,6 @@ Pilot = one school, campuses as needed, ~500–2,000 students, single instance. 
 5. Health endpoint, structured logs, Sentry with PII scrubbing, uptime probe (BL-11).
 6. SMTP and FCM verified in staging; parent reset flow (BL-14, BL-35). Payment gateways are **not** a blocker; manual recording is the pilot path.
 7. Privacy, consent, breach and incident/support processes documented and owner-approved before production (BL-56).
-8. Release checklist and rollback rehearsed ([RELEASE-CHECKLIST](RELEASE-CHECKLIST.md), [ROLLBACK](ROLLBACK.md)); load test against the Q44 targets (BL-15).
+8. Parent password reset must have a delivery path: an SMTP provider **or** the admin-assisted reset (BL-64) — e-mail may stay disabled in the pilot (RD-4) but then the link-only-in-logs behaviour (KG-4) is not acceptable.
+9. Migration strategy and reconciliation report approved before session/guardian migrations run (BL-62).
+10. Release checklist and rollback rehearsed ([RELEASE-CHECKLIST](RELEASE-CHECKLIST.md), [ROLLBACK](ROLLBACK.md)); load test against the Q44 targets (BL-15).

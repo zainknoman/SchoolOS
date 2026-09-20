@@ -6,7 +6,7 @@
 
 ## Owner decisions (2026-09-20)
 
-The Product Owner answered the open product, legal, operations and integration questions ([`docs/product/OWNER-DECISIONS.md`](docs/product/OWNER-DECISIONS.md)). **These are decisions, not implemented behaviour:** everything below still describes what the code does today. The decided engineering work is scheduled in [`docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md`](docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md) and [`docs/product/requirements/BACKLOG.md`](docs/product/requirements/BACKLOG.md). Pilot: one school, campuses as needed, ~500–2,000 students, single instance; first production release will be **1.0.0**. Licence: proprietary (placeholder entity).
+The Product Owner answered the open product, legal, operations and integration questions ([`docs/product/OWNER-DECISIONS.md`](docs/product/OWNER-DECISIONS.md)). **These are decisions, not implemented behaviour:** everything below still describes what the code does today. The decided engineering work is scheduled in [`docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md`](docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md) and [`docs/product/requirements/BACKLOG.md`](docs/product/requirements/BACKLOG.md). Pilot: one school, campuses as needed, ~500–2,000 students, single instance; first production release will be **1.0.0**. Licence: proprietary (placeholder entity). All 15 follow-up items (RD-1…RD-15) were answered; only placeholder/TBD values remain ([`OWNER-DECISIONS`](docs/product/OWNER-DECISIONS.md#remaining-unresolved-decisions--tbds-only)). Pilot gateways OFF; attendance and leave will not require a class teacher; lifecycle terms ACTIVE/TRANSFERRED/WITHDRAWN/GRADUATED — **all decided, none implemented**.
 
 ## Overall
 

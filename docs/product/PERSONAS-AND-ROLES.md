@@ -59,7 +59,7 @@
 
 Notes / discrepancies discovered (recorded, not fixed):
 - **Complaints:** create and status-update are staff-role-decorated; `GET /complaints?studentId=` is any-authenticated and gated by `StudentAccessService`, which is how the parent app's read-only complaints screen works (`complaints_screen.dart`). Parents cannot raise complaints in the current implementation (**decided to change**: parents raise complaints and see status/history; staff assign, respond, keep internal notes hidden from parents — BL-30/BL-31).
-- **Leave approval** is SCHOOL_ADMIN/SUPER_ADMIN only and additionally requires the student's section to have a class teacher (`leave.service.ts:109`); teachers do not approve leave. **Decided:** teachers/class teachers *recommend*, SCHOOL_ADMIN approves, no class teacher required, separate attribution (BL-29).
+- **Leave approval** is SCHOOL_ADMIN/SUPER_ADMIN only and additionally requires the student's section to have a class teacher (`leave.service.ts:109`), because the LEAVE attendance rows it writes are attributed to that teacher (required `Attendance.markedById` Teacher FK — F1); teachers do not approve leave. **Decided:** teachers/class teachers *recommend*, SCHOOL_ADMIN approves, no class teacher required, separate attribution (BL-29).
 - **Staff-console route access vs API:** `/admin/admissions*`, `/admin/fees`, `/admin/messages`, `/admin/complaints` allow ACCOUNTS in the router; other `/admin/*` pages are SCHOOL_ADMIN/SUPER_ADMIN only. Server roles are authoritative.
 - The matrix reflects decorators; **object-level checks** (campus, section, child) are additional and are described in `StudentAccessService` / `OrgScopeService`.
 

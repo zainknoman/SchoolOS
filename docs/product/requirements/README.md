@@ -8,3 +8,5 @@
 | [NON-FUNCTIONAL-REQUIREMENTS](NON-FUNCTIONAL-REQUIREMENTS.md) | observed vs aspirational vs absent qualities |
 | [TRACEABILITY](TRACEABILITY.md) | feature → requirement → rule → tests |
 | [BACKLOG](BACKLOG.md) | planned / not implemented (never mixed into the lists above) |
+- [DECISION-MATRIX](DECISION-MATRIX.md) — decided requirements mapped to rules, code state, gaps, work items, phases and pilot class (nothing implemented).
+- [BACKLOG](BACKLOG.md) — decided engineering work with acceptance criteria.

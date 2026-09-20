@@ -21,7 +21,7 @@
 | Errors and performance | **Sentry** (hosted) for the backend, staff console and parent app |
 | Database | provider-native PostgreSQL monitoring |
 | Logs | **structured (JSON) application logs** with request id |
-| Availability | **external uptime monitoring** (provider not chosen, RD-4) against live/ready endpoints |
+| Availability | **external uptime monitoring** — provider **TBD** and provider-agnostic; configured by environment; probes the live/ready endpoints |
 | Later | Grafana only if operational complexity justifies it |
 **PII scrubbing must be enabled.** Never intentionally capture: passwords; access/refresh/reset tokens; CNIC/B-Form; medical information; sensitive student or guardian information. Request bodies are not captured by default; a scrubbing test belongs in CI (BL-11).
 Targets to monitor: 99.5 % monthly availability, API p95 < 500 ms (CRUD), auth p95 < 1 s (see [NFR](../product/requirements/NON-FUNCTIONAL-REQUIREMENTS.md)). Alerts on 5xx rate, cron failure, payment webhook failures, database connectivity/space, object-storage errors.

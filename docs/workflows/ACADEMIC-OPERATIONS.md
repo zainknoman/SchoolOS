@@ -12,7 +12,7 @@
 Admin builds a section's weekly timetable (single entry CRUD or `PUT /sections/:id/timetable` bulk replace); teacher/room double-booking is rejected (BR-TT-01). Teachers see their own (`/teachers/me/timetable`); parents see the child's (`/students/:id/timetable`).
 
 ## 3. Attendance
-Teacher (own sections) or admin marks single or bulk records: PRESENT/ABSENT/LATE/LEAVE/HOLIDAY. Blocked on declared holidays and when the section has no class teacher (BR-ATT-01..03). Parents read per child/month. A nightly job flags high absence (BR-ATT-04, Q8) and dashboards surface flags.
+Teacher (own sections) or admin marks single or bulk records: PRESENT/ABSENT/LATE/LEAVE/HOLIDAY. Blocked on declared holidays, and — for an admin marker only — when the section has no class teacher (a Teacher marks as themself; BR-ATT-01..03; decided to change, BL-60). Parents read per child/month. A nightly job flags high absence (BR-ATT-04, Q8) and dashboards surface flags.
 
 ## 4. Diary / homework
 Teacher or admin posts entries by section/subject (`POST /diary`, optional AI draft via `/diary/draft-suggestion` — stub unless configured). Parents read per child; accounts staff can read section diaries.
@@ -29,7 +29,7 @@ Teacher/admin creates one report-card record per student per session with a docu
 - **Notifications:** created by events; delivered in-app and, if configured, by push/SMS/WhatsApp/email or a daily digest (user preference). External channels: CONFIGURATION/EXTERNAL SERVICE REQUIRED.
 
 ## 8. Leave and complaints
-Parent files a leave request for a child (`POST /leave-requests`); admin approves/rejects once, and approval requires the section to have a class teacher (BR-LV-01/02). Complaints are logged and updated by staff; parents can only read them.
+Parent files a leave request for a child (`POST /leave-requests`); admin approves/rejects once, and approval requires the section to have a class teacher because the LEAVE rows are attributed to it (BR-LV-01/02; decided to change, BL-29 after BL-60). Complaints are logged and updated by staff; parents can only read them.
 
 ## 9. Holidays
 Admin defines school-wide or campus-specific holidays; they block attendance marking and appear on parents' calendar.

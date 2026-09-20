@@ -1,17 +1,20 @@
 # Deployment, Runtime Constraints and Scaling
 
 > **Status:** PARTIAL — requirements only · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** repo root listing, `ci.yml`, `backend/package.json`, `nest-cli.json` · **Owner:** Operations/Deployment Owner
-> **`NOT IMPLEMENTED`: the repository defines no deployment target.** There is no Dockerfile, compose file, IaC, process-manager config, reverse-proxy config or deploy job in CI (`find` for Dockerfile/compose/render/Procfile: none; `.github/workflows/` contains only `ci.yml`). This document therefore states **what a deployment must provide** and the exact build/run commands that exist. Hosting provider/region: `REQUIRES-DECISION` (RD-3); the owner decided (2026-09-20) that the design must be **provider-agnostic** — no cloud provider is hard-coded.
+> **`NOT IMPLEMENTED`: the repository defines no deployment target.** There is no Dockerfile, compose file, IaC, process-manager config, reverse-proxy config or deploy job in CI (`find` for Dockerfile/compose/render/Procfile: none; `.github/workflows/` contains only `ci.yml`). This document therefore states **what a deployment must provide** and the exact build/run commands that exist. Hosting provider/region: **TBD** (owner ruling RD-3: provider-agnostic; documenting requirements, not selecting a vendor) — the design must not depend on any specific provider.
 
 ## Decided target environments (owner, 2026-09-20) — NOT IMPLEMENTED
 | Environment | Host name (placeholder) | Purpose |
 |---|---|---|
 | Development | local | developer machines |
-| Staging | `staging.<production-domain>` | PR/release validation; separate database, secrets and Firebase project |
-| Production | `app.<production-domain>` (or equivalent) | live pilot |
+| Staging | `staging.[PRODUCTION_DOMAIN]` | PR/release validation; separate database, secrets and Firebase project |
+| Production | `app.[PRODUCTION_DOMAIN]` (or equivalent) | live pilot |
 Domains stay placeholders until finalised (RD-2). Each environment needs: **HTTPS**, **managed PostgreSQL**, environment-specific secrets (never shared across environments), **external S3-compatible object storage** (BL-10), automated backups (BL-13), Sentry/uptime monitoring (BL-11). A **single backend instance is acceptable for the pilot**, but the design must stay horizontally scalable: no persistent uploads on local disk, storage behind an abstraction, background jobs with safe locking/idempotency (BL-39), no in-memory state for distributed workflows.
 Release flow (owner): feature branch → PR/review → staging deployment → automated tests → acceptance verification → production tag (`vMAJOR.MINOR.PATCH`, first release `1.0.0`) with Product/Engineering approval — see [RELEASE-CHECKLIST](../release/RELEASE-CHECKLIST.md). No direct commits to the production branch.
 **First SUPER_ADMIN:** decided to be created only by a **one-time controlled bootstrap** (secrets from the environment/secret manager, forced password change, mechanism disabled afterwards, no public registration) — `NOT IMPLEMENTED` (BL-22).
+
+## Provider-agnostic minimum requirements (owner, RD-3) — vendor/region **TBD**
+The pilot host, region, managed-PostgreSQL provider and S3-compatible vendor are **not selected**, and the readiness work does not depend on selecting them. Whatever is chosen must provide: **managed PostgreSQL**, **automated backups**, **PITR where available**, **S3-compatible object storage**, **TLS**, **secrets management**, **monitoring/logging**, and a **provider-supported restore capability**. The application and pipeline must not contain vendor-specific code paths; hostnames, endpoints, bucket names and addresses (`[PRODUCTION_DOMAIN]`, `[EMAIL_FROM]`, etc.) come from environment/config.
 
 ## Artifacts and commands that exist
 | Component | Build | Run | Output |

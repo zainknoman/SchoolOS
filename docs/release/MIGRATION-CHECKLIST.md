@@ -23,3 +23,8 @@ Migrations are forward-only and additive (ADR-0005). Use this list for every rel
 
 **Known caveats**
 Earlier columns (`User.schoolId`, `User.campusId`) were added nullable without backfill — existing users without them are denied org-scoped access until updated (DB-1). No migration tests exist beyond apply-to-empty.
+
+## Additional gates (decided 2026-09-20; not yet available)
+- Data-migrating changes use the **expand → backfill → contract** pattern (contract one release later) and must first pass the **migration test harness (BL-65)** with a reconciliation report and a manual-review list.
+- The BL-62 strategy must be approved before session/subject/fee/guardian/lifecycle migrations run.
+- Rollback = restore the pre-migration backup and redeploy the previous build ([ROLLBACK](ROLLBACK.md)).

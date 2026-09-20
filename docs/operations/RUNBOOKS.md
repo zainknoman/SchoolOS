@@ -4,15 +4,15 @@
 > Each entry states the symptom, the code-derived cause(s), and what to check. The incident/support model below is **DECIDED (2026-09-20) but not yet operational**; it must exist before production launch (BL-56).
 
 ## Incident and support process (decided; pilot)
-- **Roles:** the Engineering/Operations owner handles technical incidents; the **school admin is the first operational contact** for school-side issues and escalates to the designated support channel (a dedicated support e-mail/helpdesk address — address `[support-email]`, RD-2/RD-13).
-- **Internal severity levels** (no contractual SLA in the pilot; exact response targets are defined after pilot validation):
-| Level | Meaning (working definition) | Handling |
-|---|---|---|
-| P1 Critical | production down, data loss/corruption or suspected breach/cross-school data exposure | immediate operational attention; Security Owner engaged for suspected breach; breach-notification process (Product Owner, counsel) applies |
-| P2 High | major function unusable (login, attendance, fees) for a school | acknowledged as soon as practical |
-| P3 Medium | degraded or workaround exists | normal queue |
-| P4 Low | cosmetic/minor request | backlog |
-- Critical production incidents are acknowledged as soon as practical. Record each P1/P2 with timeline, cause, fix and follow-ups. Named on-call owners: `REQUIRES-DECISION` (RD-5).
+- **Roles:** the Engineering/Operations owner handles technical incidents; the **school admin is the first operational contact** for school-side issues and escalates to the designated support channel (support channel `[SUPPORT_EMAIL]`; owner `[SUPPORT_OWNER]`).
+- **Internal severity levels and acknowledgement targets** (RD-13). These are **internal operational targets, not contractual SLA commitments**; a customer-facing SLA is a future business decision.
+| Level | Meaning (working definition) | Internal target | Handling |
+|---|---|---|---|
+| P1 Critical | production down, data loss/corruption or suspected breach/cross-school data exposure | acknowledge ≤ 30 minutes; continuous investigation until mitigated | immediate operational attention; Security Owner engaged for suspected breach; breach-notification process (Product Owner, counsel) applies |
+| P2 High | major function unusable (login, attendance, fees) for a school | acknowledge ≤ 2 business hours | as soon as practical |
+| P3 Medium | degraded or workaround exists | acknowledge ≤ 1 business day | normal queue |
+| P4 Low | cosmetic/minor request | acknowledge ≤ 3 business days | backlog |
+- Critical production incidents are acknowledged as soon as practical. Record each P1/P2 with timeline, cause, fix and follow-ups. Roles: `[OPS_OWNER]` (technical incidents), `[SECURITY_OWNER]` (suspected breach), `[PRIVACY_ADMINISTRATOR]` (breach notification), `[SUPPORT_OWNER]` (first-line). Persons assigned to the roles are recorded outside the repository.
 
 | Symptom | Likely cause (evidence) | Check / action |
 |---|---|---|
@@ -29,7 +29,7 @@
 | Voucher shows unpaid after a failed payment | expected — allocation zeroed on failure so it can be retried (`fee-payments.service.ts:95-101`) | Retry payment |
 | "No active academic session" on student create / voucher issue | no session with `isActive = true` (`student.service.ts:69`) | Activate a session (note: activation deactivates all others) |
 | Students/vouchers land in the wrong session in a multi-school setup | Global active-session lookup (Q1, KG-7) | Correct data manually; needs product decision |
-| Attendance cannot be marked | section has no class teacher, or the day is a holiday (`attendance.service.ts`) | Assign class teacher; check holidays |
+| Attendance cannot be marked | an **admin** marker and the section has no class teacher (`Attendance.markedById` is a required Teacher FK; teachers are unaffected — **defect vs the decided rule, RD-8 → BL-60**), or the day is a holiday (`attendance.service.ts`) | Assign a class teacher as a workaround until BL-60 ships; check holidays |
 | Leave cannot be approved | section has no class teacher (`leave.service.ts:109`) — **defect vs the decided rule** (KI-26, BL-29) | Assign a class teacher as a workaround until BL-29 ships |
 | Uploaded files missing after redeploy | `UPLOADS_DIR` on ephemeral disk | Mount persistent storage; restore files ([BACKUP-RESTORE](BACKUP-RESTORE.md)) |
 | Digest/risk jobs run twice | two backend instances (ADR-0008) | Run one instance |

@@ -6,6 +6,7 @@
 |---|---|
 | [PRODUCTION-READINESS](PRODUCTION-READINESS.md) | go/no-go assessment, gap classification, pilot blockers |
 | [GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md) | decided-vs-built gaps and the phased engineering plan (pilot scope order) |
+| [EXECUTION-PLAN](EXECUTION-PLAN.md) | ordered waves, schema/migration dependencies, regeneration matrix, rollback rules |
 | [RELEASE-CHECKLIST](RELEASE-CHECKLIST.md) | steps for cutting and deploying a release |
 | [MIGRATION-CHECKLIST](MIGRATION-CHECKLIST.md) | database change safety |
 | [ROLLBACK](ROLLBACK.md) | how to revert |

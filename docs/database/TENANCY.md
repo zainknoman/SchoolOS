@@ -34,3 +34,5 @@
 
 ## Isolation tests
 Backend e2e: `cross-tenant-boundary.e2e-spec.ts`, `sections-access.e2e-spec.ts`, `org-provisioning.e2e-spec.ts`, `cascade-delete-restrictions.e2e-spec.ts`. No test covers TENANT-1 to TENANT-5 (verified by absence in the spec names; content not exhaustively read).
+
+> **Correction (2026-09-20):** parent `User` rows have no `schoolId` (identity is global; access via `StudentParent`). `Circular` (optional `sectionId`) and `Holiday` (nullable `campusId`) also lack a reliable school anchor — decided fix: `schoolId` via migration M2 (BL-20), gated by the BL-62 strategy and BL-65 harness.
