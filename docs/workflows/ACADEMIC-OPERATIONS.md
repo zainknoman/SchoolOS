@@ -1,6 +1,7 @@
 # Academic Operations (Session, Timetable, Attendance, Diary, Assessment, Report Cards, Communication)
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `academic-session/`, `timetable/`, `attendance/`, `diary/`, `gradebook/`, `report-cards/`, `circulars/`, `messages/`, `notifications/`, `leave/`, `complaints/`; e2e `org-structure`, `timetable-attendance`, `diary-circulars`, `gradebook`, `holidays-complaints-report-cards`, `messages-notifications`, `leave` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `academic-session/`, `timetable/`, `attendance/`, `diary/`, `gradebook/`, `report-cards/`, `circulars/`, `messages/`, `notifications/`, `leave/`, `complaints/`; e2e `org-structure`, `timetable-attendance`, `diary-circulars`, `gradebook`, `holidays-complaints-report-cards`, `messages-notifications`, `leave` · **Owner:** Product Owner
+> **Decided, not yet implemented (owner, 2026-09-20):** school-scoped subjects and yearly syllabus (BL-02/BL-26); generated report cards and grading scales (BL-06/BL-27); configurable attendance-risk with teacher/admin alerts (BL-28); leave recommendation + admin approval without a class teacher (BL-29); copy-structure for SCHOOL_ADMIN (BL-33). Steps below describe current behaviour.
 
 ## 1. Academic session lifecycle
 1. **Create** (SUPER_ADMIN, `POST /academic-sessions`, label + dates + `isActive`). Activating one **deactivates all other active sessions platform-wide** (BR-ORG-01, Q1).

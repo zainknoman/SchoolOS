@@ -1,6 +1,6 @@
 # User Guides
 
-> **Status:** PARTIAL · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
+> **Status:** PARTIAL · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Product Owner
 > Task-oriented guides for the roles that exist. **Verification level:** steps are derived from the router (`staff-console/src/router/index.ts`), Flutter screens, API behaviour and business rules; they were **not click-tested in a running UI** in this pass, so exact button/field wording may differ slightly. No screenshots are included (decision G10: comps in `docs/design-reference/` are design mock-ups, not the shipped UI, and may show demo personal data).
 > Features that need external services are flagged **⚠ needs setup** — a school should not promise them to users until an administrator has configured them ([INTEGRATIONS](../operations/INTEGRATIONS.md)).
 

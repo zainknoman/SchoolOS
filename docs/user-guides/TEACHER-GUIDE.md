@@ -1,6 +1,7 @@
 # Teacher Guide
 
 > **Status:** PARTIAL (see [verification level](README.md)) · **Verified:** 2026-09-20 · Role: `TEACHER`. You see only the sections you teach (from the timetable) or are class teacher of. Screens: **My Day**, **Attendance**, **Diary**, **Timetable**, **Messages**, **Complaints**, **Report Cards**, **Gradebook**.
+> **Decided, not yet implemented (owner, 2026-09-20):** teachers can recommend leave (BL-29) and see attendance-risk alerts with configurable thresholds (BL-28). This guide describes current behaviour.
 
 | Task | Where | Notes |
 |---|---|---|

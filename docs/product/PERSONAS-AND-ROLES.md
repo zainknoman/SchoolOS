@@ -1,7 +1,7 @@
 # SchoolOS — Personas and Role Matrix
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `@Roles(...)` decorators in `backend/src/**/*.controller.ts` (185 handlers scanned), `OrgScopeService`, `StudentAccessService`, `staff-console/src/router/index.ts`, `backend/prisma/schema.prisma` · **Owner:** project owner
-> Decision **G4 (recommended option applied):** Principal is documented as a *flag on SCHOOL_ADMIN*, as the code has it. Changing that would be a code change and is out of scope.
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `@Roles(...)` decorators in `backend/src/**/*.controller.ts` (185 handlers scanned), `OrgScopeService`, `StudentAccessService`, `staff-console/src/router/index.ts`, `backend/prisma/schema.prisma` · **Owner:** Product Owner
+> **Confirmed by the owner (2026-09-20):** Principal is a *flag on an authorised SCHOOL_ADMIN*, not a role. **Decided changes not yet implemented** (this matrix still shows current behaviour): ACCOUNTS becomes finance-only with permission grants (BL-32); parents can raise complaints (BL-30); leave needs no class teacher and gets a teacher *recommendation* step (BL-29); SCHOOL_ADMIN gets copy-structure in the UI (BL-33); subject management for SUPER_ADMIN and own-school SCHOOL_ADMIN (BL-02); students have **no** login in the initial release.
 
 ## 1. The roles
 
@@ -12,7 +12,7 @@
 | SUPER_ADMIN | Staff console | Platform-wide (`OrgScope.unrestricted`) | Creates schools and academic sessions; edits/deletes campuses; network dashboard |
 | SCHOOL_ADMIN | Staff console | Own school; **own campus only** if `User.campusId` is set | Runs day-to-day administration. `isPrincipal = true` additionally unlocks `/principal/*` and `GET /admin/principal-academics-summary` |
 | — Principal (flag) | Staff console | Same as the SCHOOL_ADMIN it is set on | Route meta `requiresPrincipal`; service enforces the flag (`dashboard.controller.ts:33`). Provisioned with a campus/school via `create-principal-user.ts` |
-| ACCOUNTS | Staff console | Own school | Fees, admissions intake, complaints, messages; no people/academic administration |
+| ACCOUNTS | Staff console | Own school | **Today:** fees, admissions intake, complaints, messages; no people/academic administration. **Decided:** fees/finance only; other modules by explicit permission grant (BL-32) |
 | TEACHER | Staff console | Sections they teach (timetable) or are class teacher of (`getTeacherSectionIds`) | Campus match alone is not enough (`student-access.service.ts:14`) |
 | PARENT | Parent app | Own children only (`StudentParent` link, independent of enrollment status) | Login by email or GR-number identifier |
 | Student | none | — | No account, no login (verified: no such role or model link) |
@@ -58,8 +58,8 @@
 | AI draft suggestions | — | ✔ (circular, diary) | — | ✔ (diary) | — |
 
 Notes / discrepancies discovered (recorded, not fixed):
-- **Complaints:** create and status-update are staff-role-decorated; `GET /complaints?studentId=` is any-authenticated and gated by `StudentAccessService`, which is how the parent app's read-only complaints screen works (`complaints_screen.dart`). Parents cannot raise complaints in the current implementation.
-- **Leave approval** is SCHOOL_ADMIN/SUPER_ADMIN only and additionally requires the student's section to have a class teacher (`leave.service.ts:109`); teachers do not approve leave.
+- **Complaints:** create and status-update are staff-role-decorated; `GET /complaints?studentId=` is any-authenticated and gated by `StudentAccessService`, which is how the parent app's read-only complaints screen works (`complaints_screen.dart`). Parents cannot raise complaints in the current implementation (**decided to change**: parents raise complaints and see status/history; staff assign, respond, keep internal notes hidden from parents — BL-30/BL-31).
+- **Leave approval** is SCHOOL_ADMIN/SUPER_ADMIN only and additionally requires the student's section to have a class teacher (`leave.service.ts:109`); teachers do not approve leave. **Decided:** teachers/class teachers *recommend*, SCHOOL_ADMIN approves, no class teacher required, separate attribution (BL-29).
 - **Staff-console route access vs API:** `/admin/admissions*`, `/admin/fees`, `/admin/messages`, `/admin/complaints` allow ACCOUNTS in the router; other `/admin/*` pages are SCHOOL_ADMIN/SUPER_ADMIN only. Server roles are authoritative.
 - The matrix reflects decorators; **object-level checks** (campus, section, child) are additional and are described in `StudentAccessService` / `OrgScopeService`.
 

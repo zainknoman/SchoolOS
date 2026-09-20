@@ -1,6 +1,7 @@
 # School Admin and Principal Guide
 
 > **Status:** PARTIAL (see [verification level](README.md)) · **Verified:** 2026-09-20 · Role: `SCHOOL_ADMIN` — your school (or only your campus, if your login is campus-scoped). A **Principal** is a School Admin whose account has the principal flag: you additionally see **Principal → School Overview** and **Academics & Staff**.
+> **Decided, not yet implemented (owner, 2026-09-20):** copy-structure available to SCHOOL_ADMIN in the UI (BL-33); subject management (BL-02); leave approval without a class teacher (BL-29). This guide describes current behaviour and is not click-tested.
 
 Menu groups: Overview · People · Operations · Communication · Org Structure.
 

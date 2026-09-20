@@ -1,6 +1,6 @@
 # Requirements
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Product Owner
 
 | Document | Content |
 |---|---|

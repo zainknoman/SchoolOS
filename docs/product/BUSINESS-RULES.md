@@ -1,7 +1,7 @@
 # SchoolOS — Business Rules Register
 
-> **Status:** CURRENT (rules) / REQUIRES-DECISION (Q-items) · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** cited per rule (`file:line`) · **Owner:** project owner
-> **A rule appears here only if code enforces it.** "Enforced by" points at the enforcement point; "Tested" names e2e evidence where it exists ("unit" = colocated mocked-Prisma spec; "none found" = not confirmed). Items marked `REQUIRES-DECISION` are open product questions — the current behaviour is described but **not endorsed** as a requirement (Decision G5, recommended option: document as-is and flag).
+> **Status:** CURRENT (rules as implemented; §8 = DECIDED, not implemented) · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** cited per rule (`file:line`) · **Owner:** Product Owner
+> **A rule appears here only if code enforces it.** "Enforced by" points at the enforcement point; "Tested" names e2e evidence where it exists ("unit" = colocated mocked-Prisma spec; "none found" = not confirmed). Where a rule conflicts with an owner decision (2026-09-20, §8), the decision is the intended rule and the current behaviour is recorded as a defect/work item.
 > Specs in `docs/superpowers/specs/` were used only as leads; nothing is recorded from them unless the code confirms it.
 
 ## 1. Authentication (BR-AUTH)
@@ -43,7 +43,7 @@
 | BR-STU-02 | Creating a student requires **exactly one** of `parentProfileId` (link existing parent) or `newParent` (create login + profile). | `student/student.service.ts:59-66` | people-crud |
 | BR-STU-03 | GR number and parent login identifiers are unique; duplicates return a friendly conflict error. | `applications.service.ts` (`assertCreatable`), `prisma-create-guard.ts` | people-crud, admissions |
 | BR-STU-04 | Student lists include anyone ever enrolled in the caller's school, not only the active enrollment (withdrawn/graduated students stay visible to the school). | `student.service.ts:109-112` | people-crud |
-| BR-STU-05 | Parent↔child links are managed through `StudentParent`; a parent may have multiple children, a child multiple parents. Maximum guardians / required relationship: **REQUIRES-DECISION (Q4)**. | `parent.service.ts`, schema | people-crud |
+| BR-STU-05 | Parent↔child links are managed through `StudentParent`; a parent may have multiple children, a child multiple parents. Decided rule (max 2 primary guardians, relationship required, global parent identity): §8 Q4 — not yet enforced. | `parent.service.ts`, schema | people-crud |
 | BR-STF-01 | Staff/teacher records are school-scoped; a teacher may be linked to a staff record (`Teacher` stays a separate model). | `staff.service.ts`, `create-staff-with-optional-teacher.ts` | unit |
 | BR-STF-02 | A hiring application can be decided once (approve/reject); approving a **teacher** hire requires a login identifier/password; candidate résumé must be uploaded via `/files` first. | `hiring-applications.service.ts:101-133`, `hiring-candidates.service.ts:40` | unit |
 
@@ -71,7 +71,7 @@
 | BR-GRD-01 | Final grade per subject = Σ(category weight % × obtained %) — a weighted percentage; **no letter grades or GPA exist**. | `grades.service.ts:44-47` | gradebook |
 | BR-GRD-02 | Marks cannot exceed the assessment's max marks; only students actively enrolled in the assessment's class may receive marks. | `assessments.service.ts:114-131` | gradebook |
 | BR-GRD-03 | Category weights for a class/term **should** total 100 %; the system only returns a warning when they don't (does not block). | `assessment-categories.service.ts:40-50` | gradebook |
-| BR-RC-01 | One report card per student per academic session; report cards are records (with file) — not derived from marks. Product intent: **REQUIRES-DECISION (Q6)**. | `report-cards.service.ts:46` | holidays-complaints-report-cards |
+| BR-RC-01 | One report card per student per academic session; report cards are records (with file) — not derived from marks. Decided intent: generate from the gradebook (§8 Q6) — not yet implemented. | `report-cards.service.ts:46` | holidays-complaints-report-cards |
 | BR-LV-01 | Leave `startDate` must not be after `endDate`; a request can be decided once. | `leave.service.ts:34,103,183` | leave |
 | BR-LV-02 | Approving leave requires a class teacher on the student's section. | `leave.service.ts:109` | leave |
 | BR-IMP-01 | Bulk import is two-step (preview then commit) per entity (students, parents, teachers, staff). Preview reports **duplicates within the uploaded file** (by GR number / login identifier); services write audit logs. Cross-file/database duplicate handling: verify in Phase 7. | `bulk-import/*.service.ts` | bulk-import |
@@ -85,18 +85,34 @@
 | BR-FEE-03 | A voucher already fully paid cannot be paid again; a payment cannot exceed the voucher's remaining balance; payments are allocated to vouchers via `FeePaymentAllocation` (unique per payment/voucher). | `fee-payments.service.ts:40,167`, schema:911 | fees |
 | BR-FEE-04 | Gateway webhooks must carry a valid signature; otherwise 401. Real gateways require configuration; the stub webhook requires a secret outside dev/test. | `payments-webhook.controller.ts:33`, `.env.example` | fees |
 
-## 8. Open product decisions — `REQUIRES-DECISION`
+## 8. Product decisions — DECIDED 2026-09-20 (owner), not yet implemented
 
-Documentation must not answer these; each needs a product owner ruling before any doc or code treats a behaviour as intended.
+> Q1–Q9 were answered by the Product Owner on 2026-09-20 (register: [OWNER-DECISIONS](OWNER-DECISIONS.md)). **"Intended" is the decided policy; "Current" is what the code does today and stays the documented behaviour (§1–§7) until the work item ships.** Where they differ, the intended rule stands and the difference is an engineering defect/work item (owner ruling).
 
-| ID | Question | Current behaviour (evidence) | Risk |
+| ID | Status | Intended rule (DECIDED) | Current behaviour (evidence) | Work item |
+|---|---|---|---|---|
+| **Q1** Academic sessions | DECIDED | School-scoped; each school has its own calendar; existing data backfilled to the right school's session; "active" resolved per school | Global; activation deactivates all others; 3 "first active" call sites (BR-ORG-01/02) | BL-01 |
+| **Q2** Subjects | DECIDED | School-scoped and reusable across campuses/classes; SUPER_ADMIN and own-school SCHOOL_ADMIN manage; teachers cannot create school subjects; active/inactive instead of delete when history exists; **yearly syllabus per class + subject, per session** | Global unique names; no create endpoint/UI; no syllabus | BL-02, BL-26 |
+| **Q3** Fee structures / terms | DECIDED | School-scoped; editable while draft/unused; **locked** once invoices/transactions depend on them; archived, never hard-deleted | Unscoped lists; structures cannot be edited/deleted | BL-03 |
+| **Q4** Guardians | DECIDED | Global person identity; separate auth account; school-scoped relationship and authorisation; one parent account across schools (no per-school duplicates); relationship type required (Father/Mother/Guardian/Other); primary flag; **max 2 primary per student**, unlimited non-primary/emergency guardians | Unconstrained links; parent user carries school scoping (BR-STU-05, BR-SCOPE-02) | BL-23, BL-04 |
+| **Q5** Promotion | DECIDED | Manual admin decision; system shows results/attendance/fee-clearance indicators as warnings (blocking only if a school configures it); explicit admin confirmation; outcomes: Promoted, Promoted with conditions, Retained, Transferred, Withdrawn/Left; history never altered | PROMOTED/RETAINED/GRADUATED/TRANSFERRED_OUT/WITHDRAWN; preview suggests PROMOTED for all; no indicators (BR-ENR-02/03) | BL-05 (enum mapping: RD-10) |
+| **Q6** Report cards | DECIDED | Generated from gradebook (marks, %, letter grade, configurable scales, remarks, subject-wise and overall result), PDF export; GPA optional in the model; uploaded historical report cards still supported | Manual record + file; weighted % only, no letter grades (BR-GRD-01, BR-RC-01) | BL-27, BL-06 |
+| **Q7** Retention | DECIDED | Retain; active vs archived/former; soft delete only where legally required; history preserved; export for authorised admins; permanent erasure only SUPER_ADMIN/privacy administrators per legal policy; **no automatic deletion until a retention policy exists** (periods: RD-6) | `DELETE /admin/students/:id` hard-deletes (`student.service.ts:155-166`) | BL-07, BL-41 |
+| **Q8** Attendance risk | DECIDED | Defaults 30 days / 25 % / ≥ 5 tracked days, **configurable per school** (all campuses; campus overrides later); alert to class teacher and school admin; parent notification supported but off until the school enables it | Hard-coded constants (`attendance-risk.constants.ts`) (BR-ATT-04) | BL-28 |
+| **Q9** Fees | DECIDED | Discounts, scholarships, late fees, refunds, installments, carry-forward, outstanding balances, partial payments, waivers, defaulter reports, accounting exports; paid history immutable/auditable; carry-forward on session/class change. Pilot subset: structures, terms, charges, payments, outstanding, defaulters, basic carry-forward | Vouchers/payments/reconcile only (BR-FEE-01..04) | BL-08, BL-24 |
+
+### Other decided rules (from the owner's answers Q10–Q19), pending implementation
+| ID | Intended rule | Current behaviour | Work item |
 |---|---|---|---|
-| **Q1** | Should `AcademicSession` be per school? | Global; activation deactivates all others; 3 call sites use "first active" (BR-ORG-01/02); seed creates one active per school (`seed.ts:154`) | Wrong-session enrollment/vouchers in a multi-school deployment |
-| **Q2** | Should `Subject` be a per-school entity, and how are subjects created? | Global unique names; **no create endpoint or UI** | Cannot onboard subjects via product |
-| **Q3** | Should `FeeStructure` and `Term` be school-scoped? | Unscoped lists; fee structures cannot be edited/deleted | Cross-school visibility of fee data |
-| **Q4** | Guardian rules: max parents per child, relationship types, can a parent belong to multiple schools? | Unconstrained in service | Data quality |
-| **Q5** | Promotion eligibility: are marks/attendance/fee-clearance thresholds required? Default decision? | `preview` suggests PROMOTED for everyone; no eligibility checks | Wrong promotions if used unreviewed |
-| **Q6** | Should report cards be generated from gradebook marks? | Manual record + file | Duplicate data entry |
-| **Q7** | Data retention/deletion policy for student & staff PII (CNIC, B-Form, medical) | `DELETE /admin/students/:id` performs a hard `student.delete` with an audit-log row (`student.service.ts:155-166`), blocked only by FK restrictions; no retention/soft-delete policy found | Privacy/legal exposure |
-| **Q8** | Are the attendance-risk parameters (30 days, 25 %, ≥5 days) intended, and who is notified? | Hard-coded constants (`attendance-risk.constants.ts`) | Tuning requires a code change |
-| **Q9** | Fee: late fees, discounts/scholarships, partial-payment rules, refunds | None found in code | Finance completeness |
+| **BR-D-10** Complaints | Parents raise complaints and see status/history; staff assign, respond, add internal notes, track resolution; parents never see internal notes | Parents read-only; staff create/update | BL-30, BL-31 |
+| **BR-D-11** Attendance granularity | Daily attendance for release 1; design must allow per-period later | Daily only (BR-ATT-01) | BL-45 |
+| **BR-D-12** Leave | Teacher/class teacher may recommend; authorised SCHOOL_ADMIN approves/rejects; no class teacher required; recommendation and decision separately attributed; never fabricate a teacher attribution | Approval requires a class teacher; attendance stamped with that teacher (BR-LV-02, `leave.service.ts:108-143`) | BL-29 |
+| **BR-D-13** Students | No student login in the initial release; architecture must not preclude it | none | BL-47 |
+| **BR-D-14** Admissions | Staff-entered now; public online admissions is a future API | staff-entered | BL-46 |
+| **BR-D-15** Staff history | Keep teacher/staff assignment history: teacher, session, school/campus, class, section, subject, role, start/end dates | NOT IMPLEMENTED | BL-25 |
+| **BR-D-18** ACCOUNTS | Fees/finance only; admissions, complaints, messaging only via explicit permission grants | ACCOUNTS also has admissions/complaints/messages | BL-32 |
+| **BR-D-19** Copy structure | SCHOOL_ADMIN (own school) and SUPER_ADMIN may copy classes, sections, subjects, subject assignments, syllabus structure, timetable templates into a new session; never modifies historical data; UI must match the API | API allows SCHOOL_ADMIN, UI is SUPER_ADMIN-only; classes/sections only (BR-ORG-05, KI-18) | BL-33 |
+
+### Still open (`REQUIRES-DECISION`)
+- **BR-ATT-03** — attendance **marking** currently requires a class teacher; the owner's Q12 ruling covered leave only (RD-8).
+- Retention periods per category (RD-6); complaint "advanced" split (RD-9); promotion enum mapping (RD-10); migration approach for existing sessions/guardians (RD-11).

@@ -1,7 +1,8 @@
 # Student Lifecycle (Admission → Enrollment → Promotion → History)
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `admissions/`, `student/`, `enrollment/`, `promotions/` services; e2e `admissions`, `people-crud`, `promotions` · **Owner:** project owner
-> Rules are referenced by ID, not restated. Open questions: Q1, Q4, Q5, Q7.
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `admissions/`, `student/`, `enrollment/`, `promotions/` services; e2e `admissions`, `people-crud`, `promotions` · **Owner:** Product Owner
+> Rules are referenced by ID, not restated. Q1, Q4, Q5, Q7 are decided (owner, 2026-09-20) but not yet implemented — see [BUSINESS-RULES §8](../product/BUSINESS-RULES.md).
+> **Decided, not yet implemented (owner, 2026-09-20):** school-scoped sessions (BL-01); promotion outcomes with results/attendance/fee indicators and explicit admin confirmation (BL-05); global guardians with max 2 primary (BL-23/BL-04); archive instead of hard delete (BL-07). Steps below describe current behaviour.
 
 ## A. Admission (optional path)
 

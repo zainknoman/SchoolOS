@@ -1,7 +1,8 @@
 # SchoolOS — Functional Requirements (as implemented)
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** [FEATURE-CATALOG](../FEATURE-CATALOG.md), [BUSINESS-RULES](../BUSINESS-RULES.md), backend e2e specs · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** [FEATURE-CATALOG](../FEATURE-CATALOG.md), [BUSINESS-RULES](../BUSINESS-RULES.md), backend e2e specs · **Owner:** Product Owner
 > These are requirements the **current implementation satisfies or claims to satisfy** — not a wishlist. Planned work is in [BACKLOG.md](BACKLOG.md). Acceptance evidence: an e2e spec name means the area is exercised there; **the specific assertion has not been individually verified in this pass** unless stated. `UNVERIFIED` = no automated evidence found (unit specs with mocked Prisma do not count as acceptance evidence). Numbers/traceability completion: Phase 10.
+> **Owner decisions (2026-09-20):** rows below describe **implemented** behaviour only. Decided-but-unbuilt capabilities (school-scoped sessions/subjects/fees, global guardians, generated report cards, promotion indicators, staff assignment history, attendance-risk settings, leave recommendation, parent complaints, fee extras, archive/retention) are tracked in [OWNER-DECISIONS](../OWNER-DECISIONS.md) and [BACKLOG](BACKLOG.md), never as current features.
 
 ## Identity and access
 

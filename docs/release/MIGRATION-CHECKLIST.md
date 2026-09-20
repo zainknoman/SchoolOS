@@ -1,6 +1,6 @@
 # Migration Checklist
 
-> **Status:** CURRENT (procedure) · **Verified:** 2026-09-20 · **Sources:** [MIGRATIONS](../database/MIGRATIONS.md), `prisma.config.ts`, `ci.yml` · **Owner:** project owner
+> **Status:** CURRENT (procedure) · **Verified:** 2026-09-20 · **Sources:** [MIGRATIONS](../database/MIGRATIONS.md), `prisma.config.ts`, `ci.yml` · **Owner:** Engineering Lead and Product Owner
 
 Migrations are forward-only and additive (ADR-0005). Use this list for every release that includes a new folder under `backend/prisma/migrations/`.
 

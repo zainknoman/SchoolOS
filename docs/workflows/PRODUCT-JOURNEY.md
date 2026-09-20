@@ -1,6 +1,6 @@
 # SchoolOS — Product Journey
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** controllers, services, router, parent-app screens, e2e specs (cited in the tables) · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** controllers, services, router, parent-app screens, e2e specs (cited in the tables) · **Owner:** Product Owner
 > Maps the real-world school lifecycle to what SchoolOS actually supports. Steps the product does **not** support are listed separately and are never described as part of the flow. Feature IDs → [FEATURE-CATALOG](../product/FEATURE-CATALOG.md); rule IDs → [BUSINESS-RULES](../product/BUSINESS-RULES.md).
 
 ## 1. End-to-end map

@@ -1,6 +1,7 @@
 # Parent Journey (Parent App)
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `parent-app/lib/src/screens/`, `me/`, `leave/`, `fees/`, e2e `me`, `leave`, `fees`, `messages-notifications` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `parent-app/lib/src/screens/`, `me/`, `leave/`, `fees/`, e2e `me`, `leave`, `fees`, `messages-notifications` · **Owner:** Product Owner
+> **Decided, not yet implemented (owner, 2026-09-20):** one parent account across schools (BL-23); parent-app-compatible password reset (BL-35); parents raise complaints (BL-30); Google Play first (BL-43). Steps below describe current behaviour.
 
 Parents have no self-registration: an administrator (or admission approval / bulk import) creates the parent login. The first login may force a password change (`mustChangePassword`).
 

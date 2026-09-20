@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 Documentation program (2026-09-19/20): canonical docs under `docs/`, rewritten README and status, archive of superseded material. No application code changed. See `docs/release/PRODUCTION-READINESS.md`.
+Owner decisions recorded 2026-09-20 (`docs/product/OWNER-DECISIONS.md`): business rules Q1–Q19, proprietary licence notice, `SECURITY.md` placeholders, operations targets, decided engineering backlog (BL-01…BL-59) and phased plan (`docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md`). Documentation only — **no behaviour has changed**.
+
+**Versioning policy (decided):** Semantic Versioning with Git tags; the first production release will be **1.0.0**. Everything below is pre-1.0 history and carries no version numbers.
 
 ## Pre-release history (reconstructed, newest first)
 

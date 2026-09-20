@@ -1,7 +1,8 @@
 # Fees and Payments
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `fees/` (controller, vouchers, payments, gateways), e2e `fees`, `.env.example` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `fees/` (controller, vouchers, payments, gateways), e2e `fees`, `.env.example` · **Owner:** Product Owner
 > **Integration status:** JazzCash/EasyPaisa are CONFIGURATION REQUIRED and have never been verified against a live gateway; the stub gateway is development/test only. See PROJECT-STATUS.
+> **Decided, not yet implemented (owner, 2026-09-20):** school-scoped, lockable fee structures (BL-03); partial payments, outstanding balances, defaulter reports, basic carry-forward for the pilot (BL-08); discounts, scholarships, late fees, refunds, installments post-pilot (BL-24); gateways not a launch blocker — manual recording is the fallback. Steps below describe current behaviour.
 
 ## Flow
 

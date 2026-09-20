@@ -1,6 +1,6 @@
 # SchoolOS — Requirements Traceability
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Product Owner
 > Completed in Phase 10 (2026-09-20). The chain Feature → Requirement → Rule → UI → API → Data → Authz → Tests is: [FEATURE-CATALOG](../FEATURE-CATALOG.md) (UI, API paths, models per feature) → this table (requirements, rules, tests) → [ENDPOINTS](../../api/ENDPOINTS.md) (roles per route, generated) → [DATA-DICTIONARY](../../database/DATA-DICTIONARY.md) (models/fields, generated). Test results: [TESTING-STRATEGY](../../testing/TESTING-STRATEGY.md); per-feature test coverage detail: [TEST-MATRIX](../../testing/TEST-MATRIX.md).
 
 | Feature | Requirements | Rules | Backend e2e | Backend unit | Console UI test | Flutter test | Last run (all suites green) |
@@ -20,3 +20,5 @@
 **Known gaps in evidence:** no e2e for staff, hiring, files, attendance-risk job, AI drafting, live payment/push/SMS/WhatsApp/email; no colocated unit specs in `gradebook/`. These are testing gaps, recorded for `docs/testing/` and readiness.
 
 Run reference: backend unit 579/579, backend e2e 196/196 (fresh DB), console 512/512 (one worker timeout when run in parallel; re-run green), Flutter 100/100 — `main@15362b7`, 2026-09-20. "Pass" means the suite is green, not that every requirement's acceptance criterion was individually asserted (see `UNVERIFIED` cells in FUNCTIONAL-REQUIREMENTS).
+
+> **Owner decisions (2026-09-20):** decided-but-unbuilt requirements have no traceability rows until implemented; see [BACKLOG](BACKLOG.md) acceptance criteria.

@@ -1,6 +1,7 @@
 # Staff Lifecycle (Hiring → Staff/Teacher → Assignment)
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `hiring/`, `staff/`, `teacher/`, `sections/`, `timetable/`; **no dedicated e2e spec** (unit specs only) · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `hiring/`, `staff/`, `teacher/`, `sections/`, `timetable/`; **no dedicated e2e spec** (unit specs only) · **Owner:** Product Owner
+> **Decided, not yet implemented (owner, 2026-09-20):** teacher/staff assignment history (BL-25); archive/former status instead of hard delete (BL-07). Steps below describe current behaviour.
 
 | Step | Actor · UI · API | Effect | Rules |
 |---|---|---|---|

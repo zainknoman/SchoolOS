@@ -1,6 +1,6 @@
 # SchoolOS — Product Overview
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/**`, `backend/prisma/schema.prisma`, `staff-console/src/router/index.ts`, `parent-app/lib/src/**` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/**`, `backend/prisma/schema.prisma`, `staff-console/src/router/index.ts`, `parent-app/lib/src/**` · **Owner:** Product Owner
 
 ## What SchoolOS is
 

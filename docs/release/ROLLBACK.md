@@ -1,6 +1,6 @@
 # Rollback Procedure
 
-> **Status:** PARTIAL — procedure defined, **never rehearsed**, and dependent on backups that do not yet exist · **Verified:** 2026-09-20 · **Owner:** project owner
+> **Status:** PARTIAL — procedure defined, **never rehearsed**, and dependent on backups that do not yet exist · **Verified:** 2026-09-20 · **Owner:** Engineering Lead and Product Owner
 
 Principle: application rollback is redeploying the previous build; **database rollback is a restore**, because migrations have no down scripts ([MIGRATIONS](../database/MIGRATIONS.md)).
 

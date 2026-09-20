@@ -1,6 +1,7 @@
 # Accounts Guide
 
 > **Status:** PARTIAL (see [verification level](README.md)) · **Verified:** 2026-09-20 · Role: `ACCOUNTS` — your school. Screens you can open: **Dashboard**, **Fees**, **Messages**, **Complaints**, **Admissions**.
+> **Decided, not yet implemented (owner, 2026-09-20):** ACCOUNTS access narrows to fees/finance; admissions/complaints/messages only by explicit grant (BL-32). This guide describes current behaviour.
 
 ## Fee structures and vouchers (Operations → Fees)
 1. **Create fee structures** (name and amount; amounts are whole numbers in the smallest currency unit). They cannot be edited or deleted afterwards — check before saving.

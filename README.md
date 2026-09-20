@@ -114,7 +114,7 @@ Strategy and results (2026-09-20: backend unit 579, e2e 196, staff console 512, 
 - Payment/messaging/AI integrations have never been verified against live services; the SMS sender targets a placeholder URL.
 - Cross-school data-isolation defects exist (e.g. school-wide circulars reach all parents; platform-wide holidays) and the backend has 9 high-severity dependency vulnerabilities — see [`docs/security/KNOWN-GAPS.md`](docs/security/KNOWN-GAPS.md).
 - `NODE_ENV` must be set to `production`; an unset value enables development fallbacks.
-- No LICENSE; [`CHANGELOG.md`](CHANGELOG.md) is a reconstructed pre-1.0 history.
+- Proprietary (closed-source) — [`LICENSE`](LICENSE) is a placeholder notice pending the legal entity name; [`CHANGELOG.md`](CHANGELOG.md) is a reconstructed pre-1.0 history.
 
 Full list and evidence: [`PROJECT-STATUS.md`](PROJECT-STATUS.md).
 

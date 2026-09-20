@@ -1,6 +1,6 @@
 # SchoolOS — Documentation Cleanup, Product Journey & Production Readiness Plan
 
-**Status:** **ALL PHASES 0–13 EXECUTED (2026-09-19/20)** — see the Task Tracker below. Documentation is complete to the extent the code allows; **the system is not production-ready** (`docs/release/PRODUCTION-READINESS.md`). Human-decision gates were resolved with the recommended option under the owner's instruction "approve anything recommended"; items that need real owner knowledge remain `REQUIRES-DECISION`.
+**Status:** **ALL PHASES 0–13 EXECUTED (2026-09-19/20); Phase 14 (owner-decision integration) executed 2026-09-20** — see the Task Tracker below. Documentation is complete to the extent the code allows; **the system is not production-ready** (`docs/release/PRODUCTION-READINESS.md`). Human-decision gates were resolved with the recommended option under the owner's instruction "approve anything recommended"; items that need real owner knowledge remain `REQUIRES-DECISION`.
 **Date:** 2026-09-19 · **Branch inspected:** `main` @ `15362b7` (438 commits)
 **Scope of this run:** read-only discovery + this one file. No source, test, schema, README or other doc was touched.
 
@@ -22,34 +22,38 @@
 | 1A | Inventory & disposition manifest | ✅ | 2026-09-20 | `docs/archive/CLEANUP-MANIFEST.md`, tag `docs-pre-cleanup` | G1 resolved (recommended options); new findings N1–N6 |
 | 1B | Cleanup execution | ⚠ | 2026-09-20 | `git mv` of 100+ files into `docs/archive/` and `docs/design-reference/`; `docs/README.md`; `docs/superpowers/README.md`; new short `PROJECT-STATUS.md` | G2 resolved. **Exception:** `docs/UI-Screenshots/sample4/` could not be moved (Windows lock) — still at old path |
 | 2 | README & entry points | ✅ | 2026-09-20 | `README.md` + 3 sub-project READMEs | commands match scripts; quick-start not executed end-to-end |
-| 3 | Product foundation | ✅ | 2026-09-20 | `docs/product/*` (overview, roles, feature catalog, business rules, glossary) | G3/G4/G5: Principal = flag; SchoolOS naming; Q1–Q9 left `REQUIRES-DECISION`. Role matrix corrected in Phase 13 |
+| 3 | Product foundation | ✅ | 2026-09-20 | `docs/product/*` (overview, roles, feature catalog, business rules, glossary) | G3/G4/G5: Principal = flag; SchoolOS naming; Q1–Q9 left `REQUIRES-DECISION` (decided in Phase 14). Role matrix corrected in Phase 13 |
 | 4 | Product journey & workflows | ✅ | 2026-09-20 | `docs/workflows/*` (6 docs) | — |
 | 5 | Requirements | ✅ | 2026-09-20 | `docs/product/requirements/*` (FR, NFR, traceability, backlog) | some acceptance criteria `UNVERIFIED` |
 | 6 | Architecture & ADRs | ✅ | 2026-09-20 | `docs/architecture/*` (5), `docs/decisions/` (9 retroactive ADRs) | G6: only evidence-backed ADRs |
 | 7 | API & database | ✅ | 2026-09-20 | `docs/api/*` (generated endpoint reference), `docs/database/*` (model, generated dictionary + ERD, tenancy, migrations, seeding, history) | G7: hand-written API docs; OpenAPI is backlog BL-19; Postman verified 185/185; old DB docs archived + stubs |
-| 8 | Security | ✅ | 2026-09-20 | `docs/security/*`, `SECURITY.md` | G8: contact left `REQUIRES-DECISION`; `npm audit` run (18 backend vulns) |
+| 8 | Security | ✅ | 2026-09-20 | `docs/security/*`, `SECURITY.md` | G8: contact left `REQUIRES-DECISION` (placeholder set in Phase 14); `npm audit` run (18 backend vulns) |
 | 9 | Operations & integrations | ✅ | 2026-09-20 | `docs/operations/*` (6) | G9: hosting undecided → requirements documented, `NOT IMPLEMENTED` stated |
 | 10 | Testing & traceability | ✅ | 2026-09-20 | `docs/testing/*` (3), traceability completed | suites **executed**: unit 579 ✓, e2e 196 ✓ (scratch DB, dropped), console 512 ✓, Flutter 100 ✓, analyze ✓; backend lint ✗ (2,014 errors) |
 | 11 | User guides | ⚠ | 2026-09-20 | `docs/user-guides/*` (5 guides + index) | G10: no screenshots; **not click-tested** |
 | 12 | Release & production readiness | ✅ | 2026-09-20 | `docs/release/*`, `CHANGELOG.md` (reconstructed) | G11: license/versioning left to owner; original brief archived; verdict **NO-GO as-is** |
 | 13 | Final documentation audit | ✅ | 2026-09-20 | `docs/audit/2026-09-20-documentation-audit.md` | script: 250 links, 0 broken; 141 citations valid; 7 defects found & fixed in docs |
+| 14 | Owner decisions integrated (50 answers + conflict rulings) | ⚠ | 2026-09-20 | `docs/product/OWNER-DECISIONS.md`, rewritten `BACKLOG.md`, `docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md`, `docs/audit/2026-09-20-housekeeping-inspection.md`, `LICENSE` (placeholder notice), updated SECURITY/DATA-PROTECTION/operations/release/product docs | **DOCS_ONLY mode:** no code, config, schema or repository state changed; nothing committed; housekeeping inspected only. ⚠ = open owner inputs RD-1…RD-15 |
 
-### Remaining work (not documentation — needs the owner or authorized engineering)
-| # | Item | Type | Reference |
-|---|---|---|---|
-| R1 | Move `docs/UI-Screenshots/sample4` after releasing the file lock; review its two uncommitted CSV edits | housekeeping | manifest §6 |
-| R2 | Independent human review + click-test of user guides and role matrix | review | audit §8 |
-| R3 | Decide Q1–Q9 (sessions, subjects, fee scoping, guardians, promotion, report cards, retention, risk parameters, fee extras) | product decision | BUSINESS-RULES §8 |
-| R4 | Decide license, security contact, hosting, versioning/release convention, incident process | owner decision | G8, G9, G11 |
-| R5 | Fix High items: KG-1 circulars, KG-6 holidays, KG-2/3/4 unsafe defaults, KG-5 dependencies, KG-7 sessions | **engineering (separately authorized)** | KNOWN-GAPS |
-| R6 | Build deployment target, backups + restore rehearsal, health endpoint, monitoring/logging | engineering/ops | PRODUCTION-READINESS §3 |
-| R7 | Verify payment gateways, FCM, SMTP, WhatsApp in sandbox; choose/implement SMS provider; S3 adapter | external + engineering | INTEGRATIONS |
-| R8 | Add regression tests for known defects; e2e for staff, hiring, files, jobs; make backend lint blocking after fixing backlog | engineering | TEST-MATRIX |
-| R9 | Prune stale worktrees (`.claude/worktrees/*`) once nothing unpushed | housekeeping | manifest N4 |
-| R10 | Commit the documentation changes (nothing is committed) | owner | — |
-| R11 | Keep docs current: refresh `Verified:` headers, regenerate ENDPOINTS/DATA-DICTIONARY/ERD after code changes | ongoing | docs/README rules |
+### Remaining work (status after Phase 14, 2026-09-20)
+| # | Item | Type | Status | Reference |
+|---|---|---|---|---|
+| R1 | Move `docs/UI-Screenshots/sample4`; review its two CSVs | housekeeping | ⏳ **inspected, not moved** — CSV edits contain another project's pasted credentials (do not commit) and 3 owner UI notes (KI-29); awaiting explicit authorisation (RD-15) | [housekeeping inspection](audit/2026-09-20-housekeeping-inspection.md) |
+| R2 | Independent human review + click-test of user guides and role matrix | review | ⏳ remaining | audit §8 |
+| R3 | Decide Q1–Q9 | product decision | ✅ **done** (decided 2026-09-20); implementation = BL-01…BL-08 | [OWNER-DECISIONS](product/OWNER-DECISIONS.md), BUSINESS-RULES §8 |
+| R4 | Decide license, security contact, hosting, versioning, incident process | owner decision | ⚠ **mostly decided:** licence proprietary; SemVer/tags/1.0.0; incident model P1–P4; hosting provider-agnostic. **Open:** legal entity, domain/e-mail, hosting vendor, named owners (RD-1…RD-5, RD-13) | OWNER-DECISIONS |
+| R5 | Fix High items KG-1/2/3/4/5/6/7 | engineering | ⏳ remaining — now **decided and scheduled** as Phase A/B work (BL-20, BL-51, BL-12, BL-01) | [GAP-ANALYSIS](release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md) |
+| R6 | Build deployment target, backups + restore rehearsal, health, monitoring | engineering/ops | ⏳ remaining — targets decided (RPO 24 h, RTO 4 h, Sentry etc.); BL-11, BL-13 | same |
+| R7 | Verify integrations; SMS provider; S3 adapter | external + engineering | ⏳ remaining — provider direction decided; BL-10, BL-14, BL-38 | INTEGRATIONS |
+| R8 | Regression tests; e2e gaps; backend lint blocking | engineering | ⏳ remaining — decided (BL-18, BL-37) | TEST-MATRIX |
+| R9 | Prune stale worktrees/branches | housekeeping | ⏳ **inspected, not pruned** — `staff-hiring-console-ui` (1 unique commit) and `stash@{0}` hold unique work | housekeeping inspection |
+| R10 | Commit the documentation changes | owner | ⚠ **Phase 0–13 docs were committed and pushed as `e4e9f27` on `main`/`origin/main` at 14:55 on 2026-09-20 — not by the Phase 14 session** (it also captured in-progress Phase 14 files). The Phase 14 finishing edits (~66 modified files, 3 new files) are **uncommitted**. The owner asked for separate logical commits with cleanup last and will authorise further commits (Q50) | — |
+| R11 | Keep docs current | ongoing | ⏳ ongoing; `Verified:` dates refreshed 2026-09-20 for touched docs | docs/README rules |
+| R12 | Resolve open owner inputs RD-1…RD-15 | owner | ⏳ new | OWNER-DECISIONS |
+| R13 | Implement the decided engineering backlog (BL-01…BL-59) in phases A–H | engineering (separately authorised; the owner said not to modify code yet) | ⏳ new | BACKLOG, GAP-ANALYSIS |
 
 ### Execution deviations from the plan (for the record)
+0. **Phase 14 (2026-09-20):** the owner's 50 answers and conflict rulings were applied in DOCS_ONLY mode. Where an answer implies a code/config change (rebrand of seed/`.env.example`/Postman/Firebase/CI, neutral demo data, UI permission for copy-structure) it was recorded as a decided work item, not performed. Housekeeping (Q47–Q49) was inspected only; this phase moved, deleted, staged or committed nothing. During the session an external commit `e4e9f27` (docs phases 0–13, pushed to `origin/main`) appeared; it was not made by this phase.
 1. Phases 1A–13 were run in sequence in one working session with recommended gate answers, per owner instruction; gates that require real owner knowledge were **not** answered (left `REQUIRES-DECISION`).
 2. Phase 5 traceability was completed in Phase 10, as planned in §1. Architecture/security summaries were folded into `SYSTEM-OVERVIEW.md` rather than separate files, to avoid duplicate concepts; `docs/production-readiness/` was archived rather than folded into `release/`.
 3. `docs/database/data-model-design.md` and `migration-plan.md` remain as deprecated stubs because code comments cite the paths.

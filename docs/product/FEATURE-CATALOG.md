@@ -1,7 +1,8 @@
 # SchoolOS — Feature Catalog
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** controllers (`backend/src/**/*.controller.ts`), router (`staff-console/src/router/index.ts`), parent screens (`parent-app/lib/src/screens/`), `backend/test/*.e2e-spec.ts` · **Owner:** project owner
+> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** controllers (`backend/src/**/*.controller.ts`), router (`staff-console/src/router/index.ts`), parent screens (`parent-app/lib/src/screens/`), `backend/test/*.e2e-spec.ts` · **Owner:** Product Owner
 > Stable feature IDs `F-<AREA>-<nn>` replace the sprint-letter taxonomy. `Legacy` maps to the archived `FEAT-001..014` (in `docs/archive/original-mvp-plan/FEATURES.txt`) and sprint names. Tests column = backend e2e spec (`test/<name>.e2e-spec.ts`), "unit" (colocated, Prisma mocked) or "none". Rules: [BUSINESS-RULES.md](BUSINESS-RULES.md). Roles: [PERSONAS-AND-ROLES.md](PERSONAS-AND-ROLES.md).
+> **Owner decisions (2026-09-20):** rows below describe **implemented** behaviour only. Decided-but-unbuilt capabilities (school-scoped sessions/subjects/fees, global guardians, generated report cards, promotion indicators, staff assignment history, attendance-risk settings, leave recommendation, parent complaints, fee extras, archive/retention) are tracked in [OWNER-DECISIONS](OWNER-DECISIONS.md) and [BACKLOG](requirements/BACKLOG.md), never as current features.
 
 Endpoint paths omit the `/api/v1` prefix. UI: `S:` staff-console route, `P:` parent-app screen.
 
