@@ -21,9 +21,9 @@
 | 13 | XSS (server) | Implemented | JSON API; downloads forced as attachments with `nosniff` (`files.controller.ts:90-101`) |
 | 14 | XSS (staff console) | Unknown | Vue escapes by default; `v-html` usage and CSP not reviewed. Tokens sit in `localStorage` so any XSS yields both tokens (AUTH-3) |
 | 15 | CSRF | Not applicable (bearer header) | No cookies used for auth; `?access_token=` on 4 download routes is a leakage risk, not CSRF |
-| 16 | Security headers (HSTS, CSP, X-Frame-Options…) | **Missing** | no `helmet`; only `nosniff` on file downloads |
+| 16 | Security headers (HSTS, CSP, X-Frame-Options…) | Implemented (2026-09-24, BL-12) | `helmet` defaults on every response (`config/app-security.ts`); `Cross-Origin-Resource-Policy: cross-origin` so the console can embed token-protected files; `X-Powered-By` removed |
 | 17 | CORS | Implemented / Configuration required | allow-list from `CORS_ORIGINS`; dev/test allow any localhost (`cors.config.ts`) |
-| 18 | Rate limiting | Partial | global 100/min + auth 5/min; keyed by client IP — behind a proxy without `trust proxy` (not set) all clients may share one bucket: **Unknown** in deployment |
+| 18 | Rate limiting | Partial | global 100/min + auth 5/min; keyed by client IP; `TRUST_PROXY` (BL-12) makes that the real client IP behind a proxy, and when unset a client cannot spoof it with `X-Forwarded-For`. Correct in deployment only if the operator sets `TRUST_PROXY` |
 | 19 | File upload security | Partial | 10 MB limit; **extension blacklist** (not allowlist); random storage key; forced download; MIME type client-reported and stored; no malware scan; no per-user quota |
 | 20 | Secrets management | Configuration required | env vars only; no vault/rotation procedure; startup fail-fast for partial provider config |
 | 21 | Production-mode detection | Implemented (2026-09-24, BL-51) | `NODE_ENV` is required at boot (`config/env.validation.ts`); unset or unknown values refuse to start; outside dev/test placeholder/short JWT secrets and missing `DATABASE_URL`/`CORS_ORIGINS`/`FRONTEND_URL` refuse to start |
@@ -33,7 +33,7 @@
 | 25 | PII protection at rest | External dependency | plaintext columns (CNIC, B-Form, medical, addresses, phones); encryption depends on database/disk (see [DATA-PROTECTION](DATA-PROTECTION.md)) |
 | 26 | Transport security | External dependency | app serves HTTP; TLS must be terminated upstream (no deployment defined) |
 | 27 | Payment webhook authenticity | Implemented / Configuration required | signature check per gateway; stub webhook secret required outside dev/test; **live gateway signatures never verified** (EasyPaisa field order unconfirmed) |
-| 28 | Dependency vulnerability management | **Missing** (process) — and findings exist | no `npm audit`/Dependabot/SCA in `ci.yml`. **`npm audit` run 2026-09-20:** backend 18 vulnerabilities (9 high, 9 moderate; 17 in production deps) incl. direct deps `@nestjs/core`, `@nestjs/platform-express`, `@nestjs/schedule`, `multer` (file upload), `prisma`; staff-console 0; parent-app: 7 dependencies constrained below resolvable versions (`flutter pub outdated`) (KG-5) |
+| 28 | Dependency vulnerability management | Partial (2026-09-24, BL-12) | CI fails on High/Critical production advisories (backend, console); 0 High today; 8 Moderate remain (`firebase-admin` chain); no Dependabot/SCA for Flutter. *History:* **`npm audit` run 2026-09-20:** backend 18 vulnerabilities (9 high, 9 moderate; 17 in production deps) incl. direct deps `@nestjs/core`, `@nestjs/platform-express`, `@nestjs/schedule`, `multer` (file upload), `prisma`; staff-console 0; parent-app: 7 dependencies constrained below resolvable versions (`flutter pub outdated`) (KG-5) |
 | 29 | Static analysis / secret scanning | Missing | none in CI |
 | 30 | Backup encryption / DR | External dependency | not defined ([operations](../operations/BACKUP-RESTORE.md)) |
 | 31 | Mobile app hardening | Partial | tokens in secure storage; no certificate pinning/obfuscation configuration reviewed |

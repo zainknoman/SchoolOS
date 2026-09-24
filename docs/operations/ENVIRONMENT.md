@@ -9,6 +9,7 @@
 | `DATABASE_URL` | **Required** everywhere | none | Yes | PostgreSQL URL (`postgresql://user:pass@host:5432/db?schema=public`); read by `prisma.config.ts` and `PrismaService`. Missing ⇒ Prisma error at start |
 | `NODE_ENV` | **Required everywhere** (BL-51) | none — the API refuses to start when unset or not one of `development`, `test`, `staging`, `production` | No | `development`/`test` enable local fallbacks (JWT secret, stub webhook secret, localhost CORS, provider stubs); `test` relaxes throttling. Anything else is strict |
 | `PORT` | No | `3000` | No | `main.ts` |
+| `TRUST_PROXY` | **Required behind a reverse proxy** (BL-12) | unset ⇒ trust no proxy (`X-Forwarded-For` ignored) | No | Express `trust proxy` (`config/app-security.ts`): hop count (`1` behind one TLS proxy/load balancer), `true`/`false`, or addresses/subnets. Without it, every client behind the proxy shares one rate-limit bucket |
 | `CORS_ORIGINS` | Required outside dev/test | `http://localhost:5173` | No | comma-separated origins; dev/test additionally allow any localhost origin |
 | `JWT_ACCESS_SECRET` | **Required** outside dev/test | `dev-only-change-me-access` in dev/test | Yes | Boot error if unset outside dev/test; **any non-empty value is accepted, including `change-me`** (KG-2) |
 | `JWT_ACCESS_TTL` | No | `15m` | No | `ms`-style string; invalid value fails at JWT module registration |

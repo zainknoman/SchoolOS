@@ -1,10 +1,15 @@
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { buildCorsOriginOption } from './config/cors.config';
+import { applyHttpSecurity } from './config/app-security';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Security headers (helmet) and trust-proxy handling (BL-12).
+  applyHttpSecurity(app);
 
   // staff-console (a different origin) calls this API directly and needs CORS; so does a locally
   // previewed parent-app (`flutter run -d chrome`). Scoped to a known allow-list in

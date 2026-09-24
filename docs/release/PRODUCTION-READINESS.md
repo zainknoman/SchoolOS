@@ -25,9 +25,9 @@ Legend: 🎯 decided by the owner (2026-09-20) but **not built** — an engineer
 | **Security** | AuthN, RBAC | ✅ | [SECURITY-OVERVIEW](../security/SECURITY-OVERVIEW.md) |
 | | Tenant isolation | 🔧 | TENANT-1..5 |
 | | Secrets/config safety | 🔧 | KG-2, KG-3, KG-4 |
-| | Security headers | 🔧 | KG-12 |
+| | Security headers | ✅ | KG-12 closed (BL-12, 2026-09-24) |
 | | Dependency security | 🔧 | 18 backend vulns (9 high) KG-5; no CI scan |
-| | Rate limiting | ⚠ | present; proxy behaviour unknown |
+| | Rate limiting | ⚠ | present; correct behind a proxy once `TRUST_PROXY` is set (BL-12) |
 | **Infrastructure** | Deployment (image/IaC/host) | 🎯 🔧 ⚖ | provider-agnostic design decided; staging/production layout decided; host vendor TBD (provider-agnostic); nothing built ([DEPLOYMENT](../operations/DEPLOYMENT.md)); BL-13 |
 | | Health checks | 🔧 | no DB-backed endpoint |
 | | Monitoring / logging / alerting | 🎯 🔧 | Sentry + structured logs + uptime decided; nothing built; BL-11 |

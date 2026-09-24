@@ -20,8 +20,9 @@
 - [ ] Only one backend instance runs, or cron jobs are guarded (ADR-0008)
 
 ## Engineering gaps (need code/CI work; not configuration)
-- [ ] Security headers (`helmet`) or equivalent at the proxy (KG-12)
-- [ ] Dependency vulnerabilities remediated; `npm audit`/SCA in CI (KG-5)
+- [x] Security headers (`helmet`) — in the app since BL-12 (KG-12)
+- [ ] `TRUST_PROXY` set to the proxy hop count behind a reverse proxy (KG-13)
+- [x] High dependency vulnerabilities remediated; `npm audit --audit-level=high` gate in CI (KG-5, BL-12) — Moderate `firebase-admin` chain still open
 - [ ] Tenant issues fixed or accepted: TENANT-1 (circulars), TENANT-2 (holidays), TENANT-3..5 (KG-1, KG-6, KG-7, KG-8)
 - [ ] Session revocation model decided (KG-10); `mustChangePassword` enforced server-side (KG-11)
 - [ ] Token storage in the staff console reviewed (KG-9)

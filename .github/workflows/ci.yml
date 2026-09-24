@@ -36,6 +36,8 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      # BL-12: fail on any High/Critical advisory in production dependencies
+      - run: npm audit --omit=dev --audit-level=high
       # BL-66: generated docs must match the repository (regenerate: node scripts/docs/generate.mjs)
       - run: node --test ../scripts/docs/lib.test.mjs
       - run: node ../scripts/docs/generate.mjs --check
@@ -67,6 +69,8 @@ jobs:
           cache: 'npm'
           cache-dependency-path: staff-console/package-lock.json
       - run: npm ci
+      # BL-12: fail on any High/Critical advisory in production dependencies
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
       - run: npm test
       - run: npm run build
