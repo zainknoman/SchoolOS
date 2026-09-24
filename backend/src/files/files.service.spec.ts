@@ -1,8 +1,14 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { FilesService } from './files.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_ADAPTER } from '../storage/storage-adapter';
+import { MALWARE_SCANNER } from './malware-scanner';
 
 describe('FilesService', () => {
   let service: FilesService;
@@ -12,6 +18,7 @@ describe('FilesService', () => {
     $transaction: jest.Mock;
   };
   let storage: { save: jest.Mock; read: jest.Mock; delete: jest.Mock };
+  let scanner: { enabled: boolean; scan: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -20,11 +27,16 @@ describe('FilesService', () => {
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     storage = { save: jest.fn(), read: jest.fn(), delete: jest.fn() };
+    scanner = {
+      enabled: true,
+      scan: jest.fn().mockResolvedValue({ status: 'clean' }),
+    };
     const moduleRef = await Test.createTestingModule({
       providers: [
         FilesService,
         { provide: PrismaService, useValue: prisma },
         { provide: STORAGE_ADAPTER, useValue: storage },
+        { provide: MALWARE_SCANNER, useValue: scanner },
       ],
     }).compile();
     service = moduleRef.get(FilesService);
@@ -41,7 +53,7 @@ describe('FilesService', () => {
 
     const result = await service.upload(
       {
-        buffer: Buffer.from('hello'),
+        buffer: Buffer.from('%PDF-1.4 hello'),
         originalname: 'sheet.pdf',
         mimetype: 'application/pdf',
         size: 10,
@@ -49,7 +61,10 @@ describe('FilesService', () => {
       'user-1',
     );
 
-    expect(storage.save).toHaveBeenCalledWith(Buffer.from('hello'), '.pdf');
+    expect(storage.save).toHaveBeenCalledWith(
+      Buffer.from('%PDF-1.4 hello'),
+      '.pdf',
+    );
     expect(prisma.file.create).toHaveBeenCalledWith({
       data: {
         storageKey: 'abc123.pdf',
@@ -77,7 +92,7 @@ describe('FilesService', () => {
 
     await service.upload(
       {
-        buffer: Buffer.from('hello'),
+        buffer: Buffer.from('%PDF-1.4 hello'),
         originalname: 'sheet.pdf',
         mimetype: 'application/pdf',
         size: 10,
@@ -107,13 +122,13 @@ describe('FilesService', () => {
       originalName: 'sheet.pdf',
       mimeType: 'application/pdf',
     });
-    storage.read.mockResolvedValue(Buffer.from('hello'));
+    storage.read.mockResolvedValue(Buffer.from('%PDF-1.4 hello'));
 
     const result = await service.read('file-1');
 
     expect(storage.read).toHaveBeenCalledWith('abc123.pdf');
     expect(result).toEqual({
-      buffer: Buffer.from('hello'),
+      buffer: Buffer.from('%PDF-1.4 hello'),
       originalName: 'sheet.pdf',
       mimeType: 'application/pdf',
     });
@@ -122,5 +137,62 @@ describe('FilesService', () => {
   it('throws NotFoundException for an unknown file id', async () => {
     prisma.file.findUnique.mockResolvedValue(null);
     await expect(service.read('missing')).rejects.toThrow(NotFoundException);
+  });
+
+  describe('BL-52 inspection and scanning', () => {
+    const upload = (
+      buffer: Buffer,
+      originalname: string,
+      mimetype = 'application/pdf',
+    ) =>
+      service.upload(
+        {
+          buffer,
+          originalname,
+          mimetype,
+          size: buffer.length,
+        } as Express.Multer.File,
+        'user-1',
+      );
+
+    it('stores the type detected from the bytes, not the client-reported one', async () => {
+      storage.save.mockResolvedValue('k.png');
+      prisma.file.create.mockImplementation(
+        ({ data }: { data: Record<string, unknown> }) => ({ id: 'f', ...data }),
+      );
+      const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      const result = await upload(png, 'logo.png', 'text/html');
+      expect(result.mimeType).toBe('image/png');
+    });
+
+    it('refuses a disallowed type before storing anything', async () => {
+      await expect(
+        upload(Buffer.from('<html>'), 'x.pdf'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(storage.save).not.toHaveBeenCalled();
+      expect(scanner.scan).not.toHaveBeenCalled();
+    });
+
+    it('refuses an infected file with 422 and audits the signature', async () => {
+      scanner.scan.mockResolvedValue({
+        status: 'infected',
+        signature: 'Eicar-Test-Signature',
+      });
+      await expect(
+        upload(Buffer.from('%PDF-1.4 x'), 'x.pdf'),
+      ).rejects.toBeInstanceOf(UnprocessableEntityException);
+      expect(storage.save).not.toHaveBeenCalled();
+      expect(prisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action: 'file.rejected-malware' }),
+      });
+    });
+
+    it('fails closed with 503 when the scanner errors', async () => {
+      scanner.scan.mockResolvedValue({ status: 'error', message: 'down' });
+      await expect(
+        upload(Buffer.from('%PDF-1.4 x'), 'x.pdf'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(storage.save).not.toHaveBeenCalled();
+    });
   });
 });

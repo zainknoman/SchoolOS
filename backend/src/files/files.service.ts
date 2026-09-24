@@ -1,8 +1,22 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Optional,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { extname } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_ADAPTER } from '../storage/storage-adapter';
 import type { StorageAdapter } from '../storage/storage-adapter';
+import { inspectUpload } from './upload-inspection';
+import {
+  MALWARE_SCANNER,
+  NoopMalwareScanner,
+  type MalwareScanner,
+} from './malware-scanner';
 
 export interface FileMeta {
   id: string;
@@ -16,12 +30,44 @@ export class FilesService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(STORAGE_ADAPTER) private readonly storage: StorageAdapter,
+    @Optional()
+    @Inject(MALWARE_SCANNER)
+    private readonly scanner: MalwareScanner = new NoopMalwareScanner(),
   ) {}
 
   async upload(
     file: Express.Multer.File,
     uploadingUserId: string,
   ): Promise<FileMeta> {
+    // BL-52: the type is decided from the bytes (allow-list), never the client's claim.
+    const inspection = inspectUpload(file);
+    if (!inspection.ok) {
+      throw new BadRequestException(inspection.reason);
+    }
+    const scan = await this.scanner.scan(file.buffer);
+    if (scan.status === 'infected') {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: uploadingUserId,
+          action: 'file.rejected-malware',
+          entity: 'File',
+          metadata: JSON.stringify({
+            originalName: file.originalname,
+            signature: scan.signature,
+          }),
+        },
+      });
+      throw new UnprocessableEntityException(
+        'The file was rejected by the virus scan.',
+      );
+    }
+    if (scan.status === 'error') {
+      // Fail closed: scanning is configured, so an unscanned file is never stored.
+      throw new ServiceUnavailableException(
+        'Virus scanning is unavailable right now; please try again later.',
+      );
+    }
+
     const storageKey = await this.storage.save(
       file.buffer,
       extname(file.originalname),
@@ -35,7 +81,7 @@ export class FilesService {
         data: {
           storageKey,
           originalName: file.originalname,
-          mimeType: file.mimetype,
+          mimeType: inspection.mimeType,
           sizeBytes: file.size,
         },
       });
