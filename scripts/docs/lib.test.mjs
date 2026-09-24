@@ -104,6 +104,10 @@ test('summariseMigration counts DDL and flags destructive/data statements', () =
   assert.equal(s.drops, 1);
 });
 
+test('countTests counts pending and it.failing blocks (BL-18)', () => {
+  assert.equal(countTests("  pending('a', async () => {});\n  it.failing('b', () => {});\n  const pendingX = 1;"), 2);
+});
+
 test('countTests counts it/test blocks', () => {
   assert.equal(countTests("describe('x', () => {\n  it('a', () => {});\n  test('b', () => {});\n  it.each([1])('c', () => {});\n});"), 3);
 });

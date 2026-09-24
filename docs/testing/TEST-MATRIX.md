@@ -53,7 +53,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | Suite | Files | Test blocks |
 |---|---|---|
 | Backend unit (`backend/src/**/*.spec.ts`) | 78 | 574 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 22 | 193 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 23 | 200 |
 | Staff console (`staff-console/src/**/*.spec.ts`) | 73 | 487 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 29 | — |
 
@@ -76,6 +76,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `messages-notifications.e2e-spec.ts` | 7 |
 | `org-provisioning.e2e-spec.ts` | 36 |
 | `org-structure.e2e-spec.ts` | 15 |
+| `pending/bl18-failing-first.e2e-spec.ts` | 7 |
 | `people-crud.e2e-spec.ts` | 5 |
 | `promotions.e2e-spec.ts` | 6 |
 | `rate-limiting.e2e-spec.ts` | 2 |

@@ -236,5 +236,6 @@ export function summariseMigration(sql) {
 
 /** Counts test blocks in a spec file. */
 export function countTests(text) {
-  return (text.match(/^\s*(it|test)(\.each\([^)]*\))?\(/gm) || []).length;
+  // `pending(` = BL-18 failing-first tests (backend/test/pending, an alias of it.failing)
+  return (text.match(/^\s*(it|test|pending)(\.each\([^)]*\)|\.failing)?\(/gm) || []).length;
 }

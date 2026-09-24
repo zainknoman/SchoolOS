@@ -43,3 +43,5 @@ Not present: contract tests against a schema, browser end-to-end tests of the st
 
 ## Conventions
 E2E specs boot the real `AppModule`, create their own data and clean it up; there is no shared fixture database. Unit specs colocate with the file under test. Design-system a11y checks use `axe-core` in component specs.
+
+**Failing-first tests (BL-18).** `backend/test/pending/` holds e2e tests that state the *target* behaviour of an unimplemented backlog item. They are registered with `pending(...)` (= Jest `it.failing`), so CI passes while the defect exists and **fails as soon as the behaviour is fixed**; the implementer then moves the test into the regular suite as a plain `it`. `E2E_PENDING_STRICT=1 npm run test:e2e -- test/pending` runs them as ordinary tests to show each documented failure reason. Verified 2026-09-24: all 7 fail for their documented reason in strict mode; full e2e 23 suites / 203 tests pass in normal mode (scratch database).
