@@ -10,6 +10,7 @@ import { useConfirm } from '../lib/useConfirm';
 vi.mock('../lib/api', () => ({
   api: {
     listAdminParents: vi.fn(),
+    listAdminParentsPage: vi.fn(),
     createParent: vi.fn(),
     updateParent: vi.fn(),
     deleteParent: vi.fn(),
@@ -25,6 +26,11 @@ describe('ParentManagementView', () => {
     const auth = useAuthStore();
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
+    // BL-40: the table loads a server page; serve it from whatever list a test configured.
+    vi.mocked(api.listAdminParentsPage).mockImplementation(async () => {
+      const items = await api.listAdminParents('token-1');
+      return { items, total: items.length };
+    });
     vi.mocked(api.listAdminParents).mockResolvedValue([
       { id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'Existing Parent', phone: '0300-1111111', childrenCount: 2 },
     ]);
@@ -136,5 +142,21 @@ describe('ParentManagementView — profile link', () => {
     await flushPromises();
 
     expect(wrapper.findComponent<typeof RouterLinkStub>('[data-testid="view-profile-p1"]').props('to')).toBe('/admin/parents/p1');
+  });
+
+  it('loads the first page from the server and re-queries on search (BL-40)', async () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = mount(ParentManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
+      await flushPromises();
+      expect(api.listAdminParentsPage).toHaveBeenCalledWith('token-1', { page: 1, limit: 25, q: undefined });
+
+      await wrapper.find('[data-testid="entity-search"]').setValue('ali');
+      vi.advanceTimersByTime(350);
+      await flushPromises();
+      expect(api.listAdminParentsPage).toHaveBeenLastCalledWith('token-1', { page: 1, limit: 25, q: 'ali' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import * as argon2 from 'argon2';
@@ -54,6 +54,8 @@ export async function createTwoSchools(prefix: string): Promise<TwoSchools> {
   }).compile();
   const app = moduleFixture.createNestApplication<INestApplication<App>>();
   const prisma = moduleFixture.get(PrismaService);
+  // Same global pipe as main.ts, so DTO validation/transformation behaves as in production.
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.init();
 
   const P = prefix.toUpperCase();

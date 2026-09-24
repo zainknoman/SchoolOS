@@ -1,4 +1,10 @@
 import {
+  PagedResult,
+  pageArgs,
+  toPageRequest,
+  type PageRequest,
+} from '../common/pagination';
+import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -131,11 +137,15 @@ export class StudentService {
   // only students with an enrollment in their own school. Filters on ANY enrollment (not just the
   // active one used for display) so a withdrawn/graduated student stays visible to the school that
   // actually enrolled them, instead of disappearing from the roster once they leave.
-  async list(actingUser: RequestUser): Promise<StudentAdminSummary[]> {
+  /** Paged/searchable (BL-40): `q` matches name or GR number. */
+  async list(
+    actingUser: RequestUser,
+    page: PageRequest = toPageRequest(),
+  ): Promise<PagedResult<StudentAdminSummary>> {
     let where: Prisma.StudentWhereInput | undefined;
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
-      return [];
+      return PagedResult.of([], 0, page);
     }
     if (scope.campusWhere) {
       where = {
@@ -144,12 +154,38 @@ export class StudentService {
         },
       };
     }
-    const records = await this.prisma.student.findMany({
-      where,
-      include: WITH_SECTION_AND_PARENTS,
-      orderBy: { name: 'asc' },
-    });
-    return records.map((r) => this.toSummary(r));
+    // Only wrap when searching, so an unfiltered query is exactly the scope query.
+    const filtered: Prisma.StudentWhereInput | undefined = page.q
+      ? {
+          AND: [
+            where ?? {},
+            {
+              OR: [
+                { name: { contains: page.q, mode: 'insensitive' as const } },
+                {
+                  grNumber: { contains: page.q, mode: 'insensitive' as const },
+                },
+              ],
+            },
+          ],
+        }
+      : where;
+    const [records, total] = await Promise.all([
+      this.prisma.student.findMany({
+        where: filtered,
+        include: WITH_SECTION_AND_PARENTS,
+        orderBy: page.paged
+          ? [{ name: 'asc' }, { id: 'asc' }]
+          : { name: 'asc' },
+        ...pageArgs(page),
+      }),
+      this.prisma.student.count({ where: filtered }),
+    ]);
+    return PagedResult.of(
+      records.map((r) => this.toSummary(r)),
+      total,
+      page,
+    );
   }
 
   async update(

@@ -3,6 +3,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { buildCorsOriginOption } from './config/cors.config';
+import { PAGINATION_HEADERS } from './common/pagination';
 import { applyHttpSecurity } from './config/app-security';
 import { JsonLogger } from './observability/json-logger';
 import { applyRequestObservability } from './observability/http-observability';
@@ -38,6 +39,8 @@ async function bootstrap() {
       process.env.CORS_ORIGINS,
       process.env.NODE_ENV,
     ),
+    // BL-40/BL-11: let the browser console read pagination headers and the request id.
+    exposedHeaders: PAGINATION_HEADERS,
   });
 
   // Enforces every DTO's class-validator decorators (e.g. LoginDto) on every request; without this

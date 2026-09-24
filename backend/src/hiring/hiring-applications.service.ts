@@ -1,4 +1,10 @@
 import {
+  PagedResult,
+  pageArgs,
+  toPageRequest,
+  type PageRequest,
+} from '../common/pagination';
+import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -83,24 +89,52 @@ export class HiringApplicationsService {
     actingUser: RequestUser,
     campusId?: string,
     status?: string,
-  ): Promise<HiringApplicationSummary[]> {
+    page: PageRequest = toPageRequest(),
+  ): Promise<PagedResult<HiringApplicationSummary>> {
     let where: Prisma.HiringApplicationWhereInput = {
       ...(campusId ? { campusId } : {}),
       ...(status ? { status } : {}),
     };
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
-      return [];
+      return PagedResult.of([], 0, page);
     }
     if (scope.campusWhere) {
       where = { ...where, campus: scope.campusWhere };
     }
-    const records = await this.prisma.hiringApplication.findMany({
-      where,
-      include: WITH_CANDIDATE,
-      orderBy: { createdAt: 'desc' },
-    });
-    return records.map((r) => this.toSummary(r));
+    // Only wrap when searching, so an unfiltered query is exactly the scope query.
+    const filtered: Prisma.HiringApplicationWhereInput | undefined = page.q
+      ? {
+          AND: [
+            where,
+            {
+              OR: [
+                {
+                  candidate: {
+                    name: { contains: page.q, mode: 'insensitive' as const },
+                  },
+                },
+              ],
+            },
+          ],
+        }
+      : where;
+    const [records, total] = await Promise.all([
+      this.prisma.hiringApplication.findMany({
+        where: filtered,
+        include: WITH_CANDIDATE,
+        orderBy: page.paged
+          ? [{ createdAt: 'desc' }, { id: 'asc' }]
+          : { createdAt: 'desc' },
+        ...pageArgs(page),
+      }),
+      this.prisma.hiringApplication.count({ where: filtered }),
+    ]);
+    return PagedResult.of(
+      records.map((r) => this.toSummary(r)),
+      total,
+      page,
+    );
   }
 
   private async getOrThrow(id: string) {

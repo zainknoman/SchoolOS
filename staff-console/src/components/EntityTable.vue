@@ -24,18 +24,33 @@ const props = withDefaults(
     emptyTitle?: string;
     emptyMessage?: string;
     emptyCtaLabel?: string;
+    /**
+     * Server-side paging (BL-40): when set, `items` is already the current page, this is the total
+     * across all pages, and search/page changes are emitted as `query` for the parent to re-fetch.
+     */
+    serverTotal?: number;
   }>(),
   { pageSize: 10, loading: false, emptyTitle: 'Nothing here yet.' },
 );
 
-defineEmits<{ 'empty-cta': [] }>();
+const emit = defineEmits<{ 'empty-cta': []; query: [{ page: number; q: string }] }>();
 
 const searchQuery = ref('');
 const currentPage = ref(1);
+const isServer = computed(() => props.serverTotal !== undefined);
 
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch(searchQuery, () => {
   currentPage.value = 1;
+  if (!isServer.value) return;
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => emit('query', { page: 1, q: searchQuery.value.trim() }), 300);
 });
+
+function goToPage(page: number) {
+  currentPage.value = page;
+  if (isServer.value) emit('query', { page, q: searchQuery.value.trim() });
+}
 
 function stringifyForSearch(value: unknown): string {
   if (value == null) return '';
@@ -46,16 +61,25 @@ function stringifyForSearch(value: unknown): string {
 
 const filteredItems = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
-  if (!query) return props.items;
+  if (!query || isServer.value) return props.items;
   return props.items.filter((item) =>
     props.columns.some((col) => stringifyForSearch(item[col.key]).toLowerCase().includes(query)),
   );
 });
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredItems.value.length / props.pageSize)));
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil((isServer.value ? (props.serverTotal ?? 0) : filteredItems.value.length) / props.pageSize)),
+);
 const safePage = computed(() => Math.min(currentPage.value, totalPages.value));
 
+// Empty state = nothing exists at all; a search with no hits still shows the table + search box.
+const isEmpty = computed(() =>
+  isServer.value ? props.serverTotal === 0 && !searchQuery.value.trim() : props.items.length === 0,
+);
+const hasRows = computed(() => (isServer.value ? (props.serverTotal ?? 0) > 0 : props.items.length > 0));
+
 const pagedItems = computed(() => {
+  if (isServer.value) return props.items;
   const start = (safePage.value - 1) * props.pageSize;
   return filteredItems.value.slice(start, start + props.pageSize);
 });
@@ -84,7 +108,7 @@ const pagedItems = computed(() => {
     </template>
 
     <EmptyState
-      v-else-if="items.length === 0"
+      v-else-if="isEmpty"
       :icon="emptyIcon"
       :title="emptyTitle"
       :message="emptyMessage"
@@ -134,12 +158,12 @@ const pagedItems = computed(() => {
         </tbody>
       </table>
     </template>
-    <div v-if="!loading && items.length > 0 && totalPages > 1" class="entity-table-pagination">
+    <div v-if="!loading && hasRows && totalPages > 1" class="entity-table-pagination">
       <button
         type="button"
         data-testid="entity-pagination-prev"
         :disabled="safePage === 1"
-        @click="currentPage = safePage - 1"
+        @click="goToPage(safePage - 1)"
       >
         Prev
       </button>
@@ -148,7 +172,7 @@ const pagedItems = computed(() => {
         type="button"
         data-testid="entity-pagination-next"
         :disabled="safePage === totalPages"
-        @click="currentPage = safePage + 1"
+        @click="goToPage(safePage + 1)"
       >
         Next
       </button>

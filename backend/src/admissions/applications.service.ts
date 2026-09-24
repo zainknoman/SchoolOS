@@ -1,5 +1,11 @@
 // backend/src/admissions/applications.service.ts
 import {
+  PagedResult,
+  pageArgs,
+  toPageRequest,
+  type PageRequest,
+} from '../common/pagination';
+import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -82,25 +88,69 @@ export class ApplicationsService {
     actingUser: RequestUser,
     academicSessionId?: string,
     status?: string,
-  ): Promise<ApplicationSummary[]> {
+    page: PageRequest = toPageRequest(),
+  ): Promise<PagedResult<ApplicationSummary>> {
     let where: Prisma.ApplicationWhereInput = {
       ...(academicSessionId ? { academicSessionId } : {}),
       ...(status ? { status } : {}),
     };
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
-      return [];
+      return PagedResult.of([], 0, page);
     }
     if (scope.campusWhere) {
       // AcademicSession has no schoolId of its own — scope via the desired class's campus instead.
       where = { ...where, desiredClass: { campus: scope.campusWhere } };
     }
-    const records = await this.prisma.application.findMany({
-      where,
-      include: WITH_APPLICANT,
-      orderBy: { createdAt: 'desc' },
-    });
-    return records.map((r) => this.toSummary(r));
+    // Only wrap when searching, so an unfiltered query is exactly the scope query.
+    const filtered: Prisma.ApplicationWhereInput | undefined = page.q
+      ? {
+          AND: [
+            where,
+            {
+              OR: [
+                {
+                  applicant: {
+                    name: { contains: page.q, mode: 'insensitive' as const },
+                  },
+                },
+                {
+                  applicant: {
+                    guardianName: {
+                      contains: page.q,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                },
+                {
+                  applicant: {
+                    guardianPhone: {
+                      contains: page.q,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        }
+      : where;
+    const [records, total] = await Promise.all([
+      this.prisma.application.findMany({
+        where: filtered,
+        include: WITH_APPLICANT,
+        orderBy: page.paged
+          ? [{ createdAt: 'desc' }, { id: 'asc' }]
+          : { createdAt: 'desc' },
+        ...pageArgs(page),
+      }),
+      this.prisma.application.count({ where: filtered }),
+    ]);
+    return PagedResult.of(
+      records.map((r) => this.toSummary(r)),
+      total,
+      page,
+    );
   }
 
   private async getOrThrow(id: string) {

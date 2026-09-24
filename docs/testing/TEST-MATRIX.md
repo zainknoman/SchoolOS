@@ -52,9 +52,9 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 
 | Suite | Files | Test blocks |
 |---|---|---|
-| Backend unit (`backend/src/**/*.spec.ts`) | 88 | 629 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 30 | 235 |
-| Staff console (`staff-console/src/**/*.spec.ts`) | 73 | 494 |
+| Backend unit (`backend/src/**/*.spec.ts`) | 89 | 633 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 31 | 241 |
+| Staff console (`staff-console/src/**/*.spec.ts`) | 73 | 496 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 30 | — |
 
 | Backend e2e spec | Test blocks |
@@ -80,6 +80,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `observability.e2e-spec.ts` | 4 |
 | `org-provisioning.e2e-spec.ts` | 36 |
 | `org-structure.e2e-spec.ts` | 15 |
+| `pagination.e2e-spec.ts` | 6 |
 | `pending/bl18-failing-first.e2e-spec.ts` | 4 |
 | `people-crud.e2e-spec.ts` | 5 |
 | `promotions.e2e-spec.ts` | 6 |

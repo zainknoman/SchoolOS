@@ -25,6 +25,7 @@ vi.mock('../lib/api', () => ({
     listSections: vi.fn(),
     listAdminParents: vi.fn(),
     listAdminStudents: vi.fn(),
+    listAdminStudentsPage: vi.fn(),
     createStudent: vi.fn(),
     updateStudent: vi.fn(),
     deleteStudent: vi.fn(),
@@ -40,6 +41,11 @@ describe('StudentManagementView', () => {
     const auth = useAuthStore();
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
+    // BL-40: the table loads a server page; serve it from whatever list a test configured.
+    vi.mocked(api.listAdminStudentsPage).mockImplementation(async () => {
+      const items = await api.listAdminStudents('token-1');
+      return { items, total: items.length };
+    });
     vi.mocked(api.listSections).mockResolvedValue([
       { id: 'sec1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
     ]);
@@ -185,5 +191,21 @@ describe('StudentManagementView', () => {
     await flushPromises();
 
     expect(wrapper.find('[role="alert"]').text()).toContain('Cannot delete this Student');
+  });
+
+  it('loads the first page from the server and re-queries on search (BL-40)', async () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = await mountView();
+      await flushPromises();
+      expect(api.listAdminStudentsPage).toHaveBeenCalledWith('token-1', { page: 1, limit: 25, q: undefined });
+
+      await wrapper.find('[data-testid="entity-search"]').setValue('ali');
+      vi.advanceTimersByTime(350);
+      await flushPromises();
+      expect(api.listAdminStudentsPage).toHaveBeenLastCalledWith('token-1', { page: 1, limit: 25, q: 'ali' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

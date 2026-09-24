@@ -13,7 +13,7 @@
 | Validation | Global `ValidationPipe({ whitelist: true, transform: true })`: unknown body properties are **silently stripped** (`forbidNonWhitelisted` is not set); types transformed | `main.ts:16` |
 | Errors | Nest default shape `{ "statusCode": n, "message": string \| string[], "error": "…" }`; 400 validation/rule, 401 auth, 403 role/scope, 404, 409 conflict, 429 throttled. Since BL-11 a global exception filter adds `requestId` to every error body (matching the `X-Request-Id` response header) and turns unexpected failures into a generic `500 {"statusCode":500,"message":"Internal server error","requestId":…}`; health: `GET /health/live`, `GET /health/ready` (unauthenticated) | no `APP_FILTER`; `prisma-*-guard.ts` translate FK/unique errors |
 | Constraint errors | Unique/FK violations translated to 400/409 with readable messages only where `assertCreatable`/delete guard is called | `common/prisma-*-guard.ts` |
-| Pagination | **None.** Lists return complete arrays; no `page`/`limit`/`sort` parameters exist (only `take: 1` sub-selects) | grep `@Query`/`take`/`skip` in `src` |
+| Pagination | **BL-40 (2026-09-25):** `GET /admin/students`, `/admin/parents`, `/admin/staff`, `/teachers`, `/applications`, `/hiring/applications` accept `page` (≥ 1), `limit` (1–100, default 25) and `q` (case-insensitive search). The body stays a plain array; `X-Total-Count` (always), `X-Page`/`X-Limit` (when paged) and `X-Truncated: true` (an unpaged request exceeded the 2,000-row cap) are response headers, exposed to browsers via CORS. Other lists are small and unpaged | `common/pagination.ts`, e2e `pagination` |
 | Filtering | Ad-hoc query params per endpoint: `status`, `month`, `studentId`, `termId`, `academicSessionId`, `campusId`, `q`, `from`/`to`, `employeeType`, `guardianPhone`, `sourceSectionId` | grep `@Query` |
 | Sorting | Fixed inside each service (usually `createdAt desc` or name asc); not client-selectable | services |
 | Dates | ISO-8601 strings in DTOs (`IsDateString`/`new Date(...)`); months as `YYYY-MM` strings (attendance/diary/fees) | DTOs (spot-checked) |
@@ -34,4 +34,4 @@
 | API-4 | No OpenAPI contract; `staff-console/src/lib/api.ts` and Flutter `models.dart` hand-mirror the API | Drift risk between clients and server |
 
 ## Integration guidance
-Obtain tokens from `/auth/login`; refresh with `/auth/refresh` before 15 minutes elapse or on a 401; treat 401 from refresh as logged out. Amounts are integers. Do not rely on ordering or pagination. Subscribe payment gateways to the webhook URL only after live verification (not yet done).
+Obtain tokens from `/auth/login`; refresh with `/auth/refresh` before 15 minutes elapse or on a 401; treat 401 from refresh as logged out. Amounts are integers. Paged lists are ordered (name, or newest first for applications) with an id tie-break; read `X-Total-Count` for totals. Subscribe payment gateways to the webhook URL only after live verification (not yet done).

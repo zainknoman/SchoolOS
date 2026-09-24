@@ -1,4 +1,10 @@
 import {
+  PagedResult,
+  pageArgs,
+  toPageRequest,
+  type PageRequest,
+} from '../common/pagination';
+import {
   BadRequestException,
   ForbiddenException,
   Injectable,
@@ -47,26 +53,52 @@ export class StaffService {
     };
   }
 
+  /** Paged/searchable (BL-40): `q` matches name or e-mail. */
   async list(
     actingUser: RequestUser,
     employeeType?: EmployeeType,
-  ): Promise<StaffSummary[]> {
+    page: PageRequest = toPageRequest(),
+  ): Promise<PagedResult<StaffSummary>> {
     let where: Prisma.StaffWhereInput | undefined = employeeType
       ? { employeeType }
       : undefined;
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
-      return [];
+      return PagedResult.of([], 0, page);
     }
     if (scope.campusWhere) {
       where = { ...where, campus: scope.campusWhere };
     }
-    const records = await this.prisma.staff.findMany({
-      where,
-      include: WITH_CAMPUS,
-      orderBy: { name: 'asc' },
-    });
-    return records.map((r) => this.toSummary(r));
+    // Only wrap when searching, so an unfiltered query is exactly the scope query.
+    const filtered: Prisma.StaffWhereInput | undefined = page.q
+      ? {
+          AND: [
+            where ?? {},
+            {
+              OR: [
+                { name: { contains: page.q, mode: 'insensitive' as const } },
+                { email: { contains: page.q, mode: 'insensitive' as const } },
+              ],
+            },
+          ],
+        }
+      : where;
+    const [records, total] = await Promise.all([
+      this.prisma.staff.findMany({
+        where: filtered,
+        include: WITH_CAMPUS,
+        orderBy: page.paged
+          ? [{ name: 'asc' }, { id: 'asc' }]
+          : { name: 'asc' },
+        ...pageArgs(page),
+      }),
+      this.prisma.staff.count({ where: filtered }),
+    ]);
+    return PagedResult.of(
+      records.map((r) => this.toSummary(r)),
+      total,
+      page,
+    );
   }
 
   private async getScopedStaff(id: string, actingUser: RequestUser) {

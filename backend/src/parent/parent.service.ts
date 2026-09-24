@@ -1,4 +1,10 @@
 import {
+  PagedResult,
+  pageArgs,
+  toPageRequest,
+  type PageRequest,
+} from '../common/pagination';
+import {
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -173,11 +179,15 @@ export class ParentService {
     };
   }
 
-  async list(actingUser: RequestUser): Promise<ParentSummary[]> {
+  /** Paged/searchable (BL-40): `q` matches name, phone, CNIC or login identifier. */
+  async list(
+    actingUser: RequestUser,
+    page: PageRequest = toPageRequest(),
+  ): Promise<PagedResult<ParentSummary>> {
     let where: Prisma.ParentProfileWhereInput | undefined;
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
-      return [];
+      return PagedResult.of([], 0, page);
     }
     if (scope.campusWhere) {
       where = {
@@ -192,12 +202,45 @@ export class ParentService {
         },
       };
     }
-    const records = await this.prisma.parentProfile.findMany({
-      where,
-      include: WITH_USER_AND_COUNT,
-      orderBy: { name: 'asc' },
-    });
-    return records.map((r) => this.toSummary(r));
+    // Only wrap when searching, so an unfiltered query is exactly the scope query.
+    const filtered: Prisma.ParentProfileWhereInput | undefined = page.q
+      ? {
+          AND: [
+            where ?? {},
+            {
+              OR: [
+                { name: { contains: page.q, mode: 'insensitive' as const } },
+                { phone: { contains: page.q, mode: 'insensitive' as const } },
+                { cnic: { contains: page.q, mode: 'insensitive' as const } },
+                {
+                  user: {
+                    identifier: {
+                      contains: page.q,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        }
+      : where;
+    const [records, total] = await Promise.all([
+      this.prisma.parentProfile.findMany({
+        where: filtered,
+        include: WITH_USER_AND_COUNT,
+        orderBy: page.paged
+          ? [{ name: 'asc' }, { id: 'asc' }]
+          : { name: 'asc' },
+        ...pageArgs(page),
+      }),
+      this.prisma.parentProfile.count({ where: filtered }),
+    ]);
+    return PagedResult.of(
+      records.map((r) => this.toSummary(r)),
+      total,
+      page,
+    );
   }
 
   /** SCHOOL_ADMIN may only reach parents that have a child enrolled in their own school. */

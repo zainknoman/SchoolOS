@@ -78,6 +78,8 @@ describe('StudentService', () => {
       ],
     }).compile();
     service = moduleRef.get(StudentService);
+    // BL-40: list methods also count the matching rows.
+    Object.assign(prisma.student, { count: jest.fn().mockResolvedValue(0) });
   });
 
   it('rejects when neither parentProfileId nor newParent is given, without touching the database', async () => {
@@ -380,7 +382,8 @@ describe('StudentService', () => {
       },
     ]);
 
-    const result = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
+    const result = (await service.list({ id: 'super-1', role: 'SUPER_ADMIN' }))
+      .items;
 
     expect(result).toEqual([
       {
@@ -410,7 +413,9 @@ describe('StudentService', () => {
       },
     ]);
 
-    const [result] = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
+    const [result] = (
+      await service.list({ id: 'super-1', role: 'SUPER_ADMIN' })
+    ).items;
     expect(result.sectionName).toBeNull();
     expect(result.parentNames).toEqual([]);
   });
@@ -435,7 +440,8 @@ describe('StudentService', () => {
   it('fails closed (returns an empty list) for a SCHOOL_ADMIN with no schoolId', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
 
-    const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+    const result = (await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' }))
+      .items;
 
     expect(result).toEqual([]);
     expect(prisma.student.findMany).not.toHaveBeenCalled();

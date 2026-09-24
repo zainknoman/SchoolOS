@@ -51,6 +51,10 @@ describe('ParentService', () => {
       ],
     }).compile();
     service = moduleRef.get(ParentService);
+    // BL-40: list methods also count the matching rows.
+    Object.assign(prisma.parentProfile, {
+      count: jest.fn().mockResolvedValue(0),
+    });
   });
 
   it('creates a Parent (User + ParentProfile) and audit-logs it without leaking the password', async () => {
@@ -117,7 +121,8 @@ describe('ParentService', () => {
       },
     ]);
 
-    const result = await service.list({ id: 'super-1', role: 'SUPER_ADMIN' });
+    const result = (await service.list({ id: 'super-1', role: 'SUPER_ADMIN' }))
+      .items;
 
     expect(result).toEqual([
       {
@@ -164,7 +169,8 @@ describe('ParentService', () => {
   it('fails closed (returns an empty list) for a SCHOOL_ADMIN with no schoolId', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'admin-1', schoolId: null });
 
-    const result = await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+    const result = (await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' }))
+      .items;
 
     expect(result).toEqual([]);
     expect(prisma.parentProfile.findMany).not.toHaveBeenCalled();

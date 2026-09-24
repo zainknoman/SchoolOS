@@ -1,4 +1,5 @@
 // backend/src/admissions/applications.controller.ts
+import { PageQueryDto, toPageRequest } from '../common/pagination';
 import {
   Body,
   Controller,
@@ -36,11 +37,13 @@ export class ApplicationsController {
     @Req() req: AuthenticatedRequest,
     @Query('academicSessionId') academicSessionId?: string,
     @Query('status') status?: string,
+    @Query() page?: PageQueryDto,
   ) {
     return this.applicationsService.findMany(
       req.user,
       academicSessionId,
       status,
+      toPageRequest(page),
     );
   }
 

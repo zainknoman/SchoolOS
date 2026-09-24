@@ -1,3 +1,4 @@
+import { PageQueryDto, toPageRequest } from '../common/pagination';
 import {
   Body,
   Controller,
@@ -30,8 +31,9 @@ export class StaffController {
   list(
     @Query('employeeType') employeeType: EmployeeType | undefined,
     @Req() req: AuthenticatedRequest,
+    @Query() page: PageQueryDto,
   ) {
-    return this.staffService.list(req.user, employeeType);
+    return this.staffService.list(req.user, employeeType, toPageRequest(page));
   }
 
   @Post()

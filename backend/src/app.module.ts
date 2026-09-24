@@ -40,7 +40,8 @@ import { AttendanceRiskModule } from './attendance-risk/attendance-risk.module';
 import { GradebookModule } from './gradebook/gradebook.module';
 import { AdmissionsModule } from './admissions/admissions.module';
 import { BulkImportModule } from './bulk-import/bulk-import.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { PaginationInterceptor } from './common/pagination';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import {
   GENERAL_THROTTLE_LIMIT,
@@ -94,6 +95,11 @@ import {
     BulkImportModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // BL-40: PagedResult -> array body + X-Total-Count/X-Page/X-Limit/X-Truncated headers.
+    { provide: APP_INTERCEPTOR, useClass: PaginationInterceptor },
+  ],
 })
 export class AppModule {}

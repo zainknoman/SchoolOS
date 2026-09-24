@@ -12,7 +12,7 @@
 | KI-5 | Notifications | No retry/timeout/delivery status on any outbound call; failures swallowed | `notifications.service.ts:72`; adapters | silent message loss | — |
 | KI-6 | Config | `.env.example` omits `PORT`, `UPLOADS_DIR`, `WHATSAPP_*`, `SMS_GATEWAY_*` (unused `JWT_REFRESH_*` removed and `NODE_ENV` added 2026-09-24, BL-51) | [ENVIRONMENT](../operations/ENVIRONMENT.md) | misconfiguration | — |
 | KI-7 | Config | `FRONTEND_URL` defaults to localhost; single URL for reset links although parents use the mobile app | `auth.service.ts:168` | reset link may be unusable for parents (UNKNOWN) | DECIDED (separate parent reset flow) → BL-35 |
-| KI-8 | API | No pagination anywhere; unbounded lists | API-1 | scale/performance | DECIDED (pilot targets Q44) → BL-40, BL-15 |
+| KI-8 | API | No pagination anywhere; unbounded lists | API-1 | scale/performance | DECIDED (pilot targets Q44) → BL-40, BL-15 — **Resolved for the large lists 2026-09-25 (BL-40):** page/limit/q + headers; console student/parent tables page on the server |
 | KI-9 | API | No global exception filter/request logging; default error bodies | API-2 | diagnosability | DECIDED (structured logs, Sentry) → BL-11 — **Resolved 2026-09-25 (BL-11):** global filter, JSON logs with request id, error reporting |
 | KI-10 | API | Unknown request fields silently dropped | API-3 | hidden client bugs | — |
 | KI-11 | API | No OpenAPI; hand-mirrored client types | API-4 | drift | — |

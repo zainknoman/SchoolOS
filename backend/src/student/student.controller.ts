@@ -1,3 +1,4 @@
+import { PageQueryDto, toPageRequest } from '../common/pagination';
 import {
   Body,
   Controller,
@@ -7,6 +8,7 @@ import {
   Patch,
   Post,
   Req,
+  Query,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { StudentService } from './student.service';
@@ -30,8 +32,8 @@ export class StudentController {
   }
 
   @Get()
-  list(@Req() req: AuthenticatedRequest) {
-    return this.studentService.list(req.user);
+  list(@Req() req: AuthenticatedRequest, @Query() page: PageQueryDto) {
+    return this.studentService.list(req.user, toPageRequest(page));
   }
 
   @Patch(':id')

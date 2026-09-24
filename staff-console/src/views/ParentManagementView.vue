@@ -30,15 +30,31 @@ const editName = ref('');
 const editPhone = ref('');
 const editPassword = ref('');
 
+// BL-40: paged and searched on the server.
+const PAGE_SIZE = 25;
+const parentsTotal = ref(0);
+const pageQuery = ref({ page: 1, q: '' });
+
 async function load() {
   if (!auth.accessToken) return;
   try {
-    parents.value = await api.listAdminParents(auth.accessToken);
+    const page = await api.listAdminParentsPage(auth.accessToken, {
+      page: pageQuery.value.page,
+      limit: PAGE_SIZE,
+      q: pageQuery.value.q || undefined,
+    });
+    parents.value = page.items;
+    parentsTotal.value = page.total;
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load parents.';
   }
 }
 load();
+
+async function onQuery(query: { page: number; q: string }) {
+  pageQuery.value = query;
+  await load();
+}
 
 async function onAdd() {
   if (!auth.accessToken || !newIdentifier.value.trim() || !newPassword.value || !newName.value.trim()) return;
@@ -116,6 +132,9 @@ async function onDelete(id: string) {
 
     <EntityTable
       :items="parents"
+      :server-total="parentsTotal"
+      :page-size="PAGE_SIZE"
+      @query="onQuery"
       :columns="[
         { key: 'name', label: 'Name' },
         { key: 'identifier', label: 'Login' },

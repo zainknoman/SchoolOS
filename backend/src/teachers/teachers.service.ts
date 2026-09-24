@@ -1,3 +1,9 @@
+import {
+  PagedResult,
+  pageArgs,
+  toPageRequest,
+  type PageRequest,
+} from '../common/pagination';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -69,13 +75,15 @@ export class TeachersService {
     private readonly orgScope: OrgScopeService,
   ) {}
 
+  /** Paged/searchable (BL-40): `q` matches the name. */
   async listAll(
     actingUser: RequestUser,
     campusId?: string,
-  ): Promise<TeacherSummary[]> {
+    page: PageRequest = toPageRequest(),
+  ): Promise<PagedResult<TeacherSummary>> {
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
-      return [];
+      return PagedResult.of([], 0, page);
     }
     const where: Prisma.TeacherWhereInput | undefined =
       scope.campusWhere || campusId
@@ -84,11 +92,34 @@ export class TeachersService {
             ...(campusId ? { campusId } : {}),
           }
         : undefined;
-    const teachers = await this.prisma.teacher.findMany({
-      where,
-      orderBy: { name: 'asc' },
-    });
-    return teachers.map((t) => ({ id: t.id, name: t.name }));
+    // Only wrap when searching, so an unfiltered query is exactly the scope query.
+    const filtered: Prisma.TeacherWhereInput | undefined = page.q
+      ? {
+          AND: [
+            where ?? {},
+            {
+              OR: [
+                { name: { contains: page.q, mode: 'insensitive' as const } },
+              ],
+            },
+          ],
+        }
+      : where;
+    const [teachers, total] = await Promise.all([
+      this.prisma.teacher.findMany({
+        where: filtered,
+        orderBy: page.paged
+          ? [{ name: 'asc' }, { id: 'asc' }]
+          : { name: 'asc' },
+        ...pageArgs(page),
+      }),
+      this.prisma.teacher.count({ where: filtered }),
+    ]);
+    return PagedResult.of(
+      teachers.map((t) => ({ id: t.id, name: t.name })),
+      total,
+      page,
+    );
   }
 
   private async requireTeacher(userId: string): Promise<{ id: string }> {

@@ -1,3 +1,4 @@
+import { toPageRequest } from '../common/pagination';
 import { Controller, Get, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { TeachersService } from './teachers.service';
@@ -21,7 +22,11 @@ export class TeachersController {
     @Req() req: AuthenticatedRequest,
     @Query() query: ListTeachersQueryDto,
   ) {
-    return this.teachersService.listAll(req.user, query.campusId);
+    return this.teachersService.listAll(
+      req.user,
+      query.campusId,
+      toPageRequest(query),
+    );
   }
 
   @Roles('TEACHER')

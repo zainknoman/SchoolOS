@@ -954,6 +954,30 @@ function authHeaders(accessToken: string) {
   return { Authorization: `Bearer ${accessToken}` };
 }
 
+/** One page of a server-paged list (BL-40): the body is the rows, the total is a header. */
+export interface Page<T> {
+  items: T[];
+  total: number;
+}
+
+export interface PageParams {
+  page: number;
+  limit: number;
+  q?: string;
+}
+
+function pageQuery(p: PageParams): string {
+  const qs = new URLSearchParams({ page: String(p.page), limit: String(p.limit) });
+  if (p.q) qs.set('q', p.q);
+  return qs.toString();
+}
+
+async function asPage<T>(res: Response): Promise<Page<T>> {
+  const items = await asJson<T[]>(res);
+  const total = Number(res.headers.get('X-Total-Count') ?? items.length);
+  return { items, total: Number.isFinite(total) ? total : items.length };
+}
+
 async function asJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
     throw new ApiError(await parseErrorMessage(res), res.status);
@@ -1793,6 +1817,13 @@ export const api = {
     }
   },
 
+  async listAdminParentsPage(accessToken: string, params: PageParams): Promise<Page<ParentSummary>> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents?${pageQuery(params)}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asPage(res);
+  },
+
   async listAdminParents(accessToken: string): Promise<ParentSummary[]> {
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents`, { headers: authHeaders(accessToken) });
     return asJson(res);
@@ -1863,6 +1894,13 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+  },
+
+  async listAdminStudentsPage(accessToken: string, params: PageParams): Promise<Page<StudentAdminSummary>> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students?${pageQuery(params)}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asPage(res);
   },
 
   async listAdminStudents(accessToken: string): Promise<StudentAdminSummary[]> {

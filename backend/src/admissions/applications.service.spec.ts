@@ -23,6 +23,10 @@ describe('ApplicationsService', () => {
       ],
     }).compile();
     service = moduleRef.get(ApplicationsService);
+    // BL-40: list methods also count the matching rows.
+    Object.assign(prisma.application, {
+      count: jest.fn().mockResolvedValue(0),
+    });
   });
 
   describe('findMany', () => {
@@ -64,10 +68,12 @@ describe('ApplicationsService', () => {
         schoolId: null,
       });
 
-      const result = await service.findMany({
-        id: 'admin-1',
-        role: 'SCHOOL_ADMIN',
-      });
+      const result = (
+        await service.findMany({
+          id: 'admin-1',
+          role: 'SCHOOL_ADMIN',
+        })
+      ).items;
 
       expect(result).toEqual([]);
       expect(prisma.application.findMany).not.toHaveBeenCalled();

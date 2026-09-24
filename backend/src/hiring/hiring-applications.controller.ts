@@ -1,3 +1,4 @@
+import { PageQueryDto, toPageRequest } from '../common/pagination';
 import {
   Body,
   Controller,
@@ -37,8 +38,14 @@ export class HiringApplicationsController {
     @Req() req: AuthenticatedRequest,
     @Query('campusId') campusId?: string,
     @Query('status') status?: string,
+    @Query() page?: PageQueryDto,
   ) {
-    return this.hiringApplicationsService.findMany(req.user, campusId, status);
+    return this.hiringApplicationsService.findMany(
+      req.user,
+      campusId,
+      status,
+      toPageRequest(page),
+    );
   }
 
   @Get(':id')

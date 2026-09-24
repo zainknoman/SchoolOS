@@ -42,14 +42,39 @@ const editingId = ref<string | null>(null);
 const editGrNumber = ref('');
 const editName = ref('');
 
+// BL-40: the table is paged and searched on the server; the parent picker still needs the full list.
+const PAGE_SIZE = 25;
+const studentsTotal = ref(0);
+const pageQuery = ref({ page: 1, q: '' });
+
+async function fetchStudents() {
+  if (!auth.accessToken) return;
+  const page = await api.listAdminStudentsPage(auth.accessToken, {
+    page: pageQuery.value.page,
+    limit: PAGE_SIZE,
+    q: pageQuery.value.q || undefined,
+  });
+  students.value = page.items;
+  studentsTotal.value = page.total;
+}
+
+async function onQuery(query: { page: number; q: string }) {
+  pageQuery.value = query;
+  try {
+    await fetchStudents();
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load students.';
+  }
+}
+
 async function load() {
   if (!auth.accessToken) return;
   try {
-    [sections.value, parents.value, students.value] = await Promise.all([
+    [sections.value, parents.value] = await Promise.all([
       api.listSections(auth.accessToken),
       api.listAdminParents(auth.accessToken),
-      api.listAdminStudents(auth.accessToken),
-    ]);
+      fetchStudents(),
+    ]).then(([s, p]) => [s, p] as const);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load students.';
   }
@@ -153,6 +178,9 @@ async function onDelete(id: string) {
 
     <EntityTable
       :items="students"
+      :server-total="studentsTotal"
+      :page-size="PAGE_SIZE"
+      @query="onQuery"
       :columns="[
         { key: 'grNumber', label: 'GR Number' },
         { key: 'name', label: 'Name' },

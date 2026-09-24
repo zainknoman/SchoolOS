@@ -1,3 +1,4 @@
+import { PageQueryDto, toPageRequest } from '../common/pagination';
 import {
   Body,
   Controller,
@@ -7,6 +8,7 @@ import {
   Patch,
   Post,
   Req,
+  Query,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ParentService } from './parent.service';
@@ -40,8 +42,8 @@ export class ParentController {
   }
 
   @Get()
-  list(@Req() req: AuthenticatedRequest) {
-    return this.parentService.list(req.user);
+  list(@Req() req: AuthenticatedRequest, @Query() page: PageQueryDto) {
+    return this.parentService.list(req.user, toPageRequest(page));
   }
 
   // BL-64: one-time temporary password for a parent (pilot fallback without e-mail). Throttled like
