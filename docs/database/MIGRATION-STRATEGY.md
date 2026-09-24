@@ -130,7 +130,9 @@
 
 **M4 (BL-02) rehearsal** (`npm run migration:harness -- m4-school-subjects`, 2026-09-25): timetable/diary/assessment counts unchanged; the two shared subjects (Mathematics via timetables, Urdu via timetable + diary) cloned once each for the non-anchor school; English (diary only) → school A, Science (assessment only) → school B; no timetable, diary or assessment uses another school's subject; the unused subject left unassigned with a blocking review row; second run changed nothing. Deploy order: migration, then `npm run backfill:m4`.
 
-**Not yet evidenced.** No production copy has been examined, and M5–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
+**M5 (BL-03) rehearsal** (`npm run migration:harness -- m5-school-fee-structures`, 2026-09-25): voucher lines unchanged in number; Tuition (issued in both schools) kept by the anchor and cloned, both LOCKED; Transport (school A only) → A, LOCKED; the never-issued Lab Fee left unassigned (blocking review); the two same-named "Admission Fee" structures left unassigned (2 blocking collision rows); every issued line with an enrolment linked to a structure of its own school; second run changed nothing. Deploy order: migration, then `npm run backfill:m5`.
+
+**Not yet evidenced.** No production copy has been examined, and M6–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval
 | Role | Name | Decision | Date |

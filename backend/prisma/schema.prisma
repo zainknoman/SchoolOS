@@ -224,6 +224,7 @@ model School {
   holidays           Holiday[]
   academicSessions   AcademicSession[]
   subjects           Subject[]
+  feeStructures      FeeStructure[]
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 }
@@ -891,11 +892,30 @@ model Notification {
   @@index([userId])
 }
 
+/// BL-03 (M5): a fee structure's lifecycle. DRAFT = being prepared (editable, not issuable);
+/// ACTIVE = issuable, editable until first invoiced; LOCKED = has been invoiced (amount frozen);
+/// ARCHIVED = hidden from new vouchers, history kept. Never hard-deleted.
+enum FeeStructureStatus {
+  DRAFT
+  ACTIVE
+  LOCKED
+  ARCHIVED
+}
+
 model FeeStructure {
-  id        String   @id @default(uuid())
-  name      String
-  amount    Int // in smallest currency unit (paisa) — never a float
-  createdAt DateTime @default(now())
+  id                   String             @id @default(uuid())
+  // BL-03 (M5): the owning school (Q3).
+  schoolId             String?
+  school               School?            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  // Legacy rows default to ACTIVE so pre-M5 code keeps issuing; new ones start as DRAFT.
+  status               FeeStructureStatus @default(ACTIVE)
+  legacyFeeStructureId String?
+  name                 String
+  amount               Int // in smallest currency unit (paisa) — never a float
+  items                FeeItem[]
+  createdAt            DateTime           @default(now())
+
+  @@index([schoolId])
 }
 
 model FeeVoucher {
@@ -916,11 +936,16 @@ model FeeVoucher {
 }
 
 model FeeItem {
-  id           String     @id @default(uuid())
-  feeVoucherId String
-  feeVoucher   FeeVoucher @relation(fields: [feeVoucherId], references: [id], onDelete: Cascade)
-  label        String
-  amount       Int // paisa
+  id             String        @id @default(uuid())
+  feeVoucherId   String
+  feeVoucher     FeeVoucher    @relation(fields: [feeVoucherId], references: [id], onDelete: Cascade)
+  // BL-03 (F5): the structure this line was issued from (null on legacy lines not matched by label).
+  feeStructureId String?
+  feeStructure   FeeStructure? @relation(fields: [feeStructureId], references: [id], onDelete: Restrict)
+  label          String
+  amount         Int // paisa
+
+  @@index([feeStructureId])
 }
 
 model FeePayment {

@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import {
   api,
   type SectionSummary,
   type StudentSummary,
   type FeeStructureSummary,
+  type FeeStructureStatus,
+  type SchoolSummary,
   type FeeVoucherSummary,
   type FeePaymentSummary,
 } from '../lib/api';
@@ -28,11 +30,37 @@ const showAddStructureForm = ref(false);
 const newStructureName = ref('');
 const newStructureAmount = ref('');
 const structureError = ref<string | null>(null);
+// BL-03: fee structures are per school and move DRAFT -> ACTIVE -> LOCKED (once invoiced) -> ARCHIVED.
+const isSuperAdmin = auth.role === 'SUPER_ADMIN';
+const schools = ref<SchoolSummary[]>([]);
+const newStructureSchoolId = ref('');
+const STATUS_LABEL: Record<FeeStructureStatus, string> = {
+  DRAFT: 'Draft',
+  ACTIVE: 'Active',
+  LOCKED: 'Locked (invoiced)',
+  ARCHIVED: 'Archived',
+};
+const issuableStructures = computed(() =>
+  structures.value.filter((s) => s.status === undefined || s.status === 'ACTIVE' || s.status === 'LOCKED'),
+);
+
+async function onChangeStatus(s: FeeStructureSummary, status: FeeStructureStatus) {
+  if (!auth.accessToken) return;
+  structureError.value = null;
+  try {
+    await api.updateFeeStructure(auth.accessToken, s.id, { status });
+    await loadStructures();
+    toast.success(`${s.name}: ${STATUS_LABEL[status]}.`);
+  } catch (err) {
+    structureError.value = err instanceof Error ? err.message : 'Could not update this fee structure.';
+  }
+}
 
 async function loadStructures() {
   if (!auth.accessToken) return;
   try {
     structures.value = await api.listFeeStructures(auth.accessToken);
+    if (isSuperAdmin && schools.value.length === 0) schools.value = await api.listSchools(auth.accessToken);
   } catch (err) {
     structureError.value = err instanceof Error ? err.message : 'Could not load fee structures.';
   }
@@ -41,11 +69,16 @@ loadStructures();
 
 async function onCreateStructure() {
   if (!auth.accessToken || !newStructureName.value || !newStructureAmount.value) return;
+  if (isSuperAdmin && !newStructureSchoolId.value) {
+    structureError.value = 'Choose the school this fee structure belongs to.';
+    return;
+  }
   structureError.value = null;
   try {
     await api.createFeeStructure(auth.accessToken, {
       name: newStructureName.value,
       amount: Math.round(Number(newStructureAmount.value) * 100),
+      ...(isSuperAdmin ? { schoolId: newStructureSchoolId.value } : {}),
     });
     newStructureName.value = '';
     newStructureAmount.value = '';
@@ -208,8 +241,21 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
       </div>
       <p v-if="structureError" class="error" role="alert">{{ structureError }}</p>
       <div v-if="structures.length" class="structures-list">
-        <div v-for="s in structures" :key="s.id" class="structure-row">
+        <div v-for="s in structures" :key="s.id" class="structure-row" :data-testid="`structure-row-${s.id}`">
           {{ s.name }} <span class="mono muted">— PKR {{ formatPkrFull(s.amount / 100) }}</span>
+          <span v-if="s.status" class="muted" :data-testid="`structure-status-${s.id}`">· {{ STATUS_LABEL[s.status] }}</span>
+          <Button
+            v-if="s.status === 'DRAFT'"
+            variant="secondary"
+            :data-testid="`activate-${s.id}`"
+            @click="onChangeStatus(s, 'ACTIVE')"
+          >Activate</Button>
+          <Button
+            v-if="s.status === 'ACTIVE' || s.status === 'LOCKED'"
+            variant="secondary"
+            :data-testid="`archive-${s.id}`"
+            @click="onChangeStatus(s, 'ARCHIVED')"
+          >Archive</Button>
         </div>
       </div>
       <p v-else class="empty-hint">No fee structures yet — add one to start issuing vouchers.</p>
@@ -222,6 +268,13 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
           <label class="field">
             <span>Amount (PKR)</span>
             <input data-testid="structure-amount" v-model="newStructureAmount" type="number" placeholder="Amount (PKR)" />
+          </label>
+          <label v-if="isSuperAdmin" class="field">
+            <span>School</span>
+            <select data-testid="structure-school" v-model="newStructureSchoolId">
+              <option value="" disabled>Choose a school</option>
+              <option v-for="sc in schools" :key="sc.id" :value="sc.id">{{ sc.name }}</option>
+            </select>
           </label>
           <Button data-testid="create-structure" @click="onCreateStructure">Add</Button>
         </div>
@@ -256,7 +309,7 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
 
       <fieldset class="check-fieldset">
         <legend>Fee structures to include</legend>
-        <label v-for="s in structures" :key="s.id" class="checkbox-row">
+        <label v-for="s in issuableStructures" :key="s.id" class="checkbox-row">
           <input
             :data-testid="`structure-${s.id}`"
             type="checkbox"

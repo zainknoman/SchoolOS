@@ -151,9 +151,11 @@ flowchart LR
 
 ```mermaid
 flowchart LR
+  FeeStructure -->|Cascade, optional| School
   FeeVoucher -->|Restrict| Student
   FeeVoucher -->|default| AcademicSession
   FeeItem -->|Cascade| FeeVoucher
+  FeeItem -->|Restrict, optional| FeeStructure
   FeePaymentAllocation -->|Restrict| FeePayment
   FeePaymentAllocation -->|Restrict| FeeVoucher
   Receipt -->|Restrict| FeePayment

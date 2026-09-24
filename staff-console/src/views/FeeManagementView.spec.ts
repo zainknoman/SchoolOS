@@ -29,6 +29,8 @@ vi.mock('../lib/api', () => ({
     studentFeePayments: vi.fn(),
     receiptPdfUrl: vi.fn(),
     reconcileVoucher: vi.fn(),
+    updateFeeStructure: vi.fn(),
+    listSchools: vi.fn(),
   },
 }));
 
@@ -274,5 +276,23 @@ describe('FeeManagementView', () => {
     // Ledger reloads after a successful reconcile — studentFees/studentFeePayments called twice
     // each (once on select, once on reload).
     expect(vi.mocked(api.studentFees).mock.calls.length).toBe(2);
+  });
+
+  it('shows the lifecycle, activates a draft, and offers only issuable structures (BL-03)', async () => {
+    vi.mocked(api.listFeeStructures).mockResolvedValue([
+      { id: 'fs-1', name: 'Tuition Fee', amount: 500000, status: 'LOCKED' },
+      { id: 'fs-2', name: 'Lab Fee', amount: 80000, status: 'DRAFT' },
+    ]);
+    vi.mocked(api.updateFeeStructure).mockResolvedValue({ id: 'fs-2', name: 'Lab Fee', amount: 80000, status: 'ACTIVE' });
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="structure-status-fs-1"]').text()).toContain('Locked');
+    expect(wrapper.find('[data-testid="structure-fs-1"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="structure-fs-2"]').exists()).toBe(false); // a draft cannot be issued
+
+    await wrapper.find('[data-testid="activate-fs-2"]').trigger('click');
+    await flushPromises();
+    expect(api.updateFeeStructure).toHaveBeenCalledWith('token-1', 'fs-2', { status: 'ACTIVE' });
   });
 });

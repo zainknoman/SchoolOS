@@ -7,13 +7,18 @@ import {
   Post,
   Req,
   Res,
+  Patch,
+  Query,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { FeeStructuresService } from './fee-structures.service';
 import { FeeVouchersService } from './fee-vouchers.service';
 import { FeePaymentsService } from './fee-payments.service';
 import { FeesPdfService } from './fees-pdf.service';
-import { CreateFeeStructureDto } from './dto/create-fee-structure.dto';
+import {
+  CreateFeeStructureDto,
+  UpdateFeeStructureDto,
+} from './dto/create-fee-structure.dto';
 import { IssueVouchersDto } from './dto/issue-vouchers.dto';
 import { PayVoucherDto } from './dto/pay-voucher.dto';
 import { ReconcilePaymentDto } from './dto/reconcile-payment.dto';
@@ -43,13 +48,31 @@ export class FeesController {
     @Body() dto: CreateFeeStructureDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.feeStructures.create(dto, req.user.id);
+    return this.feeStructures.create(dto, req.user);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
   @Get('fee-structures')
-  listStructures() {
-    return this.feeStructures.list();
+  listStructures(
+    @Req() req: AuthenticatedRequest,
+    @Query('schoolId') schoolId?: string,
+    @Query('includeArchived') includeArchived?: string,
+  ) {
+    return this.feeStructures.list(req.user, {
+      schoolId,
+      includeArchived: includeArchived === 'true',
+    });
+  }
+
+  // BL-03: edit while editable, or move through DRAFT -> ACTIVE -> (LOCKED) -> ARCHIVED.
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @Patch('fee-structures/:id')
+  updateStructure(
+    @Param('id') id: string,
+    @Body() dto: UpdateFeeStructureDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.feeStructures.update(id, dto, req.user);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')

@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { OrgScopeService } from '../common/org-scope.service';
+import type { RequestUser } from '../common/student-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { assertDeletable } from '../common/prisma-delete-guard';
@@ -16,7 +22,46 @@ export interface TermSummary {
 
 @Injectable()
 export class TermsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
+
+  /**
+   * BL-03: a term belongs to its session's school. Staff may read/write only their school's
+   * terms, a parent those of their children's schools. A legacy school-less session (before the
+   * M3 backfill) stays open as before.
+   */
+  private async assertSessionInScope(
+    academicSessionId: string,
+    actor: RequestUser,
+    mode: 'read' | 'write',
+  ): Promise<void> {
+    const session = await this.prisma.academicSession.findUnique({
+      where: { id: academicSessionId },
+      select: { schoolId: true },
+    });
+    if (!session) throw new NotFoundException('Academic session not found');
+    if (!session.schoolId) return;
+    const scope = await this.orgScope.resolve(actor);
+    if (scope.unrestricted) return;
+    if (!scope.denied && scope.schoolId === session.schoolId) return;
+    if (mode === 'read' && actor.role === 'PARENT') {
+      const linked = await this.prisma.studentParent.findFirst({
+        where: {
+          parentProfile: { userId: actor.id },
+          student: {
+            enrollments: { some: { campus: { schoolId: session.schoolId } } },
+          },
+        },
+        select: { id: true },
+      });
+      if (linked) return;
+    }
+    throw new ForbiddenException(
+      'This academic session belongs to another school',
+    );
+  }
 
   private toSummary(record: {
     id: string;
@@ -36,7 +81,8 @@ export class TermsService {
     };
   }
 
-  async create(dto: CreateTermDto): Promise<TermSummary> {
+  async create(dto: CreateTermDto, actor: RequestUser): Promise<TermSummary> {
+    await this.assertSessionInScope(dto.academicSessionId, actor, 'write');
     let record;
     try {
       record = await this.prisma.term.create({
@@ -57,7 +103,11 @@ export class TermsService {
     return this.toSummary(record);
   }
 
-  async findMany(academicSessionId: string): Promise<TermSummary[]> {
+  async findMany(
+    academicSessionId: string,
+    actor: RequestUser,
+  ): Promise<TermSummary[]> {
+    await this.assertSessionInScope(academicSessionId, actor, 'read');
     const records = await this.prisma.term.findMany({
       where: { academicSessionId },
       orderBy: { order: 'asc' },
@@ -65,11 +115,16 @@ export class TermsService {
     return records.map((r) => this.toSummary(r));
   }
 
-  async update(id: string, dto: UpdateTermDto): Promise<TermSummary> {
+  async update(
+    id: string,
+    dto: UpdateTermDto,
+    actor: RequestUser,
+  ): Promise<TermSummary> {
     const existing = await this.prisma.term.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Term not found');
     }
+    await this.assertSessionInScope(existing.academicSessionId, actor, 'write');
     const record = await this.prisma.term.update({
       where: { id },
       data: {
@@ -86,11 +141,12 @@ export class TermsService {
     return this.toSummary(record);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, actor: RequestUser): Promise<void> {
     const existing = await this.prisma.term.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Term not found');
     }
+    await this.assertSessionInScope(existing.academicSessionId, actor, 'write');
     try {
       await this.prisma.term.delete({ where: { id } });
     } catch (error) {

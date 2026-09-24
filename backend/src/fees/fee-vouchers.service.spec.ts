@@ -7,7 +7,7 @@ describe('FeeVouchersService', () => {
   let service: FeeVouchersService;
   let prisma: {
     academicSession: { findFirst: jest.Mock };
-    feeStructure: { findMany: jest.Mock };
+    feeStructure: { findMany: jest.Mock; updateMany: jest.Mock };
     enrollment: { findMany: jest.Mock };
     school: { findMany: jest.Mock };
     feeVoucher: {
@@ -21,7 +21,7 @@ describe('FeeVouchersService', () => {
   beforeEach(async () => {
     prisma = {
       academicSession: { findFirst: jest.fn() },
-      feeStructure: { findMany: jest.fn() },
+      feeStructure: { findMany: jest.fn(), updateMany: jest.fn() },
       enrollment: { findMany: jest.fn() },
       // BL-01: the students' school decides the session.
       school: { findMany: jest.fn().mockResolvedValue([{ id: 'school-1' }]) },
@@ -65,7 +65,13 @@ describe('FeeVouchersService', () => {
   it("rejects issue() when the students' school has no active academic session", async () => {
     prisma.academicSession.findFirst.mockResolvedValue(null);
     prisma.feeStructure.findMany.mockResolvedValue([
-      { id: 'fs-1', name: 'Tuition Fee', amount: 500000 },
+      {
+        id: 'fs-1',
+        name: 'Tuition Fee',
+        amount: 500000,
+        status: 'ACTIVE',
+        schoolId: 'school-1',
+      },
     ]);
 
     await expect(
@@ -84,7 +90,13 @@ describe('FeeVouchersService', () => {
   it("resolves sectionId into the section's active enrollments, issues one voucher per student, and rejects a duplicate month", async () => {
     prisma.academicSession.findFirst.mockResolvedValue({ id: 'session-1' });
     prisma.feeStructure.findMany.mockResolvedValue([
-      { id: 'fs-1', name: 'Tuition Fee', amount: 500000 },
+      {
+        id: 'fs-1',
+        name: 'Tuition Fee',
+        amount: 500000,
+        status: 'ACTIVE',
+        schoolId: 'school-1',
+      },
     ]);
     prisma.enrollment.findMany.mockResolvedValue([
       { studentId: 's1' },
@@ -119,7 +131,13 @@ describe('FeeVouchersService', () => {
   it('rejects issuing a voucher when one already exists for that student and month', async () => {
     prisma.academicSession.findFirst.mockResolvedValue({ id: 'session-1' });
     prisma.feeStructure.findMany.mockResolvedValue([
-      { id: 'fs-1', name: 'Tuition Fee', amount: 500000 },
+      {
+        id: 'fs-1',
+        name: 'Tuition Fee',
+        amount: 500000,
+        status: 'ACTIVE',
+        schoolId: 'school-1',
+      },
     ]);
     prisma.feeVoucher.findMany.mockResolvedValue([{ studentId: 's1' }]);
 
@@ -208,7 +226,13 @@ describe('FeeVouchersService', () => {
 
   it('refuses to issue for students of two schools in one call (BL-01)', async () => {
     prisma.feeStructure.findMany.mockResolvedValue([
-      { id: 'fs-1', name: 'Tuition Fee', amount: 500000 },
+      {
+        id: 'fs-1',
+        name: 'Tuition Fee',
+        amount: 500000,
+        status: 'ACTIVE',
+        schoolId: 'school-1',
+      },
     ]);
     prisma.school.findMany.mockResolvedValue([
       { id: 'school-1' },
@@ -229,7 +253,13 @@ describe('FeeVouchersService', () => {
 
   it("uses the active session of the students' school", async () => {
     prisma.feeStructure.findMany.mockResolvedValue([
-      { id: 'fs-1', name: 'Tuition Fee', amount: 500000 },
+      {
+        id: 'fs-1',
+        name: 'Tuition Fee',
+        amount: 500000,
+        status: 'ACTIVE',
+        schoolId: 'school-1',
+      },
     ]);
     prisma.academicSession.findFirst.mockResolvedValue({ id: 'session-1' });
     prisma.feeVoucher.findMany.mockResolvedValue([{ studentId: 's1' }]);
@@ -247,5 +277,48 @@ describe('FeeVouchersService', () => {
     expect(prisma.academicSession.findFirst).toHaveBeenCalledWith({
       where: { isActive: true, schoolId: 'school-1' },
     });
+  });
+
+  it('refuses draft/archived structures and structures of another school (BL-03)', async () => {
+    prisma.feeStructure.findMany.mockResolvedValue([
+      {
+        id: 'fs-1',
+        name: 'Draft Fee',
+        amount: 1,
+        status: 'DRAFT',
+        schoolId: 'school-1',
+      },
+    ]);
+    await expect(
+      service.issue(
+        {
+          studentIds: ['s1'],
+          month: '2026-09',
+          dueDate: '2026-09-10',
+          feeStructureIds: ['fs-1'],
+        },
+        'admin-1',
+      ),
+    ).rejects.toThrow(/not issuable/);
+    prisma.feeStructure.findMany.mockResolvedValue([
+      {
+        id: 'fs-1',
+        name: 'B Fee',
+        amount: 1,
+        status: 'ACTIVE',
+        schoolId: 'school-2',
+      },
+    ]);
+    await expect(
+      service.issue(
+        {
+          studentIds: ['s1'],
+          month: '2026-09',
+          dueDate: '2026-09-10',
+          feeStructureIds: ['fs-1'],
+        },
+        'admin-1',
+      ),
+    ).rejects.toThrow(/another school/);
   });
 });

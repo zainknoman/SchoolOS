@@ -4,7 +4,7 @@
 > **Decided, not yet implemented (owner, 2026-09-20):** ACCOUNTS access narrows to fees/finance; admissions/complaints/messages only by explicit grant (BL-32). This guide describes current behaviour.
 
 ## Fee structures and vouchers (Operations → Fees)
-1. **Create fee structures** (name and amount; amounts are whole numbers in the smallest currency unit). They cannot be edited or deleted afterwards — check before saving.
+1. **Create fee structures** (name and amount; amounts are whole numbers in the smallest currency unit). A new structure is a **Draft** — **Activate** it to use it on vouchers. It can be edited until it is first invoiced, then it is **Locked**; **Archive** hides it from new vouchers (history stays). Structures are never deleted (BL-03).
 2. **Issue vouchers:** choose the month and due date, pick fee structures, and select either specific students **or** a whole section. A student can have only one voucher per month; if any selected student already has one, the whole request is rejected. Vouchers attach to the platform's currently **active** academic session.
 3. **Print/download** a voucher as PDF; download **receipts** for payments.
 
@@ -19,4 +19,4 @@ You can add **applicants** and applications and approve/reject them, like a scho
 Reply to parent conversations addressed to Accounts; view and update complaints.
 
 ## Not available
-Discounts, scholarships, late fees, refunds and instalment plans are not supported; fee structures cannot be edited. There is no fee-defaulter report or accounting export.
+Discounts, scholarships, late fees, refunds and instalment plans are not supported; fee structures are locked once invoiced (archive and create a new one to change a price). There is no fee-defaulter report or accounting export.

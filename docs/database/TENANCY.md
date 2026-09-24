@@ -18,7 +18,7 @@
 | `Circular` | `schoolId` (BL-20, M2), `scope`, `sectionId?` | direct; section circulars also via Section |
 | `AcademicSession` | `schoolId` (BL-01, M3) | direct; `Term` via its session |
 | `Subject` | `schoolId` (BL-02, M4) | direct |
-| `FeeStructure` | **none** (BL-03 pending) | **no path** |
+| `FeeStructure` | `schoolId` (BL-03, M5) | direct; `FeeItem.feeStructureId` links issued lines |
 | `Applicant`, `Application` | `Application.desiredClassId`, `academicSessionId` | via desired Class → Campus |
 
 ## How scope is enforced

@@ -456,10 +456,15 @@ export interface PromotionHistoryRow {
   to: { sectionName: string; className: string; sessionLabel: string } | null;
 }
 
+export type FeeStructureStatus = 'DRAFT' | 'ACTIVE' | 'LOCKED' | 'ARCHIVED';
+
 export interface FeeStructureSummary {
   id: string;
   name: string;
   amount: number; // paisa
+  /** BL-03: lifecycle — only ACTIVE/LOCKED structures can be issued. */
+  status?: FeeStructureStatus;
+  schoolId?: string | null;
 }
 
 export interface FeeVoucherSummary {
@@ -1752,7 +1757,23 @@ export const api = {
     return asJson(res);
   },
 
-  async createFeeStructure(accessToken: string, payload: { name: string; amount: number }): Promise<void> {
+  async updateFeeStructure(
+    accessToken: string,
+    id: string,
+    payload: { name?: string; amount?: number; status?: FeeStructureStatus },
+  ): Promise<FeeStructureSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-structures/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async createFeeStructure(
+    accessToken: string,
+    payload: { name: string; amount: number; schoolId?: string },
+  ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/fee-structures`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },

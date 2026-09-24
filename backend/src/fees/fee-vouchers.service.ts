@@ -43,6 +43,15 @@ export class FeeVouchersService {
     if (structures.length !== dto.feeStructureIds.length) {
       throw new BadRequestException('One or more feeStructureIds do not exist');
     }
+    // BL-03: only ACTIVE or LOCKED (already invoiced) structures can be issued.
+    const notIssuable = structures.filter(
+      (s) => s.status === 'DRAFT' || s.status === 'ARCHIVED',
+    );
+    if (notIssuable.length) {
+      throw new BadRequestException(
+        `Fee structure(s) not issuable (draft or archived): ${notIssuable.map((s) => s.name).join(', ')}`,
+      );
+    }
 
     const studentIds = dto.studentIds?.length
       ? dto.studentIds
@@ -71,6 +80,15 @@ export class FeeVouchersService {
         schoolIds.length === 0
           ? 'None of these students has an active enrollment'
           : 'Issue vouchers for one school at a time',
+      );
+    }
+    // BL-03: a school's vouchers use only that school's structures (legacy school-less ones allowed).
+    const foreign = structures.filter(
+      (s) => s.schoolId !== null && s.schoolId !== schoolIds[0],
+    );
+    if (foreign.length) {
+      throw new BadRequestException(
+        `Fee structure(s) of another school: ${foreign.map((s) => s.name).join(', ')}`,
       );
     }
     const activeSession = await activeSessionForSchool(
@@ -109,6 +127,7 @@ export class FeeVouchersService {
           dueDate,
           items: {
             create: structures.map((s) => ({
+              feeStructureId: s.id,
               label: s.name,
               amount: s.amount,
             })),
@@ -118,6 +137,12 @@ export class FeeVouchersService {
       });
       created.push(this.toSummary(voucher, 0));
     }
+
+    // BL-03: once invoiced, a structure is LOCKED (its name/amount can no longer change).
+    await this.prisma.feeStructure.updateMany({
+      where: { id: { in: structures.map((s) => s.id) }, status: 'ACTIVE' },
+      data: { status: 'LOCKED' },
+    });
 
     await this.prisma.auditLog.create({
       data: {

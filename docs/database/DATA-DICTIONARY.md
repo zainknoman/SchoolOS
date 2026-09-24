@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **58 models, 14 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **58 models, 15 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -19,6 +19,7 @@
 - **EmploymentStatus**: ACTIVE, ON_LEAVE, TERMINATED, RESIGNED
 - **DocumentType**: BIRTH_CERTIFICATE, B_FORM, LEAVING_CERTIFICATE, TRANSFER_CERTIFICATE, PREVIOUS_REPORT_CARD, PHOTOGRAPH, MEDICAL_CERTIFICATE, CNIC, DEGREE_CERTIFICATE, CV, OTHER
 - **DocumentVerificationStatus**: PENDING, VERIFIED, REJECTED
+- **FeeStructureStatus**: DRAFT, ACTIVE, LOCKED, ARCHIVED
 
 ## Identity
 
@@ -182,6 +183,7 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | holidays | Holiday[] (relation) |  |
 | academicSessions | AcademicSession[] (relation) |  |
 | subjects | Subject[] (relation) |  |
+| feeStructures | FeeStructure[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -1083,9 +1085,16 @@ Block attributes: `@@index([userId])`
 | Field | Type | Attributes |
 |---|---|---|
 | id | String | @id @default(uuid()) |
+| schoolId | String? |  |
+| school | School? (relation) | @relation(fields: [schoolId], references: [id], onDelete: Cascade) |
+| status | FeeStructureStatus (enum) | @default(ACTIVE) |
+| legacyFeeStructureId | String? |  |
 | name | String |  |
 | amount | Int |  |
+| items | FeeItem[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
+
+Block attributes: `@@index([schoolId])`
 
 ### FeeVoucher
 
@@ -1113,8 +1122,12 @@ Block attributes: `@@index([studentId])`
 | id | String | @id @default(uuid()) |
 | feeVoucherId | String |  |
 | feeVoucher | FeeVoucher (relation) | @relation(fields: [feeVoucherId], references: [id], onDelete: Cascade) |
+| feeStructureId | String? |  |
+| feeStructure | FeeStructure? (relation) | @relation(fields: [feeStructureId], references: [id], onDelete: Restrict) |
 | label | String |  |
 | amount | Int |  |
+
+Block attributes: `@@index([feeStructureId])`
 
 ### FeePayment
 
