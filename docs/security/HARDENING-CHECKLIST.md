@@ -24,7 +24,7 @@
 - [ ] `TRUST_PROXY` set to the proxy hop count behind a reverse proxy (KG-13)
 - [x] High dependency vulnerabilities remediated; `npm audit --audit-level=high` gate in CI (KG-5, BL-12) — Moderate `firebase-admin` chain still open
 - [ ] Tenant issues fixed or accepted: TENANT-1 (circulars), TENANT-2 (holidays), TENANT-3..5 (KG-1, KG-6, KG-7, KG-8)
-- [ ] Session revocation model decided (KG-10); `mustChangePassword` enforced server-side (KG-11)
+- [x] Session revocation (`tokenVersion` + per-request recheck) and server-side `mustChangePassword` (KG-10, KG-11 — BL-21)
 - [ ] Token storage in the staff console reviewed (KG-9)
 - [ ] Health/readiness endpoint and monitoring in place ([MONITORING-LOGGING](../operations/MONITORING-LOGGING.md))
 - [ ] Payment gateways verified in sandbox and production with signed test transactions (KG-18)

@@ -100,7 +100,29 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // The server answered 403 PASSWORD_CHANGE_REQUIRED (BL-21): the flag was set after this session
+    // started (e.g. an admin reset). Persist it so the router guard sends the user to change it.
+    markPasswordChangeRequired() {
+      this.mustChangePassword = true;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...JSON.parse(raw), mustChangePassword: true }));
+        }
+      } catch {
+        // storage unavailable — the in-memory flag still drives this tab
+      }
+    },
+
     logout() {
+      // Revoke the refresh token server-side (BL-21) — best effort: signing out locally must
+      // never wait on, or fail because of, the network.
+      const refreshToken = this.refreshToken;
+      if (refreshToken) {
+        void Promise.resolve()
+          .then(() => api.logout(refreshToken))
+          .catch(() => undefined);
+      }
       this.accessToken = null;
       this.refreshToken = null;
       this.role = null;

@@ -4,7 +4,7 @@ import { useAuthStore } from './auth';
 import { api, ApiError } from '../lib/api';
 
 vi.mock('../lib/api', () => ({
-  api: { login: vi.fn(), refresh: vi.fn() },
+  api: { login: vi.fn(), refresh: vi.fn(), logout: vi.fn() },
   ApiError: class ApiError extends Error {
     constructor(
       message: string,
@@ -93,6 +93,41 @@ describe('auth store', () => {
     expect(store.isAuthenticated).toBe(false);
     expect(store.role).toBeNull();
     expect(localStorage.getItem('schoolos.auth')).toBeNull();
+    // BL-21: the refresh token is revoked on the server, not just forgotten locally.
+    await Promise.resolve();
+    expect(api.logout).toHaveBeenCalledWith('refresh-abc');
+  });
+
+  it('logout still clears the local session when the server call fails', async () => {
+    vi.mocked(api.logout).mockRejectedValue(new Error('offline'));
+    const store = useAuthStore();
+    store.applySession({
+      accessToken: 't',
+      refreshToken: 'r',
+      role: 'TEACHER',
+      isPrincipal: false,
+      mustChangePassword: false,
+      campusId: null,
+      schoolId: null,
+    });
+    expect(() => store.logout()).not.toThrow();
+    expect(store.isAuthenticated).toBe(false);
+  });
+
+  it('markPasswordChangeRequired sets and persists the flag', () => {
+    const store = useAuthStore();
+    store.applySession({
+      accessToken: 't',
+      refreshToken: 'r',
+      role: 'TEACHER',
+      isPrincipal: false,
+      mustChangePassword: false,
+      campusId: null,
+      schoolId: null,
+    });
+    store.markPasswordChangeRequired();
+    expect(store.mustChangePassword).toBe(true);
+    expect(JSON.parse(localStorage.getItem('schoolos.auth') as string).mustChangePassword).toBe(true);
   });
 
   it('refreshSession() exchanges the stored refresh token for a new session and persists it', async () => {

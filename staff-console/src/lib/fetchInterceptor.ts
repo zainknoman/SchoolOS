@@ -12,6 +12,25 @@ function resolveUrl(input: RequestInfo | URL): string {
 // sites need to change. Only intercepts requests to our own API that already carried a bearer
 // token — a 401 from /auth/login or /auth/refresh itself means the credentials/refresh-token
 // really are bad, not that the access token expired, and must not retry.
+export const PASSWORD_CHANGE_REQUIRED_CODE = 'PASSWORD_CHANGE_REQUIRED';
+
+// The API enforces mustChangePassword on every route (BL-21) and answers 403 with this code. The
+// original response still reaches the caller; the store flag makes the router guard redirect.
+async function handlePasswordChangeRequired(response: Response): Promise<void> {
+  let code: unknown;
+  try {
+    code = ((await response.clone().json()) as { code?: unknown }).code;
+  } catch {
+    return;
+  }
+  if (code !== PASSWORD_CHANGE_REQUIRED_CODE) return;
+  useAuthStore().markPasswordChangeRequired();
+  const { default: router } = await import('../router');
+  if (router.currentRoute.value.name !== 'change-password') {
+    await router.push({ name: 'change-password' });
+  }
+}
+
 export function installFetchInterceptor(nativeFetch: typeof fetch = window.fetch): void {
   window.fetch = async (input, init) => {
     const url = resolveUrl(input);
@@ -20,6 +39,11 @@ export function installFetchInterceptor(nativeFetch: typeof fetch = window.fetch
     const hadAuthHeader = headers.has('Authorization');
 
     const response = await nativeFetch(input, init);
+
+    if (isOwnApi && hadAuthHeader && response.status === 403) {
+      await handlePasswordChangeRequired(response);
+      return response;
+    }
 
     if (!isOwnApi || !hadAuthHeader || response.status !== 401) {
       return response;

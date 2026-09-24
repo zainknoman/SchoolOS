@@ -988,6 +988,15 @@ export const api = {
     return asJson<LoginResponse>(res);
   },
 
+  // Revokes this session's refresh token on the server (BL-21). Always 204; never throws on 4xx.
+  async logout(refreshToken: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+  },
+
   async refresh(refreshToken: string): Promise<LoginResponse> {
     const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
       method: 'POST',

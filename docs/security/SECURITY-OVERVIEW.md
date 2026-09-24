@@ -11,8 +11,8 @@
 | 3 | Login brute-force protection | Implemented | 5 failures → 15-min lock; 5/min throttle ([AUTHENTICATION](../api/AUTHENTICATION.md)) |
 | 4 | Account enumeration defence | Implemented | generic login/forgot/reset messages (`auth.constants.ts`) |
 | 5 | Access token (JWT) | Implemented / Configuration required | 15-min TTL; `JWT_ACCESS_SECRET` required outside dev/test — but `.env.example` ships `change-me`, which passes the "is set" check (see KG-2) |
-| 6 | Refresh tokens | Implemented | hashed, rotating, 30 days; no logout/revoke-all endpoint (Partial) |
-| 7 | Session invalidation on lock/role change | Partial | strategy does not re-read user; delay ≤ 15 min (AUTHZ-2) |
+| 6 | Refresh tokens | Implemented | hashed, rotating, 30 days; `POST /auth/logout` revokes one, `POST /auth/logout-all` revokes all (BL-21) |
+| 7 | Session invalidation on lock/role change | Implemented (2026-09-24, BL-21) | JwtStrategy re-reads the user per request: disabled (`isLocked`), deleted, or revoked (`tokenVersion` bumped by logout-all, admin revoke/disable, password change/reset) → 401 on the next request; role taken from the DB. Failed-login lockout does not end live sessions by design. Server-side `mustChangePassword` enforcement (403 `PASSWORD_CHANGE_REQUIRED`) |
 | 8 | RBAC | Implemented | global `RolesGuard`, `@Roles` on 147 of 185 routes (32 any-authenticated, 6 public) ([ENDPOINTS](../api/ENDPOINTS.md)) |
 | 9 | Object-level authorization | Implemented / Partial | `StudentAccessService`, `FilesAccessService`; 32 routes rely on service checks alone (AUTHZ-1) |
 | 10 | Tenant / campus isolation | **Partial** | `OrgScopeService`; TENANT-1..5 unresolved ([TENANCY](../database/TENANCY.md)) |

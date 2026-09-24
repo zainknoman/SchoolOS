@@ -85,4 +85,36 @@ describe('installFetchInterceptor', () => {
     expect(res.status).toBe(401);
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
+
+  it('on 403 PASSWORD_CHANGE_REQUIRED marks the session and routes to change-password (BL-21)', async () => {
+    const router = (await import('../router')).default;
+    const push = vi.spyOn(router, 'push').mockResolvedValue(undefined);
+    const body = JSON.stringify({ statusCode: 403, code: 'PASSWORD_CHANGE_REQUIRED' });
+    const mockFetch = vi.fn().mockResolvedValue(new Response(body, { status: 403 }));
+    installFetchInterceptor(mockFetch);
+
+    const res = await window.fetch('http://localhost:3000/api/v1/academic-sessions', {
+      headers: { Authorization: 'Bearer t' },
+    });
+
+    expect(res.status).toBe(403);
+    expect(useAuthStore().mustChangePassword).toBe(true);
+    expect(push).toHaveBeenCalledWith({ name: 'change-password' });
+    push.mockRestore();
+  });
+
+  it('leaves an ordinary 403 alone', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ statusCode: 403, message: 'Forbidden' }), { status: 403 }));
+    installFetchInterceptor(mockFetch);
+
+    const res = await window.fetch('http://localhost:3000/api/v1/admin/staff', {
+      headers: { Authorization: 'Bearer t' },
+    });
+
+    expect(res.status).toBe(403);
+    expect(useAuthStore().mustChangePassword).toBe(false);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
 });
