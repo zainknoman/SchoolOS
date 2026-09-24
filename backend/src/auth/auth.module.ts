@@ -5,9 +5,12 @@ import { PassportModule } from '@nestjs/passport';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { AccountAccessController } from './account-access.controller';
+import { AccountAccessService } from './account-access.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { PasswordChangeGuard } from './guards/password-change.guard';
 import { ACCESS_TOKEN_TTL } from './auth.constants';
 import { resolveAccessTokenSecret } from './jwt-secret';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -40,14 +43,17 @@ export function jwtModuleFactory(config: ConfigService) {
       useFactory: jwtModuleFactory,
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, AccountAccessController],
   providers: [
     AuthService,
+    AccountAccessService,
     JwtStrategy,
     // Every route is authenticated + role-checked by default (deny-by-default); only routes
     // explicitly marked with @Public() (e.g. login) skip JWT verification.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // After JwtAuthGuard: request.user.mustChangePassword is read fresh from the DB (BL-21).
+    { provide: APP_GUARD, useClass: PasswordChangeGuard },
   ],
   exports: [AuthService],
 })

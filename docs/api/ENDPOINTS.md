@@ -2,7 +2,7 @@
 
 > **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from every `backend/src/**/*.controller.ts` — **do not edit by hand**; regenerate with `node scripts/docs/generate.mjs` (CI runs `--check`) · **Sources:** `@Controller` + `@Get/@Post/@Put/@Patch/@Delete` + `@Roles/@Public/@Throttle`; method-level `@Roles`/`@Public` override class-level ones · **Owner:** Engineering Lead
 > All paths are prefixed with `/api/v1`. **Roles** = the `@Roles(...)` decorator (`RolesGuard` does an exact `includes(user.role)` check — SUPER_ADMIN has **no implicit override**). "any authenticated (service-scoped)" = no decorator: every logged-in role passes the guard and the **service** decides by scope (see [AUTHORIZATION](AUTHORIZATION.md)). `T` = route-level throttle decorator (auth routes, 5/min); all routes also fall under the global 100/min limit.
-> Total: **185** route handlers in 41 controllers.
+> Total: **191** route handlers in 42 controllers.
 
 ## (root)
 
@@ -110,6 +110,15 @@
 | PATCH | `/admin/teachers/:id` | SCHOOL_ADMIN, SUPER_ADMIN |  | `teacher/teacher.controller.ts` |
 | DELETE | `/admin/teachers/:id` | SCHOOL_ADMIN, SUPER_ADMIN |  | `teacher/teacher.controller.ts` |
 
+## admin/users
+
+| Method | Path | Roles | T | Controller |
+|---|---|---|---|---|
+| GET | `/admin/users/:id/access` | SCHOOL_ADMIN, SUPER_ADMIN |  | `auth/account-access.controller.ts` |
+| POST | `/admin/users/:id/disable` | SCHOOL_ADMIN, SUPER_ADMIN |  | `auth/account-access.controller.ts` |
+| POST | `/admin/users/:id/enable` | SCHOOL_ADMIN, SUPER_ADMIN |  | `auth/account-access.controller.ts` |
+| POST | `/admin/users/:id/revoke-sessions` | SCHOOL_ADMIN, SUPER_ADMIN |  | `auth/account-access.controller.ts` |
+
 ## applicants
 
 | Method | Path | Roles | T | Controller |
@@ -166,6 +175,8 @@
 |---|---|---|---|---|
 | POST | `/auth/login` | **public** | T | `auth/auth.controller.ts` |
 | POST | `/auth/refresh` | **public** |  | `auth/auth.controller.ts` |
+| POST | `/auth/logout` | **public** |  | `auth/auth.controller.ts` |
+| POST | `/auth/logout-all` | any authenticated (service-scoped) |  | `auth/auth.controller.ts` |
 | POST | `/auth/forgot-password` | **public** | T | `auth/auth.controller.ts` |
 | POST | `/auth/reset-password` | **public** | T | `auth/auth.controller.ts` |
 | POST | `/auth/change-password` | any authenticated (service-scoped) | T | `auth/auth.controller.ts` |

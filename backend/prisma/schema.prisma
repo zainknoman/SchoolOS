@@ -142,6 +142,8 @@ model User {
   campusId            String?
   campus              Campus?             @relation(fields: [campusId], references: [id], onDelete: Restrict)
   mustChangePassword  Boolean             @default(false)
+  // Bumped to revoke every issued access token at once (logout-all, disable, password change) — BL-21
+  tokenVersion        Int                 @default(0)
   lockedUntil         DateTime?
   failedLoginCount    Int                 @default(0)
   notificationChannel NotificationChannel @default(PUSH)

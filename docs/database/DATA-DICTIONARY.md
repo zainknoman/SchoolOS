@@ -37,6 +37,7 @@
 | campusId | String? |  |
 | campus | Campus? (relation) | @relation(fields: [campusId], references: [id], onDelete: Restrict) |
 | mustChangePassword | Boolean | @default(false) |
+| tokenVersion | Int | @default(0) |
 | lockedUntil | DateTime? |  |
 | failedLoginCount | Int | @default(0) |
 | notificationChannel | NotificationChannel (enum) | @default(PUSH) |

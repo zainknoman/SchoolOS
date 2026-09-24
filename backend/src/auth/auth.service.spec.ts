@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
+import { createHash } from 'crypto';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MAIL_ADAPTER } from '../notifications/mail-adapter';
@@ -10,6 +11,8 @@ import {
   MAX_FAILED_ATTEMPTS,
   GENERIC_AUTH_ERROR,
   ACCOUNT_LOCKED_ERROR,
+  ACCOUNT_DISABLED_ERROR,
+  SESSION_ENDED_ERROR,
   RESET_PASSWORD_GENERIC_ERROR,
 } from './auth.constants';
 
@@ -31,9 +34,11 @@ describe('AuthService', () => {
       findUnique: jest.Mock;
       update: jest.Mock;
     };
+    auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
   let mailAdapter: { send: jest.Mock };
+  let jwt: { sign: jest.Mock };
 
   const baseUser = {
     id: 'user-1',
@@ -46,6 +51,7 @@ describe('AuthService', () => {
     schoolId: null as string | null,
     lockedUntil: null as Date | null,
     failedLoginCount: 0,
+    tokenVersion: 0,
   };
 
   beforeEach(async () => {
@@ -62,6 +68,7 @@ describe('AuthService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      auditLog: { create: jest.fn() },
       $transaction: jest
         .fn()
         .mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops)),
@@ -85,6 +92,7 @@ describe('AuthService', () => {
     }).compile();
 
     service = moduleRef.get(AuthService);
+    jwt = moduleRef.get(JwtService);
   });
 
   it('logs in successfully with correct credentials and issues tokens', async () => {
@@ -161,7 +169,6 @@ describe('AuthService', () => {
     prisma.user.findUnique.mockResolvedValue({
       ...baseUser,
       passwordHash,
-      isLocked: true,
       lockedUntil,
     });
 
@@ -176,7 +183,6 @@ describe('AuthService', () => {
     prisma.user.findUnique.mockResolvedValue({
       ...baseUser,
       passwordHash,
-      isLocked: true,
       lockedUntil,
       failedLoginCount: MAX_FAILED_ATTEMPTS,
     });
@@ -248,7 +254,14 @@ describe('AuthService', () => {
         campusId: 'campus-1',
         schoolId: 'school-1',
       });
-      prisma.user.update.mockResolvedValue({});
+      prisma.user.update.mockResolvedValue({
+        ...baseUser,
+        id: 'u1',
+        mustChangePassword: false,
+        campusId: 'campus-1',
+        schoolId: 'school-1',
+        tokenVersion: 4,
+      });
       prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
       prisma.refreshToken.create.mockResolvedValue({});
     });
@@ -294,6 +307,15 @@ describe('AuthService', () => {
       });
       expect(prisma.refreshToken.create).toHaveBeenCalled();
       expect(session.mustChangePassword).toBe(false);
+      // Every other device's access token dies; the new one carries the bumped version (BL-21).
+      expect(prisma.user.update.mock.calls[0][0].data.tokenVersion).toEqual({
+        increment: 1,
+      });
+      expect(jwt.sign).toHaveBeenCalledWith({
+        sub: 'u1',
+        role: 'PARENT',
+        tv: 4,
+      });
       expect(session.campusId).toBe('campus-1');
       expect(session.schoolId).toBe('school-1');
       expect(session.accessToken).toBe('signed-access-token');
@@ -429,6 +451,94 @@ describe('AuthService', () => {
         'Error: smtp down',
       );
       consoleError.mockRestore();
+    });
+  });
+
+  describe('BL-21 disable and session revocation', () => {
+    it('refuses a disabled account only after a correct password (no enumeration)', async () => {
+      const passwordHash = await argon2.hash('correct-horse');
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        passwordHash,
+        isLocked: true,
+      });
+      prisma.user.update.mockResolvedValue({});
+
+      await expect(
+        service.login('parent@schoolos.edu.pk', 'correct-horse'),
+      ).rejects.toThrow(ACCOUNT_DISABLED_ERROR);
+      await expect(
+        service.login('parent@schoolos.edu.pk', 'wrong-horse'),
+      ).rejects.toThrow(GENERIC_AUTH_ERROR);
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('signs the current tokenVersion into the access token', async () => {
+      const passwordHash = await argon2.hash('correct-horse');
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        passwordHash,
+        tokenVersion: 7,
+      });
+      prisma.user.update.mockResolvedValue({});
+      prisma.refreshToken.create.mockResolvedValue({});
+
+      await service.login('parent@schoolos.edu.pk', 'correct-horse');
+      expect(jwt.sign).toHaveBeenCalledWith({
+        sub: 'user-1',
+        role: 'PARENT',
+        tv: 7,
+      });
+    });
+
+    it('refuses to refresh the session of a disabled account', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-1',
+        userId: 'user-1',
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+      prisma.refreshToken.update.mockResolvedValue({});
+      prisma.user.findUnique.mockResolvedValue({ ...baseUser, isLocked: true });
+
+      await expect(service.refresh('raw-refresh')).rejects.toThrow(
+        SESSION_ENDED_ERROR,
+      );
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('logout revokes only the presented refresh token, by hash', async () => {
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+      await service.logout('raw-refresh');
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: {
+          tokenHash: createHash('sha256').update('raw-refresh').digest('hex'),
+          revokedAt: null,
+        },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('logoutAll bumps tokenVersion, revokes every refresh token and audits', async () => {
+      prisma.user.update.mockResolvedValue({});
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 3 });
+      prisma.auditLog.create.mockResolvedValue({});
+
+      await service.logoutAll('user-1');
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { tokenVersion: { increment: 1 } },
+      });
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(prisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'auth.logout-all',
+          entityId: 'user-1',
+        }),
+      });
     });
   });
 

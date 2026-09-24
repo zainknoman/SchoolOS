@@ -1,13 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
 import { resolveAccessTokenSecret } from '../jwt-secret';
+import { PrismaService } from '../../prisma/prisma.service';
+import { SESSION_ENDED_ERROR } from '../auth.constants';
 
 export interface JwtPayload {
   sub: string;
   role: string;
+  /** User.tokenVersion at issue time; absent on tokens issued before BL-21 (treated as 0). */
+  tv?: number;
+}
+
+/** What the strategy puts on `request.user`. */
+export interface AuthenticatedUser {
+  id: string;
+  role: string;
+  mustChangePassword: boolean;
 }
 
 // The ?access_token= fallback exists only so a plain download link — which can't set an
@@ -41,7 +52,10 @@ export function extractAccessTokenForDownloadRoutes(
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -52,8 +66,33 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  // Whatever this returns becomes `request.user` — kept to just {id, role}, nothing sensitive.
-  validate(payload: JwtPayload) {
-    return { id: payload.sub, role: payload.role };
+  /**
+   * Re-checks the account on EVERY request (BL-21, KG-10): a deleted or disabled (`isLocked`)
+   * user, or a token issued before the user's sessions were revoked (`tokenVersion` bumped by
+   * logout-all, disable or a password change), is rejected on the next request instead of when
+   * the 15-minute token expires. The role comes from the database, so a role change is immediate.
+   * The failed-login lockout (`lockedUntil`) deliberately does NOT end live sessions — otherwise
+   * anyone could log a user out by guessing wrong passwords.
+   * Whatever this returns becomes `request.user` — nothing sensitive.
+   */
+  async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        role: true,
+        isLocked: true,
+        tokenVersion: true,
+        mustChangePassword: true,
+      },
+    });
+    if (!user || user.isLocked || (payload.tv ?? 0) !== user.tokenVersion) {
+      throw new UnauthorizedException(SESSION_ENDED_ERROR);
+    }
+    return {
+      id: user.id,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+    };
   }
 }

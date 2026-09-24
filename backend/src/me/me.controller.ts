@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import { UpdateChildDto } from './dto/update-child.dto';
 import type { Request } from 'express';
 import { MeService } from './me.service';
+import { AllowPendingPasswordChange } from '../auth/decorators/allow-pending-password-change.decorator';
 import { RegisterDeviceTokenDto } from './dto/register-device-token.dto';
 import { UpdateNotificationPreferencesDto } from './dto/update-notification-preferences.dto';
 
@@ -13,6 +14,8 @@ interface AuthenticatedRequest extends Request {
 export class MeController {
   constructor(private readonly meService: MeService) {}
 
+  // Identity only — reachable while a password change is pending (BL-21).
+  @AllowPendingPasswordChange()
   @Get()
   me(@Req() req: AuthenticatedRequest) {
     return { id: req.user.id, role: req.user.role };

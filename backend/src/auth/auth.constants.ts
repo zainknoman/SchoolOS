@@ -19,3 +19,11 @@ export const FORGOT_PASSWORD_GENERIC_MESSAGE =
 // distinguish "expired" from "wrong" (same enumeration-defense reasoning as login).
 export const RESET_PASSWORD_GENERIC_ERROR =
   'This reset link is invalid or has expired.';
+// BL-21: a valid-looking access token whose user was disabled, deleted or had sessions revoked.
+export const SESSION_ENDED_ERROR =
+  'Your session has ended. Please sign in again.';
+// BL-21: shown only AFTER a correct password, so it never reveals whether an account exists.
+export const ACCOUNT_DISABLED_ERROR =
+  'This account has been disabled. Contact your school administrator.';
+// BL-21: error code the clients use to route a provisioned login to the change-password screen.
+export const PASSWORD_CHANGE_REQUIRED_CODE = 'PASSWORD_CHANGE_REQUIRED';

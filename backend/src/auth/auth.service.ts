@@ -18,6 +18,8 @@ import {
   REFRESH_TOKEN_TTL_DAYS,
   GENERIC_AUTH_ERROR,
   ACCOUNT_LOCKED_ERROR,
+  ACCOUNT_DISABLED_ERROR,
+  SESSION_ENDED_ERROR,
   PASSWORD_RESET_TOKEN_TTL_HOURS,
   RESET_PASSWORD_GENERIC_ERROR,
 } from './auth.constants';
@@ -97,20 +99,19 @@ export class AuthService {
       );
     }
 
+    // A disabled account (BL-21) is refused only AFTER the password checks out, so the response
+    // never reveals whether an identifier exists.
+    if (user.isLocked) {
+      throw new UnauthorizedException(ACCOUNT_DISABLED_ERROR);
+    }
+
     // Successful login resets the failure counter and any stale lock.
     await this.prisma.user.update({
       where: { id: user.id },
       data: { failedLoginCount: 0, lockedUntil: null },
     });
 
-    return this.issueSession(
-      user.id,
-      user.role,
-      user.isPrincipal,
-      user.mustChangePassword,
-      user.campusId,
-      user.schoolId,
-    );
+    return this.issueSession(user);
   }
 
   async refresh(refreshToken: string): Promise<SessionResult> {
@@ -142,15 +143,54 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }
+    // A disabled account cannot extend its session (BL-21).
+    if (user.isLocked) {
+      throw new UnauthorizedException(SESSION_ENDED_ERROR);
+    }
 
-    return this.issueSession(
-      user.id,
-      user.role,
-      user.isPrincipal,
-      user.mustChangePassword,
-      user.campusId,
-      user.schoolId,
-    );
+    return this.issueSession(user);
+  }
+
+  /**
+   * Ends ONE session: revokes the presented refresh token. Public on purpose (the access token may
+   * already be expired when a user signs out) and always resolves, so it reveals nothing about the
+   * token. The short-lived access token is discarded by the client; use logoutAll to kill those.
+   */
+  async logout(refreshToken: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { tokenHash: hashToken(refreshToken), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  /**
+   * Ends EVERY session of the user, on every device: all refresh tokens are revoked and
+   * `tokenVersion` is bumped, so every access token already issued is rejected on its next request
+   * (BL-21). Also used by admin revoke/disable (AccountAccessService).
+   */
+  async revokeAllSessions(userId: string): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { tokenVersion: { increment: 1 } },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+  }
+
+  async logoutAll(userId: string): Promise<void> {
+    await this.revokeAllSessions(userId);
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'auth.logout-all',
+        entity: 'User',
+        entityId: userId,
+      },
+    });
   }
 
   /**
@@ -213,7 +253,11 @@ export class AuthService {
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: stored.userId },
-        data: { passwordHash, mustChangePassword: false },
+        data: {
+          passwordHash,
+          mustChangePassword: false,
+          tokenVersion: { increment: 1 },
+        },
       }),
       this.prisma.passwordResetToken.update({
         where: { id: stored.id },
@@ -247,10 +291,16 @@ export class AuthService {
     }
 
     const passwordHash = await argon2.hash(newPassword);
-    await this.prisma.$transaction([
+    // Bumping tokenVersion ends every other device's access token too; the fresh session below
+    // carries the new version, so the calling client keeps working.
+    const [updated] = await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: userId },
-        data: { passwordHash, mustChangePassword: false },
+        data: {
+          passwordHash,
+          mustChangePassword: false,
+          tokenVersion: { increment: 1 },
+        },
       }),
       this.prisma.refreshToken.updateMany({
         where: { userId, revokedAt: null },
@@ -258,25 +308,32 @@ export class AuthService {
       }),
     ]);
 
-    return this.issueSession(
-      user.id,
-      user.role,
-      user.isPrincipal,
-      false,
-      user.campusId,
-      user.schoolId,
-    );
+    return this.issueSession(updated);
   }
 
-  private async issueSession(
-    userId: string,
-    role: string,
-    isPrincipal: boolean,
-    mustChangePassword: boolean,
-    campusId: string | null,
-    schoolId: string | null,
-  ): Promise<SessionResult> {
-    const accessToken = this.jwt.sign({ sub: userId, role });
+  private async issueSession(user: {
+    id: string;
+    role: string;
+    isPrincipal: boolean;
+    mustChangePassword: boolean;
+    campusId: string | null;
+    schoolId: string | null;
+    tokenVersion: number;
+  }): Promise<SessionResult> {
+    const {
+      id: userId,
+      role,
+      isPrincipal,
+      mustChangePassword,
+      campusId,
+      schoolId,
+    } = user;
+    // `tv` lets JwtStrategy reject this token once the user's sessions are revoked (BL-21).
+    const accessToken = this.jwt.sign({
+      sub: userId,
+      role,
+      tv: user.tokenVersion,
+    });
 
     const refreshToken = randomBytes(32).toString('hex');
     await this.prisma.refreshToken.create({

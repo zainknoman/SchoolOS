@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -6,6 +6,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Public } from './decorators/public.decorator';
+import { AllowPendingPasswordChange } from './decorators/allow-pending-password-change.decorator';
 import { Throttle } from '@nestjs/throttler';
 import {
   AUTH_LOGIN_THROTTLE_LIMIT,
@@ -33,6 +34,23 @@ export class AuthController {
   @Post('refresh')
   async refresh(@Body() dto: RefreshDto) {
     return this.authService.refresh(dto.refreshToken);
+  }
+
+  // Ends this session (BL-21). Public so a client whose access token already expired can still
+  // sign out; it only revokes the presented refresh token and reveals nothing about it.
+  @Public()
+  @HttpCode(204)
+  @Post('logout')
+  async logout(@Body() dto: RefreshDto): Promise<void> {
+    await this.authService.logout(dto.refreshToken);
+  }
+
+  // Ends every session of the caller on every device, including live access tokens (BL-21).
+  @AllowPendingPasswordChange()
+  @HttpCode(204)
+  @Post('logout-all')
+  async logoutAll(@Req() req: { user: { id: string } }): Promise<void> {
+    await this.authService.logoutAll(req.user.id);
   }
 
   // Unauthenticated and enumerable, same as login — throttled at least as strictly.
@@ -70,6 +88,7 @@ export class AuthController {
       ttl: THROTTLE_TTL_MS,
     },
   })
+  @AllowPendingPasswordChange()
   @Post('change-password')
   async changePassword(
     @Req() req: { user: { id: string } },
