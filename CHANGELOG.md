@@ -17,6 +17,7 @@ BL-10: S3-compatible object storage (`STORAGE_DRIVER=s3`, **required outside dev
 BL-11: `GET /health/live` and `/health/ready`, `X-Request-Id` on every response and `requestId` in every error body, JSON logs (default outside development/test) with an access log that never records query strings, a global exception filter (generic 500s), and scrubbed error reporting via `SENTRY_DSN`.
 BL-39: scheduled jobs run on one instance at a time (PostgreSQL advisory lock), so several backend instances no longer duplicate attendance-risk alerts or digests; rate limiting documented as per instance.
 BL-40: students, parents, staff, teachers, admissions and hiring lists accept `page`/`limit`/`q` (totals in `X-Total-Count`; array bodies unchanged); the console's student and parent tables page and search on the server.
+BL-20 (migration M2): **behaviour change** — circulars and holidays belong to one school: school-wide circulars reach only that school's parents, a holiday without a campus applies only within its school, holiday changes are scope-checked, a super admin picks the school; `npm run backfill:m2` anchors existing rows and queues the rest in the new `MigrationReviewItem` table.
 
 **Versioning policy (decided):** Semantic Versioning with Git tags; the first production release will be **1.0.0**. Everything below is pre-1.0 history and carries no version numbers.
 

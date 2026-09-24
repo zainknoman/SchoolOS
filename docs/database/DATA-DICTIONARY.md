@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **57 models, 14 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **58 models, 14 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -67,6 +67,7 @@
 | reviewedHiringApplications | HiringApplication[] (relation) |  |
 | promotionsDecided | StudentPromotion[] (relation) |  |
 | attendanceMarked | Attendance[] (relation) | @relation("AttendanceMarkedByUser") |
+| migrationReviewsResolved | MigrationReviewItem[] (relation) |  |
 
 Block attributes: `@@index([role])` · `@@index([schoolId])` · `@@index([campusId])`
 
@@ -127,6 +128,26 @@ Block attributes: `@@index([userId])`
 
 Block attributes: `@@index([userId])` · `@@index([entity, entityId])`
 
+### MigrationReviewItem
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| migration | String |  |
+| category | String |  |
+| entity | String |  |
+| entityId | String |  |
+| detail | String |  |
+| blocking | Boolean | @default(false) |
+| status | String | @default("OPEN") |
+| resolution | String? |  |
+| resolvedById | String? |  |
+| resolvedBy | User? (relation) | @relation(fields: [resolvedById], references: [id], onDelete: SetNull) |
+| resolvedAt | DateTime? |  |
+| createdAt | DateTime | @default(now()) |
+
+Block attributes: `@@unique([migration, category, entity, entityId])` · `@@index([status])`
+
 ## Organization
 
 ### School
@@ -157,6 +178,8 @@ Block attributes: `@@index([userId])` · `@@index([entity, entityId])`
 | email | String? |  |
 | campuses | Campus[] (relation) |  |
 | users | User[] (relation) |  |
+| circulars | Circular[] (relation) |  |
+| holidays | Holiday[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -291,11 +314,13 @@ Block attributes: `@@unique([academicSessionId, label])` · `@@index([academicSe
 | title | String |  |
 | startDate | DateTime |  |
 | endDate | DateTime |  |
+| schoolId | String? |  |
+| school | School? (relation) | @relation(fields: [schoolId], references: [id], onDelete: Cascade) |
 | campusId | String? |  |
 | campus | Campus? (relation) | @relation(fields: [campusId], references: [id], onDelete: Cascade) |
 | createdAt | DateTime | @default(now()) |
 
-Block attributes: `@@index([campusId])` · `@@index([startDate, endDate])`
+Block attributes: `@@index([campusId])` · `@@index([schoolId])` · `@@index([startDate, endDate])`
 
 ## People
 
@@ -933,6 +958,8 @@ Block attributes: `@@index([studentId])`
 | title | String |  |
 | description | String |  |
 | scope | String |  |
+| schoolId | String? |  |
+| school | School? (relation) | @relation(fields: [schoolId], references: [id], onDelete: Cascade) |
 | sectionId | String? |  |
 | section | Section? (relation) | @relation(fields: [sectionId], references: [id], onDelete: Restrict) |
 | priority | String | @default("normal") |
@@ -945,7 +972,7 @@ Block attributes: `@@index([studentId])`
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([sectionId])`
+Block attributes: `@@index([sectionId])` · `@@index([schoolId])`
 
 ### CircularRecipient
 

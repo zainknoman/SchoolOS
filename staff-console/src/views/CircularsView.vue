@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { api, type SectionSummary, type CircularSummary } from '../lib/api';
+import { api, type SectionSummary, type CircularSummary, type SchoolSummary } from '../lib/api';
 import { detectDirection, detectLang } from '../lib/textDirection';
 import { useFocusTarget } from '../lib/useFocusTarget';
 import ListPageCard from '../components/ListPageCard.vue';
@@ -17,6 +17,11 @@ useFocusTarget({ title: titleInputRef });
 const description = ref('');
 const scope = ref<CircularScope>('school');
 const sectionId = ref('');
+// BL-20: a super admin belongs to no school, so a whole-school circular must say which school.
+const isSuperAdmin = auth.role === 'SUPER_ADMIN';
+const schools = ref<SchoolSummary[]>([]);
+const schoolId = ref('');
+const needsSchool = () => isSuperAdmin && scope.value === 'school';
 const files = ref<File[]>([]);
 const circulars = ref<(CircularSummary & { delivered?: number; read?: number })[]>([]);
 const isSaving = ref(false);
@@ -48,6 +53,7 @@ async function loadLookups() {
   if (!auth.accessToken) return;
   try {
     sections.value = await api.listSections(auth.accessToken);
+    if (isSuperAdmin) schools.value = await api.listSchools(auth.accessToken);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load sections.';
   }
@@ -78,6 +84,7 @@ function onFileChange(event: Event) {
 async function onPublish() {
   if (!auth.accessToken || !title.value || !description.value) return;
   if (scope.value === 'section' && !sectionId.value) return;
+  if (needsSchool() && !schoolId.value) return;
   message.value = null;
   errorMessage.value = null;
   isSaving.value = true;
@@ -89,6 +96,7 @@ async function onPublish() {
   const circularDescription = description.value;
   const circularScope = scope.value;
   const circularSectionId = sectionId.value;
+  const circularSchoolId = needsSchool() ? schoolId.value : undefined;
 
   try {
     const fileIds: string[] = [];
@@ -103,6 +111,7 @@ async function onPublish() {
       scope: circularScope,
       sectionId: circularScope === 'section' ? circularSectionId : undefined,
       fileIds: fileIds.length ? fileIds : undefined,
+      schoolId: circularSchoolId,
     });
 
     message.value = 'Circular published.';
@@ -170,6 +179,14 @@ async function onPublish() {
           </select>
         </label>
 
+        <label v-if="isSuperAdmin && scope === 'school'" class="field">
+          <span>School</span>
+          <select data-testid="school-select" v-model="schoolId" :disabled="isSaving">
+            <option value="" disabled>Choose a school</option>
+            <option v-for="s in schools" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
+        </label>
+
         <label v-if="scope === 'section'" class="field">
           <span>Section</span>
           <select data-testid="section-select" v-model="sectionId" :disabled="isSaving">
@@ -191,7 +208,7 @@ async function onPublish() {
 
       <Button
         data-testid="publish-circular"
-        :disabled="isSaving || !title || !description || (scope === 'section' && !sectionId)"
+        :disabled="isSaving || !title || !description || (scope === 'section' && !sectionId) || (needsSchool() && !schoolId)"
         @click="onPublish"
       >
         {{ isSaving ? 'Publishing…' : 'Publish circular' }}

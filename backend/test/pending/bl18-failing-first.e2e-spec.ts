@@ -2,7 +2,7 @@ import request from 'supertest';
 import { createTwoSchools, pending, TwoSchools } from './two-school-fixture';
 
 /**
- * BL-18 scaffold: failing-first e2e tests for BL-20, BL-01 and BL-23 (BL-64 graduated to test/account-access.e2e-spec.ts; BL-60 and the BL-29
+ * BL-18 scaffold: failing-first e2e tests for BL-01 and BL-23 (BL-20 graduated to test/school-anchors.e2e-spec.ts; BL-64 graduated to test/account-access.e2e-spec.ts; BL-60 and the BL-29
  * approval case to test/attendance-actor.e2e-spec.ts).
  * Every test states the TARGET behaviour from docs/product/requirements/BACKLOG.md and is expected
  * to FAIL today for the reason in its comment (see two-school-fixture.ts for how `pending` works).
@@ -22,54 +22,6 @@ describe('BL-18 failing-first scaffold (e2e)', () => {
 
   afterAll(async () => {
     await f.close();
-  });
-
-  describe('BL-20 circulars and holidays stay inside their school', () => {
-    // Today: a school-scope circular is delivered to EVERY parent user (circulars.service.ts).
-    pending(
-      "school A's school-wide circular is not delivered to a parent of school B",
-      async () => {
-        const pub = await http()
-          .post('/api/v1/circulars')
-          .set('Authorization', `Bearer ${tokens['admin-a']}`)
-          .send({
-            title: 'BL18 A notice',
-            description: 'School A only',
-            scope: 'school',
-          })
-          .expect(201);
-        const res = await http()
-          .get('/api/v1/circulars')
-          .set('Authorization', `Bearer ${tokens['parent-b']}`)
-          .expect(200);
-        expect((res.body as { id: string }[]).map((c) => c.id)).not.toContain(
-          pub.body.id,
-        );
-      },
-    );
-
-    // Today: a holiday with no campus has no school and is returned to every school's users.
-    pending(
-      "school A's school-wide holiday is not visible to a parent of school B",
-      async () => {
-        const hol = await http()
-          .post('/api/v1/holidays')
-          .set('Authorization', `Bearer ${tokens['admin-a']}`)
-          .send({
-            title: 'BL18 A holiday',
-            startDate: '2026-03-02',
-            endDate: '2026-03-02',
-          })
-          .expect(201);
-        const res = await http()
-          .get('/api/v1/holidays')
-          .set('Authorization', `Bearer ${tokens['parent-b']}`)
-          .expect(200);
-        expect((res.body as { id: string }[]).map((h) => h.id)).not.toContain(
-          hol.body.id,
-        );
-      },
-    );
   });
 
   describe('BL-23 guardian across schools', () => {

@@ -287,6 +287,8 @@ export interface HolidaySummary {
   startDate: string;
   endDate: string;
   campusId: string | null;
+  /** BL-20: the owning school (null only on legacy rows awaiting review). */
+  schoolId?: string | null;
 }
 
 export interface ComplaintSummary {
@@ -1553,6 +1555,8 @@ export const api = {
       scope: 'school' | 'section';
       sectionId?: string;
       fileIds?: string[];
+      /** BL-20: a super admin's school-wide circular must name its school. */
+      schoolId?: string;
     },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/circulars`, {
@@ -2300,7 +2304,7 @@ export const api = {
 
   async createHoliday(
     accessToken: string,
-    payload: { title: string; startDate: string; endDate: string; campusId?: string },
+    payload: { title: string; startDate: string; endDate: string; campusId?: string; schoolId?: string },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/holidays`, {
       method: 'POST',

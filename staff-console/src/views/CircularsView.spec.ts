@@ -25,7 +25,8 @@ vi.mock('../lib/api', () => ({
     circularStats: vi.fn(),
     uploadFile: vi.fn(),
     publishCircular: vi.fn(),
-    suggestCircularDraft: vi.fn()
+    suggestCircularDraft: vi.fn(),
+    listSchools: vi.fn(),
   },
 }));
 
@@ -183,5 +184,26 @@ describe('CircularsView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('Something went wrong');
+  });
+
+  it('a super admin must pick the school of a whole-school circular (BL-20)', async () => {
+    useAuthStore().role = 'SUPER_ADMIN';
+    vi.mocked(api.listSections).mockResolvedValue([]);
+    vi.mocked(api.listCirculars).mockResolvedValue([]);
+    vi.mocked(api.listSchools).mockResolvedValue([
+      { id: 'school-b', name: 'School B' } as Awaited<ReturnType<typeof api.listSchools>>[number],
+    ]);
+    vi.mocked(api.publishCircular).mockResolvedValue(undefined);
+
+    const wrapper = await mountView();
+    await flushPromises();
+    await wrapper.find('input[data-testid="title-input"]').setValue('Notice');
+    await wrapper.find('textarea[data-testid="description-input"]').setValue('Details.');
+    expect(wrapper.find('[data-testid="publish-circular"]').attributes('disabled')).toBeDefined();
+
+    await wrapper.find('[data-testid="school-select"]').setValue('school-b');
+    await wrapper.find('[data-testid="publish-circular"]').trigger('click');
+    await flushPromises();
+    expect(api.publishCircular).toHaveBeenCalledWith('token-1', expect.objectContaining({ scope: 'school', schoolId: 'school-b' }));
   });
 });

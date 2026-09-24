@@ -31,6 +31,11 @@ export class CreateCircularDto {
   @IsString()
   priority?: string;
 
+  /** BL-20: required only for a SUPER_ADMIN's school-wide circular; others use their own school. */
+  @IsOptional()
+  @IsString()
+  schoolId?: string;
+
   @IsOptional()
   @IsDateString()
   expiresAt?: string;

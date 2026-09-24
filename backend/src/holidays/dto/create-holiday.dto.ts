@@ -14,4 +14,9 @@ export class CreateHolidayDto {
   @IsOptional()
   @IsString()
   campusId?: string;
+
+  /** BL-20: required only for a SUPER_ADMIN's school-wide holiday (no campusId). */
+  @IsOptional()
+  @IsString()
+  schoolId?: string;
 }

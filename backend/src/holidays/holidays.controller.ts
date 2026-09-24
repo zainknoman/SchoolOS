@@ -26,8 +26,8 @@ export class HolidaysController {
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post()
-  create(@Body() dto: CreateHolidayDto) {
-    return this.holidaysService.create(dto);
+  create(@Body() dto: CreateHolidayDto, @Req() req: AuthenticatedRequest) {
+    return this.holidaysService.create(dto, req.user);
   }
 
   // No @Roles restriction and no StudentAccessService check — holidays aren't student-scoped
@@ -46,13 +46,17 @@ export class HolidaysController {
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateHolidayDto) {
-    return this.holidaysService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateHolidayDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.holidaysService.update(id, dto, req.user);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Delete(':id')
-  async delete(@Param('id') id: string) {
-    await this.holidaysService.delete(id);
+  async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    await this.holidaysService.delete(id, req.user);
   }
 }

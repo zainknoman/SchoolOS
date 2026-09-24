@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { OrgScopeService } from '../common/org-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCircularDto } from './dto/create-circular.dto';
 import { RequestUser } from '../common/student-access.service';
@@ -34,11 +41,74 @@ export class CircularsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
-  async publish(dto: CreateCircularDto, authorId: string) {
+  /**
+   * BL-20: every circular belongs to one school. A section circular takes the section's school
+   * (the section must be in the author's scope); a school-wide one goes to the author's school —
+   * or, for SUPER_ADMIN, the given schoolId — and only to parents of children actively enrolled
+   * in that school (a campus principal reaches only their campus). Before BL-20 it went to every
+   * parent in the database.
+   */
+  private async resolveAudience(
+    dto: CreateCircularDto,
+    author: RequestUser,
+  ): Promise<{ schoolId: string; campusWhere: Prisma.CampusWhereInput }> {
+    const scope = await this.orgScope.resolve(author);
+    if (scope.denied) {
+      throw new ForbiddenException('No school is linked to this account');
+    }
+    if (dto.scope === 'section') {
+      const section = await this.prisma.section.findUnique({
+        where: { id: dto.sectionId },
+        select: {
+          class: {
+            select: { campusId: true, campus: { select: { schoolId: true } } },
+          },
+        },
+      });
+      if (!section) throw new BadRequestException('Section not found');
+      const target = {
+        campusId: section.class.campusId,
+        schoolId: section.class.campus.schoolId,
+      };
+      if (!scope.allows(target)) {
+        throw new ForbiddenException('You do not have access to this section');
+      }
+      return {
+        schoolId: target.schoolId,
+        campusWhere: { id: target.campusId },
+      };
+    }
+    if (scope.unrestricted) {
+      if (!dto.schoolId) {
+        throw new BadRequestException(
+          'schoolId is required for a school-wide circular published by a super admin',
+        );
+      }
+      const school = await this.prisma.school.findUnique({
+        where: { id: dto.schoolId },
+        select: { id: true },
+      });
+      if (!school) throw new BadRequestException('School not found');
+      return { schoolId: school.id, campusWhere: { schoolId: school.id } };
+    }
+    if (dto.schoolId && dto.schoolId !== scope.schoolId) {
+      throw new ForbiddenException('You can only publish to your own school');
+    }
+    return {
+      schoolId: scope.schoolId as string,
+      campusWhere: scope.campusWhere as Prisma.CampusWhereInput,
+    };
+  }
+
+  async publish(dto: CreateCircularDto, author: RequestUser) {
+    const authorId = author.id;
+    const audience = await this.resolveAudience(dto, author);
     const circular = await this.prisma.circular.create({
       data: {
+        schoolId: audience.schoolId,
         title: dto.title,
         description: dto.description,
         scope: dto.scope,
@@ -61,7 +131,23 @@ export class CircularsService {
     const recipients =
       dto.scope === 'school'
         ? await this.prisma.user.findMany({
-            where: { role: 'PARENT' },
+            where: {
+              role: 'PARENT',
+              parentProfile: {
+                children: {
+                  some: {
+                    student: {
+                      enrollments: {
+                        some: {
+                          status: 'ACTIVE',
+                          campus: audience.campusWhere,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
             select: { id: true },
           })
         : await this.prisma.user.findMany({
@@ -161,11 +247,22 @@ export class CircularsService {
 
   async getStats(
     circularId: string,
+    actor: RequestUser,
   ): Promise<{ delivered: number; read: number }> {
     const circular = await this.prisma.circular.findUnique({
       where: { id: circularId },
     });
     if (!circular) {
+      throw new NotFoundException('Circular not found');
+    }
+    // BL-20: another school's circular is not yours to inspect (a legacy null-school one: SUPER_ADMIN).
+    const scope = await this.orgScope.resolve(actor);
+    if (
+      !scope.unrestricted &&
+      (scope.denied ||
+        !circular.schoolId ||
+        circular.schoolId !== scope.schoolId)
+    ) {
       throw new NotFoundException('Circular not found');
     }
     const delivered = await this.prisma.circularRecipient.count({

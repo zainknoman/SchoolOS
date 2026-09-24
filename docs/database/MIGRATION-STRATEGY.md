@@ -73,7 +73,7 @@
 
 ## 7. Manual-review queue
 - **Form.** The first data migration (M2) adds a `MigrationReviewItem` table: `migration`, `category`, `entity`, `entityId`, `detail`, `blocking`, `status` (`OPEN`/`RESOLVED`/`WONTFIX`), `resolution`, `resolvedById`, `resolvedAt`, with a unique key on `(migration, category, entity, entityId)` so re-runs upsert. The dry-run CSV has the same columns before anything is written.
-- **Who resolves.** SUPER_ADMIN. During the pilot this is done through a documented SQL runbook ([RUNBOOKS](../operations/RUNBOOKS.md)); a console screen is optional later. Every resolution writes an `AuditLog` row `migration.review.resolve`.
+- **Who resolves.** SUPER_ADMIN. During the pilot this is done through the SQL runbook in [RUNBOOKS](../operations/RUNBOOKS.md#migration-review-queue-bl-62-d8) (table created by M2); a console screen is optional later. Every resolution writes an `AuditLog` row `migration.review.resolve`.
 - **Gates.** "Blocking before" rows stop the migration from starting. "Blocking for contract" rows stop only the constraint-tightening release. Non-blocking rows are closed as `RESOLVED` or `WONTFIX` with a note.
 
 ## 8. Execution procedure (every migration M1–M7)
@@ -124,7 +124,9 @@
 
 **M1 (BL-60) rehearsal** (`npm run migration:harness -- m1-attendance-actor`, 2026-09-25): legacy schema → M1 → backfill → second backfill run: attendance row count unchanged; 4 of 6 rows resolved through all three audit actions, 2 left null (A3); no `markedById` changed; the admin-marked row names the admin while keeping its legacy Teacher id; the second run changed nothing (idempotent). Deploy order: migration, then `npm run backfill:m1`.
 
-**Not yet evidenced.** No production copy has been examined, and M2–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
+**M2 (BL-20) rehearsal** (`npm run migration:harness -- m2-school-anchors`, 2026-09-25): circular count unchanged; C1 section circular → its school; C2 author circular → author's school; C3 SUPER_ADMIN circular stays null with 1 blocking review row; H1 campus holiday → its school; H2 the campus-less holiday kept in both schools (original + 1 copy, 2 non-blocking review rows); no holiday left without a school; second run changed nothing. Deploy order: migration, then `npm run backfill:m2`, then resolve review rows (§7 runbook).
+
+**Not yet evidenced.** No production copy has been examined, and M3–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval
 | Role | Name | Decision | Date |

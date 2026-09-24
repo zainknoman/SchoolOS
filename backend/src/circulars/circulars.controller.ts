@@ -21,7 +21,7 @@ export class CircularsController {
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post()
   publish(@Body() dto: CreateCircularDto, @Req() req: AuthenticatedRequest) {
-    return this.circularsService.publish(dto, req.user.id);
+    return this.circularsService.publish(dto, req.user);
   }
 
   // Never auto-publishes — the suggestion is returned for the client to place into the compose
@@ -49,7 +49,7 @@ export class CircularsController {
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Get(':id/stats')
-  getStats(@Param('id') id: string) {
-    return this.circularsService.getStats(id);
+  getStats(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.circularsService.getStats(id, req.user);
   }
 }

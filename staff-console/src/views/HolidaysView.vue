@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { api, type HolidaySummary, type CampusSummary } from '../lib/api';
+import { api, type HolidaySummary, type CampusSummary, type SchoolSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
@@ -23,6 +23,10 @@ const newTitle = ref('');
 const newStartDate = ref('');
 const newEndDate = ref('');
 const newCampusId = ref('');
+// BL-20: a super admin's holiday for "every campus" must name the school it belongs to.
+const isSuperAdmin = auth.role === 'SUPER_ADMIN';
+const schools = ref<SchoolSummary[]>([]);
+const newSchoolId = ref('');
 const isSaving = ref(false);
 
 const editingId = ref<string | null>(null);
@@ -37,6 +41,7 @@ async function load() {
       api.listHolidays(auth.accessToken),
       api.listCampuses(auth.accessToken),
     ]);
+    if (isSuperAdmin) schools.value = await api.listSchools(auth.accessToken);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load holidays.';
   }
@@ -50,6 +55,10 @@ function campusName(id: string | null): string {
 
 async function onAdd() {
   if (!auth.accessToken || !newTitle.value.trim() || !newStartDate.value || !newEndDate.value) return;
+  if (isSuperAdmin && !newCampusId.value && !newSchoolId.value) {
+    errorMessage.value = 'Choose a campus, or the school this holiday applies to.';
+    return;
+  }
   errorMessage.value = null;
   isSaving.value = true;
   try {
@@ -58,6 +67,7 @@ async function onAdd() {
       startDate: newStartDate.value,
       endDate: newEndDate.value,
       campusId: newCampusId.value || undefined,
+      schoolId: !newCampusId.value && isSuperAdmin ? newSchoolId.value : undefined,
     });
     newTitle.value = '';
     newStartDate.value = '';
@@ -174,6 +184,15 @@ async function onDelete(id: string) {
           data-testid="add-campus"
           placeholder="Every campus"
           :options="campuses.map((c) => ({ value: c.id, label: c.name }))"
+        />
+        <FormField
+          v-if="isSuperAdmin && !newCampusId"
+          v-model="newSchoolId"
+          label="School"
+          type="select"
+          data-testid="add-school"
+          placeholder="Choose a school"
+          :options="schools.map((s) => ({ value: s.id, label: s.name }))"
         />
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add</Button>
       </div>

@@ -13,6 +13,7 @@ flowchart LR
   AuditLog -->|SetNull, optional| User
   PasswordResetToken -->|Cascade| User
   DeviceToken -->|Cascade| User
+  MigrationReviewItem -->|SetNull, optional| User
 ```
 
 ## Organization
@@ -28,6 +29,7 @@ flowchart LR
   Class -->|Cascade| AcademicSession
   Section -->|Cascade| Class
   Section -->|SetNull, optional| Teacher
+  Holiday -->|Cascade, optional| School
   Holiday -->|Cascade, optional| Campus
   Term -->|Cascade| AcademicSession
 ```
@@ -128,6 +130,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
+  Circular -->|Cascade, optional| School
   Circular -->|Restrict, optional| Section
   Circular -->|default| User
   CircularRecipient -->|Cascade| Circular

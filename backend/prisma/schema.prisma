@@ -156,12 +156,12 @@ model User {
   refreshTokens              RefreshToken[]
   auditLogs                  AuditLog[]
   deviceTokens               DeviceToken[]
-  circularsCreated           Circular[]           @relation("CircularAuthor")
+  circularsCreated           Circular[]            @relation("CircularAuthor")
   circularRecipients         CircularRecipient[]
   diaryEntriesAuthored       DiaryEntry[]
-  conversationsAsParent      Conversation[]       @relation("ConversationParent")
-  conversationsAsStaff       Conversation[]       @relation("ConversationStaff")
-  messagesSent               Message[]            @relation("MessageSender")
+  conversationsAsParent      Conversation[]        @relation("ConversationParent")
+  conversationsAsStaff       Conversation[]        @relation("ConversationStaff")
+  messagesSent               Message[]             @relation("MessageSender")
   passwordResetTokens        PasswordResetToken[]
   complaintsRaised           Complaint[]
   reportCardsUploaded        ReportCard[]
@@ -173,7 +173,8 @@ model User {
   verifiedStaffDocuments     StaffDocument[]
   reviewedHiringApplications HiringApplication[]
   promotionsDecided          StudentPromotion[]
-  attendanceMarked           Attendance[]         @relation("AttendanceMarkedByUser")
+  attendanceMarked           Attendance[]          @relation("AttendanceMarkedByUser")
+  migrationReviewsResolved   MigrationReviewItem[]
 
   @@index([role])
   @@index([schoolId])
@@ -195,32 +196,34 @@ model RefreshToken {
 // --- School structure -----------------------------------------------------
 
 model School {
-  id                 String    @id @default(uuid())
+  id                 String     @id @default(uuid())
   name               String
-  code               String?   @unique
+  code               String?    @unique
   registrationNumber String?
   website            String?
   logoFileId         String?
-  logo               File?     @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
+  logo               File?      @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
   principalName      String?
   principalPhone     String?
   principalEmail     String?
   establishedDate    DateTime?
   schoolType         String?
   educationBoard     String?
-  status             OrgStatus @default(ACTIVE)
-  timezone           String?   @default("Asia/Karachi")
-  currency           String?   @default("PKR")
+  status             OrgStatus  @default(ACTIVE)
+  timezone           String?    @default("Asia/Karachi")
+  currency           String?    @default("PKR")
   alternatePhone     String?
   addressId          String?
-  structuredAddress  Address?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  structuredAddress  Address?   @relation(fields: [addressId], references: [id], onDelete: SetNull)
   address            String?
   phone              String?
   email              String?
   campuses           Campus[]
   users              User[]
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  circulars          Circular[]
+  holidays           Holiday[]
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 }
 
 model Campus {
@@ -781,6 +784,9 @@ model Circular {
   title       String
   description String
   scope       String // "school" | "section"
+  // BL-20 (M2): the owning school — every circular belongs to exactly one school once backfilled.
+  schoolId    String?
+  school      School?              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   sectionId   String?
   section     Section?             @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   priority    String               @default("normal")
@@ -794,6 +800,7 @@ model Circular {
   updatedAt   DateTime             @updatedAt
 
   @@index([sectionId])
+  @@index([schoolId])
 }
 
 model CircularRecipient {
@@ -980,11 +987,15 @@ model Holiday {
   title     String
   startDate DateTime
   endDate   DateTime
+  // BL-20 (M2): the owning school; a null campus means school-wide WITHIN this school only.
+  schoolId  String?
+  school    School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   campusId  String?
   campus    Campus?  @relation(fields: [campusId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@index([campusId])
+  @@index([schoolId])
   @@index([startDate, endDate])
 }
 
@@ -1160,4 +1171,25 @@ model Application {
 
   @@index([applicantId])
   @@index([academicSessionId, status])
+}
+
+/// BL-62 decision D8: the manual-review queue of data migrations. Rows a migration could not map by
+/// rule are recorded here (never guessed); SUPER_ADMIN resolves them (docs/database/MIGRATION-STRATEGY.md §7).
+model MigrationReviewItem {
+  id           String    @id @default(uuid())
+  migration    String // e.g. "M2"
+  category     String // e.g. "CIRCULAR_SCHOOL_UNRESOLVABLE"
+  entity       String
+  entityId     String
+  detail       String
+  blocking     Boolean   @default(false) // blocks the contract step while OPEN
+  status       String    @default("OPEN") // OPEN | RESOLVED | WONTFIX
+  resolution   String?
+  resolvedById String?
+  resolvedBy   User?     @relation(fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@unique([migration, category, entity, entityId])
+  @@index([status])
 }

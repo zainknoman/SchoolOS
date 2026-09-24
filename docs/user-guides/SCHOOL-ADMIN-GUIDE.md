@@ -11,7 +11,7 @@ Menu groups: Overview · People · Operations · Communication · Org Structure.
 | See what needs attention | **Dashboard** | summary cards for your school |
 | Mark or review attendance | *Teachers do this;* admins can review reports via the API/dashboards | — |
 | Approve or reject leave | **Operations → Leave Applications** | open a request → approve or reject (once). Approval fails if the child's section has no class teacher — assign one first |
-| Publish a notice | **Communication → Circulars** | choose whole school or one section, write, publish; see read counts. ⚠ school-wide circulars currently reach parents of *all* schools (KG-1) |
+| Publish a notice | **Communication → Circulars** | choose whole school or one section, write, publish; see read counts. (since BL-20 a school-wide circular reaches only your school's parents — a campus principal's, only their campus) ⚠ old note: school-wide circulars previously reach parents of *all* schools (KG-1) |
 | Reply to parents | **Communication → Messages** | open a conversation and answer |
 | Complaints | **Communication → Complaints** | log and update status (open → resolved) per student |
 
@@ -29,7 +29,7 @@ Menu groups: Overview · People · Operations · Communication · Org Structure.
 2. **Sections:** create sections and assign a **class teacher** (must belong to the same campus) — attendance and leave approval need it.
 3. **Timetable:** build each section's week; the system rejects a teacher or room double-booked in the same period.
 4. **Terms** and **Assessment Categories** (weights per class/term — aim for 100 %; a warning shows otherwise).
-5. **Holidays:** school-wide or per campus; attendance cannot be marked on holidays. ⚠ leaving the campus empty makes it apply to every campus of every school (KG-6).
+5. **Holidays:** school-wide or per campus; attendance cannot be marked on holidays. Leaving the campus empty makes it apply to every campus of **your** school (BL-20); a campus principal can only add holidays for their campus.
 6. **Report Cards:** attach one report-card document per student per session (not generated from marks).
 
 ## 5. End of year: promotion

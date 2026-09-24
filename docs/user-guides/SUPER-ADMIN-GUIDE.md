@@ -22,5 +22,6 @@ The **Dashboard** shows the network overview across schools. There is no built-i
 
 ## Cautions
 - Subjects cannot be created in the product (seeded only).
+- A whole-school circular, or a holiday without a campus, belongs to one school: choose the **School** in the form (BL-20).
 - The very first super admin of a new system is created by the operator with `npm run bootstrap:super-admin`, not in the console; you must choose a new password at first sign-in. Further super admins are created by an existing one.
 - School-wide circulars and platform-wide holidays can cross school boundaries (known defects KG-1, KG-6) — avoid relying on them in a multi-school deployment until fixed.

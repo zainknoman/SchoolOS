@@ -22,6 +22,7 @@
 | Users cannot log in: "Account temporarily locked" | 5 failed attempts → 15-minute lock (`auth.constants.ts`) | Wait 15 min or clear `failedLoginCount`/`lockedUntil` on the `User` row (direct SQL; no admin unlock endpoint exists) |
 | A staff/parent account is compromised or a staff member leaves | — | SCHOOL_ADMIN (own-school accounts) or SUPER_ADMIN: `POST /api/v1/admin/users/:id/disable` — every session ends on the next request and sign-in is refused; `…/enable` restores it (also clears a failed-login lockout); `…/revoke-sessions` signs the user out everywhere without disabling. A parent with children in two schools can only be disabled by SUPER_ADMIN. All three are audited (`account.*`) |
 | After deploying migration `20260925090000_m1_attendance_marked_by_user` (BL-60) | Legacy attendance rows have no `markedByUserId` | Run `npm run backfill:m1` once (idempotent, transactional; prints resolved/unresolved counts). Unresolved rows stay null by design — they keep their `markedById` |
+| After deploying migration `20260925120000_m2_circular_holiday_school` (BL-20) | Legacy circulars/holidays have no `schoolId` | Run `npm run backfill:m2` once (idempotent); then work through the open review rows (section below). Until then a null-school circular is visible only to its past recipients, and a null-school holiday applies nowhere |
 | New system: nobody can sign in | No SUPER_ADMIN yet | `npm run bootstrap:super-admin` with `BOOTSTRAP_SUPER_ADMIN_*` set ([DEPLOYMENT](DEPLOYMENT.md)); refuses once any SUPER_ADMIN exists. A lost sole SUPER_ADMIN password is recovered by another SUPER_ADMIN, or by a documented DB-level procedure with an audit note — the bootstrap will not run again |
 | A parent forgot their password and e-mail is not configured | Pilot has no SMTP (B-1) | School admin: parent profile → **Reset password** (`POST /api/v1/admin/parents/:id/reset-password`, BL-64). The one-time password is shown once, never logged; audited as `account.admin-password-reset` |
 | Every request answers 403 `PASSWORD_CHANGE_REQUIRED` | The account has `mustChangePassword` (provisioned login or admin reset) — enforced by the API since BL-21 | The user changes their password (`POST /auth/change-password`); the console redirects automatically |
@@ -42,3 +43,22 @@
 | Digest/risk jobs run twice | two backend instances (ADR-0008) | Run one instance |
 | Deleting a record returns 400 "still referenced" | FK restriction (`prisma-delete-guard.ts`) | Remove/relocate dependents first |
 | Parents see another school's circular | KG-1 | Known defect (BL-20) |
+
+## Migration review queue (BL-62 D8)
+Rows a data migration could not map by rule are in `"MigrationReviewItem"` (created by M2). Resolve them as a SUPER_ADMIN operator, one decision per row, recorded in the same transaction as the data fix:
+
+```sql
+-- what is open (blocking rows stop the contract step)
+SELECT migration, category, blocking, entity, "entityId", detail FROM "MigrationReviewItem" WHERE status = 'OPEN' ORDER BY blocking DESC, migration, category;
+
+BEGIN;
+-- example: assign a school to a legacy school-wide circular (C3)
+UPDATE "Circular" SET "schoolId" = '<school id>' WHERE id = '<circular id>' AND "schoolId" IS NULL;
+UPDATE "MigrationReviewItem" SET status = 'RESOLVED', resolution = 'assigned to <school name>', "resolvedById" = '<super admin user id>', "resolvedAt" = now()
+ WHERE migration = 'M2' AND category = 'CIRCULAR_SCHOOL_UNRESOLVABLE' AND "entityId" = '<circular id>';
+INSERT INTO "AuditLog" (id, "userId", action, entity, "entityId", metadata, "createdAt")
+ VALUES (gen_random_uuid()::text, '<super admin user id>', 'migration.review.resolve', 'MigrationReviewItem', '<circular id>', '{"migration":"M2"}', now());
+COMMIT;
+```
+A holiday copy a school does not observe (`HOLIDAY_NO_CAMPUS`): delete it in the console (Holidays) and mark the row `RESOLVED`; to keep it, mark it `WONTFIX` with a note.
+

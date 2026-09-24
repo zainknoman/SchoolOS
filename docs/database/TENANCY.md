@@ -14,8 +14,8 @@
 | `Teacher`, `Staff`, `HiringApplication`, `Enrollment` | `campusId` | via Campus |
 | `Student`, `Attendance`, `Timetable`, `DiaryEntry`, `Mark`, `Complaint`, `LeaveRequest`, `FeeVoucher`, … | none | via Enrollment (→ Campus) or Section |
 | `ParentProfile` | none | via linked students' enrollments |
-| `Holiday` | `campusId?` | direct; **null = "applies to every campus"** |
-| `Circular` | `scope` (string), `sectionId?` | via Section for section circulars; **none for `scope = 'school'`** |
+| `Holiday` | `schoolId` (BL-20, M2), `campusId?` | direct; **null campus = every campus of its own school** |
+| `Circular` | `schoolId` (BL-20, M2), `scope`, `sectionId?` | direct; section circulars also via Section |
 | `AcademicSession`, `Subject`, `FeeStructure`, `Term` | **none** | **no path** (Term only via AcademicSession) |
 | `Applicant`, `Application` | `Application.desiredClassId`, `academicSessionId` | via desired Class → Campus |
 
@@ -25,8 +25,8 @@
 ## Code issues discovered (recorded, not fixed)
 | ID | Issue | Evidence | Impact |
 |---|---|---|---|
-| TENANT-1 | **School-wide circulars go to every parent in the database.** `scope = 'school'` recipients = all `User` with role PARENT, no school filter | `circulars/circulars.service.ts:55-57` | With 2+ schools, School A's circular is delivered (in-app/push) to School B's parents |
-| TENANT-2 | Holidays: a `campusId` supplied by the caller is not checked against the caller's school on create, and `campusId = null` means "every campus" — any SCHOOL_ADMIN can create a holiday that applies platform-wide | `holidays/holidays.service.ts:40-49,52-70` | Cross-school effect on attendance marking (holidays block marking) |
+| TENANT-1 | **School-wide circulars go to every parent in the database.** `scope = 'school'` recipients = all `User` with role PARENT, no school filter | `circulars/circulars.service.ts:55-57` | With 2+ schools, School A's circular is delivered (in-app/push) to School B's parents — **Fixed 2026-09-25 (BL-20)** |
+| TENANT-2 | Holidays: a `campusId` supplied by the caller is not checked against the caller's school on create, and `campusId = null` means "every campus" — any SCHOOL_ADMIN can create a holiday that applies platform-wide | `holidays/holidays.service.ts:40-49,52-70` | Cross-school effect on attendance marking (holidays block marking) — **Fixed 2026-09-25 (BL-20)** |
 | TENANT-3 | `AcademicSession` is global; activating one deactivates all others; "first active session" used for new students/vouchers/imports | `academic-session.service.ts:49-53`; `student.service.ts:69`; `fee-vouchers.service.ts:30`; `students-bulk-import.service.ts:100` | Wrong-session enrollment across schools (business decision Q1) |
 | TENANT-4 | `GET /academic-sessions`, `/terms`, `/subjects`, `/fee-structures` return rows for all schools | `progress` history in `docs/archive/access-control-scoping-progress.md` | Data exposure across schools; fee structures can be created but never edited |
 | TENANT-5 | `Subject.name` is globally unique | `schema.prisma` | One school's subject name blocks another's |
