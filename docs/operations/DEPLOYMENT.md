@@ -24,7 +24,7 @@ The pilot host, region, managed-PostgreSQL provider and S3-compatible vendor are
 | Parent app | `flutter build apk|appbundle|ios` with `--dart-define=API_BASE_URL=…` | store distribution (no signing/store config documented; `flutter run -d chrome` is dev only) | mobile binaries |
 
 ## Minimum topology a deployment must provide
-1. **One** backend process for the pilot (jobs and file storage currently assume a single instance — see below; decided to be removed by BL-10/BL-39) behind a TLS-terminating reverse proxy. Set `TRUST_PROXY` to the number of proxy hops (usually `1`) so rate limiting keys on the real client IP (BL-12).
+1. **One** backend process for the pilot (jobs and file storage currently assume a single instance — see below; decided to be removed by BL-10/BL-39) behind a TLS-terminating reverse proxy. Point the load balancer's health check at `GET /health/ready` and the external uptime probe at `GET /health/live` (BL-11). Set `TRUST_PROXY` to the number of proxy hops (usually `1`) so rate limiting keys on the real client IP (BL-12).
 2. PostgreSQL 16+ with backups ([BACKUP-RESTORE](BACKUP-RESTORE.md)).
 3. **S3-compatible object storage (BL-10, implemented):** `STORAGE_DRIVER=s3` + `S3_*` (boot refuses local storage outside development/test). Moving an existing installation: deploy with S3 configured, run `npm run storage:copy-to-s3 -- --dry-run`, then `npm run storage:copy-to-s3` (same keys, size + SHA-256 verified, re-runnable; missing local files are reported, never deleted). Keep the old `UPLOADS_DIR` until a verified run reports 0 failed.
 4. Static hosting for the staff console with its origin listed in `CORS_ORIGINS`.

@@ -14,6 +14,7 @@ BL-22: `npm run bootstrap:super-admin` creates the first SUPER_ADMIN from enviro
 BL-52: **behaviour change** — uploads are accepted only when their bytes are an allowed type (PDF, PNG/JPEG/GIF/WebP/HEIC, Office, text/CSV) matching the extension; the stored MIME type is the detected one; optional clamd malware scanning (`CLAMAV_HOST`, fail-closed).
 BL-60 (migration M1): **behaviour change** — attendance marking and leave approval no longer require a class teacher; every attendance write records the real actor (`markedByUserId`) and a Teacher only when the actor is one; `npm run backfill:m1` fills legacy rows from the audit log.
 BL-10: S3-compatible object storage (`STORAGE_DRIVER=s3`, **required outside development/test**) and `npm run storage:copy-to-s3` (same keys, checksum-verified, idempotent) for existing files.
+BL-11: `GET /health/live` and `/health/ready`, `X-Request-Id` on every response and `requestId` in every error body, JSON logs (default outside development/test) with an access log that never records query strings, a global exception filter (generic 500s), and scrubbed error reporting via `SENTRY_DSN`.
 
 **Versioning policy (decided):** Semantic Versioning with Git tags; the first production release will be **1.0.0**. Everything below is pre-1.0 history and carries no version numbers.
 

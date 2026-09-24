@@ -13,7 +13,7 @@
 | KI-6 | Config | `.env.example` omits `PORT`, `UPLOADS_DIR`, `WHATSAPP_*`, `SMS_GATEWAY_*` (unused `JWT_REFRESH_*` removed and `NODE_ENV` added 2026-09-24, BL-51) | [ENVIRONMENT](../operations/ENVIRONMENT.md) | misconfiguration | — |
 | KI-7 | Config | `FRONTEND_URL` defaults to localhost; single URL for reset links although parents use the mobile app | `auth.service.ts:168` | reset link may be unusable for parents (UNKNOWN) | DECIDED (separate parent reset flow) → BL-35 |
 | KI-8 | API | No pagination anywhere; unbounded lists | API-1 | scale/performance | DECIDED (pilot targets Q44) → BL-40, BL-15 |
-| KI-9 | API | No global exception filter/request logging; default error bodies | API-2 | diagnosability | DECIDED (structured logs, Sentry) → BL-11 |
+| KI-9 | API | No global exception filter/request logging; default error bodies | API-2 | diagnosability | DECIDED (structured logs, Sentry) → BL-11 — **Resolved 2026-09-25 (BL-11):** global filter, JSON logs with request id, error reporting |
 | KI-10 | API | Unknown request fields silently dropped | API-3 | hidden client bugs | — |
 | KI-11 | API | No OpenAPI; hand-mirrored client types | API-4 | drift | — |
 | KI-12 | Data | Missing DB uniqueness: one ACTIVE enrollment per student; one voucher per student/session/month | `schema.prisma` | race-condition duplicates | → BL-53 |
@@ -28,7 +28,7 @@
 | KI-21 | CI | Backend lint failing (2,014 errors, mostly formatting) but non-blocking; comment says ~672 | `ci.yml:42`, run 2026-09-20 | quality gate weak | DECIDED (blocking after cleanup) → BL-37 |
 | KI-22 | Tests | No tests for defects TENANT-1..5, KG-2/3/4/23; no e2e for staff, hiring, files, risk job | [TEST-MATRIX](../testing/TEST-MATRIX.md) | regressions unnoticed | → BL-18 |
 | KI-23 | Bootstrap | No documented/coded way to create the first SUPER_ADMIN outside the dev seed | repo | cannot go live cleanly | **Resolved 2026-09-24 (BL-22):** `npm run bootstrap:super-admin`; demo seed refuses outside development/test |
-| KI-24 | Ops | No health endpoint; `GET /` is a static greeting | `app.controller.ts` | no readiness probe | → BL-11 |
+| KI-24 | Ops | No health endpoint; `GET /` is a static greeting | `app.controller.ts` | no readiness probe | → BL-11 — **Resolved 2026-09-25 (BL-11):** `/health/live`, `/health/ready` |
 | KI-25 | Repo | `sample4` design comps could not be moved (Windows lock); two CSVs in it have uncommitted edits | [CLEANUP-MANIFEST](../archive/CLEANUP-MANIFEST.md) §6 | housekeeping | inspected; **no cleanup authorised (RD-15)** → BL-58; CSV content see KI-29 |
 | KI-26 | Leave | Leave approval **requires** a class teacher and stamps generated LEAVE attendance rows with that teacher's id (same FK as KI-33); `LeaveRequest` has no recommender/decider fields; owner rule: no class teacher required, separate recommendation/decision attribution, never a fabricated teacher | `leave.service.ts:108-143`, `LeaveRequest` model; unit test `leave.service.spec.ts:175` | leave blocked; misattributed audit | DECIDED → BL-29 (schema M1b) after BL-60 — **Partly resolved 2026-09-25 (BL-60)**: approval no longer needs a class teacher and LEAVE rows name the approver; recommender/decider fields remain (BL-29, M1b) |
 | KI-27 | Complaints | Parents cannot raise complaints (create is staff-only; parent screen read-only) | `complaints` controller roles; `complaints_screen.dart` | product gap vs decided rule | DECIDED → BL-30 |

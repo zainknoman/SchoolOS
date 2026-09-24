@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { validateEnv } from './config/env.validation';
+import { ObservabilityModule } from './observability/observability.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -53,6 +54,8 @@ import {
     ]),
     // validateEnv refuses to boot on an unset NODE_ENV or placeholder secrets (BL-51).
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    // BL-11: /health/*, global exception filter, error reporter.
+    ObservabilityModule,
     ScheduleModule.forRoot(),
     PrismaModule,
     OrgScopeModule,

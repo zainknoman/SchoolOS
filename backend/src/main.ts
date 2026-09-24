@@ -4,9 +4,27 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { buildCorsOriginOption } from './config/cors.config';
 import { applyHttpSecurity } from './config/app-security';
+import { JsonLogger } from './observability/json-logger';
+import { applyRequestObservability } from './observability/http-observability';
+import { isDevOrTestEnv } from './config/env.validation';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+  });
+
+  // BL-11: JSON logs by default outside development/test (LOG_FORMAT=json|pretty overrides).
+  const format =
+    process.env.LOG_FORMAT ??
+    (isDevOrTestEnv(process.env.NODE_ENV) ? 'pretty' : 'json');
+  if (format === 'json') {
+    app.useLogger(new JsonLogger(process.env.LOG_LEVEL ?? 'log'));
+  } else {
+    app.flushLogs();
+  }
+
+  // Request id + access log first, so everything after it runs inside the request context.
+  applyRequestObservability(app);
 
   // Security headers (helmet) and trust-proxy handling (BL-12).
   applyHttpSecurity(app);
