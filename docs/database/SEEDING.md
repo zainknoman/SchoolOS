@@ -7,7 +7,8 @@
 | Item | Fact | Evidence |
 |---|---|---|
 | Command | `npm run prisma:seed` (ts-node) | `package.json` |
-| Required env | `SEED_PASSWORD` (throws if missing); `DATABASE_URL` | `seed.ts:8-11` |
+| Required env | `SEED_PASSWORD` (throws if missing); `DATABASE_URL`; **`NODE_ENV` must be `development` or `test`** — the seed refuses otherwise (BL-22) | `seed.ts` |
+| Real systems | Use `npm run bootstrap:super-admin` for the first administrator ([DEPLOYMENT](../operations/DEPLOYMENT.md)); the demo seed is never run outside development/test | `src/cli/bootstrap-super-admin.ts` |
 | Idempotent? | **No.** Uses `createMany`; there are no deletes/upserts, so it is meant for an empty database (a second run hits unique constraints) | `seed.ts` |
 | Organisation | 2 schools (first named "Beacon House" — a real-sounding school brand; contact fields use `*.example.edu.pk` / `*.schoolportal.local`), several campuses each, 2 sessions per school (`2025-2026` inactive, `2026-2027` **active in both schools**), 8 grades × sections per campus, subjects | `seed.ts:17-160` |
 | People | superadmin, per-school admin/principal/accounts, teachers per section, students with parents, staff, support staff, addresses, files (campus logos) | `seed.ts:161-238` |

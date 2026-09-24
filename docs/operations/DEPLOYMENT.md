@@ -32,6 +32,8 @@ The pilot host, region, managed-PostgreSQL provider and S3-compatible vendor are
 6. Monitoring/log collection ([MONITORING-LOGGING](MONITORING-LOGGING.md)); the API has no health endpoint, so use TCP or an authenticated/`GET /` probe with the caveat that `GET /` does not touch the database.
 
 ## Database deployment
+**First administrator (BL-22, once per system):** after the first `migrate deploy`, set `BOOTSTRAP_SUPER_ADMIN_IDENTIFIER` and `BOOTSTRAP_SUPER_ADMIN_PASSWORD` (≥ 12 characters) from the secret store and run `npm run bootstrap:super-admin`. It refuses when any SUPER_ADMIN exists (or `BOOTSTRAP_SUPER_ADMIN_DISABLED=true`), sets `mustChangePassword`, and audits `bootstrap.super-admin`. Remove the password variable afterwards. **Never run `npm run prisma:seed` on a real system** — it creates well-known demo accounts and now refuses outside development/test.
+
 Run `npx prisma migrate deploy` before starting a new backend version (forward-only, additive; see [MIGRATIONS](../database/MIGRATIONS.md)). Take a backup first; there are no down migrations. **Initial data:** no documented bootstrap for the first SUPER_ADMIN — the only creator in the repository is the development seed (do not use it in production): gap `NOT IMPLEMENTED`.
 
 ## Release and rollback

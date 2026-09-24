@@ -4,6 +4,14 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 
+// BL-22: the demo seed creates well-known accounts (superadmin@schoolportal.local, SEED_PASSWORD) and
+// must never populate a real system. A real first administrator comes from
+// `npm run bootstrap:super-admin` instead.
+if (process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test') {
+  throw new Error(
+    `Refusing to run the demo seed with NODE_ENV=${process.env.NODE_ENV ?? '(unset)'}; it only runs in development/test.`,
+  );
+}
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const PASSWORD: string = (() => {
   const value = process.env.SEED_PASSWORD;
