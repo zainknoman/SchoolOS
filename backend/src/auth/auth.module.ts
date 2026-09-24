@@ -55,6 +55,6 @@ export function jwtModuleFactory(config: ConfigService) {
     // After JwtAuthGuard: request.user.mustChangePassword is read fresh from the DB (BL-21).
     { provide: APP_GUARD, useClass: PasswordChangeGuard },
   ],
-  exports: [AuthService],
+  exports: [AuthService, AccountAccessService],
 })
 export class AuthModule {}

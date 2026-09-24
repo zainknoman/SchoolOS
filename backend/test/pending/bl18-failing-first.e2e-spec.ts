@@ -2,7 +2,7 @@ import request from 'supertest';
 import { createTwoSchools, pending, TwoSchools } from './two-school-fixture';
 
 /**
- * BL-18 scaffold: failing-first e2e tests for BL-20, BL-01, BL-23, BL-60, BL-29 and BL-64.
+ * BL-18 scaffold: failing-first e2e tests for BL-20, BL-01, BL-23, BL-60 and BL-29 (BL-64 graduated to test/account-access.e2e-spec.ts).
  * Every test states the TARGET behaviour from docs/product/requirements/BACKLOG.md and is expected
  * to FAIL today for the reason in its comment (see two-school-fixture.ts for how `pending` works).
  * When an item is implemented, move its tests into the regular suite as plain `it`.
@@ -133,24 +133,6 @@ describe('BL-18 failing-first scaffold (e2e)', () => {
         ).map((c) => c.studentId ?? c.id);
         expect(childIds).toContain(f.ids.studentB);
         expect(childIds).not.toContain(f.ids.studentA);
-      },
-    );
-  });
-
-  describe('BL-64 admin-assisted parent password reset', () => {
-    // Today: 404 — the endpoint does not exist (depends on BL-21 server-side mustChangePassword).
-    pending(
-      'a SCHOOL_ADMIN issues a one-time password; the parent must change it at next login',
-      async () => {
-        const res = await http()
-          .post(`/api/v1/admin/parents/${f.ids.parentA}/reset-password`)
-          .set('Authorization', `Bearer ${tokens['admin-a']}`);
-        expect(res.status).toBe(201);
-        expect(typeof res.body.temporaryPassword).toBe('string');
-        const u = await f.prisma.user.findUniqueOrThrow({
-          where: { id: f.ids.parentAUser },
-        });
-        expect(u.mustChangePassword).toBe(true);
       },
     );
   });

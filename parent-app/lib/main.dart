@@ -36,7 +36,11 @@ class _ParentAppState extends State<ParentApp> {
   // already run, since evaluating `_auth`'s initializer is what first triggers `_api`'s.
   late final ApiClient _api = ApiClient(
     baseUrl: _apiBaseUrl,
-    client: RefreshingHttpClient(inner: http.Client(), onUnauthorized: () => _auth.refreshSession()),
+    client: RefreshingHttpClient(
+      inner: http.Client(),
+      onUnauthorized: () => _auth.refreshSession(),
+      onPasswordChangeRequired: () => _auth.markPasswordChangeRequired(),
+    ),
   );
   late final AuthState _auth = AuthState(api: _api, tokenStore: SecureTokenStore());
   late final DeviceTokenRegistrar _deviceTokenRegistrar = DeviceTokenRegistrar(

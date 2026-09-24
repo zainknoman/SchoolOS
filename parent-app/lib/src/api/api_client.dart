@@ -333,6 +333,32 @@ class ApiClient {
     }
   }
 
+  /// Authenticated password change; returns the fresh session the API issues (BL-21).
+  Future<LoginResponse> changePassword(
+    String accessToken,
+    String currentPassword,
+    String newPassword,
+  ) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/change-password'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({'currentPassword': currentPassword, 'newPassword': newPassword}),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+    return LoginResponse.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  /// Revokes this device's refresh token on the server (BL-21). Always 204.
+  Future<void> logout(String refreshToken) async {
+    await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/logout'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refreshToken': refreshToken}),
+    );
+  }
+
   Future<void> forgotPassword(String identifier) async {
     final res = await _client.post(
       Uri.parse('$baseUrl/api/v1/auth/forgot-password'),

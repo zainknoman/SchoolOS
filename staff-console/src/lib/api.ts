@@ -1829,6 +1829,18 @@ export const api = {
     return asJson(res);
   },
 
+  // BL-64: one-time temporary password for a parent (admin-assisted reset, pilot fallback).
+  async resetParentPassword(
+    accessToken: string,
+    parentId: string,
+  ): Promise<{ temporaryPassword: string; mustChangePassword: boolean }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents/${parentId}/reset-password`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
   async updateParentChildLink(
     accessToken: string,
     parentId: string,

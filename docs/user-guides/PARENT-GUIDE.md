@@ -4,7 +4,7 @@
 > **Decided, not yet implemented (owner, 2026-09-20):** parents will be able to raise complaints (BL-30) and use one account across schools (BL-23). This guide describes current behaviour.
 
 ## Sign in
-Open the app → enter the email/identifier your school gave you and your password → **Log in**. If you forget it, use **Forgot password** (⚠ works only if the school has email configured). After 5 wrong attempts the account is locked for 15 minutes. If you have several children, choose one at the top of **Home**.
+Open the app → enter the email/identifier your school gave you and your password → **Log in**. If you forget it, use **Forgot password** (works only if the school has email configured) — or ask the school office: they can give you a **one-time password**; sign in with it and the app asks you to choose your own password before anything else. After 5 wrong attempts the account is locked for 15 minutes. If you have several children, choose one at the top of **Home**.
 
 ## Bottom tabs
 | Tab | What you can do |

@@ -1,9 +1,14 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as argon2 from 'argon2';
+import { randomInt } from 'crypto';
+import { resolveSmtpConfig } from '../notifications/smtp-config';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
 import type { RequestUser } from '../common/student-access.service';
@@ -37,7 +42,56 @@ export class AccountAccessService {
     private readonly prisma: PrismaService,
     private readonly orgScope: OrgScopeService,
     private readonly auth: AuthService,
+    private readonly config: ConfigService,
   ) {}
+
+  /**
+   * Admin-assisted parent password reset (BL-64) — the pilot fallback while no e-mail provider is
+   * configured. Issues a one-time temporary password the admin reads out to the parent; the
+   * account gets `mustChangePassword` (enforced by the API, BL-21), every existing session ends and
+   * a failed-login lockout is cleared. A disabled account stays disabled. The password is returned
+   * once in the response and never logged or audited. Same scope rules as disable/enable.
+   */
+  async resetParentPassword(parentProfileId: string, actor: RequestUser) {
+    if (!this.adminResetEnabled()) {
+      throw new ConflictException(
+        'E-mail password reset is active; ask the parent to use "Forgot password".',
+      );
+    }
+    const parent = await this.prisma.parentProfile.findUnique({
+      where: { id: parentProfileId },
+      select: { userId: true },
+    });
+    if (!parent) throw new NotFoundException('Parent not found');
+    await this.assertCanManage(parent.userId, actor, 'change');
+
+    const temporaryPassword = generateTemporaryPassword();
+    await this.prisma.user.update({
+      where: { id: parent.userId },
+      data: {
+        passwordHash: await argon2.hash(temporaryPassword),
+        mustChangePassword: true,
+        lockedUntil: null,
+        failedLoginCount: 0,
+      },
+    });
+    await this.auth.revokeAllSessions(parent.userId);
+    await this.audit(actor, 'account.admin-password-reset', parent.userId);
+    return { temporaryPassword, mustChangePassword: true };
+  }
+
+  /**
+   * ADMIN_PASSWORD_RESET: `enabled` | `disabled` | `auto` (default). `auto` enables the admin reset
+   * only while no SMTP provider is configured — once e-mail reset works, parents use that instead.
+   */
+  private adminResetEnabled(): boolean {
+    const mode = (this.config.get<string>('ADMIN_PASSWORD_RESET') ?? 'auto')
+      .trim()
+      .toLowerCase();
+    if (mode === 'enabled') return true;
+    if (mode === 'disabled') return false;
+    return resolveSmtpConfig(this.config) === undefined;
+  }
 
   async status(targetId: string, actor: RequestUser) {
     const target = await this.assertCanManage(targetId, actor, 'view');
@@ -184,4 +238,21 @@ export class AccountAccessService {
       data: { userId: actor.id, action, entity: 'User', entityId: targetId },
     });
   }
+}
+
+// No 0/O, 1/l/I: the admin reads this out over the phone or writes it on paper.
+const TEMP_PASSWORD_ALPHABET =
+  'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+
+/** 12 random characters in three groups, e.g. "Hq7M-wR3k-Tz9c" (~70 bits). */
+export function generateTemporaryPassword(): string {
+  const groups: string[] = [];
+  for (let g = 0; g < 3; g++) {
+    let group = '';
+    for (let i = 0; i < 4; i++) {
+      group += TEMP_PASSWORD_ALPHABET[randomInt(TEMP_PASSWORD_ALPHABET.length)];
+    }
+    groups.push(group);
+  }
+  return groups.join('-');
 }

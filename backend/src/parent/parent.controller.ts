@@ -14,6 +14,12 @@ import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
 import { UpdateParentChildLinkDto } from './dto/update-parent-child-link.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Throttle } from '@nestjs/throttler';
+import { AccountAccessService } from '../auth/account-access.service';
+import {
+  AUTH_LOGIN_THROTTLE_LIMIT,
+  THROTTLE_TTL_MS,
+} from '../config/throttler.config';
 import type { RequestUser } from '../common/student-access.service';
 
 interface AuthenticatedRequest extends Request {
@@ -23,7 +29,10 @@ interface AuthenticatedRequest extends Request {
 @Controller('api/v1/admin/parents')
 @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
 export class ParentController {
-  constructor(private readonly parentService: ParentService) {}
+  constructor(
+    private readonly parentService: ParentService,
+    private readonly accounts: AccountAccessService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateParentDto, @Req() req: AuthenticatedRequest) {
@@ -33,6 +42,16 @@ export class ParentController {
   @Get()
   list(@Req() req: AuthenticatedRequest) {
     return this.parentService.list(req.user);
+  }
+
+  // BL-64: one-time temporary password for a parent (pilot fallback without e-mail). Throttled like
+  // login; the password appears only in this response — never in logs or the audit trail.
+  @Throttle({
+    default: { limit: AUTH_LOGIN_THROTTLE_LIMIT, ttl: THROTTLE_TTL_MS },
+  })
+  @Post(':id/reset-password')
+  resetPassword(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.accounts.resetParentPassword(id, req.user);
   }
 
   @Get(':id')

@@ -10,8 +10,10 @@ vi.mock('vue-router', async (importOriginal) => ({
   useRoute: () => ({ params: { id: 'p1' } }),
 }));
 vi.mock('../lib/api', () => ({
-  api: { getParentProfile: vi.fn(), updateParent: vi.fn(), updateParentChildLink: vi.fn() },
+  api: { getParentProfile: vi.fn(), updateParent: vi.fn(), updateParentChildLink: vi.fn(), resetParentPassword: vi.fn() },
 }));
+const confirmMock = vi.fn();
+vi.mock('../lib/useConfirm', () => ({ useConfirm: () => ({ confirm: confirmMock }) }));
 
 const PROFILE: ParentProfileDetail = {
   id: 'p1', identifier: 'sana@x.pk', name: 'Sana Khan', phone: '0300-1', childrenCount: 1,
@@ -80,5 +82,39 @@ describe('ParentProfileView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('Parent not found');
+  });
+
+  it('resets the password after confirmation and shows the one-time password once (BL-64)', async () => {
+    confirmMock.mockResolvedValue(true);
+    vi.mocked(api.resetParentPassword).mockResolvedValue({ temporaryPassword: 'Hq7M-wR3k-Tz9c', mustChangePassword: true });
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="reset-password"]').trigger('click');
+    await flushPromises();
+
+    expect(api.resetParentPassword).toHaveBeenCalledWith('token-1', 'p1');
+    expect(wrapper.find('[data-testid="temp-password"]').text()).toBe('Hq7M-wR3k-Tz9c');
+    await wrapper.find('[data-testid="temp-password-done"]').trigger('click');
+    expect(wrapper.find('[data-testid="temp-password-panel"]').exists()).toBe(false);
+  });
+
+  it('does nothing when the confirmation is cancelled', async () => {
+    confirmMock.mockResolvedValue(false);
+    const wrapper = mountView();
+    await flushPromises();
+    await wrapper.find('[data-testid="reset-password"]').trigger('click');
+    await flushPromises();
+    expect(api.resetParentPassword).not.toHaveBeenCalled();
+  });
+
+  it('shows the server message when the reset is refused', async () => {
+    confirmMock.mockResolvedValue(true);
+    vi.mocked(api.resetParentPassword).mockRejectedValue(new Error('E-mail password reset is active'));
+    const wrapper = mountView();
+    await flushPromises();
+    await wrapper.find('[data-testid="reset-password"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="profile-error"]').text()).toContain('E-mail password reset is active');
   });
 });

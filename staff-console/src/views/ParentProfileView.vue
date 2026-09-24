@@ -11,10 +11,12 @@ import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import ErrorRetry from '../components/ErrorRetry.vue';
 import { useToast } from '../lib/useToast';
+import { useConfirm } from '../lib/useConfirm';
 
 const auth = useAuthStore();
 const route = useRoute();
 const toast = useToast();
+const { confirm } = useConfirm();
 const parentId = route.params.id as string;
 
 const profile = ref<ParentProfileDetail | null>(null);
@@ -130,6 +132,32 @@ async function onToggle(studentId: string, field: 'isPrimary' | 'isEmergencyCont
   }
 }
 
+// BL-64: the temporary password is shown once, here only — never stored or logged by the console.
+const temporaryPassword = ref<string | null>(null);
+const isResetting = ref(false);
+
+async function onResetPassword() {
+  if (!auth.accessToken || !profile.value) return;
+  const ok = await confirm({
+    title: `Reset ${profile.value.name}'s password?`,
+    message:
+      'A one-time password will be shown once. The parent is signed out on every device and must choose a new password when they next sign in.',
+    confirmLabel: 'Reset password',
+    danger: true,
+  });
+  if (!ok) return;
+  formError.value = null;
+  isResetting.value = true;
+  try {
+    const res = await api.resetParentPassword(auth.accessToken, parentId);
+    temporaryPassword.value = res.temporaryPassword;
+  } catch (err) {
+    formError.value = err instanceof Error ? err.message : 'Could not reset this password.';
+  } finally {
+    isResetting.value = false;
+  }
+}
+
 const show = (v: string | number | null | undefined) => (v === null || v === undefined || v === '' ? '—' : v);
 const addressText = (a: ParentAddressDetail | null) =>
   a ? [a.line1, a.line2, a.area, a.city, a.province].filter(Boolean).join(', ') : null;
@@ -154,11 +182,27 @@ const chips = computed(() => [profile.value?.identifier].filter((v): v is string
         :stats="stats"
       >
         <template #actions>
+          <Button
+            v-if="!isEditing"
+            variant="secondary"
+            data-testid="reset-password"
+            :disabled="isResetting"
+            @click="onResetPassword"
+          >Reset password</Button>
           <Button v-if="!isEditing" variant="secondary" data-testid="edit-profile" @click="startEdit">Edit</Button>
         </template>
       </OrgProfileHeader>
 
       <p v-if="formError" class="error" role="alert" data-testid="profile-error">{{ formError }}</p>
+
+      <div v-if="temporaryPassword" class="temp-password" role="status" data-testid="temp-password-panel">
+        <p>
+          Give this one-time password to <strong>{{ profile.name }}</strong>. It is shown only now; they must
+          choose their own password when they sign in.
+        </p>
+        <p class="temp-password-value mono" data-testid="temp-password">{{ temporaryPassword }}</p>
+        <Button variant="secondary" data-testid="temp-password-done" @click="temporaryPassword = null">Done</Button>
+      </div>
 
       <ProfileSectionCard icon="user-circle" title="Personal & contact">
         <div v-if="!isEditing" class="field-grid">
@@ -301,5 +345,17 @@ const chips = computed(() => [profile.value?.identifier].filter((v): v is string
 .children-table td {
   padding: var(--space-2) var(--space-3) var(--space-2) 0;
   border-top: 1px solid var(--color-border);
+}
+.temp-password {
+  border: 1px solid var(--color-border, currentColor);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 12px 0;
+}
+.temp-password-value {
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+  margin: 8px 0 12px;
+  user-select: all;
 }
 </style>

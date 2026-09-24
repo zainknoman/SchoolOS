@@ -3,16 +3,22 @@ class LoginResponse {
     required this.accessToken,
     required this.refreshToken,
     required this.role,
+    this.mustChangePassword = false,
   });
 
   final String accessToken;
   final String refreshToken;
   final String role;
 
+  /// Set on an account whose password was issued by someone else (admin-assisted reset, BL-64);
+  /// the API refuses everything but change-password until it is changed (BL-21).
+  final bool mustChangePassword;
+
   factory LoginResponse.fromJson(Map<String, dynamic> json) => LoginResponse(
     accessToken: json['accessToken'] as String,
     refreshToken: json['refreshToken'] as String,
     role: json['role'] as String,
+    mustChangePassword: json['mustChangePassword'] == true,
   );
 }
 

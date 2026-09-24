@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 /// Wraps an [http.Client] so any 401 from our own backend triggers one silent refresh-and-retry
@@ -6,7 +7,7 @@ import 'package:http/http.dart' as http;
 /// funnels through) means none of ApiClient's ~25 existing methods need to change.
 class RefreshingHttpClient extends http.BaseClient {
   //RefreshingHttpClient({required http.Client inner, required this.onUnauthorized}) : _inner = inner;
-  RefreshingHttpClient({required this._inner, required this.onUnauthorized});
+  RefreshingHttpClient({required this._inner, required this.onUnauthorized, this.onPasswordChangeRequired});
 
   final http.Client _inner;
 
@@ -15,10 +16,18 @@ class RefreshingHttpClient extends http.BaseClient {
   /// itself failed (the caller is expected to have already logged out in that case).
   final Future<String?> Function() onUnauthorized;
 
+  /// Called when the API answers 403 `PASSWORD_CHANGE_REQUIRED` (BL-21) — the session is valid but
+  /// the account must set a new password first.
+  final Future<void> Function()? onPasswordChangeRequired;
+
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final hadAuthHeader = request.headers.containsKey('Authorization');
     final response = await _inner.send(request);
+
+    if (hadAuthHeader && response.statusCode == 403 && onPasswordChangeRequired != null) {
+      return _checkPasswordChangeRequired(response);
+    }
 
     if (!hadAuthHeader || response.statusCode != 401) {
       return response;
@@ -31,6 +40,28 @@ class RefreshingHttpClient extends http.BaseClient {
 
     final retryRequest = await _cloneWithNewToken(request, newAccessToken);
     return _inner.send(retryRequest);
+  }
+
+  /// Reads the 403 body once (a stream can only be read once), notifies on
+  /// PASSWORD_CHANGE_REQUIRED, and hands the caller an identical response.
+  Future<http.StreamedResponse> _checkPasswordChangeRequired(http.StreamedResponse response) async {
+    final bytes = await response.stream.toBytes();
+    try {
+      final body = jsonDecode(utf8.decode(bytes));
+      if (body is Map && body['code'] == 'PASSWORD_CHANGE_REQUIRED') {
+        await onPasswordChangeRequired!();
+      }
+    } catch (_) {
+      // not JSON — an ordinary 403
+    }
+    return http.StreamedResponse(
+      Stream.value(bytes),
+      response.statusCode,
+      contentLength: bytes.length,
+      request: response.request,
+      headers: response.headers,
+      reasonPhrase: response.reasonPhrase,
+    );
   }
 
   Future<http.BaseRequest> _cloneWithNewToken(http.BaseRequest original, String newAccessToken) async {

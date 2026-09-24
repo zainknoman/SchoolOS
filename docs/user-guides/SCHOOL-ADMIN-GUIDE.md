@@ -17,7 +17,7 @@ Menu groups: Overview · People · Operations · Communication · Org Structure.
 
 ## 2. People
 - **Students → add student:** requires an active academic session and a section. Link either an existing parent or create a new parent login (exactly one). GR number must be unique. Open **Student Profile** to add address, previous school, medical info, emergency contacts and documents (mark documents verified).
-- **Parents:** create/edit parents and link or unlink children.
+- **Parents:** create/edit parents and link or unlink children. **Reset password** (parent profile) gives a one-time password, shown once — read it to the parent; they must choose their own at next sign-in and are signed out everywhere. Not available when e-mail reset is configured, or for a parent who also has children in another school (ask the super admin).
 - **Staff / Hiring:** add staff and keep profiles, experience and documents. For hiring: **Hiring → New Candidate** (upload résumé first) → create application → **approve** (creates the staff record; for a teacher you must give a login) or **reject**. Decisions are final.
 - **Bulk Import:** download the sample file for students, parents, teachers or staff → upload → **preview** (fix reported errors, including duplicates within the file) → **commit**.
 

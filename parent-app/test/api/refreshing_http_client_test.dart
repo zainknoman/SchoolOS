@@ -93,4 +93,32 @@ void main() {
     expect(calls, 2);
     expect(bodiesSeen[1], jsonEncode({'studentId': 's1'}));
   });
+
+  test('403 PASSWORD_CHANGE_REQUIRED notifies and still returns the full response (BL-21)', () async {
+    var notified = 0;
+    final client = RefreshingHttpClient(
+      inner: MockClient((request) async => http.Response(
+        jsonEncode({'statusCode': 403, 'code': 'PASSWORD_CHANGE_REQUIRED', 'message': 'change it'}),
+        403,
+      )),
+      onUnauthorized: () async => null,
+      onPasswordChangeRequired: () async => notified++,
+    );
+    final res = await client.get(Uri.parse('http://test/api/v1/me/children'), headers: {'Authorization': 'Bearer a'});
+    expect(res.statusCode, 403);
+    expect(jsonDecode(res.body)['message'], 'change it');
+    expect(notified, 1);
+  });
+
+  test('an ordinary 403 does not notify', () async {
+    var notified = 0;
+    final client = RefreshingHttpClient(
+      inner: MockClient((request) async => http.Response(jsonEncode({'statusCode': 403}), 403)),
+      onUnauthorized: () async => null,
+      onPasswordChangeRequired: () async => notified++,
+    );
+    final res = await client.get(Uri.parse('http://test/x'), headers: {'Authorization': 'Bearer a'});
+    expect(res.statusCode, 403);
+    expect(notified, 0);
+  });
 }

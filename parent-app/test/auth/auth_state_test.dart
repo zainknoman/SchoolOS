@@ -144,4 +144,50 @@ void main() {
     final result = await auth.refreshSession();
     expect(result, isNull);
   });
+
+  test('login stores mustChangePassword; logout revokes on the server and clears it (BL-21)', () async {
+    final calls = <String>[];
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        calls.add(request.url.path);
+        if (request.url.path == '/api/v1/auth/login') {
+          return http.Response(
+            jsonEncode({'accessToken': 'a', 'refreshToken': 'r', 'role': 'PARENT', 'mustChangePassword': true}),
+            201,
+          );
+        }
+        return http.Response('', 204);
+      }),
+    );
+    final auth = AuthState(api: api, tokenStore: store);
+    await auth.login('p@x.pk', 'Temp-Pass-123');
+    expect(auth.mustChangePassword, isTrue);
+    expect(await store.read('mustChangePassword'), 'true');
+
+    final restored = AuthState(api: api, tokenStore: store);
+    await restored.restoreSession();
+    expect(restored.mustChangePassword, isTrue);
+
+    await auth.logout();
+    expect(calls, contains('/api/v1/auth/logout'));
+    expect(auth.mustChangePassword, isFalse);
+    expect(await store.read('mustChangePassword'), isNull);
+  });
+
+  test('logout still signs out locally when the server is unreachable', () async {
+    final auth = AuthState(api: okClient(), tokenStore: store);
+    await auth.login('parent-a@schoolos.edu.pk', 'ChangeMe123!');
+    await auth.logout(); // mock answers 404 for /auth/logout
+    expect(auth.isAuthenticated, isFalse);
+  });
+
+  test('markPasswordChangeRequired sets and persists the flag', () async {
+    final auth = AuthState(api: okClient(), tokenStore: store);
+    await auth.login('parent-a@schoolos.edu.pk', 'ChangeMe123!');
+    expect(auth.mustChangePassword, isFalse);
+    await auth.markPasswordChangeRequired();
+    expect(auth.mustChangePassword, isTrue);
+    expect(await store.read('mustChangePassword'), 'true');
+  });
 }
