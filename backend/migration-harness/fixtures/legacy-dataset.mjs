@@ -1,7 +1,12 @@
 // Production-like LEGACY dataset (schema as of the 13 current migrations) used by every harness scenario.
 // It deliberately contains the ambiguous shapes the planned migrations must handle (BL-62):
 //  - two schools sharing ONE global academic session, plus a session used by a single school
-//  - a global subject and a global fee structure referenced by both schools; an unreferenced subject
+//  - an unreferenced session (school cannot be inferred) and a fee voucher whose student has no enrolment in the
+//    voucher's session (dependent cannot be re-pointed without review)
+//  - subjects used through every dependent: Timetable (Mathematics, both schools), Timetable + DiaryEntry across
+//    schools (Urdu), DiaryEntry only (English, A), Assessment only (Science, B); an unreferenced subject
+//  - fee structures (no FK, attributed by FeeItem.label): Tuition issued in both schools, Transport in A only,
+//    an unreferenced Lab Fee, and two structures both named "Admission Fee" (label collision)
 //  - a parent (P1) with children in BOTH schools, a duplicate-candidate parent pair (same phone, different
 //    identifiers, no CNIC — CNIC and identifier are already UNIQUE so exact duplicates on them cannot exist),
 //    a student with 3 guardian links, and two guardians with the same name but different CNICs (must
@@ -23,7 +28,8 @@ export async function buildLegacyDataset(client, insert) {
   const campusB = await insert('Campus', { schoolId: schoolB, name: 'B Main Campus' });
   const sessGlobal = await insert('AcademicSession', { label: '2025-2026', startDate: d('2025-08-01'), endDate: d('2026-06-30'), isActive: true });
   const sessAOnly = await insert('AcademicSession', { label: '2026-2027-A', startDate: d('2026-04-01'), endDate: d('2027-03-31'), isActive: false });
-  Object.assign(m.ids, { schoolA, schoolB, campusA, campusB, sessGlobal, sessAOnly });
+  const sessUnused = await insert('AcademicSession', { label: '2019-2020', startDate: d('2019-08-01'), endDate: d('2020-06-30'), isActive: false });
+  Object.assign(m.ids, { schoolA, schoolB, campusA, campusB, sessGlobal, sessAOnly, sessUnused });
 
   // --- users
   const uid = async (identifier, role, extra = {}) => insert('User', { identifier, passwordHash: 'x', role, ...extra });
@@ -48,11 +54,23 @@ export async function buildLegacyDataset(client, insert) {
   // --- subjects / fee structure / term shared globally
   const subjMath = await insert('Subject', { name: 'Mathematics' });
   const subjUnused = await insert('Subject', { name: 'Calligraphy' });
+  const subjUrdu = await insert('Subject', { name: 'Urdu' });
+  const subjEnglish = await insert('Subject', { name: 'English' });
+  const subjScience = await insert('Subject', { name: 'Science' });
   const feeGlobal = await insert('FeeStructure', { name: 'Tuition', amount: 5000 });
+  const feeTransport = await insert('FeeStructure', { name: 'Transport', amount: 1500 });
+  await insert('FeeStructure', { name: 'Lab Fee', amount: 800 });
+  await insert('FeeStructure', { name: 'Admission Fee', amount: 10000 });
+  await insert('FeeStructure', { name: 'Admission Fee', amount: 12000 }); // same name: label attribution impossible
   const termGlobal = await insert('Term', { academicSessionId: sessGlobal, label: 'Term 1', order: 1, startDate: d('2025-08-01'), endDate: d('2025-12-20') });
   await insert('Timetable', { sectionId: secA, subjectId: subjMath, dayOfWeek: 1, period: 1, startTime: '08:00', endTime: '08:40', teacherId: teacherA });
   await insert('Timetable', { sectionId: secB, subjectId: subjMath, dayOfWeek: 1, period: 1, startTime: '08:00', endTime: '08:40', teacherId: teacherB });
-  Object.assign(m.ids, { subjMath, subjUnused, feeGlobal, termGlobal });
+  await insert('Timetable', { sectionId: secA, subjectId: subjUrdu, dayOfWeek: 2, period: 1, startTime: '08:00', endTime: '08:40', teacherId: teacherA });
+  await insert('DiaryEntry', { sectionId: secB, subjectId: subjUrdu, authorId: teacherUserB, date: d('2026-01-12'), text: 'Read chapter 2' }); // Urdu is shared only when DiaryEntry is counted
+  await insert('DiaryEntry', { sectionId: secA, subjectId: subjEnglish, authorId: teacherUserA, date: d('2026-01-12'), text: 'Spelling list' });
+  const catB = await insert('AssessmentCategory', { classId: classB, termId: termGlobal, name: 'Quizzes', weightPercent: 20 });
+  await insert('Assessment', { assessmentCategoryId: catB, subjectId: subjScience, label: 'Quiz 1', maxMarks: 10 });
+  Object.assign(m.ids, { subjMath, subjUnused, subjUrdu, subjEnglish, subjScience, feeGlobal, feeTransport, termGlobal });
 
   // --- students (status coverage) and enrolments
   const mkStudent = async (gr, name, status = 'ACTIVE', sec = secA, campus = campusA, sess = sessGlobal) => {
@@ -71,6 +89,17 @@ export async function buildLegacyDataset(client, insert) {
   const stWithdrawn = await mkStudent('GR-A-021', 'Withdrawn One', 'WITHDRAWN');
   const stNoTeacherSection = await mkStudent('GR-A-030', 'No Teacher Section', 'ACTIVE', secANoTeacher);
   Object.assign(m.ids, { stActiveA: stActiveA.id, stActiveB: stActiveB.id, stLeftMatched: stLeftMatched.id, stLeftUnmatched1: stLeftUnmatched1.id, stLeftUnmatched2: stLeftUnmatched2.id });
+
+  // fee vouchers: items copy the structure's name/amount (no FK to FeeStructure)
+  const voucher = async (student, sess, items) => {
+    const v = await insert('FeeVoucher', { studentId: student.id, academicSessionId: sess, month: '2026-01', issueDate: d('2026-01-01'), dueDate: d('2026-01-10') });
+    for (const [label, amount] of items) await insert('FeeItem', { feeVoucherId: v, label, amount });
+    return v;
+  };
+  await voucher(stActiveA, sessGlobal, [['Tuition', 5000], ['Transport', 1500]]);
+  await voucher(stActiveB, sessGlobal, [['Tuition', 5000]]);
+  const orphanVoucher = await voucher(stActiveB, sessAOnly, [['Tuition', 5000]]); // no enrolment in sessAOnly: unresolvable
+  Object.assign(m.ids, { orphanVoucher });
 
   // promotions: only stLeftMatched has a TRANSFERRED_OUT decision
   await insert('StudentPromotion', { studentId: stLeftMatched.id, fromEnrollmentId: stLeftMatched.enrollment, decision: 'TRANSFERRED_OUT', decidedById: adminA });
@@ -103,11 +132,14 @@ export async function buildLegacyDataset(client, insert) {
   Object.assign(m.ids, { p1: p1.profile, p2: p2.profile, p2dup: p2dup.profile, pSim1: pSim1.profile, pSim2: pSim2.profile });
 
   // --- attendance: teacher-marked, and an admin write attributed to the class teacher (the BL-60 shape)
-  await insert('Attendance', { studentId: stActiveA.id, date: d('2026-01-12'), status: 'PRESENT', markedById: teacherA });
-  await insert('Attendance', { studentId: stActiveA.id, date: d('2026-01-13'), status: 'ABSENT', markedById: teacherA });
+  // Audit actions are the ones the code writes: attendance.mark (entityId = Attendance id), attendance.mark-bulk
+  // (metadata.date + studentIds) and leave-request.approve (LEAVE rows in the request's range).
+  await insert('Attendance', { studentId: stActiveA.id, date: d('2026-01-12'), status: 'PRESENT', markedById: teacherA }); // no audit row: unresolvable
+  await insert('Attendance', { studentId: stActiveA.id, date: d('2026-01-13'), status: 'ABSENT', markedById: teacherA }); // no audit row: unresolvable
   await insert('Attendance', { studentId: stActiveB.id, date: d('2026-01-12'), status: 'PRESENT', markedById: teacherB });
-  await insert('Attendance', { studentId: stSimilar1.id, date: d('2026-01-14'), status: 'LEAVE', markedById: teacherA }); // admin-marked, attributed to class teacher
-  await insert('AuditLog', { userId: adminA, action: 'attendance.update', entity: 'Attendance', entityId: stSimilar1.id, metadata: JSON.stringify({ studentId: stSimilar1.id, date: '2026-01-14', status: 'LEAVE' }) });
+  await insert('AuditLog', { userId: teacherUserB, action: 'attendance.mark-bulk', entity: 'Attendance', metadata: JSON.stringify({ date: '2026-01-12', count: 1, studentIds: [stActiveB.id] }) });
+  const attAdmin = await insert('Attendance', { studentId: stSimilar1.id, date: d('2026-01-14'), status: 'LEAVE', markedById: teacherA }); // admin-marked, attributed to class teacher
+  await insert('AuditLog', { userId: adminA, action: 'attendance.mark', entity: 'Attendance', entityId: attAdmin, metadata: JSON.stringify({ studentId: stSimilar1.id, date: '2026-01-14', status: 'LEAVE' }) });
 
   // --- circulars / holidays without a reliable school anchor
   await insert('Circular', { title: 'School-wide notice', description: 'x', scope: 'school', authorId: superAdmin }); // author has no school → ambiguous
@@ -117,18 +149,22 @@ export async function buildLegacyDataset(client, insert) {
   await insert('Holiday', { title: 'Campus A holiday', startDate: d('2026-02-05'), endDate: d('2026-02-05'), campusId: campusA });
 
   // --- leave & complaints
-  await insert('LeaveRequest', { studentId: stActiveA.id, startDate: d('2026-01-20'), endDate: d('2026-01-21'), reason: 'Family event', status: 'approved' });
+  const leaveApproved = await insert('LeaveRequest', { studentId: stActiveA.id, startDate: d('2026-01-20'), endDate: d('2026-01-21'), reason: 'Family event', status: 'approved' });
+  await insert('Attendance', { studentId: stActiveA.id, date: d('2026-01-20'), status: 'LEAVE', markedById: teacherA }); // written on approval, attributed to the class teacher
+  await insert('Attendance', { studentId: stActiveA.id, date: d('2026-01-21'), status: 'LEAVE', markedById: teacherA });
+  await insert('AuditLog', { userId: adminA, action: 'leave-request.approve', entity: 'LeaveRequest', entityId: leaveApproved, metadata: JSON.stringify({ studentId: stActiveA.id, dateCount: 2 }) });
   await insert('LeaveRequest', { studentId: stNoTeacherSection.id, startDate: d('2026-01-22'), endDate: d('2026-01-22'), reason: 'Fever' });
   await insert('Complaint', { studentId: stActiveA.id, raisedById: p1.userId, subject: 'Bus timing', description: 'x' });
 
   m.expect = {
-    schools: 2, campuses: 2, sessions: 2,
+    schools: 2, campuses: 2, sessions: 3, sessionsUnreferenced: 1, sessionDependentsUnresolvable: 1,
     students: 10, guardianLinks: 9, parentProfiles: 8,
     leftStudents: 3, leftWithTransferredOut: 1, leftWithoutPromotion: 2,
     duplicateContactGroups: 1, sameNameDifferentCnicPairs: 1,
-    sessionsSharedAcrossSchools: 1, subjectsSharedAcrossSchools: 1, subjectsUnreferenced: 1,
+    sessionsSharedAcrossSchools: 1, subjectsSharedAcrossSchools: 2, subjectsSingleSchool: 2, subjectsUnreferenced: 1,
+    feeStructures: 5, feeStructuresSharedAcrossSchools: 1, feeStructuresSingleSchool: 1, feeStructuresUnreferenced: 1, feeStructuresNameCollision: 2,
     circulars: 3, circularsAmbiguous: 1, holidays: 2, holidaysAmbiguous: 1,
-    attendance: 4, sectionsWithoutClassTeacher: 1,
+    attendance: 6, attendanceActorBackfillable: 4, sectionsWithoutClassTeacher: 1,
   };
   m.now = now;
   return m;

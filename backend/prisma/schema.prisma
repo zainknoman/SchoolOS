@@ -955,7 +955,7 @@ model AuditLog {
   id        String   @id @default(uuid())
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action    String // "login" | "attendance.update" | "circular.publish" | ...
+  action    String // "login" | "attendance.mark" | "circular.publish" | ...
   entity    String
   entityId  String?
   metadata  String? // JSON-encoded, never passwords/tokens

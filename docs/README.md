@@ -25,7 +25,7 @@
 | Journeys & workflows | [`workflows/`](workflows/) | CURRENT (Phase 4) |
 | Architecture / ADRs | [`architecture/`](architecture/README.md), [`decisions/`](decisions/README.md) | CURRENT |
 | API | [`api/`](api/API-OVERVIEW.md) (overview, authN/authZ, generated endpoint reference, Postman collection) | CURRENT |
-| Database | [`database/`](database/DATA-MODEL.md) (model, generated dictionary + ERD, tenancy, migrations, seeding, history) | CURRENT (`data-model-design.md` and `migration-plan.md` are deprecated stubs kept only because code comments cite them) |
+| Database | [`database/`](database/DATA-MODEL.md) (model, generated dictionary + ERD, tenancy, migrations, [existing-school migration strategy (BL-62, draft)](database/MIGRATION-STRATEGY.md), seeding, history) | CURRENT (`data-model-design.md` and `migration-plan.md` are deprecated stubs kept only because code comments cite them) |
 | Security | [`security/`](security/SECURITY-OVERVIEW.md), root [`SECURITY.md`](../SECURITY.md) | CURRENT (inventory; contact is a placeholder pending RD-2) |
 | Operations | [`operations/`](operations/ENVIRONMENT.md) (environment, deployment requirements, backup, monitoring, runbooks, integrations) | PARTIAL — several capabilities NOT IMPLEMENTED and documented as such |
 | Testing | [`testing/`](testing/TESTING-STRATEGY.md) | CURRENT (suites executed 2026-09-20) |

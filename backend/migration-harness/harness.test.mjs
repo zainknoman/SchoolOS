@@ -47,7 +47,7 @@ dbTest('baseline scenario: legacy dataset builds, dry-run classifies every ambig
   const res = await runScenario(baseline);
   assert.equal(res.ok, true, JSON.stringify(res.reconciliation.checks.filter((c) => !c.ok)));
   const cats = new Set(res.review.map((r) => r.category));
-  for (const c of ['SESSION_SPLIT_REQUIRED', 'SUBJECT_CLONE_REQUIRED', 'SUBJECT_UNREFERENCED', 'GUARDIAN_DUPLICATE_CANDIDATE', 'GUARDIAN_PRIMARY_SLOT_REVIEW', 'LIFECYCLE_LEFT_MANUAL_REVIEW', 'CIRCULAR_SCHOOL_UNRESOLVABLE', 'HOLIDAY_NO_CAMPUS']) {
+  for (const c of ['SESSION_SPLIT_REQUIRED', 'SUBJECT_CLONE_REQUIRED', 'SUBJECT_UNREFERENCED', 'GUARDIAN_DUPLICATE_CANDIDATE', 'GUARDIAN_PRIMARY_SLOT_REVIEW', 'LIFECYCLE_LEFT_MANUAL_REVIEW', 'CIRCULAR_SCHOOL_UNRESOLVABLE', 'HOLIDAY_NO_CAMPUS', 'SESSION_UNREFERENCED', 'SESSION_DEPENDENT_UNRESOLVABLE', 'FEE_STRUCTURE_CLONE_REQUIRED', 'FEE_STRUCTURE_UNREFERENCED', 'FEE_STRUCTURE_NAME_COLLISION', 'FEE_STRUCTURE_ATTRIBUTED_BY_LABEL']) {
     assert.ok(cats.has(c), `missing review category ${c}`);
   }
   assert.equal(res.review.filter((r) => r.category === 'LIFECYCLE_LEFT_MANUAL_REVIEW').length, 2, 'only unmatched LEFT rows go to manual review');

@@ -25,13 +25,13 @@ Hard gates: **BL-62 approved + BL-65 available** before any of BL-01, BL-02, BL-
 Every data-changing migration uses **expand → backfill → contract** (contract one release later), an idempotent backfill script, a dry-run reconciliation report, and is rehearsed on the BL-65 harness first.
 | M | Change | Item | Backfill / ambiguity handling |
 |---|---|---|---|
-| M1 | `Attendance.markedById` nullable; add `markedByUserId` (→ `User`) | BL-60 | from `AuditLog` (`attendance.update`); unresolved stays null (keeps old `markedById`) |
+| M1 | `Attendance.markedById` nullable; add `markedByUserId` (→ `User`) | BL-60 | from `AuditLog` actions `attendance.mark`, `attendance.mark-bulk`, `leave-request.approve` (no `attendance.update` exists — corrected 2026-09-24); unresolved stays null (keeps old `markedById`) |
 | M1b | `LeaveRequest`: recommender/decider ids, timestamps, notes | BL-29 | none (new columns) |
 | M2 | `Circular.schoolId`, `Holiday.schoolId` | BL-20 | Holiday from campus; Circular from section→class→campus→school, else author's school; SUPER_ADMIN author or ambiguity → manual review |
 | M3 | `AcademicSession.schoolId` (+ `legacySessionId`, unique `(schoolId,label)`) | BL-01 | shared global sessions split per school and dependents re-pointed; ambiguity → review, never an arbitrary "current" session |
 | M4 | `Subject.schoolId`, `isActive`, unique `(schoolId,name)` | BL-02 | referenced subjects cloned per school; dependents re-pointed; unreferenced rule set in BL-62 |
 | M5 | `FeeStructure.schoolId` + lifecycle; `Term` follows session | BL-03 | school via vouchers' students; ambiguity → review |
-| M6 | `StudentParent.relationshipType`, `isPrimary`, `primarySlot` (unique per student) | BL-04, BL-23 | existing links → `OTHER` and flagged; ≥ 3 links flagged. **No `schoolId` on the guardian identity** |
+| M6 | `StudentParent.relationshipType` (from the existing free-text `relationship`), `primarySlot` 1–2 (unique per student; `isPrimary` already exists since `20260919090000`) | BL-04, BL-23 | rules G4/G5 of [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md): known texts mapped, others → `OTHER`; > 2 primaries → review. **No `schoolId` on the guardian identity** |
 | M7 | Add `StudentStatus.TRANSFERRED`; rename `PromotionDecision.TRANSFERRED_OUT`→`TRANSFERRED`; add `PROMOTED_WITH_CONDITIONS` | BL-61, BL-05 | **`LEFT` + matching `TRANSFERRED_OUT` promotion → `TRANSFERRED`; all other `LEFT` → manual review; never renamed blindly**; `LEFT` removed only when zero rows remain; `EnrollmentStatus` unchanged |
 | M8 | `TeachingAssignmentHistory` | BL-25 | from current section/timetable, start date flagged unknown |
 | M9 | `archivedAt`; `RetentionPolicy` (periods null) | BL-07, BL-63 | none |
@@ -72,7 +72,7 @@ Every wave also refreshes the `Verified:` header (date and commit).
 | **Prerequisites that never substitute for engineering** | FCM project, staging host, S3 backup/restore, privacy notice, incident process — each gates go-live/exit **in addition to** the code items |
 
 ## 7. Migration risks and rollback
-- **Highest risk:** M3 (session split), M4 (subject clone), M6 (guardians), M7 (lifecycle). All are gated by BL-62 and BL-65.
+- **Highest risk:** M3 (session split), M4 (subject clone), M6 (guardians), M7 (lifecycle). All are gated by BL-62 and BL-65. The BL-62 rules, review queue and execution procedure are in [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md) (draft, awaiting approval).
 - **Rollback = restore the pre-migration backup and redeploy the previous build.** Expand steps are backward-compatible so the previous build keeps working; contract steps ship a release later. Keep `legacy*Id` columns for traceability.
 - Never merge guardians on name similarity; never expose one school's students to another school's staff; ambiguous rows are exported for manual review, never guessed.
 - No migration runs on shared/production data without an approved BL-62 strategy, a passing BL-65 rehearsal and a fresh verified backup.

@@ -26,5 +26,5 @@ Earlier columns (`User.schoolId`, `User.campusId`) were added nullable without b
 
 ## Additional gates (decided 2026-09-20; not yet available)
 - Data-migrating changes use the **expand → backfill → contract** pattern (contract one release later) and must first pass the **migration test harness (BL-65)** with a reconciliation report and a manual-review list.
-- The BL-62 strategy must be approved before session/subject/fee/guardian/lifecycle migrations run.
+- The BL-62 strategy ([MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md), draft awaiting approval) must be approved before session/subject/fee/guardian/lifecycle migrations run; run `npm run migration:dry-run -- --url <production copy>` and resolve blocking review rows first (§8 of that document).
 - Rollback = restore the pre-migration backup and redeploy the previous build ([ROLLBACK](ROLLBACK.md)).

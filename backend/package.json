@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:harness": "node migration-harness/run.mjs",
     "migration:harness:test": "node --test migration-harness/harness.test.mjs",
+    "migration:dry-run": "node migration-harness/dry-run-cli.mjs",
     "docs:generate": "node ../scripts/docs/generate.mjs",
     "docs:check": "node ../scripts/docs/generate.mjs --check",
     "docs:test": "node --test ../scripts/docs/lib.test.mjs",
