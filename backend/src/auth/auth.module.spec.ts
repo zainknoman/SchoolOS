@@ -16,11 +16,23 @@ describe('jwtModuleFactory', () => {
     });
   });
 
-  it('falls back to the dev-only default when JWT_ACCESS_SECRET is unset', () => {
+  it('falls back to the dev-only default when JWT_ACCESS_SECRET is unset in development', () => {
+    const config = {
+      get: jest.fn((key: string) =>
+        key === 'NODE_ENV' ? 'development' : undefined,
+      ),
+    } as unknown as ConfigService;
+
+    expect(jwtModuleFactory(config).secret).toBe('dev-only-change-me-access');
+  });
+
+  it('refuses the fallback when NODE_ENV is unset too (BL-51: unset is not development)', () => {
     const config = {
       get: jest.fn().mockReturnValue(undefined),
     } as unknown as ConfigService;
 
-    expect(jwtModuleFactory(config).secret).toBe('dev-only-change-me-access');
+    expect(() => jwtModuleFactory(config)).toThrow(
+      /JWT_ACCESS_SECRET must be set/,
+    );
   });
 });

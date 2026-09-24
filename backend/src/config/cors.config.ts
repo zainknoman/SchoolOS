@@ -1,3 +1,5 @@
+import { isDevOrTestEnv } from './env.validation';
+
 // staff-console's Vite dev server default — the only origin that should reach this API without
 // explicit operator configuration. Anything beyond dev (staging/prod) must set CORS_ORIGINS.
 const DEV_DEFAULT_ORIGINS = ['http://localhost:5173'];
@@ -42,9 +44,8 @@ export function buildCorsOriginOption(
   nodeEnv: string | undefined,
 ): CorsOriginOption {
   const allowList = parseCorsOrigins(raw);
-  const env = nodeEnv ?? 'development';
-
-  if (env !== 'development' && env !== 'test') {
+  // Unset NODE_ENV is NOT development (BL-51): the strict allow-list applies.
+  if (!isDevOrTestEnv(nodeEnv)) {
     return allowList;
   }
 

@@ -53,11 +53,11 @@ describe('resolveFirebaseConfig', () => {
     ).toThrow(/Incomplete Firebase configuration/);
   });
 
-  it('treats an unset NODE_ENV as development (matches resolveAccessTokenSecret)', () => {
-    expect(
+  it('treats an unset NODE_ENV as strict, not development — a partial config is a startup error (BL-51)', () => {
+    expect(() =>
       resolveFirebaseConfig(
         fakeConfig({ FIREBASE_PROJECT_ID: 'schoolportal-prod' }),
       ),
-    ).toBeUndefined();
+    ).toThrow();
   });
 });

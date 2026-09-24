@@ -47,9 +47,9 @@ describe('resolveSmsConfig', () => {
     ).toThrow(/Incomplete SMS gateway configuration/);
   });
 
-  it('treats an unset NODE_ENV as development (matches resolveFirebaseConfig)', () => {
-    expect(
+  it('treats an unset NODE_ENV as strict, not development — a partial config is a startup error (BL-51)', () => {
+    expect(() =>
       resolveSmsConfig(fakeConfig({ SMS_GATEWAY_API_KEY: 'api-key-123' })),
-    ).toBeUndefined();
+    ).toThrow();
   });
 });

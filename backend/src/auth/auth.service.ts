@@ -185,8 +185,12 @@ export class AuthService {
       );
     } catch (err) {
       // Best-effort, same as NotificationsService.notify() — a delivery failure must never leak
-      // through to the caller (who already sees the same generic response either way).
-      console.error('Password reset email delivery failed', err);
+      // through to the caller (who already sees the same generic response either way). Only the
+      // error's name/message is logged, never the error object, which may echo the message (BL-51).
+      console.error(
+        'Password reset email delivery failed:',
+        err instanceof Error ? `${err.name}: ${err.message}` : 'unknown error',
+      );
     }
   }
 

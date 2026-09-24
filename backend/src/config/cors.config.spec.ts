@@ -58,10 +58,11 @@ describe('buildCorsOriginOption', () => {
     expect(allow(option, 'http://localhost:9999')).toBe(true);
   });
 
-  it('treats an unset NODE_ENV as development (matches resolveAccessTokenSecret)', () => {
+  it('treats an unset NODE_ENV as production-strict, not development (BL-51)', () => {
     const option = buildCorsOriginOption(undefined, undefined);
 
-    expect(allow(option, 'http://localhost:54321')).toBe(true);
+    expect(option).toEqual(['http://localhost:5173']);
+    expect(allow(option, 'http://localhost:54321')).toBe(false);
   });
 
   it('still rejects a non-localhost origin in development', () => {

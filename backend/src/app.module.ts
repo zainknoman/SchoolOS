@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { validateEnv } from './config/env.validation';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -50,7 +51,8 @@ import {
     ThrottlerModule.forRoot([
       { name: 'default', ttl: THROTTLE_TTL_MS, limit: GENERAL_THROTTLE_LIMIT },
     ]),
-    ConfigModule.forRoot({ isGlobal: true }),
+    // validateEnv refuses to boot on an unset NODE_ENV or placeholder secrets (BL-51).
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     ScheduleModule.forRoot(),
     PrismaModule,
     OrgScopeModule,

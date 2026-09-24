@@ -49,11 +49,11 @@ describe('resolveWhatsAppConfig', () => {
     ).toThrow(/Incomplete WhatsApp configuration/);
   });
 
-  it('treats an unset NODE_ENV as development (matches resolveFirebaseConfig)', () => {
-    expect(
+  it('treats an unset NODE_ENV as strict, not development — a partial config is a startup error (BL-51)', () => {
+    expect(() =>
       resolveWhatsAppConfig(
         fakeConfig({ WHATSAPP_BUSINESS_PHONE_ID: 'phone-id-123' }),
       ),
-    ).toBeUndefined();
+    ).toThrow();
   });
 });

@@ -10,7 +10,7 @@
 | KI-3 | Fees | Fee structures: no edit/delete; unscoped list | `fees.controller.ts` | mistakes permanent; cross-school visibility | DECIDED (school-scoped; draft/lock/archive) → BL-03 |
 | KI-4 | Notifications | SMS sender calls placeholder `api.sms-gateway.example.pk` | `sms-sender.ts:18` | SMS cannot work | DECIDED (adapter; provider TBD, RD-4) → BL-38 (post-pilot) |
 | KI-5 | Notifications | No retry/timeout/delivery status on any outbound call; failures swallowed | `notifications.service.ts:72`; adapters | silent message loss | — |
-| KI-6 | Config | `.env.example` lists unused `JWT_REFRESH_*`, omits `NODE_ENV`, `PORT`, `UPLOADS_DIR`, `WHATSAPP_*`, `SMS_GATEWAY_*` | [ENVIRONMENT](../operations/ENVIRONMENT.md) | misconfiguration | — |
+| KI-6 | Config | `.env.example` omits `PORT`, `UPLOADS_DIR`, `WHATSAPP_*`, `SMS_GATEWAY_*` (unused `JWT_REFRESH_*` removed and `NODE_ENV` added 2026-09-24, BL-51) | [ENVIRONMENT](../operations/ENVIRONMENT.md) | misconfiguration | — |
 | KI-7 | Config | `FRONTEND_URL` defaults to localhost; single URL for reset links although parents use the mobile app | `auth.service.ts:168` | reset link may be unusable for parents (UNKNOWN) | DECIDED (separate parent reset flow) → BL-35 |
 | KI-8 | API | No pagination anywhere; unbounded lists | API-1 | scale/performance | DECIDED (pilot targets Q44) → BL-40, BL-15 |
 | KI-9 | API | No global exception filter/request logging; default error bodies | API-2 | diagnosability | DECIDED (structured logs, Sentry) → BL-11 |

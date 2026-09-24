@@ -19,7 +19,7 @@ The pilot host, region, managed-PostgreSQL provider and S3-compatible vendor are
 ## Artifacts and commands that exist
 | Component | Build | Run | Output |
 |---|---|---|---|
-| Backend | `npm ci && npx prisma generate && npm run build` (`nest build`) | `npm run start:prod` (`node dist/main`) after `npx prisma migrate deploy` | `dist/` (Node ≥ 22 assumed; CI uses Node 24) |
+| Backend | `npm ci && npx prisma generate && npm run build` (`nest build`) | `npm run start:prod` (`node dist/src/main` — corrected 2026-09-24; the previous `node dist/main` pointed at a file the build never produces) after `npx prisma migrate deploy` | `dist/` (Node ≥ 22 assumed; CI uses Node 24) |
 | Staff console | `npm ci && npm run build` (`vue-tsc` + `vite build`) with `VITE_API_BASE_URL` set | static files from `dist/` behind any web server | static SPA (needs SPA fallback routing) |
 | Parent app | `flutter build apk|appbundle|ios` with `--dart-define=API_BASE_URL=…` | store distribution (no signing/store config documented; `flutter run -d chrome` is dev only) | mobile binaries |
 

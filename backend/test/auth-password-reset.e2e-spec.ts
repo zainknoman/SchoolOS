@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import * as argon2 from 'argon2';
@@ -61,6 +61,47 @@ describe('Forgot/Reset Password (e2e)', () => {
       where: { userId },
     });
     expect(tokenRows).toHaveLength(1);
+  });
+
+  it('forgot-password never writes the reset link or token to any log (BL-51, KG-4)', async () => {
+    const captured: string[] = [];
+    const capture = (chunk: unknown): boolean => {
+      captured.push(String(chunk));
+      return true;
+    };
+    const out = jest.spyOn(process.stdout, 'write').mockImplementation(capture);
+    const err = jest.spyOn(process.stderr, 'write').mockImplementation(capture);
+    const methods = ['log', 'info', 'warn', 'error', 'debug'] as const;
+    const consoleSpies = methods.map((m) =>
+      jest.spyOn(console, m).mockImplementation((...args: unknown[]) => {
+        captured.push(args.map(String).join(' '));
+      }),
+    );
+    // @nestjs/testing's TestingLogger drops log-level output before it reaches a stream, so the
+    // Logger API itself is captured too (it is what a production ConsoleLogger would print).
+    const loggerMethods = ['log', 'warn', 'error', 'debug', 'verbose'] as const;
+    const loggerSpies = loggerMethods.map((m) =>
+      jest
+        .spyOn(Logger.prototype, m)
+        .mockImplementation((...args: unknown[]) => {
+          captured.push(args.map(String).join(' '));
+        }),
+    );
+    try {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/forgot-password')
+        .send({ identifier: userIdentifier })
+        .expect(201);
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+      [...consoleSpies, ...loggerSpies].forEach((s) => s.mockRestore());
+    }
+    const logged = captured.join('\n');
+    expect(logged).toContain('[mail:not-configured]');
+    expect(logged).not.toMatch(/reset-password\?token=/);
+    expect(logged).not.toMatch(/\b[0-9a-f]{64}\b/);
+    expect(logged).not.toContain(userIdentifier);
   });
 
   it('resetting with a fabricated (never-issued) token is rejected', async () => {

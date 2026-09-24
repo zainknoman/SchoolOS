@@ -16,6 +16,7 @@
 
 | Symptom | Likely cause (evidence) | Check / action |
 |---|---|---|
+| API refuses to start: "Refusing to start — invalid configuration: …" | Boot-time validation (BL-51, `config/env.validation.ts`): `NODE_ENV` unset/unknown, or outside dev/test a short/placeholder `JWT_ACCESS_SECRET` or missing `DATABASE_URL`/`CORS_ORIGINS`/`FRONTEND_URL`. Every problem is listed | Fix each listed variable; never set `NODE_ENV=development` on a server to get past it |
 | API refuses to start: "JWT_ACCESS_SECRET must be set…" | `NODE_ENV` is not development/test and the variable is unset (`jwt-secret.ts`) | Set the secret |
 | API refuses to start: "PAYMENT_STUB_WEBHOOK_SECRET…" / partial provider config error | Some but not all variables of a provider (SMTP, Firebase, JazzCash, EasyPaisa, WhatsApp, SMS) are set (`*-config.ts`) | Set all or none; see [ENVIRONMENT](ENVIRONMENT.md) |
 | Users cannot log in: "Account temporarily locked" | 5 failed attempts → 15-minute lock (`auth.constants.ts`) | Wait 15 min or clear `failedLoginCount`/`lockedUntil` on the `User` row (direct SQL; no admin unlock endpoint exists) |

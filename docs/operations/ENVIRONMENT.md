@@ -7,7 +7,7 @@
 | Variable | Req.? | Default / fallback | Secret | Notes and failure mode |
 |---|---|---|---|---|
 | `DATABASE_URL` | **Required** everywhere | none | Yes | PostgreSQL URL (`postgresql://user:pass@host:5432/db?schema=public`); read by `prisma.config.ts` and `PrismaService`. Missing ⇒ Prisma error at start |
-| `NODE_ENV` | **Effectively required in production** | unset ⇒ treated as `development` | No | `development`/`test` enable insecure fallbacks (JWT secret, stub webhook secret, localhost CORS, provider stubs). `test` relaxes throttling. **Set `production`** (KG-3) |
+| `NODE_ENV` | **Required everywhere** (BL-51) | none — the API refuses to start when unset or not one of `development`, `test`, `staging`, `production` | No | `development`/`test` enable local fallbacks (JWT secret, stub webhook secret, localhost CORS, provider stubs); `test` relaxes throttling. Anything else is strict |
 | `PORT` | No | `3000` | No | `main.ts` |
 | `CORS_ORIGINS` | Required outside dev/test | `http://localhost:5173` | No | comma-separated origins; dev/test additionally allow any localhost origin |
 | `JWT_ACCESS_SECRET` | **Required** outside dev/test | `dev-only-change-me-access` in dev/test | Yes | Boot error if unset outside dev/test; **any non-empty value is accepted, including `change-me`** (KG-2) |
@@ -24,10 +24,12 @@
 | `SMS_GATEWAY_API_KEY`, `SMS_GATEWAY_SENDER_ID` | Optional as a group | unset ⇒ logging adapter | Yes | sender calls a **placeholder URL** (`sms-sender.ts:18`); **missing from `.env.example`** |
 | `ANTHROPIC_API_KEY` | Optional | unset ⇒ stub drafting provider | Yes | |
 
-**In `.env.example` but not read by code:** `JWT_REFRESH_SECRET`, `JWT_REFRESH_TTL` (refresh tokens are opaque and fixed at 30 days — `auth.constants.ts`). **Read by code but absent from `.env.example`:** `NODE_ENV`, `PORT`, `UPLOADS_DIR`, `WHATSAPP_*`, `SMS_GATEWAY_*`.
+**Boot-time validation (BL-51, `src/config/env.validation.ts`).** Outside `development`/`test` the API refuses to start — listing every problem at once — unless `JWT_ACCESS_SECRET` is at least 32 characters and not a placeholder (`change-me`, `secret`, `example`, `dev-only`, …) and `DATABASE_URL`, `CORS_ORIGINS` and `FRONTEND_URL` are set. An empty value counts as unset. Generate a secret with `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`.
+
+`JWT_REFRESH_SECRET`/`JWT_REFRESH_TTL` were removed from `.env.example` (2026-09-24): refresh tokens are opaque and fixed at 30 days (`auth.constants.ts`). **Read by code but absent from `.env.example`:** `PORT`, `UPLOADS_DIR`, `WHATSAPP_*`, `SMS_GATEWAY_*`.
 
 ## Decided environment policy (owner, 2026-09-20) — not all implemented
-- **Separate secrets per environment** (development, staging, production); nothing shared. `NODE_ENV=production` must be set explicitly in staging and production (KG-3, BL-51). Placeholder values such as `change-me` must be rejected at startup (BL-51).
+- **Separate secrets per environment** (development, staging, production); nothing shared. `NODE_ENV` must be set explicitly (`staging`/`production` on servers) and placeholder secrets are rejected at startup — **implemented 2026-09-24 (BL-51)**.
 - Variables the decided design **adds** (names indicative, `NOT IMPLEMENTED`): object-storage endpoint/bucket/credentials (BL-10); Sentry DSN and scrubbing settings (BL-11); bootstrap SUPER_ADMIN credentials, consumed once (BL-22); separate parent reset base URL/deep-link scheme (BL-35); per-integration feature flags, default **off** for payment gateways, WhatsApp and AI drafting (Q34, Q38, Q39); SMS/e-mail provider selection variables (Q36, Q37).
 - `FRONTEND_URL` remains a single staff-console URL today; parents must not be sent to it (KI-7 -> BL-35).
 - Signing keys, keystores, Firebase service accounts and store credentials are **never committed** (Q32); the parent app's `firebase_options.dart` placeholder is replaced per environment (BL-34, BL-43).

@@ -416,10 +416,19 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue({ ...baseUser });
       prisma.passwordResetToken.create.mockResolvedValue({});
       mailAdapter.send.mockRejectedValue(new Error('smtp down'));
+      const consoleError = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
 
       await expect(
         service.forgotPassword('parent@schoolos.edu.pk'),
       ).resolves.toBeUndefined();
+      // Only the error's name/message is logged — never the error object (BL-51).
+      expect(consoleError).toHaveBeenCalledWith(
+        'Password reset email delivery failed:',
+        'Error: smtp down',
+      );
+      consoleError.mockRestore();
     });
   });
 

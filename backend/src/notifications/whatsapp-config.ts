@@ -1,13 +1,14 @@
 import { ConfigService } from '@nestjs/config';
+import { isDevOrTestEnv } from '../config/env.validation';
 
 export interface WhatsAppConfig {
   phoneNumberId: string;
   accessToken: string;
 }
 
+// Unset NODE_ENV is NOT development (BL-51); boot-time validateEnv already requires it.
 function isDevOrTest(config: ConfigService): boolean {
-  const nodeEnv = config.get<string>('NODE_ENV') ?? 'development';
-  return nodeEnv === 'development' || nodeEnv === 'test';
+  return isDevOrTestEnv(config.get<string>('NODE_ENV'));
 }
 
 /**

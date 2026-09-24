@@ -26,7 +26,7 @@
 | 18 | Rate limiting | Partial | global 100/min + auth 5/min; keyed by client IP — behind a proxy without `trust proxy` (not set) all clients may share one bucket: **Unknown** in deployment |
 | 19 | File upload security | Partial | 10 MB limit; **extension blacklist** (not allowlist); random storage key; forced download; MIME type client-reported and stored; no malware scan; no per-user quota |
 | 20 | Secrets management | Configuration required | env vars only; no vault/rotation procedure; startup fail-fast for partial provider config |
-| 21 | Production-mode detection | Partial | `NODE_ENV` unset ⇒ treated as `development` (`jwt-secret.ts:11`, all `*-config.ts`) — a deploy that forgets it silently uses dev fallbacks (KG-3) |
+| 21 | Production-mode detection | Implemented (2026-09-24, BL-51) | `NODE_ENV` is required at boot (`config/env.validation.ts`); unset or unknown values refuse to start; outside dev/test placeholder/short JWT secrets and missing `DATABASE_URL`/`CORS_ORIGINS`/`FRONTEND_URL` refuse to start |
 | 22 | Audit logging | Partial | `AuditLog` on many writes; no old/new values, no reads, completeness unproven ([HISTORY](../database/HISTORY.md)) |
 | 23 | Application logging hygiene | Partial | 4 `console.*` calls + Nest `Logger`; **`LoggingMailAdapter` logs full password-reset links/tokens when SMTP is unset (in any environment)** (KG-4); no PII-redaction policy |
 | 24 | Error leakage | Unknown | no exception filter; Nest defaults hide stack traces in the response; unhandled Prisma errors return 500 generic body |

@@ -4,8 +4,8 @@
 > Each line is either a configuration step or an engineering gap. `[ ]` = not done/not verifiable from the repository. Engineering gaps cannot be closed by configuration and link to [KNOWN-GAPS](KNOWN-GAPS.md).
 
 ## Configuration (can be done without code changes)
-- [ ] `NODE_ENV=production` set on the backend process (**mandatory**; otherwise dev fallbacks apply — KG-3)
-- [ ] `JWT_ACCESS_SECRET` set to a long random value (not `change-me`); rotate on a schedule (KG-2)
+- [ ] `NODE_ENV=production` set on the backend process (**mandatory**; the API refuses to start without it — BL-51)
+- [ ] `JWT_ACCESS_SECRET` set to a long random value (≥ 32 characters, not a placeholder — enforced at boot since BL-51); rotate on a schedule
 - [ ] `CORS_ORIGINS` set to the exact staff-console origin(s); confirm localhost is not allowed (only dev/test allows it)
 - [ ] `DATABASE_URL` uses a least-privilege database role, TLS to the database, and a private network path
 - [ ] TLS terminated in front of the API (HTTPS only, HSTS at the proxy); staff console served over HTTPS
