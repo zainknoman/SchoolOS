@@ -129,6 +129,9 @@ All 15 were answered. "Residual" = what is still TBD. None of the residuals is a
 | RD-14 | **Pilot payment gateways are OFF.** Manual fee recording, vouchers/receipts, manual payment status and manual reconciliation must work; JazzCash/EasyPaisa stay behind configuration flags; nothing blocks pilot deployment; future gateways enable without redesigning fee architecture | — | BL-08, BL-14 |
 | RD-15 | **No cleanup yet.** Do not delete the sample4 CSVs, worktrees or branches; no LFS migration; no removals/renames. Recommended actions are documented; a separate controlled housekeeping phase follows product-readiness review with explicit authorisation | authorisation to clean | BL-58 |
 
+## BL-62 migration-strategy decisions (owner, 2026-09-24)
+The owner approved the **recommended option for each of D1–D8** in [MIGRATION-STRATEGY §9](../database/MIGRATION-STRATEGY.md): D1 anchor school keeps a shared session/subject/fee structure, other schools get clones; D2 unreferenced rows in a multi-school database are assigned or deleted explicitly, never copied; D3 a holiday without a campus is copied to every school and listed; D4 a circular without a school stays null (SUPER_ADMIN and past recipients only) until assigned; D5 fee structures attributed by voucher label with a confirmation list; D6 guardian relationship/primary-slot rules G4/G5; D7 more than one active session blocks M3; D8 review queue = `MigrationReviewItem` table + SQL runbook. This satisfies the RD-11 “strategy documented before executing” requirement; each migration still needs its harness scenario, production-copy dry-run and backup (§8).
+
 ## Remaining unresolved decisions / TBDs only
 | # | Item | Nature | Blocks |
 |---|---|---|---|

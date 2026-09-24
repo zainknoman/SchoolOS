@@ -19,7 +19,7 @@
 
 ## 2. Dependency chain
 `Wave 0 (BL-62 strategy · BL-65 harness · BL-66 generators · BL-37 part 1 · BL-18 scaffold)` → `Wave 1 (BL-51 · BL-12 · BL-21 → BL-64 · BL-22 · BL-52 · BL-60 [M1])` → `Wave 2 (BL-10 · BL-11 · BL-39 · BL-40 ∥ BL-13 infra)` → `Wave 3 (M2/BL-20 · M3/BL-01 · M4/BL-02 · M5/BL-03 · BL-33 · BL-32 · BL-53 · BL-34)` → `Wave 4 (M6/BL-23+BL-04 · M7/BL-61 → BL-05 · M8/BL-25 · M9/BL-07+BL-63 · BL-41)` → `Wave 5 (BL-26 · BL-27 · BL-06 · BL-28 · BL-29 [M1b])` → `Wave 6 (BL-08 · BL-30 · BL-35 · BL-43 · BL-54 · BL-14 FCM)` → `Wave 7 (BL-15 · BL-55 · BL-36 · BL-37 part 2 · BL-56 · BL-57 · BL-58)`.
-Hard gates: **BL-62 approved + BL-65 available** before any of BL-01, BL-02, BL-03, BL-20 (M2), BL-23, BL-61 executes; **BL-21 before BL-64**; **BL-60 (M1) before BL-29 (M1b)**; **BL-61 before BL-05**; **BL-40 (pagination) before new list screens**; **BL-34 before BL-43** (identifiers created once); **BL-66 before the first regeneration of docs**.
+Hard gates: **BL-62 approved (✅ 2026-09-24) + BL-65 available (✅)** before any of BL-01, BL-02, BL-03, BL-20 (M2), BL-23, BL-61 executes; **BL-21 before BL-64**; **BL-60 (M1) before BL-29 (M1b)**; **BL-61 before BL-05**; **BL-40 (pagination) before new list screens**; **BL-34 before BL-43** (identifiers created once); **BL-66 before the first regeneration of docs**.
 
 ## 3. Schema / migration order (schema before application code)
 Every data-changing migration uses **expand → backfill → contract** (contract one release later), an idempotent backfill script, a dry-run reconciliation report, and is rehearsed on the BL-65 harness first.
@@ -72,7 +72,7 @@ Every wave also refreshes the `Verified:` header (date and commit).
 | **Prerequisites that never substitute for engineering** | FCM project, staging host, S3 backup/restore, privacy notice, incident process — each gates go-live/exit **in addition to** the code items |
 
 ## 7. Migration risks and rollback
-- **Highest risk:** M3 (session split), M4 (subject clone), M6 (guardians), M7 (lifecycle). All are gated by BL-62 and BL-65. The BL-62 rules, review queue and execution procedure are in [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md) (draft, awaiting approval).
+- **Highest risk:** M3 (session split), M4 (subject clone), M6 (guardians), M7 (lifecycle). All are gated by BL-62 and BL-65. The BL-62 rules, review queue and execution procedure are in [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md) (approved 2026-09-24).
 - **Rollback = restore the pre-migration backup and redeploy the previous build.** Expand steps are backward-compatible so the previous build keeps working; contract steps ship a release later. Keep `legacy*Id` columns for traceability.
 - Never merge guardians on name similarity; never expose one school's students to another school's staff; ambiguous rows are exported for manual review, never guessed.
 - No migration runs on shared/production data without an approved BL-62 strategy, a passing BL-65 rehearsal and a fresh verified backup.

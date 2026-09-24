@@ -1,7 +1,7 @@
 # Existing-School Data Migration Strategy (BL-62)
 
-> **Status:** DRAFT — **awaiting owner approval** (Product Owner + Engineering Lead). Nothing in this document has been executed. · **Verified:** 2026-09-24 against `wave-0/foundations` (`backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `fee-vouchers.service.ts`; harness `backend/migration-harness/`) · **Sources:** [OWNER-DECISIONS](../product/OWNER-DECISIONS.md) Q1–Q4, RD-10, RD-11; [BACKLOG](../product/requirements/BACKLOG.md) BL-01/02/03/20/23/60/61/62/65; [EXECUTION-PLAN](../release/EXECUTION-PLAN.md) §3 · **Owner:** Engineering Lead (Technical Owner)
-> This is the RD-11 gate: **no migration among M2–M7 runs on shared or production data until this strategy is approved**, its migration has passed a BL-65 harness scenario, the dry-run has been run on a fresh production copy, every *blocking* review row is resolved, and a verified backup exists. The decisions in §9 are the ones that need sign-off.
+> **Status:** CURRENT — **APPROVED 2026-09-24** (owner ruling: the recommended option for every decision D1–D8, §9 and §11). Nothing in this document has been executed yet. · **Verified:** 2026-09-24 against `wave-0/foundations` (`backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `fee-vouchers.service.ts`; harness `backend/migration-harness/`) · **Sources:** [OWNER-DECISIONS](../product/OWNER-DECISIONS.md) Q1–Q4, RD-10, RD-11; [BACKLOG](../product/requirements/BACKLOG.md) BL-01/02/03/20/23/60/61/62/65; [EXECUTION-PLAN](../release/EXECUTION-PLAN.md) §3 · **Owner:** Engineering Lead (Technical Owner)
+> This is the RD-11 gate: **no migration among M2–M7 runs on shared or production data until this strategy is approved**, its migration has passed a BL-65 harness scenario, the dry-run has been run on a fresh production copy, every *blocking* review row is resolved, and a verified backup exists. The strategy itself is now approved (§11); the remaining gates are per migration.
 
 ## 1. Principles (RD-11)
 1. **Explicit and auditable.** Every automatic change follows a rule in this document; every row no rule covers goes to the manual-review queue (§7). Nothing is guessed, and no record is assigned to an arbitrary "current" session, school or guardian.
@@ -84,10 +84,11 @@
 5. **Reconcile.** Row counts per table must equal the pre-migration counts plus the expected clones. Violation queries must return 0: every re-pointed dependent references a session or subject of its own school, and no dependent of school B points at school A's row. Anything unmapped must appear in the review queue.
 6. **Isolation check.** The cross-school e2e suite runs against the migrated copy.
 7. **Contract.** One release later, apply `NOT NULL` and unique constraints once blocking-for-contract rows = 0.
+- **Dev-database note.** The local development database currently has 12 active sessions (e2e leftovers). Under D7 it must be cleaned before M3 is rehearsed on it; production copies are checked by the dry-run in step 2.
 - **Rollback** = restore the pre-migration backup and redeploy the previous build ([ROLLBACK](../release/ROLLBACK.md)). Because the expand steps are additive, the previous build also runs on a migrated database, so a failed backfill does not force a restore unless data is wrong.
 
-## 9. Decisions requiring approval
-| # | Decision | Recommended option | Alternative |
+## 9. Decisions (approved 2026-09-24 — recommended option taken for each)
+| # | Decision | **Approved option** | Rejected alternative |
 |---|---|---|---|
 | D1 | Shared session/subject/fee structure | Anchor school keeps the original (most dependents); other schools get clones | Clone for every school and retire the original (more churn, more re-pointing) |
 | D2 | Unreferenced sessions/subjects/fee structures in a multi-school database | Listed; owner assigns or deletes; never copied | Copy into every school as inactive (duplication, against RD-11) |
@@ -126,5 +127,5 @@
 ## 11. Approval
 | Role | Name | Decision | Date |
 |---|---|---|---|
-| Product Owner | — | pending | — |
-| Engineering Lead | — | pending | — |
+| Product Owner | Owner (ruling in session) | Approved D1–D8 as recommended | 2026-09-24 |
+| Engineering Lead | Owner (same ruling; role assignee is placeholder T-1) | Approved | 2026-09-24 |

@@ -36,7 +36,7 @@
 | 14 | Owner decisions integrated (50 answers + conflict rulings) | ⚠ | 2026-09-20 | `docs/product/OWNER-DECISIONS.md`, rewritten `BACKLOG.md`, `docs/release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md`, `docs/audit/2026-09-20-housekeeping-inspection.md`, `LICENSE` (placeholder notice), updated SECURITY/DATA-PROTECTION/operations/release/product docs | **DOCS_ONLY mode:** no code, config, schema or repository state changed; nothing committed; housekeeping inspected only. ⚠ = open placeholders/TBD values only (RD-1…RD-15 answered; see OWNER-DECISIONS) |
 
 | 14b | Wave 0 documentation/planning correction pass (findings F1–F10) | ✅ | 2026-09-20 | `docs/release/EXECUTION-PLAN.md`; corrections to BACKLOG, BUSINESS-RULES, KNOWN-ISSUES/GAPS, GAP-ANALYSIS, ADR-0006, TENANCY; new BL-65 (migration harness), BL-66 (doc generators) | documentation only; no code, schema, CI or repository change; not committed |
-| 14c | Wave 0 completion: BL-62 strategy draft + dry-run coverage; BL-18 failing-first e2e scaffold | ⚠ | 2026-09-24 | `docs/database/MIGRATION-STRATEGY.md`, `backend/migration-harness/dry-run*.mjs`, `backend/test/pending/` | BL-62 **awaits owner approval** (D1–D8); branch `wave-0/foundations` |
+| 14c | Wave 0 completion: BL-62 strategy + dry-run coverage; BL-18 failing-first e2e scaffold | ✅ | 2026-09-24 | `docs/database/MIGRATION-STRATEGY.md`, `backend/migration-harness/dry-run*.mjs`, `backend/test/pending/` | BL-62 **approved 2026-09-24** (D1–D8 as recommended); branch `wave-0/foundations` |
 
 ### Remaining work (status after Phase 14, 2026-09-20)
 | # | Item | Type | Status | Reference |
