@@ -53,7 +53,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | Suite | Files | Test blocks |
 |---|---|---|
 | Backend unit (`backend/src/**/*.spec.ts`) | 88 | 629 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 29 | 232 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 30 | 235 |
 | Staff console (`staff-console/src/**/*.spec.ts`) | 73 | 494 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 30 | — |
 
@@ -73,6 +73,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `fees.e2e-spec.ts` | 11 |
 | `gradebook.e2e-spec.ts` | 10 |
 | `holidays-complaints-report-cards.e2e-spec.ts` | 12 |
+| `job-lock.e2e-spec.ts` | 3 |
 | `leave.e2e-spec.ts` | 6 |
 | `me.e2e-spec.ts` | 9 |
 | `messages-notifications.e2e-spec.ts` | 7 |

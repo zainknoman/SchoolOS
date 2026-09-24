@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { JobLockService } from '../prisma/job-lock.service';
 import { AttendanceRiskJob } from './attendance-risk.job';
 import { AttendanceRiskService } from './attendance-risk.service';
 
@@ -12,6 +13,13 @@ describe('AttendanceRiskJob', () => {
       providers: [
         AttendanceRiskJob,
         { provide: AttendanceRiskService, useValue: attendanceRiskService },
+        {
+          provide: JobLockService,
+          useValue: {
+            runExclusive: (_n: string, fn: () => Promise<void>) =>
+              fn().then(() => 'ran'),
+          },
+        },
       ],
     }).compile();
     job = moduleRef.get(AttendanceRiskJob);

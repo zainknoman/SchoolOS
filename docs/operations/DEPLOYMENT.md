@@ -24,7 +24,7 @@ The pilot host, region, managed-PostgreSQL provider and S3-compatible vendor are
 | Parent app | `flutter build apk|appbundle|ios` with `--dart-define=API_BASE_URL=…` | store distribution (no signing/store config documented; `flutter run -d chrome` is dev only) | mobile binaries |
 
 ## Minimum topology a deployment must provide
-1. **One** backend process for the pilot (jobs and file storage currently assume a single instance — see below; decided to be removed by BL-10/BL-39) behind a TLS-terminating reverse proxy. Point the load balancer's health check at `GET /health/ready` and the external uptime probe at `GET /health/live` (BL-11). Set `TRUST_PROXY` to the number of proxy hops (usually `1`) so rate limiting keys on the real client IP (BL-12).
+1. **One** backend process for the pilot. Jobs (BL-39) and file storage (BL-10) are now safe with several instances; only rate limiting is still per instance (see below) behind a TLS-terminating reverse proxy. Point the load balancer's health check at `GET /health/ready` and the external uptime probe at `GET /health/live` (BL-11). Set `TRUST_PROXY` to the number of proxy hops (usually `1`) so rate limiting keys on the real client IP (BL-12).
 2. PostgreSQL 16+ with backups ([BACKUP-RESTORE](BACKUP-RESTORE.md)).
 3. **S3-compatible object storage (BL-10, implemented):** `STORAGE_DRIVER=s3` + `S3_*` (boot refuses local storage outside development/test). Moving an existing installation: deploy with S3 configured, run `npm run storage:copy-to-s3 -- --dry-run`, then `npm run storage:copy-to-s3` (same keys, size + SHA-256 verified, re-runnable; missing local files are reported, never deleted). Keep the old `UPLOADS_DIR` until a verified run reports 0 failed.
 4. Static hosting for the staff console with its origin listed in `CORS_ORIGINS`.
@@ -42,9 +42,9 @@ No release automation or tags exist yet; the convention is decided (Semantic Ver
 ## Runtime constraints (why one instance)
 | Constraint | Detail | Evidence |
 |---|---|---|
-| Scheduled jobs | `AttendanceRiskJob` (03:00 daily) and `DigestDispatchJob` (every 15 min) run inside every instance; two instances ⇒ duplicate flags/digests | `attendance-risk.constants.ts`, `digest-dispatch.job.ts:9` |
+| Scheduled jobs | **Resolved by BL-39:** `AttendanceRiskJob` (03:00 daily) and `DigestDispatchJob` (every 15 min) fire in every instance, but only the instance holding a PostgreSQL advisory lock runs them (`JobLockService`); the jobs are also idempotent, so clock skew cannot duplicate flags or digests (e2e `job-lock` with two instances) | `prisma/job-lock.service.ts` |
 | File storage | **Resolved by BL-10** when `STORAGE_DRIVER=s3` (required outside dev/test): files live in the bucket, so instances are interchangeable. Development/test still use the local disk (`UPLOADS_DIR`) | `local-disk-storage.adapter.ts:9` |
-| Rate limiting | in-memory counters per process | `ThrottlerModule` default storage |
+| Rate limiting | **Per instance (documented, BL-39):** in-memory counters in each process, so with N instances a client can make up to N× the limits. The pilot runs one instance; before scaling out, move the throttler to shared storage (e.g. Redis) | `ThrottlerModule` default storage |
 | Sessions | stateless JWT + DB refresh tokens — horizontally safe | `auth.service.ts` |
 
 ## Scaling notes (unmeasured)

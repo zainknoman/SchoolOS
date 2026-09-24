@@ -40,7 +40,7 @@ Rule (`*-config.ts`): a provider with *some but not all* variables set is a star
 | `AttendanceRiskJob` | `0 3 * * *` | flag high-absence students |
 | `DigestDispatchJob` | `*/15 * * * *` | send bundled digest notifications |
 
-They run inside every backend instance; no distributed lock (single-instance assumption).
+They are scheduled in every backend instance, but each run goes through `JobLockService.runExclusive` (BL-39): a PostgreSQL transaction-scoped advisory lock lets one instance run and the others skip; the lock is released on commit, rollback or crash.
 
 ## Cross-cutting behaviour
 Validation: global `ValidationPipe`. Errors: Nest defaults plus `prisma-*-guard`. Audit: many services write `AuditLog` rows (`userId`, `action`, `entity`, `entityId`). Notification delivery is best-effort: `notifications.service.ts:72` logs and swallows failures; no retry. PDFs (vouchers, receipts, report cards) via pdfkit.

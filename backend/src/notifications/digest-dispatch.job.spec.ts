@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { JobLockService } from '../prisma/job-lock.service';
 import { DigestDispatchJob } from './digest-dispatch.job';
 import { PrismaService } from '../prisma/prisma.service';
 import { PUSH_ADAPTER } from './push-adapter';
@@ -25,6 +26,13 @@ describe('DigestDispatchJob', () => {
 
     const moduleRef = await Test.createTestingModule({
       providers: [
+        {
+          provide: JobLockService,
+          useValue: {
+            runExclusive: (_n: string, fn: () => Promise<void>) =>
+              fn().then(() => 'ran'),
+          },
+        },
         DigestDispatchJob,
         { provide: PrismaService, useValue: prisma },
         { provide: PUSH_ADAPTER, useValue: push },

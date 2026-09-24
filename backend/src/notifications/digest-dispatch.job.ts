@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
+import { JobLockService } from '../prisma/job-lock.service';
 import { PUSH_ADAPTER } from './push-adapter';
 import type { PushAdapter } from './push-adapter';
 import {
@@ -28,10 +29,20 @@ export class DigestDispatchJob {
     @Inject(PUSH_ADAPTER) private readonly push: PushAdapter,
     @Inject(WHATSAPP_ADAPTER) private readonly whatsapp: PushAdapter,
     @Inject(SMS_ADAPTER) private readonly sms: PushAdapter,
+    private readonly jobLock: JobLockService,
   ) {}
 
   @Cron(DIGEST_DISPATCH_CRON)
   async run(): Promise<void> {
+    try {
+      // BL-39: only one instance dispatches per run — two would send each digest twice.
+      await this.jobLock.runExclusive('digest-dispatch', () => this.dispatch());
+    } catch (err) {
+      this.logger.error('Digest dispatch failed', err as Error);
+    }
+  }
+
+  async dispatch(): Promise<void> {
     const digestUsers = await this.prisma.user.findMany({
       where: { digestEnabled: true },
       select: { id: true, notificationChannel: true },
