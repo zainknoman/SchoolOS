@@ -7,7 +7,7 @@
 | Asset | Location | Notes |
 |---|---|---|
 | Database | PostgreSQL `DATABASE_URL` | all business data and PII |
-| Uploaded files | `UPLOADS_DIR` (local disk) | referenced by `File` rows; database and files must be restored **consistently** or downloads 404 |
+| Uploaded files | S3-compatible bucket (`STORAGE_DRIVER=s3`, BL-10); `UPLOADS_DIR` only in development/test | referenced by `File` rows; database and bucket must be restored **consistently** or downloads 404 — enable bucket versioning so a restored database can point at the object versions it knew |
 | Secrets/config | environment | needed to restart; JWT secret change invalidates sessions |
 | Migrations/code | git | reproducible |
 
@@ -25,7 +25,7 @@ Restore must use the **provider-supported restore capability** of the (TBD) mana
 Backup encryption keys and off-site copy location (depends on the TBD hosting provider); who is authorised to restore (role `[OPS_OWNER]`; person not yet assigned); restore-test cadence after the pilot; interaction of backup retention with the future PII retention policy (retention periods TBD, BL-63).
 
 ## Minimal procedure to write once tooling is chosen
-1. Scheduled logical (`pg_dump`) or physical backup of the database **and** snapshot of `UPLOADS_DIR` at the same time.
+1. Scheduled logical (`pg_dump`) or physical backup of the database **and** the bucket's versioning/lifecycle (or a bucket snapshot) covering the same point in time (`UPLOADS_DIR` only for development/test).
 2. Before every deploy that runs migrations: on-demand backup (rollback depends on it).
 3. Restore rehearsal into a scratch database: restore dump → `npx prisma migrate status` → start the API against it → smoke tests ([RELEASE-VALIDATION](../testing/RELEASE-VALIDATION.md)).
 4. Record the result and duration of each rehearsal.

@@ -17,7 +17,10 @@
 | `JWT_ACCESS_SECRET` | **Required** outside dev/test | `dev-only-change-me-access` in dev/test | Yes | Boot error if unset outside dev/test; **any non-empty value is accepted, including `change-me`** (KG-2) |
 | `JWT_ACCESS_TTL` | No | `15m` | No | `ms`-style string; invalid value fails at JWT module registration |
 | `FRONTEND_URL` | Required for password-reset links | `http://localhost:5173` | No | Base URL placed in reset emails (`auth.service.ts:168`); a single URL — how parent-app users complete a reset from a link is **UNKNOWN** |
-| `UPLOADS_DIR` | No | `./uploads` (process cwd) | No | Local-disk file store; not in `.env.example` |
+| `STORAGE_DRIVER` | **`s3` required outside development/test** (BL-10) | `local` | No | `local` writes to `UPLOADS_DIR` (development/test only; boot validation refuses it elsewhere); `s3` uses the S3-compatible bucket below |
+| `S3_BUCKET` / `S3_REGION` / `S3_ENDPOINT` / `S3_FORCE_PATH_STYLE` / `S3_KEY_PREFIX` | `S3_BUCKET` required with `STORAGE_DRIVER=s3` | region `us-east-1`; endpoint = AWS; path-style `false`; prefix none | No | Any S3-compatible provider (vendor TBD, RD-3): set `S3_ENDPOINT` and usually `S3_FORCE_PATH_STYLE=true` |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | With `STORAGE_DRIVER=s3` unless the host provides credentials (instance role) | SDK default chain | **Yes** | Bucket-scoped credentials only |
+| `UPLOADS_DIR` | No | `./uploads` (process cwd) | No | Local-disk file store (development/test), and the source directory for `npm run storage:copy-to-s3` |
 | `SEED_PASSWORD` | Only for `npm run prisma:seed` | none (seed throws) | Yes | Never set in production |
 | `JAZZCASH_MERCHANT_ID`, `_PASSWORD`, `_INTEGRITY_SALT`, `_RETURN_URL`, `_API_URL` | Optional as a group | all unset ⇒ gateway disabled | Yes (first three) | Partial set ⇒ startup error outside dev/test |
 | `EASYPAISA_STORE_ID`, `_HASH_KEY`, `_RETURN_URL`, `_API_URL` | Optional as a group | all unset ⇒ disabled | Yes (`HASH_KEY`) | same rule |

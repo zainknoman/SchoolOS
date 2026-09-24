@@ -8,6 +8,8 @@ describe('validateEnv (BL-51)', () => {
     DATABASE_URL: 'postgresql://app@db:5432/schoolos',
     CORS_ORIGINS: 'https://console.example.pk',
     FRONTEND_URL: 'https://console.example.pk',
+    STORAGE_DRIVER: 's3',
+    S3_BUCKET: 'schoolos-files',
   };
 
   it('refuses to boot when NODE_ENV is unset (it no longer defaults to development)', () => {
@@ -62,10 +64,21 @@ describe('validateEnv (BL-51)', () => {
     const problems = findEnvProblems({ NODE_ENV: 'production' });
     expect(problems).toEqual([
       'JWT_ACCESS_SECRET must be set when NODE_ENV=production.',
+      'STORAGE_DRIVER must be "s3" when NODE_ENV=production (local disk storage is for development/test only).',
       'DATABASE_URL must be set when NODE_ENV=production.',
       'CORS_ORIGINS must be set when NODE_ENV=production.',
       'FRONTEND_URL must be set when NODE_ENV=production.',
     ]);
+  });
+
+  it('requires S3 storage with a bucket outside development/test (BL-10)', () => {
+    expect(findEnvProblems({ ...production, STORAGE_DRIVER: 'local' })).toEqual(
+      [expect.stringMatching(/STORAGE_DRIVER must be "s3"/)],
+    );
+    expect(findEnvProblems({ ...production, S3_BUCKET: '' })).toEqual([
+      'S3_BUCKET must be set when STORAGE_DRIVER=s3.',
+    ]);
+    expect(findEnvProblems({ NODE_ENV: 'development' })).toEqual([]);
   });
 
   it('treats whitespace-only values as unset', () => {

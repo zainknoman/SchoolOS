@@ -26,7 +26,7 @@ The pilot host, region, managed-PostgreSQL provider and S3-compatible vendor are
 ## Minimum topology a deployment must provide
 1. **One** backend process for the pilot (jobs and file storage currently assume a single instance — see below; decided to be removed by BL-10/BL-39) behind a TLS-terminating reverse proxy. Set `TRUST_PROXY` to the number of proxy hops (usually `1`) so rate limiting keys on the real client IP (BL-12).
 2. PostgreSQL 16+ with backups ([BACKUP-RESTORE](BACKUP-RESTORE.md)).
-3. Today: persistent, backed-up volume for `UPLOADS_DIR`. **Decided replacement:** S3-compatible object storage (BL-10); local disk must not hold permanent uploads in production.
+3. **S3-compatible object storage (BL-10, implemented):** `STORAGE_DRIVER=s3` + `S3_*` (boot refuses local storage outside development/test). Moving an existing installation: deploy with S3 configured, run `npm run storage:copy-to-s3 -- --dry-run`, then `npm run storage:copy-to-s3` (same keys, size + SHA-256 verified, re-runnable; missing local files are reported, never deleted). Keep the old `UPLOADS_DIR` until a verified run reports 0 failed.
 4. Static hosting for the staff console with its origin listed in `CORS_ORIGINS`.
 5. Environment configuration per [ENVIRONMENT](ENVIRONMENT.md) and the [hardening checklist](../security/HARDENING-CHECKLIST.md).
 6. Monitoring/log collection ([MONITORING-LOGGING](MONITORING-LOGGING.md)); the API has no health endpoint, so use TCP or an authenticated/`GET /` probe with the caveat that `GET /` does not touch the database.
@@ -43,7 +43,7 @@ No release automation or tags exist yet; the convention is decided (Semantic Ver
 | Constraint | Detail | Evidence |
 |---|---|---|
 | Scheduled jobs | `AttendanceRiskJob` (03:00 daily) and `DigestDispatchJob` (every 15 min) run inside every instance; two instances ⇒ duplicate flags/digests | `attendance-risk.constants.ts`, `digest-dispatch.job.ts:9` |
-| File storage | Uploaded files live on the instance's local disk (`UPLOADS_DIR` or `./uploads`); a second instance or an ephemeral container filesystem loses/hides files | `local-disk-storage.adapter.ts:9` |
+| File storage | **Resolved by BL-10** when `STORAGE_DRIVER=s3` (required outside dev/test): files live in the bucket, so instances are interchangeable. Development/test still use the local disk (`UPLOADS_DIR`) | `local-disk-storage.adapter.ts:9` |
 | Rate limiting | in-memory counters per process | `ThrottlerModule` default storage |
 | Sessions | stateless JWT + DB refresh tokens — horizontally safe | `auth.service.ts` |
 

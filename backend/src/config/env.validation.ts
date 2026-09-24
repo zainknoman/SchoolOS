@@ -69,6 +69,14 @@ export function findEnvProblems(env: Record<string, unknown>): string[] {
       );
     }
   }
+  // BL-10: no persistent local file writes outside development/test (owner decision Q40).
+  if (str('STORAGE_DRIVER').toLowerCase() !== 's3') {
+    problems.push(
+      `STORAGE_DRIVER must be "s3" when NODE_ENV=${nodeEnv} (local disk storage is for development/test only).`,
+    );
+  } else if (!str('S3_BUCKET')) {
+    problems.push(`S3_BUCKET must be set when STORAGE_DRIVER=s3.`);
+  }
   for (const key of REQUIRED_OUTSIDE_DEV) {
     if (!str(key))
       problems.push(`${key} must be set when NODE_ENV=${nodeEnv}.`);

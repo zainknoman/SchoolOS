@@ -37,7 +37,8 @@
 | Students/vouchers land in the wrong session in a multi-school setup | Global active-session lookup (Q1, KG-7) | Correct data manually; needs product decision |
 | Attendance cannot be marked | an **admin** marker and the section has no class teacher (`Attendance.markedById` is a required Teacher FK; teachers are unaffected — **defect vs the decided rule, RD-8 → BL-60**), or the day is a holiday (`attendance.service.ts`) | Assign a class teacher as a workaround until BL-60 ships; check holidays |
 | Leave cannot be approved | section has no class teacher (`leave.service.ts:109`) — **defect vs the decided rule** (KI-26, BL-29) | Assign a class teacher as a workaround until BL-29 ships |
-| Uploaded files missing after redeploy | `UPLOADS_DIR` on ephemeral disk | Mount persistent storage; restore files ([BACKUP-RESTORE](BACKUP-RESTORE.md)) |
+| Uploaded files missing after redeploy | `STORAGE_DRIVER` not `s3` (only possible in development/test) or wrong bucket/prefix | Check `S3_*`; for a migrated system re-run `npm run storage:copy-to-s3` (idempotent) and read its `missing` list ([BACKUP-RESTORE](BACKUP-RESTORE.md)) |
+| Downloads fail with 500 after switching to S3 | Credentials/endpoint/path-style wrong, or objects not copied | `npm run storage:copy-to-s3 -- --dry-run` shows what is not in the bucket; fix `S3_*` |
 | Digest/risk jobs run twice | two backend instances (ADR-0008) | Run one instance |
 | Deleting a record returns 400 "still referenced" | FK restriction (`prisma-delete-guard.ts`) | Remove/relocate dependents first |
 | Parents see another school's circular | KG-1 | Known defect (BL-20) |
