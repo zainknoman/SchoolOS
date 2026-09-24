@@ -122,7 +122,9 @@
 | Attendance | 3,321 rows; the actor is recoverable for **121** (seeded rows have no audit trail, so most stay null under A3) |
 | `LEFT` students | 0 |
 
-**Not yet evidenced.** No production copy has been examined, and no M1–M7 migration exists yet. Each will add its own harness scenario (step 1 of §8) before it runs.
+**M1 (BL-60) rehearsal** (`npm run migration:harness -- m1-attendance-actor`, 2026-09-25): legacy schema → M1 → backfill → second backfill run: attendance row count unchanged; 4 of 6 rows resolved through all three audit actions, 2 left null (A3); no `markedById` changed; the admin-marked row names the admin while keeping its legacy Teacher id; the second run changed nothing (idempotent). Deploy order: migration, then `npm run backfill:m1`.
+
+**Not yet evidenced.** No production copy has been examined, and M2–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval
 | Role | Name | Decision | Date |

@@ -2,7 +2,8 @@ import request from 'supertest';
 import { createTwoSchools, pending, TwoSchools } from './two-school-fixture';
 
 /**
- * BL-18 scaffold: failing-first e2e tests for BL-20, BL-01, BL-23, BL-60 and BL-29 (BL-64 graduated to test/account-access.e2e-spec.ts).
+ * BL-18 scaffold: failing-first e2e tests for BL-20, BL-01 and BL-23 (BL-64 graduated to test/account-access.e2e-spec.ts; BL-60 and the BL-29
+ * approval case to test/attendance-actor.e2e-spec.ts).
  * Every test states the TARGET behaviour from docs/product/requirements/BACKLOG.md and is expected
  * to FAIL today for the reason in its comment (see two-school-fixture.ts for how `pending` works).
  * When an item is implemented, move its tests into the regular suite as plain `it`.
@@ -21,54 +22,6 @@ describe('BL-18 failing-first scaffold (e2e)', () => {
 
   afterAll(async () => {
     await f.close();
-  });
-
-  describe('BL-60 attendance without a class teacher', () => {
-    // Today: 400 "this student's section has no class teacher assigned" — Attendance.markedById is
-    // a required Teacher FK and an admin has no Teacher profile (attendance.service.ts).
-    pending(
-      'a SCHOOL_ADMIN marks attendance in a section with no class teacher; the row names the admin',
-      async () => {
-        const res = await http()
-          .post('/api/v1/attendance')
-          .set('Authorization', `Bearer ${tokens['admin-a']}`)
-          .send({
-            studentId: f.ids.studentANoTeacher,
-            date: '2026-02-02',
-            status: 'PRESENT',
-          });
-        expect(res.status).toBe(201);
-        const row = await f.prisma.attendance.findUniqueOrThrow({
-          where: { id: res.body.id },
-        });
-        expect(row).toMatchObject({ markedById: null });
-        expect((row as Record<string, unknown>).markedByUserId).toBeDefined();
-      },
-    );
-  });
-
-  describe('BL-29 leave approval without a class teacher', () => {
-    // Today: 400 "Cannot approve leave: this student's section has no class teacher assigned".
-    pending(
-      'a SCHOOL_ADMIN approves leave for a student whose section has no class teacher',
-      async () => {
-        const created = await http()
-          .post('/api/v1/leave-requests')
-          .set('Authorization', `Bearer ${tokens['parent-a']}`)
-          .send({
-            studentId: f.ids.studentANoTeacher,
-            startDate: '2026-02-10',
-            endDate: '2026-02-10',
-            reason: 'Fever',
-          })
-          .expect(201);
-        const res = await http()
-          .post(`/api/v1/leave-requests/${created.body.id}/approve`)
-          .set('Authorization', `Bearer ${tokens['admin-a']}`);
-        expect(res.status).toBe(201);
-        expect(res.body.status).toBe('approved');
-      },
-    );
   });
 
   describe('BL-20 circulars and holidays stay inside their school', () => {

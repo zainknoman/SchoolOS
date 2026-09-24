@@ -106,14 +106,13 @@ export class LeaveService {
   }
 
   /**
-   * Attendance.markedById is a required Teacher FK, so an admin approving leave (who has no
-   * Teacher profile of their own) can't be the marker — the write is attributed to the student's
-   * current class teacher instead. Any day in range already marked HOLIDAY is left untouched.
+   * The LEAVE rows are attributed to the approver (BL-60, M1): `markedByUserId` = the acting user,
+   * `markedById` only if that user is a Teacher — never the class teacher as a stand-in, and a class
+   * teacher is not required. Any day in range already marked HOLIDAY is left untouched.
    *
-   * Every precondition (must exist, must be pending, must have an active enrollment, that
-   * enrollment's section must have a class teacher) is resolved BEFORE any write — and the status
-   * update, the attendance upserts, and the audit-log write are wrapped in one $transaction. So a
-   * failure anywhere here (missing enrollment, no class teacher, or a mid-loop attendance write
+   * Every precondition (must exist, must be pending, must have an active enrollment) is resolved
+   * BEFORE any write — and the status update, the attendance upserts, and the audit-log write are
+   * wrapped in one $transaction. So a failure anywhere here (missing enrollment, or a mid-loop attendance write
    * failure) leaves the LeaveRequest row untouched at 'pending' — never stuck in a broken
    * 'approved' state with no attendance rows and no audit trail. Mirrors
    * FeePaymentsService.confirm()'s pattern: preconditions/reads resolved first, the transaction
@@ -135,18 +134,16 @@ export class LeaveService {
       );
     }
 
-    const enrollment = await this.enrollmentService.getCurrentEnrollment(
-      existing.studentId,
-    );
-    const section = await this.prisma.section.findUnique({
-      where: { id: enrollment.sectionId },
+    // A leave request only makes sense for an enrolled student (throws otherwise).
+    await this.enrollmentService.getCurrentEnrollment(existing.studentId);
+    const approverTeacher = await this.prisma.teacher.findUnique({
+      where: { userId: actingUserId },
+      select: { id: true },
     });
-    if (!section?.classTeacherId) {
-      throw new BadRequestException(
-        "Cannot approve leave: this student's section has no class teacher assigned",
-      );
-    }
-    const classTeacherId = section.classTeacherId;
+    const markedBy = {
+      markedByUserId: actingUserId,
+      markedById: approverTeacher?.id ?? null,
+    };
 
     const record = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.leaveRequest.update({
@@ -182,9 +179,9 @@ export class LeaveService {
             studentId: updated.studentId,
             date,
             status: 'LEAVE',
-            markedById: classTeacherId,
+            ...markedBy,
           },
-          update: { status: 'LEAVE', markedById: classTeacherId },
+          update: { status: 'LEAVE', ...markedBy },
         });
       }
 

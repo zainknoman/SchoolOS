@@ -66,6 +66,7 @@
 | verifiedStaffDocuments | StaffDocument[] (relation) |  |
 | reviewedHiringApplications | HiringApplication[] (relation) |  |
 | promotionsDecided | StudentPromotion[] (relation) |  |
+| attendanceMarked | Attendance[] (relation) | @relation("AttendanceMarkedByUser") |
 
 Block attributes: `@@index([role])` · `@@index([schoolId])` · `@@index([campusId])`
 
@@ -770,12 +771,14 @@ Block attributes: `@@index([sectionId])`
 | student | Student (relation) | @relation(fields: [studentId], references: [id], onDelete: Restrict) |
 | date | DateTime |  |
 | status | AttendanceStatus (enum) |  |
-| markedById | String |  |
-| markedBy | Teacher (relation) | @relation("AttendanceMarkedBy", fields: [markedById], references: [id]) |
+| markedById | String? |  |
+| markedBy | Teacher? (relation) | @relation("AttendanceMarkedBy", fields: [markedById], references: [id], onDelete: Restrict) |
+| markedByUserId | String? |  |
+| markedByUser | User? (relation) | @relation("AttendanceMarkedByUser", fields: [markedByUserId], references: [id], onDelete: SetNull) |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@unique([studentId, date])` · `@@index([studentId])`
+Block attributes: `@@unique([studentId, date])` · `@@index([studentId])` · `@@index([markedByUserId])`
 
 ### AttendanceRiskFlag
 

@@ -46,11 +46,9 @@ export class AttendanceService {
    * and it lives behind the `@Roles('TEACHER','SCHOOL_ADMIN','SUPER_ADMIN')` guard on the
    * controller, never exposed to PARENT. Every write is audit-logged (never skippable).
    *
-   * `Attendance.markedById` is a required Teacher FK. A TEACHER has a Teacher profile and is
-   * attributed directly; a SCHOOL_ADMIN/SUPER_ADMIN doesn't, so — mirroring
-   * LeaveService.approve()'s identical problem for admin-approved leave — the write is attributed
-   * to the student's current section's class teacher instead. The AuditLog row still names the
-   * real acting user (markingUserId), regardless of whose Teacher id the FK points at.
+   * Attribution (BL-60, migration M1): `markedByUserId` is always the real acting user;
+   * `markedById` (the Teacher FK) is set only when that user IS a Teacher. An admin marking a
+   * section is never attributed to the class teacher, and a class teacher is not required.
    */
   async markAttendance(dto: MarkAttendanceDto, markingUserId: string) {
     const enrollment = await this.enrollmentService.getCurrentEnrollment(
@@ -59,12 +57,7 @@ export class AttendanceService {
     const date = new Date(dto.date);
     await this.assertNotHoliday(date, enrollment.campusId);
 
-    const teacher = await this.prisma.teacher.findUnique({
-      where: { userId: markingUserId },
-    });
-    const markedById = teacher
-      ? teacher.id
-      : await this.resolveClassTeacherIdFrom(enrollment);
+    const markedBy = await this.attributionFor(markingUserId);
 
     const record = await this.prisma.attendance.upsert({
       where: { studentId_date: { studentId: dto.studentId, date } },
@@ -72,9 +65,9 @@ export class AttendanceService {
         studentId: dto.studentId,
         date,
         status: dto.status,
-        markedById,
+        ...markedBy,
       },
-      update: { status: dto.status, markedById },
+      update: { status: dto.status, ...markedBy },
     });
 
     await this.prisma.auditLog.create({
@@ -94,18 +87,15 @@ export class AttendanceService {
     return record;
   }
 
-  private async resolveClassTeacherIdFrom(enrollment: {
-    sectionId: string;
-  }): Promise<string> {
-    const section = await this.prisma.section.findUnique({
-      where: { id: enrollment.sectionId },
+  /** Who a write is attributed to — the real actor; the Teacher FK only if the actor is one. */
+  private async attributionFor(
+    userId: string,
+  ): Promise<{ markedByUserId: string; markedById: string | null }> {
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { userId },
+      select: { id: true },
     });
-    if (!section?.classTeacherId) {
-      throw new BadRequestException(
-        "Cannot mark attendance: this student's section has no class teacher assigned",
-      );
-    }
-    return section.classTeacherId;
+    return { markedByUserId: userId, markedById: teacher?.id ?? null };
   }
 
   /**
@@ -124,27 +114,20 @@ export class AttendanceService {
     );
     await this.assertNotHoliday(date, enrollment.campusId);
 
-    const teacher = await this.prisma.teacher.findUnique({
-      where: { userId: markingUserId },
-    });
+    const markedBy = await this.attributionFor(markingUserId);
 
     const records = await this.prisma.$transaction(async (tx) => {
       const results: Awaited<ReturnType<typeof tx.attendance.upsert>>[] = [];
       for (const mark of dto.marks) {
-        const markedById = teacher
-          ? teacher.id
-          : await this.resolveClassTeacherIdFrom(
-              await this.enrollmentService.getCurrentEnrollment(mark.studentId),
-            );
         const record = await tx.attendance.upsert({
           where: { studentId_date: { studentId: mark.studentId, date } },
           create: {
             studentId: mark.studentId,
             date,
             status: mark.status,
-            markedById,
+            ...markedBy,
           },
-          update: { status: mark.status, markedById },
+          update: { status: mark.status, ...markedBy },
         });
         results.push(record);
       }

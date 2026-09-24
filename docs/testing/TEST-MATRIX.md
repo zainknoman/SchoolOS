@@ -53,7 +53,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | Suite | Files | Test blocks |
 |---|---|---|
 | Backend unit (`backend/src/**/*.spec.ts`) | 85 | 609 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 26 | 224 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 27 | 227 |
 | Staff console (`staff-console/src/**/*.spec.ts`) | 73 | 494 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 30 | — |
 
@@ -62,6 +62,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `account-access.e2e-spec.ts` | 16 |
 | `admissions.e2e-spec.ts` | 7 |
 | `app.e2e-spec.ts` | 1 |
+| `attendance-actor.e2e-spec.ts` | 5 |
 | `auth-password-reset.e2e-spec.ts` | 4 |
 | `auth.e2e-spec.ts` | 8 |
 | `bulk-import.e2e-spec.ts` | 13 |
@@ -77,7 +78,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `messages-notifications.e2e-spec.ts` | 7 |
 | `org-provisioning.e2e-spec.ts` | 36 |
 | `org-structure.e2e-spec.ts` | 15 |
-| `pending/bl18-failing-first.e2e-spec.ts` | 6 |
+| `pending/bl18-failing-first.e2e-spec.ts` | 4 |
 | `people-crud.e2e-spec.ts` | 5 |
 | `promotions.e2e-spec.ts` | 6 |
 | `rate-limiting.e2e-spec.ts` | 2 |

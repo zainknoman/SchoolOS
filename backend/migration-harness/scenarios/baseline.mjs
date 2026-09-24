@@ -1,12 +1,13 @@
 // Baseline scenario: the legacy dataset on the CURRENT schema + the BL-62 read-only dry-run. It proves the
 // fixture contains every ambiguous shape the planned migrations must handle, and gives the manual-review list.
-import { buildLegacyDataset } from '../fixtures/legacy-dataset.mjs';
+import { buildLegacyDataset, LEGACY_SCHEMA } from '../fixtures/legacy-dataset.mjs';
 import { dryRun } from '../dry-run.mjs';
 
 const expectEq = (name, actual, expected) => ({ name, ok: actual === expected, details: `actual=${actual} expected=${expected}` });
 
 export default {
   name: 'baseline',
+  legacyUpTo: LEGACY_SCHEMA,
   buildFixture: buildLegacyDataset,
   async checks(client, { manifest }) {
     const { summary } = await dryRun(client);

@@ -16,6 +16,10 @@
 //    null-campus holiday), attendance marked by teachers and by an admin attributed to the class teacher,
 //    a section without a class teacher, leave requests
 // Returns a manifest of ids and the expected counts used by scenario checks.
+// The schema production runs today (main): the last migration before the Wave 0/1 work. Scenarios
+// build their legacy database at this point and apply everything after it as the target.
+export const LEGACY_SCHEMA = '20260919141332_add_user_campus_scope';
+
 export async function buildLegacyDataset(client, insert) {
   const m = { ids: {}, expect: {} };
   const now = new Date('2026-01-15T00:00:00Z');
@@ -88,7 +92,7 @@ export async function buildLegacyDataset(client, insert) {
   const stGraduated = await mkStudent('GR-A-020', 'Graduate One', 'GRADUATED');
   const stWithdrawn = await mkStudent('GR-A-021', 'Withdrawn One', 'WITHDRAWN');
   const stNoTeacherSection = await mkStudent('GR-A-030', 'No Teacher Section', 'ACTIVE', secANoTeacher);
-  Object.assign(m.ids, { stActiveA: stActiveA.id, stActiveB: stActiveB.id, stLeftMatched: stLeftMatched.id, stLeftUnmatched1: stLeftUnmatched1.id, stLeftUnmatched2: stLeftUnmatched2.id });
+  Object.assign(m.ids, { stActiveA: stActiveA.id, stActiveB: stActiveB.id, stSimilar1: stSimilar1.id, stLeftMatched: stLeftMatched.id, stLeftUnmatched1: stLeftUnmatched1.id, stLeftUnmatched2: stLeftUnmatched2.id });
 
   // fee vouchers: items copy the structure's name/amount (no FK to FeeStructure)
   const voucher = async (student, sess, items) => {
@@ -139,6 +143,7 @@ export async function buildLegacyDataset(client, insert) {
   await insert('Attendance', { studentId: stActiveB.id, date: d('2026-01-12'), status: 'PRESENT', markedById: teacherB });
   await insert('AuditLog', { userId: teacherUserB, action: 'attendance.mark-bulk', entity: 'Attendance', metadata: JSON.stringify({ date: '2026-01-12', count: 1, studentIds: [stActiveB.id] }) });
   const attAdmin = await insert('Attendance', { studentId: stSimilar1.id, date: d('2026-01-14'), status: 'LEAVE', markedById: teacherA }); // admin-marked, attributed to class teacher
+  m.ids.attAdmin = attAdmin;
   await insert('AuditLog', { userId: adminA, action: 'attendance.mark', entity: 'Attendance', entityId: attAdmin, metadata: JSON.stringify({ studentId: stSimilar1.id, date: '2026-01-14', status: 'LEAVE' }) });
 
   // --- circulars / holidays without a reliable school anchor

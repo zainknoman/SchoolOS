@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { assertScratchName, createScratchDb, runScenario, snapshot, diffSnapshots, adminUrl } from './harness.mjs';
 import baseline from './scenarios/baseline.mjs';
+import m1 from './scenarios/m1-attendance-actor.mjs';
 import { buildLegacyDataset } from './fixtures/legacy-dataset.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -100,4 +101,10 @@ dbTest('snapshot is stable across identical databases built from the same fixtur
   } finally {
     await db.drop();
   }
+});
+
+dbTest('M1 (BL-60) rehearsal: backfill resolves the audited actors, keeps markedById, is idempotent', async () => {
+  const res = await runScenario(m1);
+  assert.equal(res.idempotent, true, JSON.stringify(res.idempotencyChanges));
+  assert.equal(res.ok, true, JSON.stringify(res.reconciliation.checks.filter((c) => !c.ok)));
 });

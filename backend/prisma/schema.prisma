@@ -173,6 +173,7 @@ model User {
   verifiedStaffDocuments     StaffDocument[]
   reviewedHiringApplications HiringApplication[]
   promotionsDecided          StudentPromotion[]
+  attendanceMarked           Attendance[]         @relation("AttendanceMarkedByUser")
 
   @@index([role])
   @@index([schoolId])
@@ -727,18 +728,24 @@ model Timetable {
 }
 
 model Attendance {
-  id         String           @id @default(uuid())
-  studentId  String
-  student    Student          @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  date       DateTime
-  status     AttendanceStatus
-  markedById String
-  markedBy   Teacher          @relation("AttendanceMarkedBy", fields: [markedById], references: [id])
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  id             String           @id @default(uuid())
+  studentId      String
+  student        Student          @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  date           DateTime
+  status         AttendanceStatus
+  // BL-60 (M1): the Teacher who marked it — set ONLY when the actor is a Teacher; never a stand-in.
+  markedById     String?
+  markedBy       Teacher?         @relation("AttendanceMarkedBy", fields: [markedById], references: [id], onDelete: Restrict)
+  // BL-60 (M1): the real acting user of the last write (teacher or admin). Null only on legacy rows
+  // whose actor could not be recovered from the audit log.
+  markedByUserId String?
+  markedByUser   User?            @relation("AttendanceMarkedByUser", fields: [markedByUserId], references: [id], onDelete: SetNull)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@unique([studentId, date])
   @@index([studentId])
+  @@index([markedByUserId])
 }
 
 model DiaryEntry {

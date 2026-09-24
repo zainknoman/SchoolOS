@@ -328,13 +328,20 @@ describe('Leave applications (e2e)', () => {
       .expect(400);
   });
 
-  it('a failed approve (no class teacher on the section) leaves the LeaveRequest persisted as pending, not stuck approved', async () => {
+  // BL-60 changed the failing precondition: a missing class teacher no longer blocks approval (see
+  // attendance-actor.e2e-spec.ts), so the rollback guarantee is proven with a student who has no
+  // active enrolment instead.
+  it('a failed approve (no active enrolment) leaves the LeaveRequest persisted as pending, not stuck approved', async () => {
     const adminToken = await loginAs('lv-admin@schoolos.edu.pk');
+    await prisma.enrollment.updateMany({
+      where: { studentId: ids.childC },
+      data: { status: 'WITHDRAWN' },
+    });
 
     await request(app.getHttpServer())
       .post(`/api/v1/leave-requests/${ids.noTeacherLeaveRequest}/approve`)
       .set('Authorization', `Bearer ${adminToken}`)
-      .expect(400);
+      .expect(404);
 
     // The real, persisted row — not a mock's call log — must still say 'pending'.
     const persisted = await prisma.leaveRequest.findUnique({

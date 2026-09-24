@@ -100,7 +100,8 @@ flowchart LR
   Timetable -->|Cascade| Subject
   Timetable -->|SetNull, optional| Teacher
   Attendance -->|Restrict| Student
-  Attendance -->|default| Teacher
+  Attendance -->|Restrict, optional| Teacher
+  Attendance -->|SetNull, optional| User
   DiaryEntry -->|Restrict| Section
   DiaryEntry -->|Cascade| Subject
   DiaryEntry -->|default| User

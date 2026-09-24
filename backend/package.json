@@ -26,7 +26,8 @@
     "docs:check": "node ../scripts/docs/generate.mjs --check",
     "docs:test": "node --test ../scripts/docs/lib.test.mjs",
     "prisma:seed": "ts-node -r tsconfig-paths/register prisma/seed.ts",
-    "bootstrap:super-admin": "node dist/src/cli/bootstrap-super-admin.main.js"
+    "bootstrap:super-admin": "node dist/src/cli/bootstrap-super-admin.main.js",
+    "backfill:m1": "node migration-harness/backfill-m1-cli.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
