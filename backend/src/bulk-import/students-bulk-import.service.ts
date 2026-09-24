@@ -1,3 +1,4 @@
+import { activeSessionForSchool } from '../academic-session/active-session';
 // backend/src/bulk-import/students-bulk-import.service.ts
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
@@ -127,24 +128,36 @@ export class StudentsBulkImportService {
       );
     }
 
-    // Enroll every imported student into the currently active academic session — the same rule
-    // StudentService.create() uses for a single admin-created student.
-    const activeSession = await this.prisma.academicSession.findFirst({
-      where: { isActive: true },
-    });
-    if (!activeSession) {
-      throw new BadRequestException(
-        'No active academic session — cannot enroll students',
-      );
-    }
+    // Enroll every imported student into the active session of ITS section's school (BL-01) —
+    // the same rule StudentService.create() uses for a single admin-created student.
+    const sessionBySchool = new Map<string, string>();
 
     const studentIds = await this.prisma.$transaction(async (tx) => {
       const ids: string[] = [];
       for (const { data } of rows) {
         const section = await tx.section.findUniqueOrThrow({
           where: { id: data.sectionId },
-          select: { id: true, class: { select: { campusId: true } } },
+          select: {
+            id: true,
+            class: {
+              select: {
+                campusId: true,
+                campus: { select: { schoolId: true } },
+              },
+            },
+          },
         });
+        const schoolId = section.class.campus.schoolId;
+        if (!sessionBySchool.has(schoolId)) {
+          const active = await activeSessionForSchool(tx, schoolId);
+          if (!active) {
+            throw new BadRequestException(
+              "No active academic session for a section's school — cannot enroll students",
+            );
+          }
+          sessionBySchool.set(schoolId, active.id);
+        }
+        const activeSession = { id: sessionBySchool.get(schoolId) as string };
         const { studentId } = await createStudentWithEnrollment(
           tx,
           {

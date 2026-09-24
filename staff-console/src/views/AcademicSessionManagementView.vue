@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { api, type AcademicSessionSummary } from '../lib/api';
+import { api, type AcademicSessionSummary, type SchoolSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
@@ -23,7 +23,12 @@ const newLabel = ref('');
 const newStart = ref('');
 const newEnd = ref('');
 const newActive = ref(false);
+// BL-01: each school runs its own calendar — a session is created for one school.
+const schools = ref<SchoolSummary[]>([]);
+const newSchoolId = ref('');
 const isSaving = ref(false);
+const schoolName = (id: string | null | undefined) =>
+  id ? (schools.value.find((s) => s.id === id)?.name ?? '—') : 'Unassigned (legacy)';
 
 const editingId = ref<string | null>(null);
 const editLabel = ref('');
@@ -34,7 +39,12 @@ const editActive = ref(false);
 async function load() {
   if (!auth.accessToken) return;
   try {
-    sessions.value = await api.listAcademicSessions(auth.accessToken);
+    [sessions.value, schools.value] = await Promise.all([
+      api.listAcademicSessions(auth.accessToken),
+      api.listSchools(auth.accessToken),
+    ]);
+    const only = schools.value.length === 1 ? schools.value[0] : undefined;
+    if (!newSchoolId.value && only) newSchoolId.value = only.id;
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load academic sessions.';
   }
@@ -43,6 +53,10 @@ load();
 
 async function onAdd() {
   if (!auth.accessToken || !newLabel.value.trim() || !newStart.value || !newEnd.value) return;
+  if (!newSchoolId.value) {
+    errorMessage.value = 'Choose the school this session belongs to.';
+    return;
+  }
   errorMessage.value = null;
   isSaving.value = true;
   try {
@@ -51,6 +65,7 @@ async function onAdd() {
       startDate: newStart.value,
       endDate: newEnd.value,
       isActive: newActive.value,
+      schoolId: newSchoolId.value,
     });
     newLabel.value = '';
     newStart.value = '';
@@ -124,6 +139,7 @@ async function onDelete(id: string) {
       :items="sessions"
       :columns="[
         { key: 'label', label: 'Label' },
+        { key: 'schoolId', label: 'School' },
         { key: 'startDate', label: 'Start' },
         { key: 'endDate', label: 'End' },
         { key: 'isActive', label: 'Active' },
@@ -131,6 +147,9 @@ async function onDelete(id: string) {
       row-key="id"
       :editing-id="editingId"
     >
+      <template #cell-schoolId="{ item }">
+        <span>{{ schoolName(item.schoolId) }}</span>
+      </template>
       <template #cell-label="{ item, editing }">
         <input v-if="editing" :data-testid="`edit-label-${item.id}`" v-model="editLabel" type="text" />
         <span v-else>{{ item.label }}</span>
@@ -163,6 +182,14 @@ async function onDelete(id: string) {
 
     <AppModal v-model="showAddForm" title="Add Academic Session">
       <div class="inline-form">
+        <FormField
+          v-model="newSchoolId"
+          label="School"
+          type="select"
+          data-testid="add-school"
+          placeholder="Choose a school"
+          :options="schools.map((s) => ({ value: s.id, label: s.name }))"
+        />
         <FormField v-model="newLabel" label="Session label" type="text" data-testid="add-label" placeholder="e.g. 2027-2028" />
         <FormField v-model="newStart" label="Start date" type="date" data-testid="add-start" />
         <FormField v-model="newEnd" label="End date" type="date" data-testid="add-end" />

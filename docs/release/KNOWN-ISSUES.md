@@ -5,7 +5,7 @@
 
 | ID | Area | Issue | Evidence | Impact | Decision needed |
 |---|---|---|---|---|---|
-| KI-1 | Org/Data | `AcademicSession` global; activation deactivates all; first-active lookups; seed contradicts | `academic-session.service.ts:49`, `student.service.ts:69`, `fee-vouchers.service.ts:30`, `students-bulk-import.service.ts:100`, `seed.ts:154` | wrong-session data in multi-school setups | DECIDED (school-scoped) → BL-01 |
+| KI-1 | Org/Data | `AcademicSession` global; activation deactivates all; first-active lookups; seed contradicts | `academic-session.service.ts:49`, `student.service.ts:69`, `fee-vouchers.service.ts:30`, `students-bulk-import.service.ts:100`, `seed.ts:154` | wrong-session data in multi-school setups | DECIDED (school-scoped) → BL-01 — **Resolved 2026-09-25 (BL-01, M3)** |
 | KI-2 | Org | No subject management (read-only list) | `subjects.controller.ts`; grep for `subject.create` in `src/`: none | cannot onboard subjects | DECIDED (school-scoped, CRUD, syllabus) → BL-02, BL-26 |
 | KI-3 | Fees | Fee structures: no edit/delete; unscoped list | `fees.controller.ts` | mistakes permanent; cross-school visibility | DECIDED (school-scoped; draft/lock/archive) → BL-03 |
 | KI-4 | Notifications | SMS sender calls placeholder `api.sms-gateway.example.pk` | `sms-sender.ts:18` | SMS cannot work | DECIDED (adapter; provider TBD, RD-4) → BL-38 (post-pilot) |

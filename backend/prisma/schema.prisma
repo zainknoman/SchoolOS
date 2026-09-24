@@ -196,25 +196,25 @@ model RefreshToken {
 // --- School structure -----------------------------------------------------
 
 model School {
-  id                 String     @id @default(uuid())
+  id                 String            @id @default(uuid())
   name               String
-  code               String?    @unique
+  code               String?           @unique
   registrationNumber String?
   website            String?
   logoFileId         String?
-  logo               File?      @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
+  logo               File?             @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
   principalName      String?
   principalPhone     String?
   principalEmail     String?
   establishedDate    DateTime?
   schoolType         String?
   educationBoard     String?
-  status             OrgStatus  @default(ACTIVE)
-  timezone           String?    @default("Asia/Karachi")
-  currency           String?    @default("PKR")
+  status             OrgStatus         @default(ACTIVE)
+  timezone           String?           @default("Asia/Karachi")
+  currency           String?           @default("PKR")
   alternatePhone     String?
   addressId          String?
-  structuredAddress  Address?   @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  structuredAddress  Address?          @relation(fields: [addressId], references: [id], onDelete: SetNull)
   address            String?
   phone              String?
   email              String?
@@ -222,8 +222,9 @@ model School {
   users              User[]
   circulars          Circular[]
   holidays           Holiday[]
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  academicSessions   AcademicSession[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 }
 
 model Campus {
@@ -265,19 +266,26 @@ model Campus {
 }
 
 model AcademicSession {
-  id           String        @id @default(uuid())
-  label        String // e.g. "2026-2027"
-  startDate    DateTime
-  endDate      DateTime
-  isActive     Boolean       @default(false)
-  classes      Class[]
-  feeVouchers  FeeVoucher[]
-  enrollments  Enrollment[]
-  reportCards  ReportCard[]
-  terms        Term[]
-  applications Application[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id              String        @id @default(uuid())
+  // BL-01 (M3): sessions are per school (Q1); activating one deactivates only that school's others.
+  schoolId        String?
+  school          School?       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  // Set on a per-school clone made by the M3 backfill: the global session it was split from.
+  legacySessionId String?
+  label           String // e.g. "2026-2027"
+  startDate       DateTime
+  endDate         DateTime
+  isActive        Boolean       @default(false)
+  classes         Class[]
+  feeVouchers     FeeVoucher[]
+  enrollments     Enrollment[]
+  reportCards     ReportCard[]
+  terms           Term[]
+  applications    Application[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([schoolId])
 }
 
 model Class {

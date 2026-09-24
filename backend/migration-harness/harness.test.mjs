@@ -5,10 +5,13 @@ import assert from 'node:assert/strict';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
-import { assertScratchName, createScratchDb, runScenario, snapshot, diffSnapshots, adminUrl } from './harness.mjs';
+import { assertScratchName, createScratchDb, runScenario, snapshot, diffSnapshots, adminUrl, applyMigrations, makeInserter } from './harness.mjs';
 import baseline from './scenarios/baseline.mjs';
 import m1 from './scenarios/m1-attendance-actor.mjs';
 import m2 from './scenarios/m2-school-anchors.mjs';
+import m3 from './scenarios/m3-school-sessions.mjs';
+import { runM3Backfill } from './backfills/m3-school-sessions.mjs';
+import { LEGACY_SCHEMA } from './fixtures/legacy-dataset.mjs';
 import { buildLegacyDataset } from './fixtures/legacy-dataset.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -114,4 +117,31 @@ dbTest('M2 (BL-20) rehearsal: school anchors backfilled by rule, the rest queued
   const res = await runScenario(m2);
   assert.equal(res.idempotent, true, JSON.stringify(res.idempotencyChanges));
   assert.equal(res.ok, true, JSON.stringify(res.reconciliation.checks.filter((c) => !c.ok)));
+});
+
+dbTest('M3 (BL-01) rehearsal: shared session split per school with dependents re-pointed, idempotent', async () => {
+  const res = await runScenario(m3);
+  assert.equal(res.idempotent, true, JSON.stringify(res.idempotencyChanges));
+  assert.equal(res.ok, true, JSON.stringify(res.reconciliation.checks.filter((c) => !c.ok)));
+});
+
+dbTest('M3 refuses to run while a school would have two active sessions (rule S5), changing nothing', async () => {
+  const db = await createScratchDb();
+  try {
+    await applyMigrations(db.client, { upTo: LEGACY_SCHEMA });
+    const insert = makeInserter(db.client);
+    const manifest = await buildLegacyDataset(db.client, insert);
+    // A second ACTIVE session used by school A (a class of school A points at it).
+    const extra = await insert('AcademicSession', { label: 'Extra', startDate: new Date('2026-01-01'), endDate: new Date('2026-12-31'), isActive: true });
+    await insert('Class', { campusId: manifest.ids.campusA, academicSessionId: extra, name: 'Class 9' });
+    await applyMigrations(db.client, { after: LEGACY_SCHEMA });
+    const before = await snapshot(db.client);
+    await assert.rejects(() => runM3Backfill(db.client), /M3 refused/);
+    const { rows } = await db.client.query(`SELECT count(*)::int AS n FROM "MigrationReviewItem" WHERE category = 'SESSION_MULTIPLE_ACTIVE' AND blocking`);
+    assert.equal(rows[0].n, 2);
+    const after = await snapshot(db.client);
+    assert.deepEqual(diffSnapshots(before, after).map((d) => d.table), ['MigrationReviewItem']);
+  } finally {
+    await db.drop();
+  }
 });

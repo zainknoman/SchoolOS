@@ -25,6 +25,7 @@ flowchart LR
   Campus -->|Cascade| School
   Campus -->|SetNull, optional| File
   Campus -->|SetNull, optional| Address
+  AcademicSession -->|Cascade, optional| School
   Class -->|Cascade| Campus
   Class -->|Cascade| AcademicSession
   Section -->|Cascade| Class

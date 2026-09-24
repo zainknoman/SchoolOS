@@ -9,6 +9,7 @@ describe('FeeVouchersService', () => {
     academicSession: { findFirst: jest.Mock };
     feeStructure: { findMany: jest.Mock };
     enrollment: { findMany: jest.Mock };
+    school: { findMany: jest.Mock };
     feeVoucher: {
       findMany: jest.Mock;
       create: jest.Mock;
@@ -22,6 +23,8 @@ describe('FeeVouchersService', () => {
       academicSession: { findFirst: jest.fn() },
       feeStructure: { findMany: jest.fn() },
       enrollment: { findMany: jest.fn() },
+      // BL-01: the students' school decides the session.
+      school: { findMany: jest.fn().mockResolvedValue([{ id: 'school-1' }]) },
       feeVoucher: {
         findMany: jest.fn(),
         create: jest.fn(),
@@ -59,8 +62,11 @@ describe('FeeVouchersService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('rejects issue() when there is no active academic session', async () => {
+  it("rejects issue() when the students' school has no active academic session", async () => {
     prisma.academicSession.findFirst.mockResolvedValue(null);
+    prisma.feeStructure.findMany.mockResolvedValue([
+      { id: 'fs-1', name: 'Tuition Fee', amount: 500000 },
+    ]);
 
     await expect(
       service.issue(
@@ -198,5 +204,48 @@ describe('FeeVouchersService', () => {
   it('getById throws NotFoundException for a missing voucher', async () => {
     prisma.feeVoucher.findUnique.mockResolvedValue(null);
     await expect(service.getById('missing')).rejects.toThrow(NotFoundException);
+  });
+
+  it('refuses to issue for students of two schools in one call (BL-01)', async () => {
+    prisma.feeStructure.findMany.mockResolvedValue([
+      { id: 'fs-1', name: 'Tuition Fee', amount: 500000 },
+    ]);
+    prisma.school.findMany.mockResolvedValue([
+      { id: 'school-1' },
+      { id: 'school-2' },
+    ]);
+    await expect(
+      service.issue(
+        {
+          studentIds: ['s1', 's9'],
+          month: '2026-09',
+          dueDate: '2026-09-10',
+          feeStructureIds: ['fs-1'],
+        },
+        'admin-1',
+      ),
+    ).rejects.toThrow(/one school at a time/);
+  });
+
+  it("uses the active session of the students' school", async () => {
+    prisma.feeStructure.findMany.mockResolvedValue([
+      { id: 'fs-1', name: 'Tuition Fee', amount: 500000 },
+    ]);
+    prisma.academicSession.findFirst.mockResolvedValue({ id: 'session-1' });
+    prisma.feeVoucher.findMany.mockResolvedValue([{ studentId: 's1' }]);
+    await expect(
+      service.issue(
+        {
+          studentIds: ['s1'],
+          month: '2026-09',
+          dueDate: '2026-09-10',
+          feeStructureIds: ['fs-1'],
+        },
+        'admin-1',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.academicSession.findFirst).toHaveBeenCalledWith({
+      where: { isActive: true, schoolId: 'school-1' },
+    });
   });
 });

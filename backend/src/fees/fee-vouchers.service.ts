@@ -1,3 +1,4 @@
+import { activeSessionForSchool } from '../academic-session/active-session';
 import {
   BadRequestException,
   Injectable,
@@ -23,8 +24,8 @@ export class FeeVouchersService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * This system runs a single active AcademicSession at a time (same assumption
-   * EnrollmentService already makes) — the caller never picks one, it's resolved here.
+   * The caller never picks a session: it is the active session of the students' school (BL-01).
+   * One call issues for one school's students only.
    */
   async issue(
     dto: IssueVouchersDto,
@@ -33,15 +34,6 @@ export class FeeVouchersService {
     if ((dto.studentIds?.length ? 1 : 0) + (dto.sectionId ? 1 : 0) !== 1) {
       throw new BadRequestException(
         'Provide exactly one of studentIds or sectionId',
-      );
-    }
-
-    const activeSession = await this.prisma.academicSession.findFirst({
-      where: { isActive: true },
-    });
-    if (!activeSession) {
-      throw new BadRequestException(
-        'No active academic session — cannot issue a voucher',
       );
     }
 
@@ -60,6 +52,36 @@ export class FeeVouchersService {
             select: { studentId: true },
           })
         ).map((e) => e.studentId);
+
+    const schools = await this.prisma.school.findMany({
+      where: {
+        campuses: {
+          some: {
+            enrollments: {
+              some: { studentId: { in: studentIds }, status: 'ACTIVE' },
+            },
+          },
+        },
+      },
+      select: { id: true },
+    });
+    const schoolIds = schools.map((s) => s.id);
+    if (schoolIds.length !== 1) {
+      throw new BadRequestException(
+        schoolIds.length === 0
+          ? 'None of these students has an active enrollment'
+          : 'Issue vouchers for one school at a time',
+      );
+    }
+    const activeSession = await activeSessionForSchool(
+      this.prisma,
+      schoolIds[0],
+    );
+    if (!activeSession) {
+      throw new BadRequestException(
+        'No active academic session for this school — cannot issue a voucher',
+      );
+    }
 
     const existing = await this.prisma.feeVoucher.findMany({
       where: {

@@ -13,4 +13,9 @@ export class CreateAcademicSessionDto {
 
   @IsBoolean()
   isActive!: boolean;
+
+  /** BL-01: the school whose calendar this session belongs to. */
+  @IsString()
+  @MinLength(1)
+  schoolId!: string;
 }

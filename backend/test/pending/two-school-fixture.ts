@@ -81,6 +81,7 @@ export async function createTwoSchools(prefix: string): Promise<TwoSchools> {
     });
     const session = await prisma.academicSession.create({
       data: {
+        schoolId: school.id, // BL-01: sessions belong to a school
         label: `${P} ${tag}`,
         startDate: new Date('2026-01-01'),
         endDate: new Date('2026-12-31'),

@@ -110,6 +110,8 @@ export interface CampusSummary {
 
 export interface AcademicSessionSummary {
   id: string;
+  /** BL-01: sessions belong to a school (null only for legacy rows awaiting the M3 backfill). */
+  schoolId?: string | null;
   label: string;
   startDate: string;
   endDate: string;
@@ -1271,7 +1273,7 @@ export const api = {
 
   async createAcademicSession(
     accessToken: string,
-    payload: { label: string; startDate: string; endDate: string; isActive: boolean },
+    payload: { label: string; startDate: string; endDate: string; isActive: boolean; schoolId: string },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/academic-sessions`, {
       method: 'POST',

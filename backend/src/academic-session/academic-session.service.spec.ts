@@ -21,6 +21,8 @@ describe('AcademicSessionService', () => {
       delete: jest.Mock;
     };
     auditLog: { create: jest.Mock };
+    school: { findUnique: jest.Mock };
+    user: { findUnique: jest.Mock };
     $transaction: jest.Mock;
   };
 
@@ -39,6 +41,8 @@ describe('AcademicSessionService', () => {
         delete: jest.fn(),
       },
       auditLog: { create: jest.fn() },
+      school: { findUnique: jest.fn().mockResolvedValue({ id: 'school-a' }) },
+      user: { findUnique: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(tx)),
     };
     const moduleRef = await Test.createTestingModule({
@@ -51,13 +55,14 @@ describe('AcademicSessionService', () => {
     service = moduleRef.get(AcademicSessionService);
   });
 
-  it('creating an active session deactivates every other session first, inside one transaction', async () => {
+  it("creating an active session deactivates that school's other sessions first, inside one transaction", async () => {
     tx.academicSession.create.mockResolvedValue({
       id: 'as2',
       label: '2027-2028',
       startDate: new Date('2027-08-01'),
       endDate: new Date('2028-06-30'),
       isActive: true,
+      schoolId: 'school-a',
     });
 
     const result = await service.create(
@@ -66,19 +71,22 @@ describe('AcademicSessionService', () => {
         startDate: '2027-08-01',
         endDate: '2028-06-30',
         isActive: true,
+        schoolId: 'school-a',
       },
       'admin-1',
     );
 
     expect(result).toEqual({
       id: 'as2',
+      schoolId: 'school-a',
       label: '2027-2028',
       startDate: '2027-08-01',
       endDate: '2028-06-30',
       isActive: true,
     });
+    // BL-01: only the same school's sessions are deactivated.
     expect(tx.academicSession.updateMany).toHaveBeenCalledWith({
-      where: { isActive: true },
+      where: { isActive: true, schoolId: 'school-a' },
       data: { isActive: false },
     });
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
@@ -106,6 +114,7 @@ describe('AcademicSessionService', () => {
         startDate: '2028-08-01',
         endDate: '2029-06-30',
         isActive: false,
+        schoolId: 'school-a',
       },
       'admin-1',
     );
@@ -118,6 +127,7 @@ describe('AcademicSessionService', () => {
       id: 'as1',
       label: '2026-2027',
       isActive: false,
+      schoolId: 'school-a',
     });
     tx.academicSession.update.mockResolvedValue({
       id: 'as1',
@@ -125,12 +135,14 @@ describe('AcademicSessionService', () => {
       startDate: new Date('2026-08-01'),
       endDate: new Date('2027-06-30'),
       isActive: true,
+      schoolId: 'school-a',
     });
 
     await service.update('as1', { isActive: true }, 'admin-1');
 
+    // BL-01: other schools' active sessions are not touched.
     expect(tx.academicSession.updateMany).toHaveBeenCalledWith({
-      where: { isActive: true, id: { not: 'as1' } },
+      where: { isActive: true, id: { not: 'as1' }, schoolId: 'school-a' },
       data: { isActive: false },
     });
   });
@@ -175,12 +187,14 @@ describe('AcademicSessionService', () => {
         startDate: new Date('2026-08-01'),
         endDate: new Date('2027-06-30'),
         isActive: true,
+        schoolId: 'school-a',
       },
     ]);
 
-    expect(await service.list()).toEqual([
+    expect(await service.list({ id: 'super-1', role: 'SUPER_ADMIN' })).toEqual([
       {
         id: 'as1',
+        schoolId: 'school-a',
         label: '2026-2027',
         startDate: '2026-08-01',
         endDate: '2027-06-30',
@@ -244,5 +258,55 @@ describe('AcademicSessionService', () => {
       BadRequestException,
     );
     expect(prisma.academicSession.delete).not.toHaveBeenCalled();
+  });
+
+  describe('BL-01 school-scoped sessions', () => {
+    it("a school admin lists only their school's sessions (and legacy school-less ones)", async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'admin-a',
+        schoolId: 'school-a',
+        campusId: null,
+      });
+      prisma.academicSession.findMany.mockResolvedValue([]);
+      await service.list({ id: 'admin-a', role: 'SCHOOL_ADMIN' });
+      expect(prisma.academicSession.findMany).toHaveBeenCalledWith({
+        where: { OR: [{ schoolId: 'school-a' }, { schoolId: null }] },
+        orderBy: { startDate: 'desc' },
+      });
+    });
+
+    it('a super admin can filter by school', async () => {
+      prisma.academicSession.findMany.mockResolvedValue([]);
+      await service.list({ id: 'super-1', role: 'SUPER_ADMIN' }, 'school-b');
+      expect(prisma.academicSession.findMany.mock.calls[0][0].where).toEqual({
+        schoolId: 'school-b',
+      });
+    });
+
+    it('creating a session for an unknown school is refused', async () => {
+      prisma.school.findUnique.mockResolvedValue(null);
+      await expect(
+        service.create(
+          {
+            label: 'x',
+            startDate: '2027-08-01',
+            endDate: '2028-06-30',
+            isActive: false,
+            schoolId: 'nope',
+          },
+          'admin-1',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(tx.academicSession.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses to copy a class structure between two schools', async () => {
+      prisma.academicSession.findUnique
+        .mockResolvedValueOnce({ id: 't', schoolId: 'school-a' })
+        .mockResolvedValueOnce({ id: 's', schoolId: 'school-b' });
+      await expect(
+        service.copyStructure('t', 's', { id: 'super-1', role: 'SUPER_ADMIN' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
   });
 });

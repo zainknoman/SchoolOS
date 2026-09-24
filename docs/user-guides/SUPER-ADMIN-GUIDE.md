@@ -8,9 +8,9 @@
 3. Open **School Profile / Campus Profile** to edit details later.
 Deleting a school or campus is blocked while anything still refers to it.
 
-## Academic sessions (platform-wide)
+## Academic sessions (per school)
 1. **Academic Sessions → create** a session (label like `2026-2027`, start and end dates).
-2. Tick *active* only for the session currently running. **Important:** activating a session **deactivates every other session for all schools** — sessions are shared by the whole platform. Students, fee vouchers and imports are attached to the active session, so coordinate school calendars before switching.
+2. Choose the **School**, then tick *active* only for the session currently running. Activating a session deactivates only that school's other sessions (BL-01); other schools keep their own calendars.
 3. Only super admins can create/edit/delete sessions in the UI.
 
 ## Classes

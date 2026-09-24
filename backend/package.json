@@ -29,7 +29,8 @@
     "bootstrap:super-admin": "node dist/src/cli/bootstrap-super-admin.main.js",
     "backfill:m1": "node migration-harness/backfill-m1-cli.mjs",
     "storage:copy-to-s3": "node dist/src/cli/copy-files-to-s3.main.js",
-    "backfill:m2": "node migration-harness/backfill-m2-cli.mjs"
+    "backfill:m2": "node migration-harness/backfill-m2-cli.mjs",
+    "backfill:m3": "node migration-harness/backfill-m3-cli.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

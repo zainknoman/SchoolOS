@@ -2,7 +2,7 @@ import request from 'supertest';
 import { createTwoSchools, pending, TwoSchools } from './two-school-fixture';
 
 /**
- * BL-18 scaffold: failing-first e2e tests for BL-01 and BL-23 (BL-20 graduated to test/school-anchors.e2e-spec.ts; BL-64 graduated to test/account-access.e2e-spec.ts; BL-60 and the BL-29
+ * BL-18 scaffold: failing-first e2e tests for BL-23 (BL-01 graduated to test/school-sessions.e2e-spec.ts; BL-20 graduated to test/school-anchors.e2e-spec.ts; BL-64 graduated to test/account-access.e2e-spec.ts; BL-60 and the BL-29
  * approval case to test/attendance-actor.e2e-spec.ts).
  * Every test states the TARGET behaviour from docs/product/requirements/BACKLOG.md and is expected
  * to FAIL today for the reason in its comment (see two-school-fixture.ts for how `pending` works).
@@ -38,29 +38,6 @@ describe('BL-18 failing-first scaffold (e2e)', () => {
         ).map((c) => c.studentId ?? c.id);
         expect(childIds).toContain(f.ids.studentB);
         expect(childIds).not.toContain(f.ids.studentA);
-      },
-    );
-  });
-
-  describe('BL-01 school-scoped academic sessions', () => {
-    // Today: activating any session deactivates every other session in every school (global flag).
-    // Kept last: it changes the active flags the other tests do not depend on.
-    pending(
-      "activating school A's session leaves school B's active session active",
-      async () => {
-        await f.prisma.academicSession.update({
-          where: { id: f.ids.sessionA },
-          data: { isActive: false },
-        });
-        await http()
-          .patch(`/api/v1/academic-sessions/${f.ids.sessionA}`)
-          .set('Authorization', `Bearer ${tokens.super}`)
-          .send({ isActive: true })
-          .expect(200);
-        const b = await f.prisma.academicSession.findUniqueOrThrow({
-          where: { id: f.ids.sessionB },
-        });
-        expect(b.isActive).toBe(true);
       },
     );
   });

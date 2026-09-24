@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Req,
+  Query,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { AcademicSessionService } from './academic-session.service';
@@ -40,8 +41,8 @@ export class AcademicSessionController {
   // (session definitions are structural, like Schools/Campuses/Classes).
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Get('academic-sessions')
-  list() {
-    return this.academicSessionService.list();
+  list(@Req() req: AuthenticatedRequest, @Query('schoolId') schoolId?: string) {
+    return this.academicSessionService.list(req.user, schoolId);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')

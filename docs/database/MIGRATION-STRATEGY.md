@@ -126,7 +126,9 @@
 
 **M2 (BL-20) rehearsal** (`npm run migration:harness -- m2-school-anchors`, 2026-09-25): circular count unchanged; C1 section circular → its school; C2 author circular → author's school; C3 SUPER_ADMIN circular stays null with 1 blocking review row; H1 campus holiday → its school; H2 the campus-less holiday kept in both schools (original + 1 copy, 2 non-blocking review rows); no holiday left without a school; second run changed nothing. Deploy order: migration, then `npm run backfill:m2`, then resolve review rows (§7 runbook).
 
-**Not yet evidenced.** No production copy has been examined, and M3–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
+**M3 (BL-01) rehearsal** (`npm run migration:harness -- m3-school-sessions`, 2026-09-25): classes/enrolments/vouchers unchanged in number; the shared session stays with the anchor school (A) and one clone (plus its term) is created for school B; school B's class, enrolments and assessment category re-pointed; no class/enrolment/category points across schools; the single-school session assigned; the unused session left unassigned (blocking review); the orphan voucher left in place (review); one active session per school; second run changed nothing. A separate self-test proves M3 refuses (and changes no data) when a school would have two active sessions. Deploy order: migration, then `npm run backfill:m3` (resolve `SESSION_MULTIPLE_ACTIVE` first if it refuses).
+
+**Not yet evidenced.** No production copy has been examined, and M4–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval
 | Role | Name | Decision | Date |

@@ -180,6 +180,7 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | users | User[] (relation) |  |
 | circulars | Circular[] (relation) |  |
 | holidays | Holiday[] (relation) |  |
+| academicSessions | AcademicSession[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -227,6 +228,9 @@ Block attributes: `@@unique([schoolId, code])` · `@@index([schoolId])`
 | Field | Type | Attributes |
 |---|---|---|
 | id | String | @id @default(uuid()) |
+| schoolId | String? |  |
+| school | School? (relation) | @relation(fields: [schoolId], references: [id], onDelete: Cascade) |
+| legacySessionId | String? |  |
 | label | String |  |
 | startDate | DateTime |  |
 | endDate | DateTime |  |
@@ -239,6 +243,8 @@ Block attributes: `@@unique([schoolId, code])` · `@@index([schoolId])`
 | applications | Application[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
+
+Block attributes: `@@index([schoolId])`
 
 ### Class
 

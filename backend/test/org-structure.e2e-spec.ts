@@ -311,6 +311,7 @@ describe('Org Structure (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         label: 'OS Session',
+        schoolId: ids.school,
         startDate: '2026-08-01',
         endDate: '2027-06-30',
         isActive: false,
@@ -749,6 +750,7 @@ describe('Org Structure (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         label: 'OS Session 2',
+        schoolId: ids.school,
         startDate: '2027-08-01',
         endDate: '2028-06-30',
         isActive: true,
@@ -774,6 +776,7 @@ describe('Org Structure (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         label: 'OS Floor Session',
+        schoolId: ids.school,
         startDate: '2028-08-01',
         endDate: '2029-06-30',
         isActive: true,

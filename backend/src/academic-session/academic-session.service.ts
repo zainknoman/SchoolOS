@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import {
   BadRequestException,
   Injectable,
@@ -12,6 +13,7 @@ import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
 
 export interface AcademicSessionSummary {
   id: string;
+  schoolId: string | null;
   label: string;
   startDate: string;
   endDate: string;
@@ -31,9 +33,11 @@ export class AcademicSessionService {
     startDate: Date;
     endDate: Date;
     isActive: boolean;
+    schoolId: string | null;
   }): AcademicSessionSummary {
     return {
       id: record.id,
+      schoolId: record.schoolId,
       label: record.label,
       startDate: record.startDate.toISOString().slice(0, 10),
       endDate: record.endDate.toISOString().slice(0, 10),
@@ -45,15 +49,24 @@ export class AcademicSessionService {
     dto: CreateAcademicSessionDto,
     actingUserId: string,
   ): Promise<AcademicSessionSummary> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: dto.schoolId },
+      select: { id: true },
+    });
+    if (!school) {
+      throw new BadRequestException('School not found');
+    }
     const record = await this.prisma.$transaction(async (tx) => {
+      // BL-01: activation is per school — other schools' calendars are untouched.
       if (dto.isActive) {
         await tx.academicSession.updateMany({
-          where: { isActive: true },
+          where: { isActive: true, schoolId: dto.schoolId },
           data: { isActive: false },
         });
       }
       return tx.academicSession.create({
         data: {
+          schoolId: dto.schoolId,
           label: dto.label,
           startDate: new Date(dto.startDate),
           endDate: new Date(dto.endDate),
@@ -95,6 +108,12 @@ export class AcademicSessionService {
     ]);
     if (!target || !source) {
       throw new NotFoundException('Academic session not found');
+    }
+    // BL-01: sessions are per school, so a rollover stays inside one school's calendar.
+    if (target.schoolId !== source.schoolId) {
+      throw new BadRequestException(
+        'Source and target sessions belong to different schools',
+      );
     }
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
@@ -154,8 +173,23 @@ export class AcademicSessionService {
     return result;
   }
 
-  async list(): Promise<AcademicSessionSummary[]> {
+  /**
+   * BL-01: a school's own sessions (plus, until the M3 backfill has run, legacy school-less ones);
+   * SUPER_ADMIN sees every school's, optionally filtered by `schoolId`.
+   */
+  async list(
+    actor: RequestUser,
+    schoolId?: string,
+  ): Promise<AcademicSessionSummary[]> {
+    const scope = await this.orgScope.resolve(actor);
+    if (scope.denied) return [];
+    const where: Prisma.AcademicSessionWhereInput = scope.unrestricted
+      ? schoolId
+        ? { schoolId }
+        : {}
+      : { OR: [{ schoolId: scope.schoolId }, { schoolId: null }] };
     const records = await this.prisma.academicSession.findMany({
+      where,
       orderBy: { startDate: 'desc' },
     });
     return records.map((r) => this.toSummary(r));
@@ -179,8 +213,13 @@ export class AcademicSessionService {
     }
     const record = await this.prisma.$transaction(async (tx) => {
       if (dto.isActive) {
+        // BL-01: only this school's other sessions (legacy school-less ones among themselves).
         await tx.academicSession.updateMany({
-          where: { isActive: true, id: { not: id } },
+          where: {
+            isActive: true,
+            id: { not: id },
+            schoolId: existing.schoolId,
+          },
           data: { isActive: false },
         });
       }

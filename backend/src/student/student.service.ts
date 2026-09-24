@@ -1,3 +1,4 @@
+import { activeSessionForSchool } from '../academic-session/active-session';
 import {
   PagedResult,
   pageArgs,
@@ -86,20 +87,27 @@ export class StudentService {
       );
     }
 
-    const activeSession = await this.prisma.academicSession.findFirst({
-      where: { isActive: true },
-    });
-    if (!activeSession) {
-      throw new BadRequestException(
-        'No active academic session — cannot enroll a student',
-      );
-    }
     const section = await this.prisma.section.findUnique({
       where: { id: dto.sectionId },
-      select: { id: true, class: { select: { campusId: true } } },
+      select: {
+        id: true,
+        class: {
+          select: { campusId: true, campus: { select: { schoolId: true } } },
+        },
+      },
     });
     if (!section) {
       throw new NotFoundException('Section not found');
+    }
+    // BL-01: the active session of the section's own school.
+    const activeSession = await activeSessionForSchool(
+      this.prisma,
+      section.class.campus.schoolId,
+    );
+    if (!activeSession) {
+      throw new BadRequestException(
+        "No active academic session for this student's school — cannot enroll a student",
+      );
     }
 
     let studentId: string;

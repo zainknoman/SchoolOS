@@ -39,7 +39,11 @@ describe('StudentService', () => {
   };
 
   const activeSession = { id: 'as1', isActive: true };
-  const sectionRow = { id: 'sec1', classId: 'cl1', class: { campusId: 'c1' } };
+  const sectionRow = {
+    id: 'sec1',
+    classId: 'cl1',
+    class: { campusId: 'c1', campus: { schoolId: 'school-1' } },
+  };
 
   beforeEach(async () => {
     tx = {

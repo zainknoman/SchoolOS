@@ -12,6 +12,7 @@ vi.mock('../lib/api', () => ({
     createAcademicSession: vi.fn(),
     updateAcademicSession: vi.fn(),
     deleteAcademicSession: vi.fn(),
+    listSchools: vi.fn(),
   },
 }));
 vi.mock('../lib/useConfirm', () => ({
@@ -24,6 +25,10 @@ describe('AcademicSessionManagementView', () => {
     const auth = useAuthStore();
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
+    // BL-01: sessions are per school; one school is pre-selected in the add form.
+    vi.mocked(api.listSchools).mockResolvedValue([
+      { id: 'school-1', name: 'School One' } as Awaited<ReturnType<typeof api.listSchools>>[number],
+    ]);
     vi.mocked(api.listAcademicSessions).mockResolvedValue([
       { id: 'as1', label: '2026-2027', startDate: '2026-08-01', endDate: '2027-06-30', isActive: true },
     ]);
@@ -52,6 +57,7 @@ describe('AcademicSessionManagementView', () => {
       startDate: '2027-08-01',
       endDate: '2028-06-30',
       isActive: true,
+      schoolId: 'school-1',
     });
   });
 
