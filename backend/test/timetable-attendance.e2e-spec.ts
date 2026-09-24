@@ -91,12 +91,11 @@ describe('Timetable + Attendance (e2e)', () => {
     const section = await prisma.section.create({
       data: { classId: klass.id, name: 'TTA-A' },
     });
-    // Subject.name is globally unique (not scoped per school) — upsert so reruns of this suite
-    // don't collide with a leftover row from a prior run.
+    // BL-02: subjects belong to a school (unique per school).
     const subject = await prisma.subject.upsert({
-      where: { name: 'TTA English' },
+      where: { schoolId_name: { schoolId: school.id, name: 'TTA English' } },
       update: {},
-      create: { name: 'TTA English' },
+      create: { name: 'TTA English', schoolId: school.id },
     });
     ids.school = school.id;
 

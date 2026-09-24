@@ -1,3 +1,4 @@
+import { assertSubjectUsable } from '../subjects/subject-guard';
 import {
   ConflictException,
   Injectable,
@@ -147,6 +148,9 @@ export class TimetableService {
   }
 
   async createEntry(dto: CreateTimetableEntryDto, actingUserId: string) {
+    await assertSubjectUsable(this.prisma, dto.subjectId, {
+      sectionId: dto.sectionId,
+    });
     await this.assertNoConflict(dto.sectionId, dto);
     const entry = await this.prisma.timetable.create({ data: dto });
     await this.prisma.auditLog.create({
@@ -169,6 +173,11 @@ export class TimetableService {
     const existing = await this.prisma.timetable.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Timetable entry not found');
+    }
+    if (dto.subjectId !== undefined && dto.subjectId !== existing.subjectId) {
+      await assertSubjectUsable(this.prisma, dto.subjectId, {
+        sectionId: existing.sectionId,
+      });
     }
     await this.assertNoConflict(
       existing.sectionId,
@@ -246,6 +255,9 @@ export class TimetableService {
     actingUserId: string,
   ): Promise<TimetableEntrySummary[]> {
     this.assertNoSelfConflict(entries);
+    for (const subjectId of new Set(entries.map((e) => e.subjectId))) {
+      await assertSubjectUsable(this.prisma, subjectId, { sectionId });
+    }
     for (const entry of entries) {
       const conflict = await this.findConflict(sectionId, entry, { sectionId });
       if (conflict) {

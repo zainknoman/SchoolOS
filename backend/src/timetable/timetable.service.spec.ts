@@ -7,6 +7,7 @@ import { EnrollmentService } from '../enrollment/enrollment.service';
 describe('TimetableService', () => {
   let service: TimetableService;
   let prisma: {
+    subject: { findUnique: jest.Mock };
     timetable: {
       findMany: jest.Mock;
       findFirst: jest.Mock;
@@ -25,6 +26,12 @@ describe('TimetableService', () => {
 
   beforeEach(async () => {
     prisma = {
+      // BL-02: subjects are validated before use; a legacy school-less subject is accepted.
+      subject: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ schoolId: null, isActive: true }),
+      },
       timetable: {
         findMany: jest.fn(),
         findFirst: jest.fn().mockResolvedValue(null),

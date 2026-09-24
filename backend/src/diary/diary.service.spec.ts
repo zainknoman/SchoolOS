@@ -8,6 +8,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 describe('DiaryService', () => {
   let service: DiaryService;
   let prisma: {
+    subject: { findUnique: jest.Mock };
     diaryEntry: { upsert: jest.Mock; findMany: jest.Mock };
     diaryAttachment: { deleteMany: jest.Mock; createMany: jest.Mock };
     user: { findMany: jest.Mock };
@@ -18,6 +19,12 @@ describe('DiaryService', () => {
 
   beforeEach(async () => {
     prisma = {
+      // BL-02: subjects are validated before use; a legacy school-less subject is accepted.
+      subject: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ schoolId: null, isActive: true }),
+      },
       diaryEntry: { upsert: jest.fn(), findMany: jest.fn() },
       diaryAttachment: { deleteMany: jest.fn(), createMany: jest.fn() },
       user: { findMany: jest.fn() },

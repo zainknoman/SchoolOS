@@ -236,6 +236,12 @@ const router = createRouter({
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Promotions', group: 'Operations' },
     },
     {
+      path: '/admin/subjects',
+      name: 'admin-subjects',
+      component: () => import('../views/SubjectsPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Subjects', group: 'Operations' },
+    },
+    {
       path: '/admin/holidays',
       name: 'admin-holidays',
       component: () => import('../views/HolidaysPageView.vue'),

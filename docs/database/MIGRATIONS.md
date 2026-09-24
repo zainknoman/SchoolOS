@@ -38,7 +38,7 @@ Migration tests (up-from-N, data-preservation), a documented squash policy, a te
 ## Generated migration inventory (BL-66)
 
 <!-- GENERATED:BEGIN migrations -->
-Generated inventory of `backend/prisma/migrations`: **17 migrations**, 0 DROP TABLE/COLUMN statements, 0 data-changing statements (INSERT/UPDATE/DELETE).
+Generated inventory of `backend/prisma/migrations`: **18 migrations**, 0 DROP TABLE/COLUMN statements, 0 data-changing statements (INSERT/UPDATE/DELETE).
 
 | # | Migration | Lines | CREATE TABLE | ALTER TABLE | CREATE INDEX | CREATE TYPE | DROP TABLE/COLUMN | INSERT/UPDATE/DELETE |
 |---|---|---|---|---|---|---|---|---|
@@ -59,4 +59,5 @@ Generated inventory of `backend/prisma/migrations`: **17 migrations**, 0 DROP TA
 | 15 | `20260925090000_m1_attendance_marked_by_user` | 14 | 0 | 2 | 1 | 0 | 0 | 0 |
 | 16 | `20260925120000_m2_circular_holiday_school` | 48 | 1 | 5 | 4 | 0 | 0 | 0 |
 | 17 | `20260925150000_m3_school_sessions` | 13 | 0 | 2 | 1 | 0 | 0 | 0 |
+| 18 | `20260925180000_m4_school_subjects` | 21 | 0 | 2 | 2 | 0 | 0 | 0 |
 <!-- GENERATED:END migrations -->

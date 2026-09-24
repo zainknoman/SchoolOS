@@ -181,6 +181,7 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | circulars | Circular[] (relation) |  |
 | holidays | Holiday[] (relation) |  |
 | academicSessions | AcademicSession[] (relation) |  |
+| subjects | Subject[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -288,12 +289,18 @@ Block attributes: `@@index([classId])`
 | Field | Type | Attributes |
 |---|---|---|
 | id | String | @id @default(uuid()) |
-| name | String | @unique |
+| schoolId | String? |  |
+| school | School? (relation) | @relation(fields: [schoolId], references: [id], onDelete: Cascade) |
+| isActive | Boolean | @default(true) |
+| legacySubjectId | String? |  |
+| name | String |  |
 | timetables | Timetable[] (relation) |  |
 | diaryEntries | DiaryEntry[] (relation) |  |
 | assessments | Assessment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
+
+Block attributes: `@@unique([schoolId, name])` · `@@index([schoolId])`
 
 ### Term
 

@@ -128,7 +128,9 @@
 
 **M3 (BL-01) rehearsal** (`npm run migration:harness -- m3-school-sessions`, 2026-09-25): classes/enrolments/vouchers unchanged in number; the shared session stays with the anchor school (A) and one clone (plus its term) is created for school B; school B's class, enrolments and assessment category re-pointed; no class/enrolment/category points across schools; the single-school session assigned; the unused session left unassigned (blocking review); the orphan voucher left in place (review); one active session per school; second run changed nothing. A separate self-test proves M3 refuses (and changes no data) when a school would have two active sessions. Deploy order: migration, then `npm run backfill:m3` (resolve `SESSION_MULTIPLE_ACTIVE` first if it refuses).
 
-**Not yet evidenced.** No production copy has been examined, and M4–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
+**M4 (BL-02) rehearsal** (`npm run migration:harness -- m4-school-subjects`, 2026-09-25): timetable/diary/assessment counts unchanged; the two shared subjects (Mathematics via timetables, Urdu via timetable + diary) cloned once each for the non-anchor school; English (diary only) → school A, Science (assessment only) → school B; no timetable, diary or assessment uses another school's subject; the unused subject left unassigned with a blocking review row; second run changed nothing. Deploy order: migration, then `npm run backfill:m4`.
+
+**Not yet evidenced.** No production copy has been examined, and M5–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval
 | Role | Name | Decision | Date |

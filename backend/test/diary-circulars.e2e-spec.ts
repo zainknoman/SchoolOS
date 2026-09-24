@@ -94,10 +94,11 @@ describe('Diary + Circulars (e2e)', () => {
     const sectionB = await prisma.section.create({
       data: { classId: klass.id, name: 'DC-B' },
     });
+    // BL-02: subjects belong to a school (unique per school).
     const subject = await prisma.subject.upsert({
-      where: { name: 'DC Urdu' },
+      where: { schoolId_name: { schoolId: school.id, name: 'DC Urdu' } },
       update: {},
-      create: { name: 'DC Urdu' },
+      create: { name: 'DC Urdu', schoolId: school.id },
     });
     ids.school = school.id;
     ids.sectionA = sectionA.id;

@@ -30,7 +30,8 @@
     "backfill:m1": "node migration-harness/backfill-m1-cli.mjs",
     "storage:copy-to-s3": "node dist/src/cli/copy-files-to-s3.main.js",
     "backfill:m2": "node migration-harness/backfill-m2-cli.mjs",
-    "backfill:m3": "node migration-harness/backfill-m3-cli.mjs"
+    "backfill:m3": "node migration-harness/backfill-m3-cli.mjs",
+    "backfill:m4": "node migration-harness/backfill-m4-cli.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

@@ -223,6 +223,7 @@ model School {
   circulars          Circular[]
   holidays           Holiday[]
   academicSessions   AcademicSession[]
+  subjects           Subject[]
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 }
@@ -323,13 +324,23 @@ model Section {
 }
 
 model Subject {
-  id           String       @id @default(uuid())
-  name         String       @unique
-  timetables   Timetable[]
-  diaryEntries DiaryEntry[]
-  assessments  Assessment[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id              String       @id @default(uuid())
+  // BL-02 (M4): subjects are per school (Q2); a name is unique within its school.
+  schoolId        String?
+  school          School?      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  // Deactivated instead of deleted once referenced; history (marks, timetables) is untouched.
+  isActive        Boolean      @default(true)
+  // Set on a per-school clone made by the M4 backfill.
+  legacySubjectId String?
+  name            String
+  timetables      Timetable[]
+  diaryEntries    DiaryEntry[]
+  assessments     Assessment[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
 }
 
 model Teacher {

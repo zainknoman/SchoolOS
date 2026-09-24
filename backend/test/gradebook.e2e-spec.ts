@@ -60,7 +60,7 @@ describe('Gradebook (e2e)', () => {
         .delete({ where: { id: s.id } })
         .catch(() => undefined);
     }
-    const staleSubject = await prisma.subject.findUnique({
+    const staleSubject = await prisma.subject.findFirst({
       where: { name: 'GB Math' },
     });
     if (staleSubject) {

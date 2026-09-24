@@ -19,6 +19,7 @@ BL-39: scheduled jobs run on one instance at a time (PostgreSQL advisory lock), 
 BL-40: students, parents, staff, teachers, admissions and hiring lists accept `page`/`limit`/`q` (totals in `X-Total-Count`; array bodies unchanged); the console's student and parent tables page and search on the server.
 BL-20 (migration M2): **behaviour change** — circulars and holidays belong to one school: school-wide circulars reach only that school's parents, a holiday without a campus applies only within its school, holiday changes are scope-checked, a super admin picks the school; `npm run backfill:m2` anchors existing rows and queues the rest in the new `MigrationReviewItem` table.
 BL-01 (migration M3): **behaviour change** — academic sessions belong to a school; activating one no longer deactivates other schools' sessions; new students, vouchers and imports use their own school's active session; `npm run backfill:m3` splits shared sessions per school (anchor keeps the original, clones for the others) and refuses while a school would have two active sessions.
+BL-02 (migration M4): subjects belong to a school and are managed in the new **Subjects** screen (create, rename, deactivate, delete if unused); timetable, diary and assessments accept only an active subject of the same school; `npm run backfill:m4` splits shared subjects per school.
 
 **Versioning policy (decided):** Semantic Versioning with Git tags; the first production release will be **1.0.0**. Everything below is pre-1.0 history and carries no version numbers.
 

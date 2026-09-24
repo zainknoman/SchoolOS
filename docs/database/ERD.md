@@ -30,6 +30,7 @@ flowchart LR
   Class -->|Cascade| AcademicSession
   Section -->|Cascade| Class
   Section -->|SetNull, optional| Teacher
+  Subject -->|Cascade, optional| School
   Holiday -->|Cascade, optional| School
   Holiday -->|Cascade, optional| Campus
   Term -->|Cascade| AcademicSession

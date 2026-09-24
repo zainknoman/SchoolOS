@@ -21,7 +21,7 @@ Deleting a school or campus is blocked while anything still refers to it.
 The **Dashboard** shows the network overview across schools. There is no built-in audit-log viewer, user-management screen, account unlock or account disable: to unlock a locked user wait 15 minutes; other account fixes need database access ([RUNBOOKS](../operations/RUNBOOKS.md)).
 
 ## Cautions
-- Subjects cannot be created in the product (seeded only).
+- Subjects are managed per school in **Subjects** (choose the school when adding one); school admins manage their own school's (BL-02).
 - A whole-school circular, or a holiday without a campus, belongs to one school: choose the **School** in the form (BL-20).
 - The very first super admin of a new system is created by the operator with `npm run bootstrap:super-admin`, not in the console; you must choose a new password at first sign-in. Further super admins are created by an existing one.
 - School-wide circulars and platform-wide holidays can cross school boundaries (known defects KG-1, KG-6) — avoid relying on them in a multi-school deployment until fixed.

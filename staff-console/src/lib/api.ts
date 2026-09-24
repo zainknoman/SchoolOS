@@ -255,6 +255,9 @@ export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'LEAVE' | 'HOLIDA
 export interface SubjectSummary {
   id: string;
   name: string;
+  /** BL-02: the owning school (null only for legacy rows awaiting the M4 backfill). */
+  schoolId?: string | null;
+  isActive?: boolean;
 }
 
 export interface TeacherSummary {
@@ -1427,9 +1430,43 @@ export const api = {
     }
   },
 
-  async listSubjects(accessToken: string): Promise<SubjectSummary[]> {
-    const res = await fetch(`${API_BASE_URL}/api/v1/subjects`, { headers: authHeaders(accessToken) });
+  async listSubjects(accessToken: string, options: { includeInactive?: boolean } = {}): Promise<SubjectSummary[]> {
+    const query = options.includeInactive ? '?includeInactive=true' : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/subjects${query}`, { headers: authHeaders(accessToken) });
     return asJson(res);
+  },
+
+  // BL-02: school-scoped subject management.
+  async createSubject(accessToken: string, payload: { name: string; schoolId?: string }): Promise<SubjectSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/subjects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async updateSubject(
+    accessToken: string,
+    id: string,
+    payload: { name?: string; isActive?: boolean },
+  ): Promise<SubjectSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/subjects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async deleteSubject(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/subjects/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
   },
 
   async listTeachers(accessToken: string, campusId?: string): Promise<TeacherSummary[]> {

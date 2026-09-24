@@ -1,3 +1,4 @@
+import { assertSubjectUsable } from '../subjects/subject-guard';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDiaryEntryDto } from './dto/create-diary-entry.dto';
@@ -32,6 +33,9 @@ export class DiaryService {
    * CircularsService.publish takes authorId directly.
    */
   async createEntry(dto: CreateDiaryEntryDto, creatingUserId: string) {
+    await assertSubjectUsable(this.prisma, dto.subjectId, {
+      sectionId: dto.sectionId,
+    });
     const date = new Date(dto.date);
     const entry = await this.prisma.diaryEntry.upsert({
       where: {

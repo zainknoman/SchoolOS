@@ -1,3 +1,4 @@
+import { assertSubjectUsable } from '../subjects/subject-guard';
 import {
   BadRequestException,
   Injectable,
@@ -61,6 +62,9 @@ export class AssessmentsService {
   }
 
   async create(dto: CreateAssessmentDto): Promise<AssessmentSummary> {
+    await assertSubjectUsable(this.prisma, dto.subjectId, {
+      classId: await this.classIdForCategory(dto.assessmentCategoryId),
+    });
     const record = await this.prisma.assessment.create({
       data: {
         assessmentCategoryId: dto.assessmentCategoryId,

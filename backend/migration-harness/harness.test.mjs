@@ -10,6 +10,7 @@ import baseline from './scenarios/baseline.mjs';
 import m1 from './scenarios/m1-attendance-actor.mjs';
 import m2 from './scenarios/m2-school-anchors.mjs';
 import m3 from './scenarios/m3-school-sessions.mjs';
+import m4 from './scenarios/m4-school-subjects.mjs';
 import { runM3Backfill } from './backfills/m3-school-sessions.mjs';
 import { LEGACY_SCHEMA } from './fixtures/legacy-dataset.mjs';
 import { buildLegacyDataset } from './fixtures/legacy-dataset.mjs';
@@ -144,4 +145,10 @@ dbTest('M3 refuses to run while a school would have two active sessions (rule S5
   } finally {
     await db.drop();
   }
+});
+
+dbTest('M4 (BL-02) rehearsal: shared subjects cloned per school with their rows re-pointed, idempotent', async () => {
+  const res = await runScenario(m4);
+  assert.equal(res.idempotent, true, JSON.stringify(res.idempotencyChanges));
+  assert.equal(res.ok, true, JSON.stringify(res.reconciliation.checks.filter((c) => !c.ok)));
 });
