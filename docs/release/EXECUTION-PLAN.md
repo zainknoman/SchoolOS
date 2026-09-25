@@ -1,7 +1,36 @@
 # Pilot-Readiness Execution Plan (Waves 0–7)
 
-> **Status:** CURRENT (plan; **nothing is implemented**) · **Verified:** 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
+> **Status:** CURRENT — **Waves 0–3 done, Wave 4 in progress** (see §0) · **Progress verified:** 2026-09-26 against `wave-0/foundations@44a3cb1` · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
 > Companion to the gap analysis: this file fixes the **order of execution**, the **schema/migration dependencies that must precede application code**, the affected layers, the docs to regenerate, and rollback rules. Findings F1–F10 (2026-09-20) are folded in. Item detail and acceptance criteria live in the BACKLOG.
+
+## 0. Progress and handoff (updated 2026-09-26)
+
+All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` = github.com/zainknoman/SchoolOS), one commit per item, each pushed after its checks passed. Item detail and "Done" notes: [BACKLOG](../product/requirements/BACKLOG.md); migrations and rehearsals: [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md); deploy steps: [RUNBOOKS](../operations/RUNBOOKS.md).
+
+| Wave | Item | Status | Commit |
+|---|---|---|---|
+| 0 | BL-65 harness · BL-62 strategy (D1–D8 approved) · BL-18 scaffold · BL-66 generators · BL-37 part 1 | ✅ | `8cd67ab` · `bde3e83`/`5077e73` · `81fabea` · `695f4a1` · `f2d2d81` |
+| 1 | BL-51 · BL-12 · BL-21 · BL-64 · BL-22 · BL-52 · BL-60 (M1) | ✅ | `39e83a3` · `185bd3f` · `a1659ba`/`d9fe0ef` · `42020a8` · `37692c5` · `0a2aea5` · `3653be9` |
+| 2 | BL-10 · BL-11 · BL-39 · BL-40 | ✅ (BL-13 = Ops, open) | `fd7e7f2` · `608ab16` · `c04c789` · `ca4d24e` |
+| 3 | BL-20 (M2) · BL-01 (M3) · BL-02 (M4) · BL-03 (M5) · BL-33 · BL-32 (M11) · BL-53 (M12) · BL-34 | ✅ | `a2a7bf7` · `2339247` · `566f183` · `9f9f138` · `f49631f` · `896aef2` · `3384a60` · `b4f7f60` |
+| 4 | BL-23 + BL-04 (M6) | ✅ | `5e4a352` |
+| 4 | BL-61 (M7) → BL-05 · BL-25 (M8) · BL-07 + BL-63 (M9) · BL-41 | ⏭ **next, in this order** | — |
+| 5 | BL-26 · BL-27 · BL-06 · BL-28 · BL-29 (M1b) | ⏳ | — |
+| 6 | BL-08 · BL-30 · BL-35 · BL-43 · BL-54 · BL-14 | ⏳ | — |
+| 7 | BL-15 · BL-55 · BL-36 · BL-37 part 2 · BL-56 · BL-57 · BL-58 | ⏳ | — |
+
+Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a3cb1` (KG-24 — bulk import could write into another school).
+
+**Migrations are expand-only so far.** Contract steps (NOT NULL on the new `schoolId` columns, dropping legacy fallbacks such as school-less sessions/subjects/fee structures, the legacy `StudentParent.relationship`/`isPrimary`) come in a later release. Deploy order per migration: `migrate deploy` → `npm run backfill:mN` (M1–M6) → resolve `MigrationReviewItem` rows (RUNBOOKS SQL). Before M12: `npm run migration:dry-run` must show no `M12_*` rows. The dev DB has 12 active sessions, so M3's backfill refuses on it until they are reduced to one per school.
+
+**Working conventions (keep):**
+- Per item: failing test first where practical → code → unit + lint + build → **full e2e on a scratch DB** (never the dev DB) → console tests/lint/build if the console changed → Flutter analyze/test if the parent app changed → docs (BUSINESS-RULES, KNOWN-ISSUES/GAPS, guides, BACKLOG "Done" note, CHANGELOG, RUNBOOKS for deploy steps) → `node scripts/docs/generate.mjs` → commit (ends with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`) → `git push`.
+- Data-changing migration: expand SQL + `migration-harness/backfills/mN-*.mjs` + `backfill-mN-cli.mjs` + `npm run backfill:mN` + scenario `migration-harness/scenarios/mN-*.mjs` (idempotency is checked automatically) + `prisma migrate diff` shows no drift + record the rehearsal in MIGRATION-STRATEGY.
+- Two-school e2e fixture: `backend/test/pending/two-school-fixture.ts` (`createTwoSchools(prefix)`); the BL-18 scaffold is fully graduated.
+- **Do not** run `prettier --write` on `staff-console/**` or `backend/migration-harness/**` (it reformats whole files); backend `src/`/`test/` are fine. **Do not** commit `docs/UI-Screenshots/sample4` CSVs. Write multi-line edit scripts with a file (Git Bash heredocs mangle backslashes).
+- Last verified counts (2026-09-26): backend unit 704, e2e 282 (39 suites), harness 8 scenarios + 13 tests, console 539, parent app 110.
+
+**Next step:** BL-61 — migration M7 (lifecycle statuses, RD-10): add `StudentStatus.TRANSFERRED`, rename `PromotionDecision.TRANSFERRED_OUT`→`TRANSFERRED`, add `PROMOTED_WITH_CONDITIONS`; backfill `LEFT` + matching `TRANSFERRED_OUT` promotion → `TRANSFERRED`, every other `LEFT` → manual review; new code stops writing `LEFT`; `EnrollmentStatus` untouched. Then BL-05 (promotion outcomes/indicators/confirmation).
 
 ## 1. Findings folded in (F1–F10)
 | # | Finding | Where handled |
