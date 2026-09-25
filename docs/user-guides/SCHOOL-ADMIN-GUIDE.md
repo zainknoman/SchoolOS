@@ -37,7 +37,8 @@ Menu groups: Overview · People · Operations · Communication · Org Structure.
 
 ## 5. End of year: promotion
 1. Ask the super admin to create and activate the new session; create/copy classes and sections for it.
-2. **Operations → Promotions:** pick the source section → review each student's decision (the default suggestion is *Promoted* for everyone — check manually) → for *Promoted*/*Retained* choose the target section in the new session; for *Graduated*, *Transferred out* or *Withdrawn* choose no target → execute. The old placement is closed and history is kept.
+2. **Operations → Promotions:** pick the source section → **Load students**. Each row shows the student's attendance %, results % and any fees due for the year, with warnings in yellow (red when your school's rules block a plain *Promoted*). No outcome is chosen for you: pick one per row, or use **Apply outcome to all** and adjust. *Promoted with conditions* needs the conditions written in (they are kept in the student's promotion history). For *Promoted*, *Promoted with conditions* and *Retained* choose the target section in the new session; *Graduated*, *Transferred* and *Withdrawn* take none → **Confirm decisions** and accept the confirmation. The old placement is closed and history is kept and cannot be edited.
+3. **Promotion rules** (panel above the table, school-wide admins): the minimum attendance and result percentages, and whether each rule — or fees still due — should *block* a plain *Promoted*. Without blocks they are warnings only.
 
 ## 6. Principal views
 **School Overview** and **Academics & Staff** summarise the school. They are read-only dashboards.

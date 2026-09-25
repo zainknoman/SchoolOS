@@ -49,6 +49,24 @@ describe('Promotions (e2e)', () => {
         where: { student: { grNumber: { startsWith: 'PROMO-' } } },
       })
       .catch(() => undefined);
+    await prisma.attendance
+      .deleteMany({
+        where: { student: { grNumber: { startsWith: 'PROMO-' } } },
+      })
+      .catch(() => undefined);
+    await prisma.mark
+      .deleteMany({
+        where: { student: { grNumber: { startsWith: 'PROMO-' } } },
+      })
+      .catch(() => undefined);
+    await prisma.feeVoucher
+      .deleteMany({
+        where: { student: { grNumber: { startsWith: 'PROMO-' } } },
+      })
+      .catch(() => undefined);
+    await prisma.assessment
+      .deleteMany({ where: { label: { startsWith: 'PROMO ' } } })
+      .catch(() => undefined);
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'promo-' } } })
       .catch(() => undefined);
@@ -193,7 +211,27 @@ describe('Promotions (e2e)', () => {
 
   afterAll(async () => {
     await prisma.studentPromotion
-      .deleteMany({ where: { studentId: ids.student } })
+      .deleteMany({
+        where: { student: { grNumber: { startsWith: 'PROMO-' } } },
+      })
+      .catch(() => undefined);
+    await prisma.attendance
+      .deleteMany({
+        where: { student: { grNumber: { startsWith: 'PROMO-' } } },
+      })
+      .catch(() => undefined);
+    await prisma.mark
+      .deleteMany({
+        where: { student: { grNumber: { startsWith: 'PROMO-' } } },
+      })
+      .catch(() => undefined);
+    await prisma.feeVoucher
+      .deleteMany({
+        where: { student: { grNumber: { startsWith: 'PROMO-' } } },
+      })
+      .catch(() => undefined);
+    await prisma.assessment
+      .deleteMany({ where: { label: { startsWith: 'PROMO ' } } })
       .catch(() => undefined);
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'promo-' } } })
@@ -213,7 +251,7 @@ describe('Promotions (e2e)', () => {
     await app.close();
   });
 
-  it('GET /api/v1/promotions/preview returns the seeded ACTIVE student suggested as PROMOTED', async () => {
+  it('GET /api/v1/promotions/preview returns the seeded ACTIVE student with indicators and no pre-selected decision (BL-05)', async () => {
     const token = await loginAs('promo-school-admin@schoolos.edu.pk');
 
     const res = await request(app.getHttpServer())
@@ -221,15 +259,24 @@ describe('Promotions (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    expect(res.body).toEqual([
+    expect(res.body.sourceAcademicSessionId).toBe(ids.sourceSession);
+    expect(res.body.policy).toEqual({
+      minAttendancePercent: 75,
+      minResultPercent: 40,
+      blockOnAttendance: false,
+      blockOnResults: false,
+      blockOnFees: false,
+    });
+    expect(res.body.rows).toEqual([
       {
         studentId: ids.student,
         name: 'Promo Student One',
         grNumber: 'PROMO-1',
         currentRollNumber: null,
-        suggestedDecision: 'PROMOTED',
+        indicators: expect.objectContaining({ blocked: false }),
       },
     ]);
+    expect(res.body.rows[0]).not.toHaveProperty('suggestedDecision');
   });
 
   it('POST /api/v1/promotions/execute promotes the student into the target session, closing the old enrollment and opening a new ACTIVE one', async () => {
@@ -240,6 +287,7 @@ describe('Promotions (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         sourceAcademicSessionId: ids.sourceSession,
+        confirmed: true,
         targetAcademicSessionId: ids.targetSession,
         decisions: [
           {
@@ -298,6 +346,7 @@ describe('Promotions (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         sourceAcademicSessionId: ids.sourceSession,
+        confirmed: true,
         targetAcademicSessionId: ids.targetSession,
         decisions: [
           {
@@ -368,6 +417,7 @@ describe('Promotions (e2e)', () => {
       .set('Authorization', `Bearer ${tokenB}`)
       .send({
         sourceAcademicSessionId: ids.targetSession,
+        confirmed: true,
         targetAcademicSessionId: ids.targetSession,
         decisions: [
           {
@@ -401,6 +451,7 @@ describe('Promotions (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         sourceAcademicSessionId: ids.sourceSession,
+        confirmed: true,
         targetAcademicSessionId: ids.targetSession,
         decisions: [
           {
@@ -435,6 +486,7 @@ describe('Promotions (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         sourceAcademicSessionId: ids.sourceSession,
+        confirmed: true,
         targetAcademicSessionId: ids.targetSession,
         decisions: [{ studentId: ids.student2, decision: 'TRANSFERRED_OUT' }],
       })
@@ -454,5 +506,287 @@ describe('Promotions (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ status: 'TRANSFERRED' })
       .expect(200);
+  });
+
+  describe('BL-05: indicators, blocking rules, conditions, confirmation, untouched history', () => {
+    let token: string;
+    let student3: string;
+    let enrollment3: string;
+    const snapshot = async () =>
+      JSON.stringify({
+        attendance: await prisma.attendance.findMany({
+          where: { studentId: student3 },
+          orderBy: { date: 'asc' },
+          select: { date: true, status: true, updatedAt: true },
+        }),
+        marks: await prisma.mark.findMany({
+          where: { studentId: student3 },
+          select: { obtainedMarks: true, updatedAt: true },
+        }),
+        vouchers: await prisma.feeVoucher.findMany({
+          where: { studentId: student3 },
+          select: {
+            academicSessionId: true,
+            month: true,
+            updatedAt: true,
+            items: { select: { label: true, amount: true } },
+          },
+        }),
+      });
+
+    beforeAll(async () => {
+      token = await loginAs('promo-school-admin@schoolos.edu.pk');
+      const admin = await prisma.user.findUniqueOrThrow({
+        where: { identifier: 'promo-school-admin@schoolos.edu.pk' },
+      });
+      const student = await prisma.student.create({
+        data: { grNumber: 'PROMO-3', name: 'Promo Student Three' },
+      });
+      student3 = student.id;
+      enrollment3 = (
+        await prisma.enrollment.create({
+          data: {
+            studentId: student3,
+            campusId: ids.campusA,
+            sectionId: ids.sourceSection,
+            academicSessionId: ids.sourceSession,
+            startDate: new Date('2025-08-01'),
+            status: 'ACTIVE',
+          },
+        })
+      ).id;
+      // attendance 3 present / 2 absent (+1 leave, excused) = 60 %
+      const days: Array<['PRESENT' | 'ABSENT' | 'LEAVE', string]> = [
+        ['PRESENT', '2025-09-01'],
+        ['PRESENT', '2025-09-02'],
+        ['PRESENT', '2025-09-03'],
+        ['ABSENT', '2025-09-04'],
+        ['ABSENT', '2025-09-05'],
+        ['LEAVE', '2025-09-08'],
+      ];
+      for (const [status, date] of days) {
+        await prisma.attendance.create({
+          data: { studentId: student3, date: new Date(date), status },
+        });
+      }
+      // results 30 / 100 = 30 %
+      const sourceClass = await prisma.section.findUniqueOrThrow({
+        where: { id: ids.sourceSection },
+        select: { classId: true },
+      });
+      const term = await prisma.term.create({
+        data: {
+          academicSessionId: ids.sourceSession,
+          label: 'PROMO Term 1',
+          order: 1,
+          startDate: new Date('2025-08-01'),
+          endDate: new Date('2025-12-31'),
+        },
+      });
+      const category = await prisma.assessmentCategory.create({
+        data: {
+          classId: sourceClass.classId,
+          termId: term.id,
+          name: 'PROMO Exams',
+          weightPercent: 100,
+        },
+      });
+      const subject = await prisma.subject.create({
+        data: { name: 'PROMO Maths', schoolId: ids.schoolA },
+      });
+      const assessment = await prisma.assessment.create({
+        data: {
+          assessmentCategoryId: category.id,
+          subjectId: subject.id,
+          label: 'PROMO Final',
+          maxMarks: 100,
+        },
+      });
+      await prisma.mark.create({
+        data: {
+          assessmentId: assessment.id,
+          studentId: student3,
+          obtainedMarks: 30,
+          enteredById: admin.id,
+        },
+      });
+      // one unpaid voucher of Rs 50.00
+      await prisma.feeVoucher.create({
+        data: {
+          studentId: student3,
+          academicSessionId: ids.sourceSession,
+          month: '2025-09',
+          issueDate: new Date('2025-09-01'),
+          dueDate: new Date('2025-09-10'),
+          items: { create: [{ label: 'Tuition', amount: 5000 }] },
+        },
+      });
+    });
+
+    const execute = (decision: Record<string, unknown>, confirmed = true) =>
+      request(app.getHttpServer())
+        .post('/api/v1/promotions/execute')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          sourceAcademicSessionId: ids.sourceSession,
+          targetAcademicSessionId: ids.targetSession,
+          confirmed,
+          decisions: [{ studentId: student3, ...decision }],
+        });
+
+    it('the preview shows results, attendance and fee indicators as non-blocking warnings', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/promotions/preview?sourceSectionId=${ids.sourceSection}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      const row = res.body.rows.find(
+        (r: { studentId: string }) => r.studentId === student3,
+      );
+      expect(row.indicators.attendance).toEqual({
+        present: 3,
+        late: 0,
+        absent: 2,
+        leave: 1,
+        percent: 60,
+      });
+      expect(row.indicators.results).toEqual({
+        obtained: 30,
+        max: 100,
+        assessments: 1,
+        percent: 30,
+      });
+      expect(row.indicators.fees).toEqual({
+        outstanding: 5000,
+        unpaidVouchers: 1,
+      });
+      expect(
+        row.indicators.warnings.map(
+          (w: { code: string; blocking: boolean }) => [w.code, w.blocking],
+        ),
+      ).toEqual([
+        ['LOW_ATTENDANCE', false],
+        ['LOW_RESULTS', false],
+        ['FEES_OUTSTANDING', false],
+      ]);
+      expect(row.indicators.blocked).toBe(false);
+    });
+
+    it('a school admin sets a blocking fee rule; another school cannot read or change it', async () => {
+      await request(app.getHttpServer())
+        .put('/api/v1/promotions/policy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          minAttendancePercent: 75,
+          minResultPercent: 40,
+          blockOnAttendance: false,
+          blockOnResults: false,
+          blockOnFees: true,
+        })
+        .expect(200);
+      const got = await request(app.getHttpServer())
+        .get('/api/v1/promotions/policy')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(got.body).toEqual(
+        expect.objectContaining({ schoolId: ids.schoolA, blockOnFees: true }),
+      );
+      const audit = await prisma.auditLog.count({
+        where: { action: 'promotion-policy.update', entityId: ids.schoolA },
+      });
+      expect(audit).toBe(1);
+
+      const tokenB = await loginAs('promo-school-admin-b@schoolos.edu.pk');
+      await request(app.getHttpServer())
+        .get(`/api/v1/promotions/policy?schoolId=${ids.schoolA}`)
+        .set('Authorization', `Bearer ${tokenB}`)
+        .expect(403);
+      await request(app.getHttpServer())
+        .put('/api/v1/promotions/policy')
+        .set('Authorization', `Bearer ${tokenB}`)
+        .send({
+          schoolId: ids.schoolA,
+          minAttendancePercent: 0,
+          minResultPercent: 0,
+          blockOnAttendance: false,
+          blockOnResults: false,
+          blockOnFees: false,
+        })
+        .expect(403);
+    });
+
+    it('an unconfirmed batch is refused (400) and changes nothing', async () => {
+      await execute(
+        { decision: 'RETAINED', targetSectionId: ids.targetSection },
+        false,
+      ).expect(400);
+      const e = await prisma.enrollment.findUniqueOrThrow({
+        where: { id: enrollment3 },
+      });
+      expect(e.status).toBe('ACTIVE');
+    });
+
+    it('the blocking rule refuses a plain PROMOTED (409) and changes nothing', async () => {
+      const res = await execute({
+        decision: 'PROMOTED',
+        targetSectionId: ids.targetSection,
+      }).expect(409);
+      expect(res.body.message).toContain('Fees outstanding');
+      const e = await prisma.enrollment.findUniqueOrThrow({
+        where: { id: enrollment3 },
+      });
+      expect(e.status).toBe('ACTIVE');
+      expect(
+        await prisma.studentPromotion.count({ where: { studentId: student3 } }),
+      ).toBe(0);
+    });
+
+    it('PROMOTED_WITH_CONDITIONS needs conditions (400), then records them with the indicators; prior-session data is untouched', async () => {
+      await execute({
+        decision: 'PROMOTED_WITH_CONDITIONS',
+        targetSectionId: ids.targetSection,
+      }).expect(400);
+
+      const before = await snapshot();
+      await execute({
+        decision: 'PROMOTED_WITH_CONDITIONS',
+        targetSectionId: ids.targetSection,
+        conditions: 'Clear the September dues by the first term',
+      }).expect(201);
+
+      // session rollover: the source session's attendance, marks and vouchers are exactly as before
+      expect(await snapshot()).toBe(before);
+      const old = await prisma.enrollment.findUniqueOrThrow({
+        where: { id: enrollment3 },
+      });
+      expect(old.academicSessionId).toBe(ids.sourceSession);
+      expect(old.status).toBe('COMPLETED');
+      const current = await prisma.enrollment.findFirstOrThrow({
+        where: { studentId: student3, status: 'ACTIVE' },
+      });
+      expect(current.academicSessionId).toBe(ids.targetSession);
+
+      const history = await request(app.getHttpServer())
+        .get(`/api/v1/admin/students/${student3}/promotion-history`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(history.body).toHaveLength(1);
+      expect(history.body[0]).toEqual(
+        expect.objectContaining({
+          decision: 'PROMOTED_WITH_CONDITIONS',
+          conditions: 'Clear the September dues by the first term',
+        }),
+      );
+      expect(history.body[0].indicators.blocked).toBe(true);
+      expect(history.body[0].indicators.fees.outstanding).toBe(5000);
+    });
+
+    it('promotion history cannot be modified (DB trigger)', async () => {
+      await expect(
+        prisma.studentPromotion.updateMany({
+          where: { studentId: student3 },
+          data: { remarks: 'rewritten' },
+        }),
+      ).rejects.toThrow(/cannot be modified/);
+    });
   });
 });

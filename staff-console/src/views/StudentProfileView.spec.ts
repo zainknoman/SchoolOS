@@ -483,6 +483,8 @@ describe('Academic History', () => {
     remarks: null,
     from: { sectionName: '3A', className: 'Grade 3', sessionLabel: '2025-2026' },
     to: { sectionName: '4B', className: 'Grade 4', sessionLabel: '2026-2027' },
+    conditions: null,
+    indicators: null,
   };
 
   it('loads and shows the promotion history as a from/to summary with decision and date', async () => {

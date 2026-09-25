@@ -454,12 +454,43 @@ export interface LeaveRequestSummary {
   createdAt: string;
 }
 
+// BL-05: indicators are warnings; a row is `blocked` only when the school turned a rule into a block,
+// and a block stops only a plain PROMOTED decision.
+export interface PromotionPolicy {
+  minAttendancePercent: number;
+  minResultPercent: number;
+  blockOnAttendance: boolean;
+  blockOnResults: boolean;
+  blockOnFees: boolean;
+}
+
+export interface PromotionWarning {
+  code: 'LOW_ATTENDANCE' | 'NO_ATTENDANCE_DATA' | 'LOW_RESULTS' | 'NO_RESULTS_DATA' | 'FEES_OUTSTANDING';
+  message: string;
+  blocking: boolean;
+}
+
+export interface StudentPromotionIndicators {
+  attendance: { present: number; late: number; absent: number; leave: number; percent: number | null };
+  results: { obtained: number; max: number; assessments: number; percent: number | null };
+  fees: { outstanding: number; unpaidVouchers: number };
+  warnings: PromotionWarning[];
+  blocked: boolean;
+}
+
 export interface PromotionPreviewRow {
   studentId: string;
   name: string;
   grNumber: string;
   currentRollNumber: string | null;
-  suggestedDecision: 'PROMOTED';
+  indicators: StudentPromotionIndicators;
+}
+
+export interface PromotionPreview {
+  schoolId: string;
+  sourceAcademicSessionId: string;
+  policy: PromotionPolicy;
+  rows: PromotionPreviewRow[];
 }
 
 export type PromotionDecision =
@@ -476,6 +507,7 @@ export interface PromotionDecisionInput {
   targetSectionId?: string;
   rollNumber?: string;
   remarks?: string;
+  conditions?: string;
 }
 
 export interface PromotionHistoryRow {
@@ -483,6 +515,8 @@ export interface PromotionHistoryRow {
   decision: PromotionDecision;
   decidedAt: string;
   remarks: string | null;
+  conditions: string | null;
+  indicators: StudentPromotionIndicators | null;
   from: { sectionName: string; className: string; sessionLabel: string };
   to: { sectionName: string; className: string; sessionLabel: string } | null;
 }
@@ -1764,7 +1798,7 @@ export const api = {
     }
   },
 
-  async previewPromotions(accessToken: string, sourceSectionId: string): Promise<PromotionPreviewRow[]> {
+  async previewPromotions(accessToken: string, sourceSectionId: string): Promise<PromotionPreview> {
     const res = await fetch(
       `${API_BASE_URL}/api/v1/promotions/preview?sourceSectionId=${encodeURIComponent(sourceSectionId)}`,
       { headers: authHeaders(accessToken) },
@@ -1774,10 +1808,33 @@ export const api = {
 
   async executePromotions(
     accessToken: string,
-    payload: { sourceAcademicSessionId: string; targetAcademicSessionId: string; decisions: PromotionDecisionInput[] },
+    payload: {
+      sourceAcademicSessionId: string;
+      targetAcademicSessionId: string;
+      confirmed: true;
+      decisions: PromotionDecisionInput[];
+    },
   ): Promise<{ processed: number }> {
     const res = await fetch(`${API_BASE_URL}/api/v1/promotions/execute`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async getPromotionPolicy(accessToken: string, schoolId?: string): Promise<PromotionPolicy & { schoolId: string }> {
+    const query = schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/promotions/policy${query}`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async updatePromotionPolicy(
+    accessToken: string,
+    payload: PromotionPolicy & { schoolId?: string },
+  ): Promise<PromotionPolicy & { schoolId: string }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/promotions/policy`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
       body: JSON.stringify(payload),
     });

@@ -2,7 +2,7 @@
 
 > **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `admissions/`, `student/`, `enrollment/`, `promotions/` services; e2e `admissions`, `people-crud`, `promotions` · **Owner:** Product Owner
 > Rules are referenced by ID, not restated. Q1, Q4, Q5, Q7 are decided (owner, 2026-09-20) but not yet implemented — see [BUSINESS-RULES §8](../product/BUSINESS-RULES.md).
-> **Decided, not yet implemented (owner, 2026-09-20):** school-scoped sessions (BL-01); promotion outcomes with results/attendance/fee indicators and explicit admin confirmation (BL-05); global guardians with max 2 primary (BL-23/BL-04); archive instead of hard delete (BL-07). Steps below describe current behaviour.
+> **Decided, not yet implemented (owner, 2026-09-20):** archive instead of hard delete (BL-07). Implemented since: school-scoped sessions (BL-01), guardians with max 2 primary (BL-04/BL-23), final lifecycle terms (BL-61), promotion indicators and explicit confirmation (BL-05). Steps below describe current behaviour.
 
 ## A. Admission (optional path)
 
@@ -29,9 +29,9 @@ Failure paths: already-decided → 400; duplicate GR/parent identifier → confl
 ## D. End of year — promotion / re-enrollment
 
 1. Admin creates the target academic session and copies structure (see [ACADEMIC-OPERATIONS](ACADEMIC-OPERATIONS.md)).
-2. `/admin/promotions` → `GET /promotions/preview?sourceSectionId=` lists ACTIVE enrollments of the source section with a suggested decision of PROMOTED for everyone (Q5).
-3. Admin edits decisions and, for PROMOTED/RETAINED, chooses a target section → `POST /promotions/execute` (BR-ENR-02..04).
-4. In one transaction per request: old enrollment closed (status by decision, `endDate = now`), new enrollment created in the target session for PROMOTED/RETAINED, `StudentPromotion` and audit rows written.
+2. `/admin/promotions` → `GET /promotions/preview?sourceSectionId=` lists ACTIVE enrollments of the source section with results/attendance/fee indicators and warnings under the school's `PromotionPolicy`, and **no pre-selected decision** (Q5, BL-05, BR-ENR-05).
+3. Admin chooses each outcome (conditions text for PROMOTED_WITH_CONDITIONS) and, for PROMOTED/PROMOTED_WITH_CONDITIONS/RETAINED, a target section → confirms → `POST /promotions/execute` with `confirmed: true` (BR-ENR-02..05). A school-configured block refuses a plain PROMOTED (409).
+4. In one transaction per request: old enrollment closed (status by decision, `endDate = now`), new enrollment created in the target session for PROMOTED/RETAINED, `StudentPromotion` (with the indicator snapshot and conditions; never updated afterwards) and audit rows written.
 
 ## E. History
 

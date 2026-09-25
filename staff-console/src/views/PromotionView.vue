@@ -8,13 +8,16 @@ import {
   type ClassSummary,
   type PromotionDecision,
   type PromotionDecisionInput,
+  type PromotionPolicy,
   type PromotionPreviewRow,
   type SectionSummary,
+  type StudentPromotionIndicators,
 } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import ListPageCard from '../components/ListPageCard.vue';
+import StatusPill from '../components/StatusPill.vue';
 import { useConfirm } from '../lib/useConfirm';
 import { useToast } from '../lib/useToast';
 
@@ -26,6 +29,16 @@ const classes = ref<ClassSummary[]>([]);
 const sections = ref<SectionSummary[]>([]);
 const academicSessions = ref<AcademicSessionSummary[]>([]);
 const previewRows = ref<PromotionPreviewRow[]>([]);
+// BL-05: the school of the loaded section and its promotion rules (thresholds + optional blocks).
+const previewSchoolId = ref('');
+const policy = reactive<PromotionPolicy>({
+  minAttendancePercent: 75,
+  minResultPercent: 40,
+  blockOnAttendance: false,
+  blockOnResults: false,
+  blockOnFees: false,
+});
+const isSavingPolicy = ref(false);
 const errorMessage = ref<string | null>(null);
 const isLoadingPreview = ref(false);
 const isExecuting = ref(false);
@@ -34,10 +47,13 @@ const sourceClassId = ref('');
 const sourceSectionId = ref('');
 const targetAcademicSessionId = ref('');
 const bulkTargetSectionId = ref('');
+const bulkDecision = ref<PromotionDecision | ''>('');
 
 interface RowDecisionState {
-  decision: PromotionDecision;
+  // BL-05 (Q5): no outcome is pre-selected — every row is the admin's explicit choice.
+  decision: PromotionDecision | '';
   targetSectionId: string;
+  conditions: string;
 }
 // Keyed by studentId — populated fresh every time onLoadStudents() succeeds, so it always has an
 // entry for every row currently in previewRows.
@@ -45,14 +61,26 @@ const rowState = reactive<Record<string, RowDecisionState>>({});
 
 const decisionOptions: Array<{ value: PromotionDecision; label: string }> = [
   { value: 'PROMOTED', label: 'Promoted' },
+  { value: 'PROMOTED_WITH_CONDITIONS', label: 'Promoted with conditions' },
   { value: 'RETAINED', label: 'Retained' },
   { value: 'TRANSFERRED', label: 'Transferred' },
   { value: 'GRADUATED', label: 'Graduated' },
   { value: 'WITHDRAWN', label: 'Withdrawn' },
 ];
 
-function needsTargetSection(decision: PromotionDecision): boolean {
-  return decision === 'PROMOTED' || decision === 'RETAINED';
+function needsTargetSection(decision: PromotionDecision | ''): boolean {
+  return decision === 'PROMOTED' || decision === 'PROMOTED_WITH_CONDITIONS' || decision === 'RETAINED';
+}
+
+function percentLabel(value: number | null): string {
+  return value === null ? '—' : `${value}%`;
+}
+function feesLabel(ind: StudentPromotionIndicators): string {
+  return ind.fees.outstanding > 0 ? `Rs ${(ind.fees.outstanding / 100).toFixed(2)} due` : 'Clear';
+}
+// A school-configured block stops only a plain PROMOTED decision (the API refuses it with 409).
+function rowBlocked(row: PromotionPreviewRow): boolean {
+  return row.indicators.blocked && rowState[row.studentId]?.decision === 'PROMOTED';
 }
 
 async function loadReferenceData() {
@@ -154,10 +182,13 @@ async function onLoadStudents() {
   errorMessage.value = null;
   isLoadingPreview.value = true;
   try {
-    previewRows.value = await api.previewPromotions(auth.accessToken, sourceSectionId.value);
+    const preview = await api.previewPromotions(auth.accessToken, sourceSectionId.value);
+    previewRows.value = preview.rows;
+    previewSchoolId.value = preview.schoolId;
+    Object.assign(policy, preview.policy);
     for (const key of Object.keys(rowState)) delete rowState[key];
     for (const row of previewRows.value) {
-      rowState[row.studentId] = { decision: row.suggestedDecision, targetSectionId: '' };
+      rowState[row.studentId] = { decision: '', targetSectionId: '', conditions: '' };
     }
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load students for this section.';
@@ -166,12 +197,47 @@ async function onLoadStudents() {
   }
 }
 
-function onDecisionChanged(studentId: string, decision: PromotionDecision) {
+function onDecisionChanged(studentId: string, decision: PromotionDecision | '') {
   const state = rowState[studentId];
   if (!state) return;
   state.decision = decision;
   if (!needsTargetSection(decision)) {
     state.targetSectionId = '';
+  }
+  if (decision !== 'PROMOTED_WITH_CONDITIONS') {
+    state.conditions = '';
+  }
+}
+// An explicit bulk action, never a default.
+function onApplyBulkDecision() {
+  if (!bulkDecision.value) return;
+  for (const row of previewRows.value) onDecisionChanged(row.studentId, bulkDecision.value);
+}
+async function onSavePolicy() {
+  if (!auth.accessToken || !previewSchoolId.value) return;
+  errorMessage.value = null;
+  isSavingPolicy.value = true;
+  try {
+    Object.assign(
+      policy,
+      await api.updatePromotionPolicy(auth.accessToken, {
+        schoolId: previewSchoolId.value,
+        minAttendancePercent: Number(policy.minAttendancePercent),
+        minResultPercent: Number(policy.minResultPercent),
+        blockOnAttendance: policy.blockOnAttendance,
+        blockOnResults: policy.blockOnResults,
+        blockOnFees: policy.blockOnFees,
+      }),
+    );
+    toast.success('Promotion rules saved.');
+    // Warnings and blocks depend on the rules, so reload them (decisions made so far are kept).
+    const kept = JSON.parse(JSON.stringify(rowState)) as Record<string, RowDecisionState>;
+    await onLoadStudents();
+    for (const [id, state] of Object.entries(kept)) if (rowState[id]) Object.assign(rowState[id], state);
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not save the promotion rules.';
+  } finally {
+    isSavingPolicy.value = false;
   }
 }
 
@@ -187,9 +253,14 @@ function onApplyBulkTargetSection() {
 const allRowsValid = computed(() =>
   previewRows.value.every((row) => {
     const state = rowState[row.studentId];
-    if (!state) return false;
+    if (!state || !state.decision) return false;
+    if (rowBlocked(row)) return false;
+    if (state.decision === 'PROMOTED_WITH_CONDITIONS' && !state.conditions.trim()) return false;
     return !needsTargetSection(state.decision) || !!state.targetSectionId;
   }),
+);
+const rowsWithWarnings = computed(
+  () => previewRows.value.filter((row) => row.indicators.warnings.length > 0).length,
 );
 
 const canExecute = computed(
@@ -200,18 +271,21 @@ async function onExecute() {
   if (!auth.accessToken || !activeSession.value || !targetAcademicSessionId.value) return;
 
   const decisions: PromotionDecisionInput[] = previewRows.value.map((row) => {
-    const state = rowState[row.studentId];
-    const decision = state?.decision ?? 'PROMOTED';
+    const state = rowState[row.studentId]!;
+    const decision = state.decision as PromotionDecision;
     return {
       studentId: row.studentId,
       decision,
-      targetSectionId: needsTargetSection(decision) ? state?.targetSectionId || undefined : undefined,
+      targetSectionId: needsTargetSection(decision) ? state.targetSectionId || undefined : undefined,
+      ...(decision === 'PROMOTED_WITH_CONDITIONS' ? { conditions: state.conditions.trim() } : {}),
     };
   });
-
+  const warningNote = rowsWithWarnings.value
+    ? ` ${rowsWithWarnings.value} of them have warnings (results, attendance or fees).`
+    : '';
   const confirmed = await confirm({
-    title: 'Execute promotions?',
-    message: `Promote/retain/withdraw ${decisions.length} student(s) into ${targetSessionLabel.value}? This cannot be undone automatically.`,
+    title: 'Confirm promotion decisions?',
+    message: `Apply the chosen outcome for ${decisions.length} student(s) into ${targetSessionLabel.value}?${warningNote} This cannot be undone automatically.`,
     danger: true,
   });
   if (!confirmed) return;
@@ -222,10 +296,12 @@ async function onExecute() {
     await api.executePromotions(auth.accessToken, {
       sourceAcademicSessionId: activeSession.value.id,
       targetAcademicSessionId: targetAcademicSessionId.value,
+      confirmed: true,
       decisions,
     });
     bulkTargetSectionId.value = '';
-    toast.success(`${decisions.length} student(s) promoted into ${targetSessionLabel.value}.`);
+    bulkDecision.value = '';
+    toast.success(`Decisions recorded for ${decisions.length} student(s) into ${targetSessionLabel.value}.`);
     // Re-fetch — the batch just closed every ACTIVE enrollment in the source section, so this
     // should now come back empty, confirming the batch closed.
     await onLoadStudents();
@@ -294,7 +370,40 @@ async function onExecute() {
       </Button>
     </div>
 
+    <details v-if="previewSchoolId" class="policy-panel" data-testid="promotion-policy">
+      <summary>Promotion rules for this school</summary>
+      <p class="policy-hint">
+        Indicators are warnings. Tick “block” only if this school does not allow a plain <em>Promoted</em> below the
+        threshold — <em>Promoted with conditions</em>, <em>Retained</em> and the other outcomes stay available.
+      </p>
+      <div class="policy-fields">
+        <label class="policy-number">
+          Minimum attendance %
+          <input v-model.number="policy.minAttendancePercent" type="number" min="0" max="100" data-testid="policy-min-attendance" />
+        </label>
+        <FormField v-model="policy.blockOnAttendance" label="Block below this attendance" type="checkbox" data-testid="policy-block-attendance" />
+        <label class="policy-number">
+          Minimum result %
+          <input v-model.number="policy.minResultPercent" type="number" min="0" max="100" data-testid="policy-min-results" />
+        </label>
+        <FormField v-model="policy.blockOnResults" label="Block below this result" type="checkbox" data-testid="policy-block-results" />
+        <FormField v-model="policy.blockOnFees" label="Block while fees are outstanding" type="checkbox" data-testid="policy-block-fees" />
+        <Button data-testid="save-policy" variant="secondary" :disabled="isSavingPolicy" @click="onSavePolicy">Save rules</Button>
+      </div>
+    </details>
     <div v-if="previewRows.length" class="bulk-assign">
+      <FormField
+        v-model="bulkDecision"
+        label="Outcome for all rows"
+        hide-label
+        type="select"
+        data-testid="bulk-decision"
+        placeholder="Choose an outcome for all rows"
+        :options="decisionOptions"
+      />
+      <Button data-testid="apply-bulk-decision" variant="secondary" :disabled="!bulkDecision" @click="onApplyBulkDecision">
+        Apply outcome to all
+      </Button>
       <FormField
         v-model="bulkTargetSectionId"
         label="Bulk target section"
@@ -321,6 +430,7 @@ async function onExecute() {
         { key: 'grNumber', label: 'GR Number' },
         { key: 'name', label: 'Name' },
         { key: 'currentRollNumber', label: 'Current Roll No.' },
+        { key: 'indicators', label: 'Indicators' },
         { key: 'decision', label: 'Decision' },
         { key: 'targetSectionId', label: 'Target Section' },
       ]"
@@ -330,15 +440,41 @@ async function onExecute() {
       <template #cell-currentRollNumber="{ item }">
         {{ item.currentRollNumber ?? '—' }}
       </template>
+      <template #cell-indicators="{ item }">
+        <div class="indicators" :data-testid="`indicators-${item.studentId}`">
+          <span>Attendance {{ percentLabel(item.indicators.attendance.percent) }}</span>
+          <span>Results {{ percentLabel(item.indicators.results.percent) }}</span>
+          <span>Fees {{ feesLabel(item.indicators) }}</span>
+          <span class="warnings">
+            <StatusPill
+              v-for="w in item.indicators.warnings"
+              :key="w.code"
+              :tone="w.blocking ? 'critical' : 'warning'"
+              :label="w.blocking ? `Blocks promotion: ${w.message}` : w.message"
+            />
+          </span>
+        </div>
+      </template>
       <template #cell-decision="{ item }">
         <FormField
           :model-value="rowState[item.studentId]!.decision"
           label="Decision"
           hide-label
           type="select"
+          placeholder="Choose outcome"
           :data-testid="`decision-${item.studentId}`"
           :options="decisionOptions"
-          @update:model-value="(v) => onDecisionChanged(item.studentId, v as PromotionDecision)"
+          :error="rowBlocked(item) ? 'Blocked by this school’s rules — choose Promoted with conditions or another outcome' : undefined"
+          @update:model-value="(v) => onDecisionChanged(item.studentId, v as PromotionDecision | '')"
+        />
+        <FormField
+          v-if="rowState[item.studentId]!.decision === 'PROMOTED_WITH_CONDITIONS'"
+          v-model="rowState[item.studentId]!.conditions"
+          label="Conditions"
+          hide-label
+          type="text"
+          placeholder="Conditions the student must meet"
+          :data-testid="`conditions-${item.studentId}`"
         />
       </template>
       <template #cell-targetSectionId="{ item }">
@@ -357,7 +493,7 @@ async function onExecute() {
 
     <div class="execute-row">
       <Button data-testid="execute-promotions" :disabled="!canExecute || isExecuting" @click="onExecute">
-        Execute
+        Confirm decisions
       </Button>
     </div>
   </ListPageCard>
@@ -396,5 +532,46 @@ async function onExecute() {
 .execute-row {
   display: flex;
   justify-content: flex-end;
+}
+.indicators {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+.indicators .warnings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.policy-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+}
+.policy-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.policy-hint {
+  margin: var(--space-2) 0;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+.policy-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.policy-number {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+.policy-number input {
+  width: 6rem;
 }
 </style>

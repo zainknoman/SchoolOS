@@ -134,6 +134,7 @@ describe('DB invariants under concurrent writes (e2e)', () => {
     const body = {
       sourceAcademicSessionId: f.ids.sessionA,
       targetAcademicSessionId: nextSessionId,
+      confirmed: true,
       decisions: [
         {
           studentId: f.ids.studentANoTeacher,

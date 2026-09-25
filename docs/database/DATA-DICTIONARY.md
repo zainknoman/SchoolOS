@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **58 models, 17 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **59 models, 17 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -72,6 +72,7 @@
 | promotionsDecided | StudentPromotion[] (relation) |  |
 | attendanceMarked | Attendance[] (relation) | @relation("AttendanceMarkedByUser") |
 | migrationReviewsResolved | MigrationReviewItem[] (relation) |  |
+| promotionPoliciesUpdated | PromotionPolicy[] (relation) | @relation("PromotionPolicyUpdatedBy") |
 
 Block attributes: `@@index([role])` · `@@index([schoolId])` · `@@index([campusId])`
 
@@ -187,6 +188,7 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | academicSessions | AcademicSession[] (relation) |  |
 | subjects | Subject[] (relation) |  |
 | feeStructures | FeeStructure[] (relation) |  |
+| promotionPolicy | PromotionPolicy? (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -703,11 +705,30 @@ Block attributes: `@@unique([studentId], map: "Enrollment_one_active_per_student
 | toEnrollment | Enrollment? (relation) | @relation("PromotionToEnrollment", fields: [toEnrollmentId], references: [id], onDelete: Restrict) |
 | decision | PromotionDecision (enum) |  |
 | remarks | String? |  |
+| conditions | String? |  |
+| indicators | Json? |  |
 | decidedById | String |  |
 | decidedBy | User (relation) | @relation(fields: [decidedById], references: [id]) |
 | decidedAt | DateTime | @default(now()) |
 
 Block attributes: `@@index([studentId])`
+
+### PromotionPolicy
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| schoolId | String | @unique |
+| school | School (relation) | @relation(fields: [schoolId], references: [id], onDelete: Cascade) |
+| minAttendancePercent | Int | @default(75) |
+| minResultPercent | Int | @default(40) |
+| blockOnAttendance | Boolean | @default(false) |
+| blockOnResults | Boolean | @default(false) |
+| blockOnFees | Boolean | @default(false) |
+| updatedById | String? |  |
+| updatedBy | User? (relation) | @relation("PromotionPolicyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull) |
+| createdAt | DateTime | @default(now()) |
+| updatedAt | DateTime | @updatedAt |
 
 ### Applicant
 

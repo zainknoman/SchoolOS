@@ -85,6 +85,8 @@ flowchart LR
   Enrollment -->|Restrict| Campus
   Enrollment -->|Restrict| Section
   Enrollment -->|Restrict| AcademicSession
+  PromotionPolicy -->|Cascade| School
+  PromotionPolicy -->|SetNull, optional| User
   StudentPromotion -->|Cascade| Student
   StudentPromotion -->|Restrict| Enrollment
   StudentPromotion -->|Restrict, optional| Enrollment

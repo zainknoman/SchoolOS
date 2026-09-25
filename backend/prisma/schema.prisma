@@ -196,6 +196,7 @@ model User {
   promotionsDecided          StudentPromotion[]
   attendanceMarked           Attendance[]          @relation("AttendanceMarkedByUser")
   migrationReviewsResolved   MigrationReviewItem[]
+  promotionPoliciesUpdated   PromotionPolicy[]     @relation("PromotionPolicyUpdatedBy")
 
   @@index([role])
   @@index([schoolId])
@@ -246,6 +247,7 @@ model School {
   academicSessions   AcademicSession[]
   subjects           Subject[]
   feeStructures      FeeStructure[]
+  promotionPolicy    PromotionPolicy?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 }
@@ -590,6 +592,24 @@ model Enrollment {
   @@index([campusId])
 }
 
+// BL-05 (Q5): per-school thresholds for the promotion indicators. Indicators are warnings; a rule
+// blocks a promotion only when the school turns its block flag on. No row = the defaults below.
+model PromotionPolicy {
+  id                   String   @id @default(uuid())
+  schoolId             String   @unique
+  school               School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  minAttendancePercent Int      @default(75)
+  minResultPercent     Int      @default(40)
+  blockOnAttendance    Boolean  @default(false)
+  blockOnResults       Boolean  @default(false)
+  blockOnFees          Boolean  @default(false)
+  updatedById          String?
+  updatedBy            User?    @relation("PromotionPolicyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// Rows are history: a DB trigger (BL-05) refuses any UPDATE.
 model StudentPromotion {
   id               String            @id @default(uuid())
   studentId        String
@@ -600,6 +620,10 @@ model StudentPromotion {
   toEnrollment     Enrollment?       @relation("PromotionToEnrollment", fields: [toEnrollmentId], references: [id], onDelete: Restrict)
   decision         PromotionDecision
   remarks          String?
+  // BL-05: required for PROMOTED_WITH_CONDITIONS, empty otherwise
+  conditions       String?
+  // BL-05: results/attendance/fees indicators and warnings as shown when the decision was made
+  indicators       Json?
   decidedById      String
   decidedBy        User              @relation(fields: [decidedById], references: [id])
   decidedAt        DateTime          @default(now())

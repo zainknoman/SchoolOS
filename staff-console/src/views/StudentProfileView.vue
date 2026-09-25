@@ -820,7 +820,7 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
                 { key: 'summary', label: 'Promotion' },
                 { key: 'decision', label: 'Decision' },
                 { key: 'decidedAt', label: 'Date' },
-                { key: 'remarks', label: 'Remarks' },
+                { key: 'remarks', label: 'Remarks / conditions' },
               ]"
               row-key="id"
               :editing-id="null"
@@ -830,7 +830,10 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
                 <StatusPill :tone="decisionTone(item.decision)" :label="decisionLabel(item.decision)" />
               </template>
               <template #cell-decidedAt="{ item }"><span class="mono">{{ item.decidedAt.slice(0, 10) }}</span></template>
-              <template #cell-remarks="{ item }">{{ item.remarks ?? '—' }}</template>
+              <template #cell-remarks="{ item }">
+                {{ item.remarks ?? '—' }}
+                <span v-if="item.conditions" class="history-conditions" :data-testid="`history-conditions-${item.id}`">Conditions: {{ item.conditions }}</span>
+              </template>
             </EntityTable>
             </div>
           </ProfileSectionCard>
@@ -1098,6 +1101,11 @@ async function onVerifyDocument(documentId: string, verified: boolean) {
 </template>
 
 <style scoped>
+.history-conditions {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
 /* Everything genuinely shared with StaffProfileView.vue (field grids, contact/document cards,
    the identity skeleton, priority pills, forms, and their responsive breakpoints) now lives in
    src/assets/patterns.css — see rollout plan Section 4.1. Only what's specific to this page

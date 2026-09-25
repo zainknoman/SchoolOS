@@ -8,7 +8,9 @@ import type {
   AcademicSessionSummary,
   ClassSummary,
   SectionSummary,
+  PromotionPreview,
   PromotionPreviewRow,
+  StudentPromotionIndicators,
 } from '../lib/api';
 import { useConfirm } from '../lib/useConfirm';
 
@@ -19,6 +21,7 @@ vi.mock('../lib/api', () => ({
     listAcademicSessions: vi.fn(),
     previewPromotions: vi.fn(),
     executePromotions: vi.fn(),
+    updatePromotionPolicy: vi.fn(),
   },
 }));
 vi.mock('../lib/useConfirm', () => ({
@@ -78,10 +81,27 @@ const targetSection: SectionSummary = {
   classTeacherName: null,
 };
 
-const previewRows: PromotionPreviewRow[] = [
-  { studentId: 'student-1', name: 'Ali Khan', grNumber: 'GR-001', currentRollNumber: '12', suggestedDecision: 'PROMOTED' },
-  { studentId: 'student-2', name: 'Sara Ahmed', grNumber: 'GR-002', currentRollNumber: null, suggestedDecision: 'PROMOTED' },
+const clean: StudentPromotionIndicators = {
+  attendance: { present: 90, late: 0, absent: 10, leave: 0, percent: 90 },
+  results: { obtained: 80, max: 100, assessments: 4, percent: 80 },
+  fees: { outstanding: 0, unpaidVouchers: 0 },
+  warnings: [],
+  blocked: false,
+};
+// Sara has fees due and the school blocks a plain PROMOTED while fees are outstanding.
+const feesBlocked: StudentPromotionIndicators = {
+  ...clean,
+  fees: { outstanding: 150000, unpaidVouchers: 1 },
+  warnings: [{ code: 'FEES_OUTSTANDING', message: 'Fees outstanding: Rs 1500.00 on 1 voucher(s)', blocking: true }],
+  blocked: true,
+};
+const rowsData: PromotionPreviewRow[] = [
+  { studentId: 'student-1', name: 'Ali Khan', grNumber: 'GR-001', currentRollNumber: '12', indicators: clean },
+  { studentId: 'student-2', name: 'Sara Ahmed', grNumber: 'GR-002', currentRollNumber: null, indicators: feesBlocked },
 ];
+const policy = { minAttendancePercent: 75, minResultPercent: 40, blockOnAttendance: false, blockOnResults: false, blockOnFees: true };
+const previewRows: PromotionPreview = { schoolId: 'school-1', sourceAcademicSessionId: 'sess-active', policy, rows: rowsData };
+const emptyPreview: PromotionPreview = { ...previewRows, rows: [] };
 
 function mockReferenceData() {
   vi.mocked(api.listClasses).mockResolvedValueOnce([sourceClass, targetClass]);
@@ -98,10 +118,14 @@ async function loadStudents(wrapper: ReturnType<typeof mount>) {
   await flushPromises();
 }
 
-// Picks the target academic session, then bulk-assigns the target section to every row that needs
-// one (every row defaults to PROMOTED, which needsTargetSection()).
+// Picks the target academic session, chooses outcomes explicitly (Ali: Promoted, Sara: Promoted with
+// conditions), then bulk-assigns the target section to every row that needs one.
 async function pickTargetSessionAndBulkAssign(wrapper: ReturnType<typeof mount>) {
   await wrapper.find('[data-testid="select-target-session"]').setValue('sess-target');
+  await wrapper.find('[data-testid="decision-student-1"]').setValue('PROMOTED');
+  await wrapper.find('[data-testid="decision-student-2"]').setValue('PROMOTED_WITH_CONDITIONS');
+  await flushPromises();
+  await wrapper.find('[data-testid="conditions-student-2"]').setValue('Clear the fees by June');
   await wrapper.find('[data-testid="bulk-target-section"]').setValue('section-target');
   await wrapper.find('[data-testid="apply-bulk-target-section"]').trigger('click');
   await flushPromises();
@@ -136,16 +160,58 @@ describe('PromotionView', () => {
     expect(wrapper.text()).toContain('GR-002');
     // currentRollNumber is null for student-2 and rendered as an em dash by the cell-currentRollNumber slot.
     expect(wrapper.text()).toContain('—');
-    // Each row gets its own decision select, defaulted to the suggested decision (PROMOTED).
+    // BL-05: each row gets its own decision select with NO pre-selected outcome.
     const decisionSelect = wrapper.find('[data-testid="decision-student-1"]');
     expect(decisionSelect.exists()).toBe(true);
-    expect((decisionSelect.element as HTMLSelectElement).value).toBe('PROMOTED');
+    expect((decisionSelect.element as HTMLSelectElement).value).toBe('');
+    expect((wrapper.find('[data-testid="execute-promotions"]').element as HTMLButtonElement).disabled).toBe(true);
+    // indicators and warnings are shown
+    expect(wrapper.find('[data-testid="indicators-student-1"]').text()).toContain('Attendance 90%');
+    expect(wrapper.find('[data-testid="indicators-student-2"]').text()).toContain('Rs 1500.00 due');
+    expect(wrapper.find('[data-testid="indicators-student-2"]').text()).toContain('Blocks promotion');
+    expect(wrapper.find('[data-testid="promotion-policy"]').exists()).toBe(true);
   });
 
-  it('executes with the default all-PROMOTED decisions and calls api.executePromotions with the expected payload', async () => {
+  it('BL-05: a blocked row cannot be executed as a plain Promoted', async () => {
     mockReferenceData();
     vi.mocked(api.previewPromotions).mockResolvedValueOnce(previewRows);
-    vi.mocked(api.previewPromotions).mockResolvedValueOnce([]); // re-fetch after a successful execute
+    const wrapper = mount(PromotionView);
+    await flushPromises();
+    await loadStudents(wrapper);
+    await wrapper.find('[data-testid="select-target-session"]').setValue('sess-target');
+    await wrapper.find('[data-testid="bulk-decision"]').setValue('PROMOTED');
+    await wrapper.find('[data-testid="apply-bulk-decision"]').trigger('click');
+    await wrapper.find('[data-testid="bulk-target-section"]').setValue('section-target');
+    await wrapper.find('[data-testid="apply-bulk-target-section"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain('Blocked by this school');
+    expect((wrapper.find('[data-testid="execute-promotions"]').element as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('BL-05: saving the promotion rules sends them for the loaded school', async () => {
+    mockReferenceData();
+    vi.mocked(api.previewPromotions).mockResolvedValueOnce(previewRows).mockResolvedValueOnce(previewRows);
+    vi.mocked(api.updatePromotionPolicy).mockResolvedValueOnce({ schoolId: 'school-1', ...policy, blockOnFees: false });
+    const wrapper = mount(PromotionView);
+    await flushPromises();
+    await loadStudents(wrapper);
+    await wrapper.find('[data-testid="policy-block-fees"]').setValue(false);
+    await wrapper.find('[data-testid="save-policy"]').trigger('click');
+    await flushPromises();
+    expect(api.updatePromotionPolicy).toHaveBeenCalledWith('token-1', {
+      schoolId: 'school-1',
+      minAttendancePercent: 75,
+      minResultPercent: 40,
+      blockOnAttendance: false,
+      blockOnResults: false,
+      blockOnFees: false,
+    });
+  });
+
+  it('executes the explicitly chosen decisions (with conditions) and sends confirmed: true', async () => {
+    mockReferenceData();
+    vi.mocked(api.previewPromotions).mockResolvedValueOnce(previewRows);
+    vi.mocked(api.previewPromotions).mockResolvedValueOnce(emptyPreview); // re-fetch after a successful execute
     vi.mocked(api.executePromotions).mockResolvedValueOnce({ processed: 2 });
 
     const wrapper = mount(PromotionView);
@@ -160,9 +226,15 @@ describe('PromotionView', () => {
     expect(api.executePromotions).toHaveBeenCalledWith('token-1', {
       sourceAcademicSessionId: 'sess-active',
       targetAcademicSessionId: 'sess-target',
+      confirmed: true,
       decisions: [
         { studentId: 'student-1', decision: 'PROMOTED', targetSectionId: 'section-target' },
-        { studentId: 'student-2', decision: 'PROMOTED', targetSectionId: 'section-target' },
+        {
+          studentId: 'student-2',
+          decision: 'PROMOTED_WITH_CONDITIONS',
+          targetSectionId: 'section-target',
+          conditions: 'Clear the fees by June',
+        },
       ],
     });
   });
@@ -177,7 +249,8 @@ describe('PromotionView', () => {
     await loadStudents(wrapper);
     await wrapper.find('[data-testid="select-target-session"]').setValue('sess-target');
 
-    // Give the row a target section first, so we can observe it actually get cleared.
+    // Give the row an outcome and a target section first, so we can observe it actually get cleared.
+    await wrapper.find('[data-testid="decision-student-1"]').setValue('PROMOTED');
     const targetSectionField = wrapper.find('[data-testid="target-section-student-1"]');
     await targetSectionField.setValue('section-target');
     expect((targetSectionField.element as HTMLSelectElement).value).toBe('section-target');
@@ -193,7 +266,7 @@ describe('PromotionView', () => {
   it('requires the confirm dialog to be accepted before calling api.executePromotions', async () => {
     mockReferenceData();
     vi.mocked(api.previewPromotions).mockResolvedValueOnce(previewRows);
-    vi.mocked(api.previewPromotions).mockResolvedValueOnce([]); // re-fetch after the eventual successful execute
+    vi.mocked(api.previewPromotions).mockResolvedValueOnce(emptyPreview); // re-fetch after the eventual successful execute
     vi.mocked(api.executePromotions).mockResolvedValueOnce({ processed: 2 });
     const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     vi.mocked(useConfirm).mockReturnValue({ confirm: confirmFn });
@@ -214,14 +287,21 @@ describe('PromotionView', () => {
     expect(api.executePromotions).toHaveBeenCalledWith('token-1', {
       sourceAcademicSessionId: 'sess-active',
       targetAcademicSessionId: 'sess-target',
+      confirmed: true,
       decisions: [
         { studentId: 'student-1', decision: 'PROMOTED', targetSectionId: 'section-target' },
-        { studentId: 'student-2', decision: 'PROMOTED', targetSectionId: 'section-target' },
+        {
+          studentId: 'student-2',
+          decision: 'PROMOTED_WITH_CONDITIONS',
+          targetSectionId: 'section-target',
+          conditions: 'Clear the fees by June',
+        },
       ],
     });
     expect(confirmFn).toHaveBeenCalledWith({
-      title: 'Execute promotions?',
-      message: 'Promote/retain/withdraw 2 student(s) into 2026-2027? This cannot be undone automatically.',
+      title: 'Confirm promotion decisions?',
+      message:
+        'Apply the chosen outcome for 2 student(s) into 2026-2027? 1 of them have warnings (results, attendance or fees). This cannot be undone automatically.',
       danger: true,
     });
   });
