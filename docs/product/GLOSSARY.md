@@ -17,7 +17,7 @@
 | GR number | General Register (admission) number — the student's unique registration ID; also usable as a login identifier for parent accounts. | `Student.grNumber`, `User.identifier` |
 | B-Form | Pakistani child registration certificate number, stored on the student. | student profile |
 | Enrollment | A dated placement of a student in a section/session with status ACTIVE, TRANSFERRED, COMPLETED, WITHDRAWN; the historical record of where a student studied. | `Enrollment` |
-| Promotion | End-of-session decision per student (PROMOTED, RETAINED, GRADUATED, TRANSFERRED_OUT, WITHDRAWN) that closes an enrollment and, for PROMOTED/RETAINED, opens a new one. | `StudentPromotion`, `PromotionDecision` |
+| Promotion | End-of-session decision per student (PROMOTED, PROMOTED_WITH_CONDITIONS, RETAINED, GRADUATED, TRANSFERRED, WITHDRAWN) that closes an enrollment and, for PROMOTED/RETAINED, opens a new one. | `StudentPromotion`, `PromotionDecision` |
 | Parent / guardian | A parent account (`PARENT` role) with a `ParentProfile`, linked to children through `StudentParent`. *Decided:* the guardian is one global person/account across schools; each student–guardian relationship is school-scoped, has a relationship type (Father, Mother, Guardian, Other) and a primary flag, with at most 2 primary guardians per student (BL-23, BL-04). | `ParentProfile`, `StudentParent` |
 | Applicant / Application | An admissions prospect and their application to a desired class in a target session; approval creates the student. | `Applicant`, `Application` |
 | Hiring candidate / application | A prospective staff member and their application; approval creates a staff (and optionally teacher) record. | `HiringCandidate`, `HiringApplication` |

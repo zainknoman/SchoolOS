@@ -322,6 +322,41 @@ describe('PromotionsService', () => {
       );
       expect(prisma.enrollment.create).not.toHaveBeenCalled();
     });
+
+    it('BL-61: a TRANSFERRED decision sets Student.status TRANSFERRED (never LEFT)', async () => {
+      prisma.enrollment.findFirst.mockResolvedValue({
+        id: 'enr-old',
+        studentId: 'stu-3',
+        academicSessionId: 'session-2025',
+        status: 'ACTIVE',
+        section: { class: { campus: { schoolId: 'school-1' } } },
+      });
+      prisma.academicSession.findUnique.mockResolvedValue({
+        id: 'session-2026',
+        startDate: new Date('2026-04-01'),
+      });
+      prisma.enrollment.update.mockResolvedValue({});
+      prisma.studentPromotion.create.mockResolvedValue({ id: 'promo-3' });
+
+      await service.execute(
+        { id: 'admin-1', role: 'SUPER_ADMIN' },
+        {
+          ...baseDto,
+          decisions: [{ studentId: 'stu-3', decision: 'TRANSFERRED' as const }],
+        },
+      );
+
+      expect(prisma.enrollment.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'TRANSFERRED' }),
+        }),
+      );
+      expect(prisma.student.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'TRANSFERRED' }),
+        }),
+      );
+    });
   });
 
   describe('getPromotionHistory', () => {

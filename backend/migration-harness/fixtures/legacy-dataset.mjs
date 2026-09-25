@@ -105,8 +105,9 @@ export async function buildLegacyDataset(client, insert) {
   const orphanVoucher = await voucher(stActiveB, sessAOnly, [['Tuition', 5000]]); // no enrolment in sessAOnly: unresolvable
   Object.assign(m.ids, { orphanVoucher });
 
-  // promotions: only stLeftMatched has a TRANSFERRED_OUT decision
-  await insert('StudentPromotion', { studentId: stLeftMatched.id, fromEnrollmentId: stLeftMatched.enrollment, decision: 'TRANSFERRED_OUT', decidedById: adminA });
+  // promotions: only stLeftMatched has a transfer decision (TRANSFERRED_OUT before M7, TRANSFERRED after its rename)
+  const transferLabel = (await client.query(`SELECT e.enumlabel FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'PromotionDecision' AND e.enumlabel IN ('TRANSFERRED_OUT', 'TRANSFERRED')`)).rows[0].enumlabel;
+  await insert('StudentPromotion', { studentId: stLeftMatched.id, fromEnrollmentId: stLeftMatched.enrollment, decision: transferLabel, decidedById: adminA });
   await insert('StudentPromotion', { studentId: stGraduated.id, fromEnrollmentId: stGraduated.enrollment, decision: 'GRADUATED', decidedById: adminA });
 
   // --- parents / guardians

@@ -462,7 +462,13 @@ export interface PromotionPreviewRow {
   suggestedDecision: 'PROMOTED';
 }
 
-export type PromotionDecision = 'PROMOTED' | 'RETAINED' | 'TRANSFERRED_OUT' | 'GRADUATED' | 'WITHDRAWN';
+export type PromotionDecision =
+  | 'PROMOTED'
+  | 'PROMOTED_WITH_CONDITIONS'
+  | 'RETAINED'
+  | 'TRANSFERRED'
+  | 'GRADUATED'
+  | 'WITHDRAWN';
 
 export interface PromotionDecisionInput {
   studentId: string;
@@ -718,7 +724,7 @@ export interface StudentProfileDetail {
   religion: string | null;
   bFormNumber: string | null;
   profilePhotoFileId: string | null;
-  status: 'ACTIVE' | 'LEFT' | 'GRADUATED' | 'WITHDRAWN';
+  status: 'ACTIVE' | 'TRANSFERRED' | 'WITHDRAWN' | 'GRADUATED' | 'LEFT'; // LEFT: retired, read-only (BL-61)
   admissionDate: string | null;
   leavingDate: string | null;
   leavingReason: string | null;
@@ -745,7 +751,7 @@ export interface UpdateStudentProfilePayload {
   nationality?: string;
   religion?: string;
   bFormNumber?: string;
-  status?: 'ACTIVE' | 'LEFT' | 'GRADUATED' | 'WITHDRAWN';
+  status?: 'ACTIVE' | 'TRANSFERRED' | 'WITHDRAWN' | 'GRADUATED';
   admissionDate?: string;
   leavingDate?: string;
   leavingReason?: string;

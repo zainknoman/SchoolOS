@@ -46,7 +46,7 @@ const rowState = reactive<Record<string, RowDecisionState>>({});
 const decisionOptions: Array<{ value: PromotionDecision; label: string }> = [
   { value: 'PROMOTED', label: 'Promoted' },
   { value: 'RETAINED', label: 'Retained' },
-  { value: 'TRANSFERRED_OUT', label: 'Transferred out' },
+  { value: 'TRANSFERRED', label: 'Transferred' },
   { value: 'GRADUATED', label: 'Graduated' },
   { value: 'WITHDRAWN', label: 'Withdrawn' },
 ];

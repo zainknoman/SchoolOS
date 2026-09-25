@@ -54,8 +54,9 @@ enum EnrollmentStatus {
 
 enum PromotionDecision {
   PROMOTED
+  PROMOTED_WITH_CONDITIONS
   RETAINED
-  TRANSFERRED_OUT
+  TRANSFERRED
   GRADUATED
   WITHDRAWN
 }
@@ -98,9 +99,10 @@ enum BloodGroup {
 
 enum StudentStatus {
   ACTIVE
-  LEFT
+  LEFT // retired (BL-61/M7): never written; dropped by a contract migration once no row uses it
   GRADUATED
   WITHDRAWN
+  TRANSFERRED
 }
 
 enum EmployeeType {

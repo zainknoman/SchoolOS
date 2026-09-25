@@ -72,9 +72,11 @@ const headerClassSection = computed(() => {
 
 const STUDENT_STATUS_LABELS: Record<StudentProfileDetail['status'], string> = {
   ACTIVE: 'Active',
-  LEFT: 'Left',
-  GRADUATED: 'Graduated',
+  TRANSFERRED: 'Transferred',
   WITHDRAWN: 'Withdrawn',
+  GRADUATED: 'Graduated',
+  // BL-61: retired; only unmigrated rows still carry it (they are on the M7 review list)
+  LEFT: 'Left (needs review)',
 };
 function studentStatusLabel(status: StudentProfileDetail['status']): string {
   return STUDENT_STATUS_LABELS[status];
@@ -215,7 +217,8 @@ async function onSaveProfile() {
       nationality: profileForm.nationality || undefined,
       religion: profileForm.religion || undefined,
       bFormNumber: profileForm.bFormNumber || undefined,
-      status: profileForm.status as StudentProfileDetail['status'],
+      // BL-61: LEFT can no longer be written; an unmigrated LEFT row keeps it until someone picks a final status
+      status: profileForm.status === 'LEFT' ? undefined : (profileForm.status as Exclude<StudentProfileDetail['status'], 'LEFT'>),
       admissionDate: profileForm.admissionDate || undefined,
       leavingDate: profileForm.leavingDate || undefined,
       leavingReason: profileForm.leavingReason || undefined,
@@ -329,8 +332,9 @@ loadAcademicHistory();
 
 const DECISION_LABELS: Record<PromotionDecision, string> = {
   PROMOTED: 'Promoted',
+  PROMOTED_WITH_CONDITIONS: 'Promoted with conditions',
   RETAINED: 'Retained',
-  TRANSFERRED_OUT: 'Transferred out',
+  TRANSFERRED: 'Transferred',
   GRADUATED: 'Graduated',
   WITHDRAWN: 'Withdrawn',
 };

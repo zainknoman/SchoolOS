@@ -17,7 +17,9 @@ export class PromotionDecisionInputDto {
 
   @ValidateIf(
     (o: PromotionDecisionInputDto) =>
-      o.decision === 'PROMOTED' || o.decision === 'RETAINED',
+      o.decision === 'PROMOTED' ||
+      o.decision === 'PROMOTED_WITH_CONDITIONS' ||
+      o.decision === 'RETAINED',
   )
   @IsString()
   @MinLength(1)

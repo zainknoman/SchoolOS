@@ -24,7 +24,7 @@ Failure paths: already-decided → 400; duplicate GR/parent identifier → confl
 
 - Current placement changes via `PATCH /admin/students/:id/current-enrollment` (F-ENR-01).
 - Profile data (personal, addresses, previous school, medical, emergency contacts, documents + verification) is maintained by administrators (F-PPL-02); parents can view and make limited edits to their child via `/me/children/:id`.
-- Withdrawal/transfer is recorded through promotion decisions (TRANSFERRED_OUT / WITHDRAWN) — there is no separate withdrawal workflow.
+- Withdrawal/transfer is recorded through promotion decisions (TRANSFERRED / WITHDRAWN — BL-61 final terms; `LEFT` is retired) — there is no separate withdrawal workflow.
 
 ## D. End of year — promotion / re-enrollment
 

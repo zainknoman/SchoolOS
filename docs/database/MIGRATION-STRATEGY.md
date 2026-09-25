@@ -22,7 +22,7 @@
 | `StudentParent` | Already has `relationship` (free text, default `guardian`), `isPrimary`, `isEmergencyContact` (migration `20260919090000`) | M6 is smaller than planned: it maps `relationship` to the Q4 types and adds a primary slot. *New finding.* |
 | Attendance audit | Code writes `attendance.mark` (`entityId` = Attendance id), `attendance.mark-bulk` (`metadata.date`, `metadata.studentIds`), `leave-request.approve` (LeaveRequest id; LEAVE rows in its date range). **No `attendance.update` action exists.** | The M1 actor backfill must read these three actions; the earlier plan text naming `attendance.update` was wrong and is corrected here and in BL-60. *New finding.* |
 | `Circular` / `Holiday` | No school anchor (F3) | M2 derives one (§6) |
-| `Student.status` | `LEFT` is still written by `TRANSFERRED_OUT` promotions | M7 rule (§5) |
+| `Student.status` | `LEFT` was written by `TRANSFERRED_OUT` promotions until BL-61 (2026-09-27); no longer written | M7 rule (§5) |
 
 ## 3. Academic sessions (M3, BL-01)
 | Rule | Case | Action | Review category |
@@ -134,9 +134,11 @@
 
 **M6 (BL-04/BL-23) rehearsal** (`npm run migration:harness -- m6-guardian-links`, 2026-09-26): link count unchanged; `Father`/` MOTHER ` → FATHER/MOTHER in slots 1/2 by `createdAt`; a single default link → GUARDIAN, slot 1, now primary; `Uncle` → OTHER with the text kept; `other` → OTHER, no note; three primaries → no slot + one blocking `GUARDIAN_MULTIPLE_PRIMARY`; several links with no primary → informational `GUARDIAN_PRIMARY_SLOT_REVIEW`; second run changed nothing; duplicate slot (23505) and slot 3 (23514) rejected. Deploy order: migration, then `npm run backfill:m6`.
 
+**M7 (BL-61) rehearsal** (`npm run migration:harness -- m7-lifecycle-statuses`, 2026-09-27): student and promotion counts unchanged; `PromotionDecision` = PROMOTED, PROMOTED_WITH_CONDITIONS, RETAINED, TRANSFERRED, GRADUATED, WITHDRAWN (existing transfer promotion reads `TRANSFERRED`); `StudentStatus` gains `TRANSFERRED` and keeps `LEFT`; L1 `LEFT` + latest transfer → `TRANSFERRED` with one `migration.m7.lifecycle` audit row; L2 a `LEFT` whose transfer was superseded by a later WITHDRAWN decision, and a `LEFT` with no promotion, stay `LEFT` with 2 blocking `LIFECYCLE_LEFT_MANUAL_REVIEW` rows; L3 every enrolment status unchanged; second run changed nothing; no schema drift. Deploy order: migration, then `npm run backfill:m7`.
+
 **M12 (BL-53) rehearsal** (`npm run migration:harness -- m12-db-invariants`, 2026-09-26): on dirty data (a second ACTIVE enrolment + a duplicate voucher) the migration refuses with the counts and changes nothing; on the legacy dataset it applies with row counts unchanged; afterwards a second ACTIVE enrolment and a duplicate voucher are rejected (23505), a WITHDRAWN extra enrolment is allowed, an invalid leave status is rejected (23514). The data check is `npm run migration:dry-run` (`M12_*` blocking rows). No schema drift after `migrate deploy` (`prisma migrate diff` empty).
 
-**Not yet evidenced.** No production copy has been examined, and M6–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
+**Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval
 | Role | Name | Decision | Date |

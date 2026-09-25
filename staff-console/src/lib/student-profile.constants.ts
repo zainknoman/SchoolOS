@@ -28,9 +28,9 @@ export const BLOOD_GROUP_OPTIONS: SelectOption[] = [
 
 export const STUDENT_STATUS_OPTIONS: SelectOption[] = [
   { value: 'ACTIVE', label: 'Active' },
-  { value: 'LEFT', label: 'Left' },
-  { value: 'GRADUATED', label: 'Graduated' },
+  { value: 'TRANSFERRED', label: 'Transferred' },
   { value: 'WITHDRAWN', label: 'Withdrawn' },
+  { value: 'GRADUATED', label: 'Graduated' },
 ];
 
 export const DOCUMENT_TYPE_OPTIONS: SelectOption[] = [

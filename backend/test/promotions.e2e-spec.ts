@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import * as argon2 from 'argon2';
@@ -31,6 +31,9 @@ describe('Promotions (e2e)', () => {
       imports: [AppModule],
     }).compile();
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     prisma = moduleFixture.get(PrismaService);
     await app.init();
 
@@ -375,5 +378,81 @@ describe('Promotions (e2e)', () => {
         ],
       })
       .expect(403);
+  });
+
+  it('BL-61: a TRANSFERRED decision stores TRANSFERRED on the promotion, the enrolment and the student (never LEFT)', async () => {
+    const token = await loginAs('promo-school-admin@schoolos.edu.pk');
+    const student = await prisma.student.create({
+      data: { grNumber: 'PROMO-2', name: 'Promo Student Two' },
+    });
+    const enrollment = await prisma.enrollment.create({
+      data: {
+        studentId: student.id,
+        campusId: ids.campusA,
+        sectionId: ids.sourceSection,
+        academicSessionId: ids.sourceSession,
+        startDate: new Date('2025-08-01'),
+        status: 'ACTIVE',
+      },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/promotions/execute')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        sourceAcademicSessionId: ids.sourceSession,
+        targetAcademicSessionId: ids.targetSession,
+        decisions: [
+          {
+            studentId: student.id,
+            decision: 'TRANSFERRED',
+            remarks: 'Moved city',
+          },
+        ],
+      })
+      .expect(201);
+
+    const after = await prisma.student.findUniqueOrThrow({
+      where: { id: student.id },
+    });
+    expect(after.status).toBe('TRANSFERRED');
+    expect(after.leavingReason).toBe('Moved city');
+    const closed = await prisma.enrollment.findUniqueOrThrow({
+      where: { id: enrollment.id },
+    });
+    expect(closed.status).toBe('TRANSFERRED'); // EnrollmentStatus is unchanged by M7
+    const promotion = await prisma.studentPromotion.findFirstOrThrow({
+      where: { studentId: student.id },
+    });
+    expect(promotion.decision).toBe('TRANSFERRED');
+    ids.student2 = student.id;
+  });
+
+  it('BL-61: the retired decision TRANSFERRED_OUT is rejected (400)', async () => {
+    const token = await loginAs('promo-school-admin@schoolos.edu.pk');
+    await request(app.getHttpServer())
+      .post('/api/v1/promotions/execute')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        sourceAcademicSessionId: ids.sourceSession,
+        targetAcademicSessionId: ids.targetSession,
+        decisions: [{ studentId: ids.student2, decision: 'TRANSFERRED_OUT' }],
+      })
+      .expect(400);
+  });
+
+  it('BL-61: a profile edit cannot set the retired status LEFT (400) but can set TRANSFERRED', async () => {
+    const token = await loginAs('promo-school-admin@schoolos.edu.pk');
+    const res = await request(app.getHttpServer())
+      .patch(`/api/v1/admin/students/${ids.student2}/profile`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'LEFT' })
+      .expect(400);
+    expect(JSON.stringify(res.body)).toContain('TRANSFERRED');
+    await request(app.getHttpServer())
+      .patch(`/api/v1/admin/students/${ids.student2}/profile`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'TRANSFERRED' })
+      .expect(200);
   });
 });

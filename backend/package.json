@@ -33,7 +33,8 @@
     "backfill:m3": "node migration-harness/backfill-m3-cli.mjs",
     "backfill:m4": "node migration-harness/backfill-m4-cli.mjs",
     "backfill:m5": "node migration-harness/backfill-m5-cli.mjs",
-    "backfill:m6": "node migration-harness/backfill-m6-cli.mjs"
+    "backfill:m6": "node migration-harness/backfill-m6-cli.mjs",
+    "backfill:m7": "node migration-harness/backfill-m7-cli.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

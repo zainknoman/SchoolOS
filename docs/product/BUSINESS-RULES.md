@@ -55,8 +55,8 @@
 | BR-ADM-02 | Approval enrolls the student into the session **the application targeted**, not the globally-active one, and records `createdStudentId` and `reviewedById`. | `applications.service.ts:~150-175` | admissions |
 | BR-ADM-03 | Approval needs exactly one of an existing parent or new-parent details; GR-number/parent-identifier collisions are rejected. | `applications.service.ts:143` | admissions |
 | BR-ENR-01 | An enrollment is a dated record with status ACTIVE / TRANSFERRED / COMPLETED / WITHDRAWN; **at most one ACTIVE enrollment per student, enforced by a partial unique index since BL-53 (M12, 2026-09-26)**; a promotion that races another for the same student gets 409 and changes nothing. | `enrollment.service.ts`, `promotions.service.ts` | people-crud |
-| BR-ENR-02 | Promotion decisions per student: PROMOTED, RETAINED, GRADUATED, TRANSFERRED_OUT, WITHDRAWN. PROMOTED and RETAINED **require** a target section and create a new enrollment; the other three must not have one. | `promotions.service.ts:62,139-152` | promotions |
-| BR-ENR-03 | Executing a promotion closes the ACTIVE enrollment (PROMOTED/RETAINED/GRADUATED → COMPLETED; TRANSFERRED_OUT → TRANSFERRED; WITHDRAWN → WITHDRAWN, `endDate = now`), requires the student's ACTIVE enrollment to be in the stated source session, and the target section to belong to the target session. All in one transaction with a `StudentPromotion` record and audit log. | `promotions.service.ts:139-230` | promotions |
+| BR-ENR-02 | Promotion decisions per student: PROMOTED, PROMOTED_WITH_CONDITIONS, RETAINED, GRADUATED, TRANSFERRED, WITHDRAWN (BL-61 final terms; `TRANSFERRED_OUT` is rejected). PROMOTED, PROMOTED_WITH_CONDITIONS and RETAINED **require** a target section and create a new enrollment; the others must not have one. | `promotions.service.ts:62,139-152` | promotions |
+| BR-ENR-03 | Executing a promotion closes the ACTIVE enrollment (PROMOTED/RETAINED/GRADUATED → COMPLETED; TRANSFERRED → TRANSFERRED; WITHDRAWN → WITHDRAWN, `endDate = now`) and sets the student status for TRANSFERRED/WITHDRAWN/GRADUATED (never `LEFT`, BL-61), requires the student's ACTIVE enrollment to be in the stated source session, and the target section to belong to the target session. All in one transaction with a `StudentPromotion` record and audit log. | `promotions.service.ts:139-230` | promotions |
 | BR-ENR-04 | Promotion is scoped: caller must be allowed both the student's current campus/school and the target section's. | `promotions.service.ts:106,184,215` | promotions |
 
 ## 6. Daily operations (BR-TT / BR-ATT / BR-GRD / BR-RC / BR-LV / BR-IMP)
@@ -127,8 +127,8 @@
 **Lifecycle terminology mapping (derived from RD-10 and the current schema; no change is made yet):**
 | Enum (schema) | Today | Final |
 |---|---|---|
-| `StudentStatus` (`Student.status`) | ACTIVE, LEFT, GRADUATED, WITHDRAWN | ACTIVE, **TRANSFERRED**, WITHDRAWN, GRADUATED — `LEFT` is retired: today a promotion `TRANSFERRED_OUT` sets `LEFT` (`promotions.service.ts:55-57`), so `LEFT` with a matching transferred-out promotion → TRANSFERRED; other `LEFT` rows are ambiguous → manual review |
-| `PromotionDecision` | PROMOTED, RETAINED, TRANSFERRED_OUT, GRADUATED, WITHDRAWN | PROMOTED, **PROMOTED_WITH_CONDITIONS** (new), RETAINED, **TRANSFERRED** (renamed), GRADUATED, WITHDRAWN |
+| `StudentStatus` (`Student.status`) | ACTIVE, TRANSFERRED, WITHDRAWN, GRADUATED (+ retired `LEFT`, read-only until the contract migration) — **implemented 2026-09-27 (BL-61, M7)** | ACTIVE, **TRANSFERRED**, WITHDRAWN, GRADUATED — `LEFT` is retired: today a promotion `TRANSFERRED_OUT` sets `LEFT` (`promotions.service.ts:55-57`), so `LEFT` with a matching transferred-out promotion → TRANSFERRED; other `LEFT` rows are ambiguous → manual review |
+| `PromotionDecision` | PROMOTED, PROMOTED_WITH_CONDITIONS, RETAINED, TRANSFERRED, GRADUATED, WITHDRAWN — **implemented 2026-09-27 (BL-61, M7)** | PROMOTED, **PROMOTED_WITH_CONDITIONS** (new), RETAINED, **TRANSFERRED** (renamed), GRADUATED, WITHDRAWN |
 | `EnrollmentStatus` | ACTIVE, TRANSFERRED, COMPLETED, WITHDRAWN | unchanged — `COMPLETED` is the per-session closure of an enrolment, not a student lifecycle state |
 
 ### Still open

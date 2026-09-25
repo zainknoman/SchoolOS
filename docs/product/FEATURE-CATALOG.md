@@ -46,7 +46,7 @@ Endpoint paths omit the `/api/v1` prefix. UI: `S:` staff-console route, `P:` par
 | F-ADM-01 | Applicant intake | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN | `/applicants` | S:`/admin/admissions/new` | Applicant | — | admissions | Sprint O | IMPLEMENTED |
 | F-ADM-02 | Application review → approve (creates student, parent link, enrollment) / reject | same | `/applications*` | S:`/admin/admissions*` | Application → Student, Enrollment | BR-ADM-01..03 | admissions | Sprint O | IMPLEMENTED |
 | F-ENR-01 | Enrollment history (ACTIVE/TRANSFERRED/COMPLETED/WITHDRAWN) & current-enrollment change | SCHOOL_ADMIN, SUPER_ADMIN | `/admin/students/:id/current-enrollment` | S:student profile | Enrollment | BR-ENR-01 | people-crud | Sprint 6.5 | IMPLEMENTED |
-| F-ENR-02 | Promotion / re-enrollment (preview, execute; PROMOTED/RETAINED/TRANSFERRED_OUT/GRADUATED/WITHDRAWN) + history | SCHOOL_ADMIN, SUPER_ADMIN | `/promotions/preview`, `/promotions/execute`, `/admin/students/:id/promotion-history` | S:`/admin/promotions` | StudentPromotion, Enrollment | BR-ENR-02..04, Q5 | promotions | Sprint R | IMPLEMENTED |
+| F-ENR-02 | Promotion / re-enrollment (preview, execute; PROMOTED/PROMOTED_WITH_CONDITIONS/RETAINED/TRANSFERRED/GRADUATED/WITHDRAWN) + history | SCHOOL_ADMIN, SUPER_ADMIN | `/promotions/preview`, `/promotions/execute`, `/admin/students/:id/promotion-history` | S:`/admin/promotions` | StudentPromotion, Enrollment | BR-ENR-02..04, Q5 | promotions | Sprint R | IMPLEMENTED |
 
 ## Daily operations
 

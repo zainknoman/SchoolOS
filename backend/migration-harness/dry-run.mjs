@@ -130,14 +130,16 @@ export async function dryRun(client) {
   summary.guardianLinks = (await q(`SELECT count(*)::int AS n FROM "StudentParent"`))[0].n;
 
   // ---- lifecycle: LEFT + latest promotion decision TRANSFERRED_OUT → TRANSFERRED; every other LEFT → review
+  // (M7 renames the decision TRANSFERRED_OUT → TRANSFERRED, so both labels count as the matching promotion)
   const left = await q(`
     SELECT s.id, s."grNumber",
       (SELECT p.decision::text FROM "StudentPromotion" p WHERE p."studentId" = s.id ORDER BY p."decidedAt" DESC, p.id DESC LIMIT 1) AS latest
     FROM "Student" s WHERE s.status = 'LEFT' ORDER BY s."grNumber"`);
+  const isTransfer = (r) => r.latest === 'TRANSFERRED_OUT' || r.latest === 'TRANSFERRED';
   summary.leftStudents = left.length;
-  summary.leftWithTransferredOut = left.filter((r) => r.latest === 'TRANSFERRED_OUT').length;
-  summary.leftWithoutMatchingPromotion = left.filter((r) => r.latest !== 'TRANSFERRED_OUT').length;
-  for (const r of left.filter((x) => x.latest !== 'TRANSFERRED_OUT')) review.push({ category: 'LIFECYCLE_LEFT_MANUAL_REVIEW', entity: 'Student', id: r.id, detail: `${r.grNumber}: status LEFT without a matching TRANSFERRED_OUT promotion (latest: ${r.latest ?? 'none'}) — never renamed automatically` });
+  summary.leftWithTransferredOut = left.filter(isTransfer).length;
+  summary.leftWithoutMatchingPromotion = left.filter((r) => !isTransfer(r)).length;
+  for (const r of left.filter((x) => !isTransfer(x))) review.push({ category: 'LIFECYCLE_LEFT_MANUAL_REVIEW', entity: 'Student', id: r.id, detail: `${r.grNumber}: status LEFT without a matching TRANSFERRED_OUT promotion (latest: ${r.latest ?? 'none'}) — never renamed automatically` });
 
   // ---- circular / holiday school anchors
   const circ = await q(`
