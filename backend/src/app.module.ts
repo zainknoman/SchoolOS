@@ -14,6 +14,7 @@ import { AttendanceModule } from './attendance/attendance.module';
 import { SectionsModule } from './sections/sections.module';
 import { FilesModule } from './files/files.module';
 import { SubjectsModule } from './subjects/subjects.module';
+import { TeachingAssignmentsModule } from './teaching-assignments/teaching-assignments.module';
 import { TeachersModule } from './teachers/teachers.module';
 import { DiaryModule } from './diary/diary.module';
 import { CircularsModule } from './circulars/circulars.module';
@@ -67,6 +68,7 @@ import {
     SectionsModule,
     FilesModule,
     SubjectsModule,
+    TeachingAssignmentsModule,
     TeachersModule,
     DiaryModule,
     CircularsModule,

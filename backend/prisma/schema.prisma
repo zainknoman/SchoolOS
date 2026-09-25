@@ -97,6 +97,12 @@ enum BloodGroup {
   UNKNOWN
 }
 
+// BL-25 (Q15): the kind of teaching assignment recorded in TeachingAssignment.
+enum TeachingRole {
+  CLASS_TEACHER
+  SUBJECT_TEACHER
+}
+
 enum StudentStatus {
   ACTIVE
   LEFT // retired (BL-61/M7): never written; dropped by a contract migration once no row uses it
@@ -218,97 +224,100 @@ model RefreshToken {
 // --- School structure -----------------------------------------------------
 
 model School {
-  id                 String            @id @default(uuid())
-  name               String
-  code               String?           @unique
-  registrationNumber String?
-  website            String?
-  logoFileId         String?
-  logo               File?             @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
-  principalName      String?
-  principalPhone     String?
-  principalEmail     String?
-  establishedDate    DateTime?
-  schoolType         String?
-  educationBoard     String?
-  status             OrgStatus         @default(ACTIVE)
-  timezone           String?           @default("Asia/Karachi")
-  currency           String?           @default("PKR")
-  alternatePhone     String?
-  addressId          String?
-  structuredAddress  Address?          @relation(fields: [addressId], references: [id], onDelete: SetNull)
-  address            String?
-  phone              String?
-  email              String?
-  campuses           Campus[]
-  users              User[]
-  circulars          Circular[]
-  holidays           Holiday[]
-  academicSessions   AcademicSession[]
-  subjects           Subject[]
-  feeStructures      FeeStructure[]
-  promotionPolicy    PromotionPolicy?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  id                  String               @id @default(uuid())
+  name                String
+  code                String?              @unique
+  registrationNumber  String?
+  website             String?
+  logoFileId          String?
+  logo                File?                @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
+  principalName       String?
+  principalPhone      String?
+  principalEmail      String?
+  establishedDate     DateTime?
+  schoolType          String?
+  educationBoard      String?
+  status              OrgStatus            @default(ACTIVE)
+  timezone            String?              @default("Asia/Karachi")
+  currency            String?              @default("PKR")
+  alternatePhone      String?
+  addressId           String?
+  structuredAddress   Address?             @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  address             String?
+  phone               String?
+  email               String?
+  campuses            Campus[]
+  users               User[]
+  circulars           Circular[]
+  holidays            Holiday[]
+  academicSessions    AcademicSession[]
+  subjects            Subject[]
+  feeStructures       FeeStructure[]
+  promotionPolicy     PromotionPolicy?
+  teachingAssignments TeachingAssignment[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model Campus {
-  id                 String              @id @default(uuid())
-  schoolId           String
-  school             School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  name               String
-  code               String?
-  campusType         String?
-  logoFileId         String?
-  logo               File?               @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
-  principalName      String?
-  principalPhone     String?
-  principalEmail     String?
-  openingDate        DateTime?
-  capacity           Int?
-  latitude           Float?
-  longitude          Float?
-  status             OrgStatus           @default(ACTIVE)
-  departments        String[]            @default([])
-  alternatePhone     String?
-  addressId          String?
-  structuredAddress  Address?            @relation(fields: [addressId], references: [id], onDelete: SetNull)
-  address            String?
-  phone              String?
-  email              String?
-  classes            Class[]
-  enrollments        Enrollment[]
-  holidays           Holiday[]
-  teachers           Teacher[]
-  staff              Staff[]
-  users              User[]
-  hiringApplications HiringApplication[]
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  id                  String               @id @default(uuid())
+  schoolId            String
+  school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name                String
+  code                String?
+  campusType          String?
+  logoFileId          String?
+  logo                File?                @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
+  principalName       String?
+  principalPhone      String?
+  principalEmail      String?
+  openingDate         DateTime?
+  capacity            Int?
+  latitude            Float?
+  longitude           Float?
+  status              OrgStatus            @default(ACTIVE)
+  departments         String[]             @default([])
+  alternatePhone      String?
+  addressId           String?
+  structuredAddress   Address?             @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  address             String?
+  phone               String?
+  email               String?
+  classes             Class[]
+  enrollments         Enrollment[]
+  holidays            Holiday[]
+  teachers            Teacher[]
+  staff               Staff[]
+  users               User[]
+  hiringApplications  HiringApplication[]
+  teachingAssignments TeachingAssignment[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@unique([schoolId, code])
   @@index([schoolId])
 }
 
 model AcademicSession {
-  id              String        @id @default(uuid())
+  id                  String               @id @default(uuid())
   // BL-01 (M3): sessions are per school (Q1); activating one deactivates only that school's others.
-  schoolId        String?
-  school          School?       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId            String?
+  school              School?              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   // Set on a per-school clone made by the M3 backfill: the global session it was split from.
-  legacySessionId String?
-  label           String // e.g. "2026-2027"
-  startDate       DateTime
-  endDate         DateTime
-  isActive        Boolean       @default(false)
-  classes         Class[]
-  feeVouchers     FeeVoucher[]
-  enrollments     Enrollment[]
-  reportCards     ReportCard[]
-  terms           Term[]
-  applications    Application[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  legacySessionId     String?
+  label               String // e.g. "2026-2027"
+  startDate           DateTime
+  endDate             DateTime
+  isActive            Boolean              @default(false)
+  classes             Class[]
+  feeVouchers         FeeVoucher[]
+  enrollments         Enrollment[]
+  reportCards         ReportCard[]
+  terms               Term[]
+  applications        Application[]
+  teachingAssignments TeachingAssignment[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([schoolId])
 }
@@ -323,6 +332,7 @@ model Class {
   sections             Section[]
   assessmentCategories AssessmentCategory[]
   applications         Application[]
+  teachingAssignments  TeachingAssignment[]
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
@@ -331,55 +341,58 @@ model Class {
 }
 
 model Section {
-  id             String       @id @default(uuid())
-  classId        String
-  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
-  name           String // e.g. "3A"
-  enrollments    Enrollment[]
-  timetables     Timetable[]
-  classTeacherId String?
-  classTeacher   Teacher?     @relation(fields: [classTeacherId], references: [id], onDelete: SetNull)
-  diaryEntries   DiaryEntry[]
-  circulars      Circular[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                  String               @id @default(uuid())
+  classId             String
+  class               Class                @relation(fields: [classId], references: [id], onDelete: Cascade)
+  name                String // e.g. "3A"
+  enrollments         Enrollment[]
+  timetables          Timetable[]
+  classTeacherId      String?
+  classTeacher        Teacher?             @relation(fields: [classTeacherId], references: [id], onDelete: SetNull)
+  diaryEntries        DiaryEntry[]
+  circulars           Circular[]
+  teachingAssignments TeachingAssignment[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([classId])
 }
 
 model Subject {
-  id              String       @id @default(uuid())
+  id                  String               @id @default(uuid())
   // BL-02 (M4): subjects are per school (Q2); a name is unique within its school.
-  schoolId        String?
-  school          School?      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId            String?
+  school              School?              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   // Deactivated instead of deleted once referenced; history (marks, timetables) is untouched.
-  isActive        Boolean      @default(true)
+  isActive            Boolean              @default(true)
   // Set on a per-school clone made by the M4 backfill.
-  legacySubjectId String?
-  name            String
-  timetables      Timetable[]
-  diaryEntries    DiaryEntry[]
-  assessments     Assessment[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  legacySubjectId     String?
+  name                String
+  timetables          Timetable[]
+  diaryEntries        DiaryEntry[]
+  assessments         Assessment[]
+  teachingAssignments TeachingAssignment[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@unique([schoolId, name])
   @@index([schoolId])
 }
 
 model Teacher {
-  id                     String       @id @default(uuid())
-  userId                 String       @unique
-  user                   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     String               @id @default(uuid())
+  userId                 String               @unique
+  user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   name                   String
   campusId               String
-  campus                 Campus       @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  campus                 Campus               @relation(fields: [campusId], references: [id], onDelete: Restrict)
   timetables             Timetable[]
   classTeacherOfSections Section[]
-  attendanceMarks        Attendance[] @relation("AttendanceMarkedBy")
+  attendanceMarks        Attendance[]         @relation("AttendanceMarkedBy")
   staff                  Staff?
-  createdAt              DateTime     @default(now())
-  updatedAt              DateTime     @updatedAt
+  teachingAssignments    TeachingAssignment[]
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
 
   @@index([campusId])
 }
@@ -1292,4 +1305,43 @@ model MigrationReviewItem {
 
   @@unique([migration, category, entity, entityId])
   @@index([status])
+}
+
+// BL-25 (Q15, M8): who was class teacher / subject teacher of a section, in which session, from when
+// to when. Written ONLY by database triggers on Section.classTeacherId and Timetable (see migration
+// 20260927150000_m8_teaching_assignment_history); a change end-dates the old row and opens a new one.
+// Rows are immutable except closing (endDate) and a foreign key becoming NULL when its target is
+// deleted — the *Name/*Label snapshots keep them readable.
+model TeachingAssignment {
+  id                String           @id @default(uuid())
+  role              TeachingRole
+  teacherId         String?
+  teacher           Teacher?         @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacherName       String
+  schoolId          String?
+  school            School?          @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  campusId          String?
+  campus            Campus?          @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  academicSessionId String?
+  academicSession   AcademicSession? @relation(fields: [academicSessionId], references: [id], onDelete: SetNull)
+  sessionLabel      String
+  classId           String?
+  class             Class?           @relation(fields: [classId], references: [id], onDelete: SetNull)
+  className         String
+  sectionId         String?
+  section           Section?         @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sectionName       String
+  subjectId         String?
+  subject           Subject?         @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectName       String?
+  startDate         DateTime
+  // true for rows recorded by the M8 backfill: the real start is unknown (startDate = session start)
+  startDateUnknown  Boolean          @default(false)
+  endDate           DateTime?
+  createdAt         DateTime         @default(now())
+
+  @@index([teacherId])
+  @@index([sectionId])
+  @@index([academicSessionId])
+  @@index([schoolId])
 }

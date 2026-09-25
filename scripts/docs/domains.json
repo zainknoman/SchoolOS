@@ -37,6 +37,7 @@
         "StudentMedicalInfo",
         "StudentDocument",
         "Teacher",
+        "TeachingAssignment",
         "Staff",
         "StaffEmergencyContact",
         "StaffExperience",

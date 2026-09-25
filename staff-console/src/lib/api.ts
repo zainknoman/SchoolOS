@@ -521,6 +521,25 @@ export interface PromotionHistoryRow {
   to: { sectionName: string; className: string; sessionLabel: string } | null;
 }
 
+// BL-25 (Q15): a row of the teaching-assignment history (written by the database, read-only here).
+export interface TeachingAssignmentRow {
+  id: string;
+  role: 'CLASS_TEACHER' | 'SUBJECT_TEACHER';
+  teacherId: string | null;
+  teacherName: string;
+  academicSessionId: string | null;
+  sessionLabel: string;
+  classId: string | null;
+  className: string;
+  sectionId: string | null;
+  sectionName: string;
+  subjectId: string | null;
+  subjectName: string | null;
+  startDate: string;
+  startDateUnknown: boolean;
+  endDate: string | null;
+}
+
 export type FeeStructureStatus = 'DRAFT' | 'ACTIVE' | 'LOCKED' | 'ARCHIVED';
 
 export interface FeeStructureSummary {
@@ -1850,6 +1869,28 @@ export const api = {
       method: 'POST',
       headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
       body: JSON.stringify({ sourceSessionId }),
+    });
+    return asJson(res);
+  },
+
+  async listTeachingAssignments(
+    accessToken: string,
+    filters: {
+      teacherId?: string;
+      academicSessionId?: string;
+      classId?: string;
+      sectionId?: string;
+      subjectId?: string;
+      role?: TeachingAssignmentRow['role'];
+      current?: boolean;
+    },
+  ): Promise<TeachingAssignmentRow[]> {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) {
+      if (value !== undefined && value !== '') params.set(key, String(value));
+    }
+    const res = await fetch(`${API_BASE_URL}/api/v1/teaching-assignments?${params.toString()}`, {
+      headers: authHeaders(accessToken),
     });
     return asJson(res);
   },

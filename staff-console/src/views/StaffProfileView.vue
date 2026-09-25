@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { api, type AddressInput, type AddressDetail, type StaffProfileDetail } from '../lib/api';
+import { api, type AddressInput, type AddressDetail, type StaffProfileDetail, type TeachingAssignmentRow } from '../lib/api';
 import { GENDER_OPTIONS, EMPLOYEE_TYPE_OPTIONS, EMPLOYMENT_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS } from '../lib/staff-profile.constants';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
@@ -24,6 +24,12 @@ const PROFILE_TABS = [
   { id: 'experience', label: 'Experience', icon: 'briefcase' as const },
   { id: 'documents', label: 'Documents', icon: 'file-text' as const },
 ];
+// BL-25: a teacher's profile also shows their teaching-assignment history.
+const profileTabs = computed(() =>
+  profile.value?.teacher
+    ? [...PROFILE_TABS, { id: 'teaching', label: 'Teaching History', icon: 'clock' as const }]
+    : PROFILE_TABS,
+);
 const activeTab = ref('profile');
 
 const auth = useAuthStore();
@@ -43,6 +49,27 @@ async function load() {
   } catch (err) {
     pageErrorMessage.value = err instanceof Error ? err.message : 'Could not load this staff member.';
   }
+  if (profile.value?.teacher) await loadTeachingHistory(profile.value.teacher.id);
+}
+
+const teachingHistory = ref<TeachingAssignmentRow[]>([]);
+const teachingHistoryError = ref<string | null>(null);
+async function loadTeachingHistory(teacherId: string) {
+  if (!auth.accessToken) return;
+  teachingHistoryError.value = null;
+  try {
+    teachingHistory.value = await api.listTeachingAssignments(auth.accessToken, { teacherId });
+  } catch (err) {
+    teachingHistoryError.value = err instanceof Error ? err.message : 'Could not load the teaching history.';
+  }
+}
+function assignmentLabel(row: TeachingAssignmentRow): string {
+  const what = row.role === 'CLASS_TEACHER' ? 'Class teacher' : (row.subjectName ?? 'Subject');
+  return `${what} · ${row.className} ${row.sectionName} · ${row.sessionLabel}`;
+}
+function assignmentPeriod(row: TeachingAssignmentRow): string {
+  const from = row.startDateUnknown ? `before ${row.startDate.slice(0, 10)}` : row.startDate.slice(0, 10);
+  return `${from} → ${row.endDate ? row.endDate.slice(0, 10) : 'current'}`;
 }
 load();
 
@@ -575,7 +602,7 @@ async function onDeleteLogin() {
     <ErrorRetry v-if="pageErrorMessage" :message="pageErrorMessage" @retry="load" />
 
     <div v-if="profile" class="sections">
-      <Tabs :tabs="PROFILE_TABS" v-model="activeTab" variant="pill">
+      <Tabs :tabs="profileTabs" v-model="activeTab" variant="pill">
         <template #tab-profile>
           <ProfileSectionCard icon="user-circle" title="Personal Info">
             <template #actions>
@@ -893,6 +920,19 @@ async function onDeleteLogin() {
           </AppModal>
         </template>
 
+        <template #tab-teaching>
+          <ProfileSectionCard icon="clock" title="Teaching History">
+            <p v-if="teachingHistoryError" class="error" role="alert">{{ teachingHistoryError }}</p>
+            <p v-else-if="!teachingHistory.length" class="muted" data-testid="teaching-history-empty">No teaching assignments recorded yet.</p>
+            <ul v-else class="teaching-history" data-testid="teaching-history">
+              <li v-for="row in teachingHistory" :key="row.id" :data-testid="`teaching-row-${row.id}`">
+                <span>{{ assignmentLabel(row) }}</span>
+                <span class="mono">{{ assignmentPeriod(row) }}</span>
+              </li>
+            </ul>
+          </ProfileSectionCard>
+        </template>
+
         <template #tab-documents>
           <ProfileSectionCard icon="file-text" title="Documents">
             <template #actions>
@@ -951,6 +991,23 @@ async function onDeleteLogin() {
 </template>
 
 <style scoped>
+.teaching-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.teaching-history li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.muted {
+  color: var(--color-muted);
+}
 /* Everything genuinely shared with StudentProfileView.vue (field grids, contact/experience/
    document cards, the identity skeleton, priority pills, forms, and their responsive
    breakpoints) now lives in src/assets/patterns.css — see rollout plan Section 4.1. Only

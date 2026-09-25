@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **59 models, 17 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **60 models, 18 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -16,6 +16,7 @@
 - **NotificationChannel**: PUSH, WHATSAPP, SMS
 - **Gender**: MALE, FEMALE, OTHER
 - **BloodGroup**: A_POS, A_NEG, B_POS, B_NEG, AB_POS, AB_NEG, O_POS, O_NEG, UNKNOWN
+- **TeachingRole**: CLASS_TEACHER, SUBJECT_TEACHER
 - **StudentStatus**: ACTIVE, LEFT, GRADUATED, WITHDRAWN, TRANSFERRED
 - **EmployeeType**: TEACHER, OFFICE_STAFF, JANITORIAL, HELPER, GUARD, OTHER
 - **EmploymentStatus**: ACTIVE, ON_LEAVE, TERMINATED, RESIGNED
@@ -189,6 +190,7 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | subjects | Subject[] (relation) |  |
 | feeStructures | FeeStructure[] (relation) |  |
 | promotionPolicy | PromotionPolicy? (relation) |  |
+| teachingAssignments | TeachingAssignment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -226,6 +228,7 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | staff | Staff[] (relation) |  |
 | users | User[] (relation) |  |
 | hiringApplications | HiringApplication[] (relation) |  |
+| teachingAssignments | TeachingAssignment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -249,6 +252,7 @@ Block attributes: `@@unique([schoolId, code])` · `@@index([schoolId])`
 | reportCards | ReportCard[] (relation) |  |
 | terms | Term[] (relation) |  |
 | applications | Application[] (relation) |  |
+| teachingAssignments | TeachingAssignment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -267,6 +271,7 @@ Block attributes: `@@index([schoolId])`
 | sections | Section[] (relation) |  |
 | assessmentCategories | AssessmentCategory[] (relation) |  |
 | applications | Application[] (relation) |  |
+| teachingAssignments | TeachingAssignment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -286,6 +291,7 @@ Block attributes: `@@index([campusId])` · `@@index([academicSessionId])`
 | classTeacher | Teacher? (relation) | @relation(fields: [classTeacherId], references: [id], onDelete: SetNull) |
 | diaryEntries | DiaryEntry[] (relation) |  |
 | circulars | Circular[] (relation) |  |
+| teachingAssignments | TeachingAssignment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -304,6 +310,7 @@ Block attributes: `@@index([classId])`
 | timetables | Timetable[] (relation) |  |
 | diaryEntries | DiaryEntry[] (relation) |  |
 | assessments | Assessment[] (relation) |  |
+| teachingAssignments | TeachingAssignment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -560,10 +567,43 @@ Block attributes: `@@index([studentId])`
 | classTeacherOfSections | Section[] (relation) |  |
 | attendanceMarks | Attendance[] (relation) | @relation("AttendanceMarkedBy") |
 | staff | Staff? (relation) |  |
+| teachingAssignments | TeachingAssignment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
 Block attributes: `@@index([campusId])`
+
+### TeachingAssignment
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| role | TeachingRole (enum) |  |
+| teacherId | String? |  |
+| teacher | Teacher? (relation) | @relation(fields: [teacherId], references: [id], onDelete: SetNull) |
+| teacherName | String |  |
+| schoolId | String? |  |
+| school | School? (relation) | @relation(fields: [schoolId], references: [id], onDelete: SetNull) |
+| campusId | String? |  |
+| campus | Campus? (relation) | @relation(fields: [campusId], references: [id], onDelete: SetNull) |
+| academicSessionId | String? |  |
+| academicSession | AcademicSession? (relation) | @relation(fields: [academicSessionId], references: [id], onDelete: SetNull) |
+| sessionLabel | String |  |
+| classId | String? |  |
+| class | Class? (relation) | @relation(fields: [classId], references: [id], onDelete: SetNull) |
+| className | String |  |
+| sectionId | String? |  |
+| section | Section? (relation) | @relation(fields: [sectionId], references: [id], onDelete: SetNull) |
+| sectionName | String |  |
+| subjectId | String? |  |
+| subject | Subject? (relation) | @relation(fields: [subjectId], references: [id], onDelete: SetNull) |
+| subjectName | String? |  |
+| startDate | DateTime |  |
+| startDateUnknown | Boolean | @default(false) |
+| endDate | DateTime? |  |
+| createdAt | DateTime | @default(now()) |
+
+Block attributes: `@@index([teacherId])` · `@@index([sectionId])` · `@@index([academicSessionId])` · `@@index([schoolId])`
 
 ### Staff
 

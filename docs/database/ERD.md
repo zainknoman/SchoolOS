@@ -70,6 +70,13 @@ flowchart LR
   StudentDocument -->|Cascade| Student
   StudentDocument -->|Restrict| File
   StudentDocument -->|SetNull, optional| User
+  TeachingAssignment -->|SetNull, optional| Teacher
+  TeachingAssignment -->|SetNull, optional| School
+  TeachingAssignment -->|SetNull, optional| Campus
+  TeachingAssignment -->|SetNull, optional| AcademicSession
+  TeachingAssignment -->|SetNull, optional| Class
+  TeachingAssignment -->|SetNull, optional| Section
+  TeachingAssignment -->|SetNull, optional| Subject
 ```
 
 ## Enrollment & admissions & hiring

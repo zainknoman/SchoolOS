@@ -48,6 +48,7 @@ vi.mock('../lib/api', () => ({
     verifyStaffDocument: vi.fn(),
     updateTeacher: vi.fn(),
     deleteTeacher: vi.fn(),
+    listTeachingAssignments: vi.fn(),
   },
 }));
 
@@ -58,6 +59,7 @@ describe('StaffProfileView', () => {
     auth.accessToken = 'token-1';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
+    vi.mocked(api.listTeachingAssignments).mockResolvedValue([]);
     vi.stubGlobal('URL', {
       ...URL,
       createObjectURL: vi.fn(() => 'blob:preview'),
@@ -115,6 +117,46 @@ describe('StaffProfileView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('Ayesha Khan');
+  });
+
+  it('BL-25: a teacher profile has a Teaching History tab listing their assignments', async () => {
+    vi.mocked(api.getStaffProfile).mockResolvedValue(
+      baseProfile({
+        employeeType: 'TEACHER',
+        teacher: { id: 't1', name: 'Ayesha Khan', user: { identifier: 'ayesha.khan' } },
+      }),
+    );
+    vi.mocked(api.listTeachingAssignments).mockResolvedValue([
+      {
+        id: 'ta1', role: 'CLASS_TEACHER', teacherId: 't1', teacherName: 'Ayesha Khan', academicSessionId: 's1',
+        sessionLabel: '2025-2026', classId: 'c1', className: 'Grade 5', sectionId: 'sec1', sectionName: 'A',
+        subjectId: null, subjectName: null, startDate: '2025-08-01T00:00:00.000Z', startDateUnknown: true, endDate: null,
+      },
+      {
+        id: 'ta2', role: 'SUBJECT_TEACHER', teacherId: 't1', teacherName: 'Ayesha Khan', academicSessionId: 's1',
+        sessionLabel: '2025-2026', classId: 'c1', className: 'Grade 5', sectionId: 'sec1', sectionName: 'A',
+        subjectId: 'm', subjectName: 'Maths', startDate: '2025-09-01T00:00:00.000Z', startDateUnknown: false,
+        endDate: '2026-01-15T00:00:00.000Z',
+      },
+    ]);
+    const wrapper = await mountView();
+    await flushPromises();
+
+    expect(api.listTeachingAssignments).toHaveBeenCalledWith('token-1', { teacherId: 't1' });
+    await wrapper.find('[data-testid="tab-teaching"]').trigger('click');
+    const rows = wrapper.find('[data-testid="teaching-history"]').text();
+    expect(rows).toContain('Class teacher · Grade 5 A · 2025-2026');
+    expect(rows).toContain('before 2025-08-01 → current');
+    expect(rows).toContain('Maths · Grade 5 A · 2025-2026');
+    expect(rows).toContain('2025-09-01 → 2026-01-15');
+  });
+
+  it('a non-teacher staff profile has no Teaching History tab', async () => {
+    vi.mocked(api.getStaffProfile).mockResolvedValue(baseProfile({ employeeType: 'JANITORIAL', teacher: null }));
+    const wrapper = await mountView();
+    await flushPromises();
+    expect(wrapper.find('[data-testid="tab-teaching"]').exists()).toBe(false);
+    expect(api.listTeachingAssignments).not.toHaveBeenCalled();
   });
 
   it('shows a Login section with the teacher login email for a linked teacher, and lets an admin reset the password', async () => {
