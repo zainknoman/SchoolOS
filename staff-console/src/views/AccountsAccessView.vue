@@ -1,63 +1,59 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useAuthStore } from '../stores/auth'
-import { api, STAFF_GRANTS, type AccountAccessStatus } from '../lib/api'
-import EntityTable from '../components/EntityTable.vue'
-import ListPageCard from '../components/ListPageCard.vue'
-import { useToast } from '../lib/useToast'
+import { onMounted, ref } from 'vue';
+import { useAuthStore } from '../stores/auth';
+import { api, STAFF_GRANTS, type AccountAccessStatus } from '../lib/api';
+import EntityTable from '../components/EntityTable.vue';
+import ListPageCard from '../components/ListPageCard.vue';
+import { useToast } from '../lib/useToast';
 
 // BL-32 (Q18): accounts staff work on fees/finance by default. A school admin grants each of
 // them the extra modules they need; every change is audited on the server.
-const auth = useAuthStore()
-const toast = useToast()
+const auth = useAuthStore();
+const toast = useToast();
 
 const LABELS: Record<string, string> = {
   ADMISSIONS: 'Admissions',
   COMPLAINTS: 'Complaints',
   MESSAGES: 'Parent messages',
-}
+};
 
-const staff = ref<AccountAccessStatus[]>([])
-const errorMessage = ref<string | null>(null)
-const loading = ref(true)
-const savingId = ref<string | null>(null)
+const staff = ref<AccountAccessStatus[]>([]);
+const errorMessage = ref<string | null>(null);
+const loading = ref(true);
+const savingId = ref<string | null>(null);
 
 async function load() {
-  if (!auth.accessToken) return
+  if (!auth.accessToken) return;
   try {
-    staff.value = await api.listAccountsStaff(auth.accessToken)
+    staff.value = await api.listAccountsStaff(auth.accessToken);
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : 'Could not load accounts staff.'
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load accounts staff.';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function toggle(user: AccountAccessStatus, grant: string, on: boolean) {
-  if (!auth.accessToken) return
-  const next = on ? [...user.grants, grant] : user.grants.filter((g) => g !== grant)
-  errorMessage.value = null
-  savingId.value = user.id
+  if (!auth.accessToken) return;
+  const next = on ? [...user.grants, grant] : user.grants.filter((g) => g !== grant);
+  errorMessage.value = null;
+  savingId.value = user.id;
   try {
-    const updated = await api.setStaffGrants(auth.accessToken, user.id, next)
-    staff.value = staff.value.map((u) => (u.id === updated.id ? updated : u))
-    toast.success(`${LABELS[grant]} ${on ? 'granted to' : 'removed from'} ${user.identifier}.`)
+    const updated = await api.setStaffGrants(auth.accessToken, user.id, next);
+    staff.value = staff.value.map((u) => (u.id === updated.id ? updated : u));
+    toast.success(`${LABELS[grant]} ${on ? 'granted to' : 'removed from'} ${user.identifier}.`);
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : 'Could not change access.'
+    errorMessage.value = err instanceof Error ? err.message : 'Could not change access.';
   } finally {
-    savingId.value = null
+    savingId.value = null;
   }
 }
 
-onMounted(load)
+onMounted(load);
 </script>
 
 <template>
-  <ListPageCard
-    icon="users"
-    title="Accounts Staff Access"
-    subtitle="Fees & finance by default; grant other modules here"
-  >
+  <ListPageCard icon="users" title="Accounts Staff Access" subtitle="Fees & finance by default; grant other modules here">
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
     <EntityTable
       :items="staff"
