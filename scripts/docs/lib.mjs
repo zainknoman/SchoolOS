@@ -63,6 +63,8 @@ export function parseController(text, file) {
   const classRoles = headDecorators.find((d) => d.name === 'Roles');
   const classPublic = headDecorators.some((d) => d.name === 'Public');
   const classThrottle = headDecorators.some((d) => d.name === 'Throttle');
+  // BL-32: @RequiresGrant('X') — ACCOUNTS reaches the route only with grant X.
+  const classGrant = headDecorators.find((d) => d.name === 'RequiresGrant');
 
   const bodyStart = text.indexOf('{', classIdx);
   const body = text.slice(bodyStart + 1);
@@ -134,6 +136,7 @@ export function parseController(text, file) {
         path: path === '/' ? '/' : path,
         roles,
         throttle: group.some((d) => d.name === 'Throttle') || classThrottle,
+        grant: strArg((group.find((d) => d.name === 'RequiresGrant') ?? classGrant)?.args) || null,
         file,
       });
     }

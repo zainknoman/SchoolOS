@@ -1,11 +1,12 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **58 models, 15 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **58 models, 16 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
 
 - **Role**: SUPER_ADMIN, SCHOOL_ADMIN, TEACHER, ACCOUNTS, PARENT
+- **StaffGrant**: ADMISSIONS, COMPLAINTS, MESSAGES
 - **AttendanceStatus**: PRESENT, ABSENT, LATE, LEAVE, HOLIDAY
 - **EnrollmentStatus**: ACTIVE, TRANSFERRED, COMPLETED, WITHDRAWN
 - **PromotionDecision**: PROMOTED, RETAINED, TRANSFERRED_OUT, GRADUATED, WITHDRAWN
@@ -39,6 +40,7 @@
 | campus | Campus? (relation) | @relation(fields: [campusId], references: [id], onDelete: Restrict) |
 | mustChangePassword | Boolean | @default(false) |
 | tokenVersion | Int | @default(0) |
+| grants | StaffGrant[] (enum) | @default([]) |
 | lockedUntil | DateTime? |  |
 | failedLoginCount | Int | @default(0) |
 | notificationChannel | NotificationChannel (enum) | @default(PUSH) |

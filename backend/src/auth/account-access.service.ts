@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
 import type { RequestUser } from '../common/student-access.service';
 import { AuthService } from './auth.service';
+import type { StaffGrantName } from './decorators/requires-grant.decorator';
 
 export interface AccountAccessStatus {
   id: string;
@@ -20,6 +21,8 @@ export interface AccountAccessStatus {
   role: string;
   disabled: boolean;
   lockedUntil: string | null;
+  /** BL-32 module grants (meaningful for ACCOUNTS only). */
+  grants: string[];
 }
 
 type Placement = { schoolId: string; campusId: string | null };
@@ -119,6 +122,72 @@ export class AccountAccessService {
     return this.status(targetId, actor);
   }
 
+  /** BL-32: ACCOUNTS users inside the caller's scope, with their grants. */
+  async listAccountsStaff(actor: RequestUser): Promise<AccountAccessStatus[]> {
+    const scope = await this.orgScope.resolve(actor);
+    if (scope.denied) return [];
+    const where = scope.unrestricted
+      ? { role: 'ACCOUNTS' as const }
+      : scope.campusId
+        ? { role: 'ACCOUNTS' as const, campusId: scope.campusId }
+        : {
+            role: 'ACCOUNTS' as const,
+            OR: [
+              { schoolId: scope.schoolId },
+              { campus: { schoolId: scope.schoolId! } },
+            ],
+          };
+    const users = await this.prisma.user.findMany({
+      where,
+      orderBy: { identifier: 'asc' },
+      select: {
+        id: true,
+        identifier: true,
+        role: true,
+        isLocked: true,
+        lockedUntil: true,
+        grants: true,
+      },
+    });
+    return users.map((u) => this.toStatus(u));
+  }
+
+  /**
+   * BL-32 (Q18): ACCOUNTS is finance-only by default; admissions, complaints and messages need an
+   * explicit grant. Only an ACCOUNTS account takes grants; same scope rules as disable/enable.
+   * The audit row records the grants before and after.
+   */
+  async setGrants(
+    targetId: string,
+    grants: StaffGrantName[],
+    actor: RequestUser,
+  ) {
+    const target = await this.assertCanManage(targetId, actor, 'change');
+    if (target.role !== 'ACCOUNTS') {
+      throw new BadRequestException(
+        'Module grants apply to accounts staff only',
+      );
+    }
+    const next = [...new Set(grants)].sort();
+    await this.prisma.user.update({
+      where: { id: targetId },
+      data: { grants: next },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actor.id,
+        action: 'account.grants',
+        entity: 'User',
+        entityId: targetId,
+        metadata: JSON.stringify({
+          before: [...target.grants].sort(),
+          after: next,
+        }),
+      },
+    });
+    return this.status(targetId, actor);
+  }
+
   async revokeSessions(targetId: string, actor: RequestUser) {
     await this.assertCanManage(targetId, actor, 'change');
     await this.auth.revokeAllSessions(targetId);
@@ -139,6 +208,7 @@ export class AccountAccessService {
         role: true,
         isLocked: true,
         lockedUntil: true,
+        grants: true,
         schoolId: true,
         campusId: true,
         campus: { select: { schoolId: true } },
@@ -220,6 +290,7 @@ export class AccountAccessService {
     role: string;
     isLocked: boolean;
     lockedUntil: Date | null;
+    grants: string[];
   }): AccountAccessStatus {
     return {
       id: u.id,
@@ -230,6 +301,7 @@ export class AccountAccessService {
         u.lockedUntil && u.lockedUntil.getTime() > Date.now()
           ? u.lockedUntil.toISOString()
           : null,
+      grants: u.grants,
     };
   }
 

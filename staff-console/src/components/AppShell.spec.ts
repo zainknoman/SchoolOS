@@ -244,9 +244,30 @@ describe('AppShell (role-gated nav)', () => {
 
     expect(wrapper.find('[data-testid="nav-circulars"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-timetable"]').exists()).toBe(false);
-    // Fees and Messages have no such restriction and should still show.
+    // Fees has no such restriction. BL-32 (replaces the old "Messages always shows" pin):
+    // Messages, Complaints and Admissions need a grant, which a new ACCOUNTS user lacks.
     expect(wrapper.find('[data-testid="nav-fees"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-messages"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-complaints"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-admissions"]').exists()).toBe(false);
+  });
+
+  it('shows granted modules to an ACCOUNTS user (BL-32)', async () => {
+    setActivePinia(createPinia());
+    const auth = useAuthStore();
+    auth.role = 'ACCOUNTS';
+    auth.accessToken = 'token-1';
+    auth.grants = ['MESSAGES', 'ADMISSIONS'];
+    const router = makeRouter();
+    await router.push('/login');
+    await router.isReady();
+    const wrapper = mount(AppShell, { global: { plugins: [router] } });
+    await flushPromises();
+
     expect(wrapper.find('[data-testid="nav-messages"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-admissions"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-complaints"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-accounts-access"]').exists()).toBe(false);
   });
 
   it('shows nav-circulars and nav-timetable for a SCHOOL_ADMIN role', async () => {

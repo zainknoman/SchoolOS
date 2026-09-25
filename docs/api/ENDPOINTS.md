@@ -2,7 +2,7 @@
 
 > **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from every `backend/src/**/*.controller.ts` — **do not edit by hand**; regenerate with `node scripts/docs/generate.mjs` (CI runs `--check`) · **Sources:** `@Controller` + `@Get/@Post/@Put/@Patch/@Delete` + `@Roles/@Public/@Throttle`; method-level `@Roles`/`@Public` override class-level ones · **Owner:** Engineering Lead
 > All paths are prefixed with `/api/v1`. **Roles** = the `@Roles(...)` decorator (`RolesGuard` does an exact `includes(user.role)` check — SUPER_ADMIN has **no implicit override**). "any authenticated (service-scoped)" = no decorator: every logged-in role passes the guard and the **service** decides by scope (see [AUTHORIZATION](AUTHORIZATION.md)). `T` = route-level throttle decorator (auth routes, 5/min); all routes also fall under the global 100/min limit.
-> Total: **194** route handlers in 43 controllers.
+> Total: **196** route handlers in 43 controllers.
 
 ## (root)
 
@@ -115,28 +115,30 @@
 
 | Method | Path | Roles | T | Controller |
 |---|---|---|---|---|
+| GET | `/admin/users/accounts-staff` | SCHOOL_ADMIN, SUPER_ADMIN |  | `auth/account-access.controller.ts` |
 | GET | `/admin/users/:id/access` | SCHOOL_ADMIN, SUPER_ADMIN |  | `auth/account-access.controller.ts` |
 | POST | `/admin/users/:id/disable` | SCHOOL_ADMIN, SUPER_ADMIN |  | `auth/account-access.controller.ts` |
 | POST | `/admin/users/:id/enable` | SCHOOL_ADMIN, SUPER_ADMIN |  | `auth/account-access.controller.ts` |
+| PUT | `/admin/users/:id/grants` | SCHOOL_ADMIN, SUPER_ADMIN |  | `auth/account-access.controller.ts` |
 | POST | `/admin/users/:id/revoke-sessions` | SCHOOL_ADMIN, SUPER_ADMIN |  | `auth/account-access.controller.ts` |
 
 ## applicants
 
 | Method | Path | Roles | T | Controller |
 |---|---|---|---|---|
-| POST | `/applicants` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN |  | `admissions/applicants.controller.ts` |
-| GET | `/applicants` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN |  | `admissions/applicants.controller.ts` |
+| POST | `/applicants` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `ADMISSIONS` |  | `admissions/applicants.controller.ts` |
+| GET | `/applicants` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `ADMISSIONS` |  | `admissions/applicants.controller.ts` |
 
 ## applications
 
 | Method | Path | Roles | T | Controller |
 |---|---|---|---|---|
-| POST | `/applications` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN |  | `admissions/applications.controller.ts` |
-| GET | `/applications` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN |  | `admissions/applications.controller.ts` |
-| GET | `/applications/:id` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN |  | `admissions/applications.controller.ts` |
-| PATCH | `/applications/:id` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN |  | `admissions/applications.controller.ts` |
-| POST | `/applications/:id/reject` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN |  | `admissions/applications.controller.ts` |
-| POST | `/applications/:id/approve` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN |  | `admissions/applications.controller.ts` |
+| POST | `/applications` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `ADMISSIONS` |  | `admissions/applications.controller.ts` |
+| GET | `/applications` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `ADMISSIONS` |  | `admissions/applications.controller.ts` |
+| GET | `/applications/:id` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `ADMISSIONS` |  | `admissions/applications.controller.ts` |
+| PATCH | `/applications/:id` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `ADMISSIONS` |  | `admissions/applications.controller.ts` |
+| POST | `/applications/:id/reject` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `ADMISSIONS` |  | `admissions/applications.controller.ts` |
+| POST | `/applications/:id/approve` | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `ADMISSIONS` |  | `admissions/applications.controller.ts` |
 
 ## assessment-categories
 
@@ -228,19 +230,19 @@
 
 | Method | Path | Roles | T | Controller |
 |---|---|---|---|---|
-| POST | `/complaints` | TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN |  | `complaints/complaints.controller.ts` |
-| GET | `/complaints` | any authenticated (service-scoped) |  | `complaints/complaints.controller.ts` |
-| PATCH | `/complaints/:id` | TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN |  | `complaints/complaints.controller.ts` |
+| POST | `/complaints` | TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
+| GET | `/complaints` | any authenticated (service-scoped) · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
+| PATCH | `/complaints/:id` | TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
 
 ## conversations
 
 | Method | Path | Roles | T | Controller |
 |---|---|---|---|---|
-| POST | `/conversations` | PARENT |  | `messages/conversations.controller.ts` |
-| GET | `/conversations` | any authenticated (service-scoped) |  | `messages/conversations.controller.ts` |
-| GET | `/conversations/:id` | any authenticated (service-scoped) |  | `messages/conversations.controller.ts` |
-| POST | `/conversations/:id/messages` | any authenticated (service-scoped) |  | `messages/conversations.controller.ts` |
-| POST | `/conversations/:id/read` | any authenticated (service-scoped) |  | `messages/conversations.controller.ts` |
+| POST | `/conversations` | PARENT · ACCOUNTS only with grant `MESSAGES` |  | `messages/conversations.controller.ts` |
+| GET | `/conversations` | any authenticated (service-scoped) · ACCOUNTS only with grant `MESSAGES` |  | `messages/conversations.controller.ts` |
+| GET | `/conversations/:id` | any authenticated (service-scoped) · ACCOUNTS only with grant `MESSAGES` |  | `messages/conversations.controller.ts` |
+| POST | `/conversations/:id/messages` | any authenticated (service-scoped) · ACCOUNTS only with grant `MESSAGES` |  | `messages/conversations.controller.ts` |
+| POST | `/conversations/:id/read` | any authenticated (service-scoped) · ACCOUNTS only with grant `MESSAGES` |  | `messages/conversations.controller.ts` |
 
 ## diary
 

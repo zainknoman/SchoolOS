@@ -32,6 +32,8 @@ export type SessionResult = {
   mustChangePassword: boolean;
   campusId: string | null;
   schoolId: string | null;
+  /** BL-32 module grants (ACCOUNTS only) — lets the console hide modules it may not open. */
+  grants: string[];
 };
 
 function hashToken(token: string): string {
@@ -319,6 +321,7 @@ export class AuthService {
     campusId: string | null;
     schoolId: string | null;
     tokenVersion: number;
+    grants?: string[];
   }): Promise<SessionResult> {
     const {
       id: userId,
@@ -354,6 +357,7 @@ export class AuthService {
       mustChangePassword,
       campusId,
       schoolId,
+      grants: user.grants ?? [],
     };
   }
 }

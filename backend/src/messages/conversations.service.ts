@@ -119,7 +119,10 @@ export class ConversationsService {
     const where =
       dto.recipientType === 'PRINCIPAL'
         ? { isPrincipal: true }
-        : { role: dto.recipientType };
+        : dto.recipientType === 'ACCOUNTS'
+          ? // BL-32: only an ACCOUNTS user granted MESSAGES can receive parent messages.
+            { role: dto.recipientType, grants: { has: 'MESSAGES' as const } }
+          : { role: dto.recipientType };
     const user = await this.prisma.user.findFirst({
       where,
       orderBy: { createdAt: 'asc' },

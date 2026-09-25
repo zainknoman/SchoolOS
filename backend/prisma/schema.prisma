@@ -20,6 +20,13 @@ enum Role {
   PARENT
 }
 
+// BL-32 (Q18): modules outside fees/finance that an ACCOUNTS user may reach only when granted.
+enum StaffGrant {
+  ADMISSIONS
+  COMPLAINTS
+  MESSAGES
+}
+
 enum AttendanceStatus {
   PRESENT
   ABSENT
@@ -144,6 +151,8 @@ model User {
   mustChangePassword  Boolean             @default(false)
   // Bumped to revoke every issued access token at once (logout-all, disable, password change) — BL-21
   tokenVersion        Int                 @default(0)
+  // BL-32: explicit module grants; only consulted for ACCOUNTS (finance-only by default)
+  grants              StaffGrant[]        @default([])
   lockedUntil         DateTime?
   failedLoginCount    Int                 @default(0)
   notificationChannel NotificationChannel @default(PUSH)

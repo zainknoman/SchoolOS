@@ -5,12 +5,14 @@ import { CreateConversationDto } from './dto/create-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { RequestUser } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequiresGrant } from '../auth/decorators/requires-grant.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
 }
 
 @Controller('api/v1/conversations')
+@RequiresGrant('MESSAGES')
 export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 

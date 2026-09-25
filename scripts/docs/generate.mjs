@@ -38,7 +38,9 @@ function renderEndpoints() {
     groups.get(g).push(r);
   }
   const keys = [...groups.keys()].sort((a, b) => (a === '(root)' ? -1 : b === '(root)' ? 1 : a < b ? -1 : a > b ? 1 : 0));
-  const roleCell = (r) => (r.roles === 'public' ? '**public**' : r.roles === 'any' ? 'any authenticated (service-scoped)' : r.roles.join(', '));
+  const baseRoleCell = (r) => (r.roles === 'public' ? '**public**' : r.roles === 'any' ? 'any authenticated (service-scoped)' : r.roles.join(', '));
+  // BL-32: ACCOUNTS needs an explicit module grant on @RequiresGrant routes.
+  const roleCell = (r) => baseRoleCell(r) + (r.grant ? ` · ACCOUNTS only with grant \`${r.grant}\`` : '');
   let out = [
     '# Endpoint Reference',
     '',

@@ -111,7 +111,7 @@
 | **BR-D-13** Students | No student login in the initial release; architecture must not preclude it | none | BL-47 |
 | **BR-D-14** Admissions | Staff-entered now; public online admissions is a future API | staff-entered | BL-46 |
 | **BR-D-15** Staff history | Keep teacher/staff assignment history: teacher, session, school/campus, class, section, subject, role, start/end dates | NOT IMPLEMENTED | BL-25 |
-| **BR-D-18** ACCOUNTS | Fees/finance only; admissions, complaints, messaging only via explicit permission grants | ACCOUNTS also has admissions/complaints/messages | BL-32 |
+| **BR-D-18** ACCOUNTS | Fees/finance only; admissions, complaints, messaging only via explicit permission grants | **Implemented 2026-09-26 (BL-32):** `User.grants` (`ADMISSIONS`, `COMPLAINTS`, `MESSAGES`), empty by default; `@RequiresGrant` on the admissions, complaints and conversations controllers; a parent writing to "Accounts" reaches only a granted ACCOUNTS user; set by SCHOOL_ADMIN (own school/campus) or SUPER_ADMIN via `PUT /admin/users/:id/grants`, audited `account.grants` with before/after | BL-32 |
 | **BR-D-19** Copy structure | SCHOOL_ADMIN (own school) and SUPER_ADMIN may copy classes, sections, subjects, subject assignments, syllabus structure, timetable templates into a new session; never modifies historical data; UI must match the API | API allows SCHOOL_ADMIN, UI is SUPER_ADMIN-only; classes/sections only (BR-ORG-05, KI-18) | BL-33 |
 
 ### Decided rules from the owner's second ruling (2026-09-20), pending implementation

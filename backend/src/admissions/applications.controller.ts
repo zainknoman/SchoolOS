@@ -16,6 +16,7 @@ import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 import { ApproveApplicationDto } from './dto/approve-application.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequiresGrant } from '../auth/decorators/requires-grant.decorator';
 import type { RequestUser } from '../common/student-access.service';
 
 interface AuthenticatedRequest extends Request {
@@ -24,6 +25,7 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('api/v1/applications')
 @Roles('SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+@RequiresGrant('ADMISSIONS')
 export class ApplicationsController {
   constructor(private readonly applicationsService: ApplicationsService) {}
 

@@ -89,9 +89,15 @@ const canManageGradebook = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.r
 const canManageReportCards = computed(
   () => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN',
 );
+// BL-32: ACCOUNTS sees admissions/complaints/messages only when a school admin granted them.
 const canManageAdmissions = computed(
-  () => auth.role === 'SCHOOL_ADMIN' || auth.role === 'ACCOUNTS' || auth.role === 'SUPER_ADMIN',
+  () =>
+    auth.role === 'SCHOOL_ADMIN' ||
+    auth.role === 'SUPER_ADMIN' ||
+    (auth.role === 'ACCOUNTS' && auth.hasModule('ADMISSIONS')),
 );
+const canUseMessages = computed(() => auth.hasModule('MESSAGES'));
+const canUseComplaints = computed(() => auth.hasModule('COMPLAINTS'));
 const canManageBulkImport = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 
 // Deliberately SCHOOL_ADMIN/SUPER_ADMIN only, unlike canManageAdmissions — matches
@@ -280,7 +286,9 @@ const goToItems = computed<CmdkGoTo[]>(() => {
   if (canManageCirculars.value) {
     items.push({ testid: 'cmdk-circulars', label: 'Circulars', icon: 'megaphone', to: '/admin/circulars' });
   }
-  items.push({ testid: 'cmdk-messages', label: 'Messages', icon: 'chat', to: '/admin/messages' });
+  if (canUseMessages.value) {
+    items.push({ testid: 'cmdk-messages', label: 'Messages', icon: 'chat', to: '/admin/messages' });
+  }
   return items;
 });
 
@@ -550,6 +558,9 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
             <RouterLink v-if="canManageBulkImport" data-testid="nav-bulk-import" to="/admin/bulk-import"
               ><Icon name="grid" />{{ t('nav.bulkImport') }}</RouterLink
             >
+            <RouterLink v-if="canManageBulkImport" data-testid="nav-accounts-access" to="/admin/accounts-access"
+              ><Icon name="users" />Accounts Access</RouterLink
+            >
             <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />{{ t('nav.fees') }}</RouterLink>
             <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"
               ><Icon name="calendar" />{{ t('nav.leave') }}</RouterLink
@@ -582,11 +593,15 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
 
           <div class="nav-group">
             <div class="nav-group-label">Communication</div>
-            <RouterLink data-testid="nav-messages" to="/admin/messages"><Icon name="chat" />{{ t('nav.messages') }}</RouterLink>
+            <RouterLink v-if="canUseMessages" data-testid="nav-messages" to="/admin/messages"
+              ><Icon name="chat" />{{ t('nav.messages') }}</RouterLink
+            >
             <RouterLink v-if="canManageCirculars" data-testid="nav-circulars" to="/admin/circulars"
               ><Icon name="megaphone" />{{ t('nav.circulars') }}</RouterLink
             >
-            <RouterLink data-testid="nav-complaints" to="/admin/complaints"><Icon name="chat" />{{ t('nav.complaints') }}</RouterLink>
+            <RouterLink v-if="canUseComplaints" data-testid="nav-complaints" to="/admin/complaints"
+              ><Icon name="chat" />{{ t('nav.complaints') }}</RouterLink
+            >
           </div>
 
           <div v-if="canManageOrgUnits" class="nav-group">

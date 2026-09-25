@@ -3,9 +3,11 @@ import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApplicantsService } from './applicants.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequiresGrant } from '../auth/decorators/requires-grant.decorator';
 
 @Controller('api/v1/applicants')
 @Roles('SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+@RequiresGrant('ADMISSIONS')
 export class ApplicantsController {
   constructor(private readonly applicantsService: ApplicantsService) {}
 

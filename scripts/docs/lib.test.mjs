@@ -35,6 +35,13 @@ test('REGRESSION: method-level @Roles overrides the class-level @Roles (earlier 
   assert.deepEqual(r.map((x) => x.roles), [['TEACHER'], ['SCHOOL_ADMIN']]);
 });
 
+test('BL-32: class- or method-level @RequiresGrant is recorded per route', () => {
+  const src = controller("  @Get()\n  a() {}\n  @RequiresGrant('MESSAGES')\n  @Get('m')\n  b() {}", "@RequiresGrant('ADMISSIONS')");
+  const r = parseController(src, 'w.controller.ts');
+  assert.deepEqual(r.map((x) => x.grant), ['ADMISSIONS', 'MESSAGES']);
+  assert.equal(parseController(controller('  @Get()\n  a() {}'), 'w.controller.ts')[0].grant, null);
+});
+
 test('no decorator means any authenticated user; @Public means public', () => {
   const src = controller("  @Get()\n  a() {}\n  @Public()\n  @Get('open')\n  b() {}");
   const r = parseController(src, 'w.controller.ts');

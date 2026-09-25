@@ -19,6 +19,8 @@ export interface AuthenticatedUser {
   id: string;
   role: string;
   mustChangePassword: boolean;
+  /** BL-32 module grants (only consulted for ACCOUNTS). */
+  grants: string[];
 }
 
 // The ?access_token= fallback exists only so a plain download link — which can't set an
@@ -84,6 +86,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         isLocked: true,
         tokenVersion: true,
         mustChangePassword: true,
+        grants: true,
       },
     });
     if (!user || user.isLocked || (payload.tv ?? 0) !== user.tokenVersion) {
@@ -93,6 +96,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: user.id,
       role: user.role,
       mustChangePassword: user.mustChangePassword,
+      grants: user.grants,
     };
   }
 }

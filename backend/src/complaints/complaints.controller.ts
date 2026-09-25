@@ -18,12 +18,14 @@ import {
   RequestUser,
 } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequiresGrant } from '../auth/decorators/requires-grant.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
 }
 
 @Controller('api/v1/complaints')
+@RequiresGrant('COMPLAINTS')
 export class ComplaintsController {
   constructor(
     private readonly complaintsService: ComplaintsService,
