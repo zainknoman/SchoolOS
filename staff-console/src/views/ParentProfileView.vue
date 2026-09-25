@@ -3,7 +3,14 @@
 import { computed, reactive, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { api, type ParentAddressDetail, type ParentProfileDetail, type UpdateParentInput } from '../lib/api';
+import {
+  api,
+  GUARDIAN_RELATIONSHIP_OPTIONS,
+  type ParentAddressDetail,
+  type ParentProfileDetail,
+  type StudentAdminSummary,
+  type UpdateParentInput,
+} from '../lib/api';
 import { GENDER_OPTIONS } from '../lib/student-profile.constants';
 import OrgProfileHeader from '../components/OrgProfileHeader.vue';
 import ProfileSectionCard from '../components/ProfileSectionCard.vue';
@@ -123,12 +130,84 @@ async function onSave() {
 }
 
 async function onToggle(studentId: string, field: 'isPrimary' | 'isEmergencyContact', value: boolean) {
+  await updateLink(studentId, { [field]: value });
+}
+
+// BL-04: relationship type per child; at most two primary guardians per student (the API refuses
+// a third, and the page reloads so the checkbox shows the real state again).
+async function onRelationship(studentId: string, relationshipType: string) {
+  await updateLink(studentId, { relationshipType });
+}
+
+async function updateLink(
+  studentId: string,
+  payload: { isPrimary?: boolean; isEmergencyContact?: boolean; relationshipType?: string },
+) {
   if (!auth.accessToken) return;
   formError.value = null;
   try {
-    profile.value = await api.updateParentChildLink(auth.accessToken, parentId, studentId, { [field]: value });
+    profile.value = await api.updateParentChildLink(auth.accessToken, parentId, studentId, payload);
   } catch (err) {
     formError.value = err instanceof Error ? err.message : 'Could not update this link.';
+    await load();
+  }
+}
+
+// BL-23: link another of this school's students to the parent, or remove a link.
+const students = ref<StudentAdminSummary[]>([]);
+const linkStudentId = ref('');
+const linkRelationshipType = ref('');
+const linkIsPrimary = ref(false);
+const showLinkForm = ref(false);
+const isLinking = ref(false);
+const linkableStudents = computed(() =>
+  students.value.filter((s) => !profile.value?.children.some((c) => c.studentId === s.id)),
+);
+
+async function openLinkForm() {
+  if (!auth.accessToken) return;
+  showLinkForm.value = true;
+  if (students.value.length === 0) {
+    try {
+      students.value = await api.listAdminStudents(auth.accessToken);
+    } catch (err) {
+      formError.value = err instanceof Error ? err.message : 'Could not load students.';
+    }
+  }
+}
+
+async function onLink() {
+  if (!auth.accessToken || !linkStudentId.value || !linkRelationshipType.value) return;
+  formError.value = null;
+  isLinking.value = true;
+  try {
+    profile.value = await api.linkParentChild(auth.accessToken, parentId, {
+      studentId: linkStudentId.value,
+      relationshipType: linkRelationshipType.value,
+      isPrimary: linkIsPrimary.value,
+    });
+    showLinkForm.value = false;
+    linkStudentId.value = '';
+    linkRelationshipType.value = '';
+    linkIsPrimary.value = false;
+    toast.success('Child linked.');
+  } catch (err) {
+    formError.value = err instanceof Error ? err.message : 'Could not link this child.';
+  } finally {
+    isLinking.value = false;
+  }
+}
+
+async function onUnlink(studentId: string, studentName: string) {
+  if (!auth.accessToken) return;
+  if (!(await confirm({ title: 'Remove guardian', message: `Remove this parent as a guardian of ${studentName}?` }))) return;
+  formError.value = null;
+  try {
+    await api.unlinkParentChild(auth.accessToken, parentId, studentId);
+    toast.success('Guardian removed.');
+    await load();
+  } catch (err) {
+    formError.value = err instanceof Error ? err.message : 'Could not remove this link.';
   }
 }
 
@@ -261,6 +340,7 @@ const chips = computed(() => [profile.value?.identifier].filter((v): v is string
       </div>
 
       <ProfileSectionCard icon="users" title="Children">
+        <p v-if="formError && !isEditing" class="error" role="alert" data-testid="link-error">{{ formError }}</p>
         <p v-if="profile.children.length === 0" class="muted" data-testid="no-children">No children linked to this parent.</p>
         <table v-else class="children-table">
           <thead>
@@ -270,6 +350,7 @@ const chips = computed(() => [profile.value?.identifier].filter((v): v is string
               <th>Relationship</th>
               <th>Primary guardian</th>
               <th>Emergency contact</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -279,7 +360,18 @@ const chips = computed(() => [profile.value?.identifier].filter((v): v is string
                 <span class="muted mono"> {{ child.grNumber }}</span>
               </td>
               <td>{{ child.className ? `${child.className} ${child.sectionName ?? ''}` : '—' }}</td>
-              <td>{{ child.relationship }}</td>
+              <td>
+                <select
+                  :data-testid="`relationship-${child.studentId}`"
+                  :value="child.relationshipType ?? ''"
+                  :aria-label="`Relationship to ${child.studentName}`"
+                  @change="onRelationship(child.studentId, ($event.target as HTMLSelectElement).value)"
+                >
+                  <option v-if="!child.relationshipType" value="" disabled>{{ child.relationship }}</option>
+                  <option v-for="o in GUARDIAN_RELATIONSHIP_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                </select>
+                <span v-if="child.relationshipNote" class="muted"> ({{ child.relationshipNote }})</span>
+              </td>
               <td>
                 <input
                   type="checkbox"
@@ -298,9 +390,38 @@ const chips = computed(() => [profile.value?.identifier].filter((v): v is string
                   @change="onToggle(child.studentId, 'isEmergencyContact', ($event.target as HTMLInputElement).checked)"
                 />
               </td>
+              <td>
+                <Button variant="secondary" :data-testid="`unlink-${child.studentId}`" @click="onUnlink(child.studentId, child.studentName)">
+                  Remove
+                </Button>
+              </td>
             </tr>
           </tbody>
         </table>
+        <div class="link-actions">
+          <Button v-if="!showLinkForm" variant="secondary" data-testid="open-link-child" @click="openLinkForm">+ Add child</Button>
+          <div v-else class="inline-form" data-testid="link-child-form">
+            <FormField
+              v-model="linkStudentId"
+              label="Student"
+              type="select"
+              data-testid="link-student"
+              placeholder="Choose a student"
+              :options="linkableStudents.map((s) => ({ value: s.id, label: `${s.name} (${s.grNumber})` }))"
+            />
+            <FormField
+              v-model="linkRelationshipType"
+              label="Relationship"
+              type="select"
+              data-testid="link-relationship"
+              placeholder="Choose a relationship"
+              :options="GUARDIAN_RELATIONSHIP_OPTIONS"
+            />
+            <FormField v-model="linkIsPrimary" label="Primary guardian" type="checkbox" data-testid="link-primary" />
+            <Button data-testid="link-submit" :disabled="isLinking || !linkStudentId || !linkRelationshipType" @click="onLink">Link</Button>
+            <Button variant="secondary" @click="showLinkForm = false">Cancel</Button>
+          </div>
+        </div>
       </ProfileSectionCard>
     </template>
   </div>

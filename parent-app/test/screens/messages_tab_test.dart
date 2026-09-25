@@ -139,6 +139,54 @@ void main() {
     expect(find.text('Sure thing.'), findsOneWidget);
   });
 
+  testWidgets('BL-23: with children in two schools, a message to the admin names its child', (tester) async {
+    String? sentStudentId;
+    String? sentRecipient;
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        if (request.method == 'GET' && request.url.path == '/api/v1/conversations') {
+          return http.Response('[]', 200);
+        }
+        if (request.method == 'POST' && request.url.path == '/api/v1/conversations') {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          sentStudentId = body['studentId'] as String?;
+          sentRecipient = body['recipientType'] as String?;
+          return http.Response(jsonEncode({'id': 'conv-9'}), 201);
+        }
+        return http.Response('[]', 200);
+      }),
+    );
+    const twoSchools = [
+      ChildSummary(id: 's1', name: 'Eshaal', grNumber: 'GR-1001', campus: 'Main', schoolClass: 'Class 3', section: '3A', school: 'Demo School North'),
+      ChildSummary(id: 's2', name: 'Ahmed', grNumber: 'GR-2002', campus: 'Main', schoolClass: 'Class 6', section: '6B', school: 'Demo School South'),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MessagesTab(accessToken: 'tok', api: api, children: twoSchools, activeChildId: 's2'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('newConversation')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('recipientTypeField')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Admin').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('studentField')), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('bodyField')), 'Fee question');
+    await tester.tap(find.byKey(const Key('sendButton')));
+    await tester.pumpAndSettle();
+
+    expect(sentRecipient, 'SCHOOL_ADMIN');
+    expect(sentStudentId, 's2');
+  });
+
   testWidgets('initialConversationId opens straight to that thread, skipping the list', (
     tester,
   ) async {

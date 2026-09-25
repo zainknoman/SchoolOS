@@ -21,6 +21,12 @@ async function mountView() {
 }
 
 vi.mock('../lib/api', () => ({
+  GUARDIAN_RELATIONSHIP_OPTIONS: [
+    { value: 'FATHER', label: 'Father' },
+    { value: 'MOTHER', label: 'Mother' },
+    { value: 'GUARDIAN', label: 'Guardian' },
+    { value: 'OTHER', label: 'Other' },
+  ],
   api: {
     listSections: vi.fn(),
     listAdminParents: vi.fn(),
@@ -108,11 +114,12 @@ describe('StudentManagementView', () => {
     await wrapper.find('[data-testid="add-name"]').setValue('New Student');
     await wrapper.find('[data-testid="add-section"]').setValue('sec1');
     await wrapper.find('[data-testid="add-parent-select"]').setValue('p1');
+    await wrapper.find('[data-testid="add-relationship"]').setValue('FATHER');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
     await flushPromises();
 
     expect(api.createStudent).toHaveBeenCalledWith('token-1', {
-      grNumber: 'GR-2001', name: 'New Student', sectionId: 'sec1', parentProfileId: 'p1',
+      grNumber: 'GR-2001', name: 'New Student', sectionId: 'sec1', parentProfileId: 'p1', relationshipType: 'FATHER',
     });
   });
 
@@ -136,12 +143,14 @@ describe('StudentManagementView', () => {
     await wrapper.find('[data-testid="new-parent-identifier"]').setValue('inline-parent@schoolos.edu.pk');
     await wrapper.find('[data-testid="new-parent-password"]').setValue('InlinePass1!');
     await wrapper.find('[data-testid="new-parent-name"]').setValue('Inline Parent');
+    await wrapper.find('[data-testid="add-relationship"]').setValue('FATHER');
     await wrapper.find('[data-testid="add-submit"]').trigger('click');
     await flushPromises();
 
     expect(api.createStudent).toHaveBeenCalledWith('token-1', {
       grNumber: 'GR-2002', name: 'Another Student', sectionId: 'sec1',
       newParent: { identifier: 'inline-parent@schoolos.edu.pk', password: 'InlinePass1!', name: 'Inline Parent', phone: undefined },
+      relationshipType: 'FATHER',
     });
   });
 

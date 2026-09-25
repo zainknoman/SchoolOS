@@ -8,13 +8,27 @@ import { api } from '../lib/api';
 import { useConfirm } from '../lib/useConfirm';
 
 vi.mock('../lib/api', () => ({
+  GUARDIAN_RELATIONSHIP_OPTIONS: [
+    { value: 'FATHER', label: 'Father' },
+    { value: 'MOTHER', label: 'Mother' },
+    { value: 'GUARDIAN', label: 'Guardian' },
+    { value: 'OTHER', label: 'Other' },
+  ],
   api: {
     listAdminParents: vi.fn(),
     listAdminParentsPage: vi.fn(),
     createParent: vi.fn(),
     updateParent: vi.fn(),
     deleteParent: vi.fn(),
+    lookupParent: vi.fn(),
+    listAdminStudents: vi.fn(),
+    linkParentChild: vi.fn(),
   },
+}));
+const pushMock = vi.fn();
+vi.mock('vue-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-router')>()),
+  useRouter: () => ({ push: pushMock }),
 }));
 vi.mock('../lib/useConfirm', () => ({
   useConfirm: vi.fn(),
@@ -35,6 +49,43 @@ describe('ParentManagementView', () => {
       { id: 'p1', identifier: 'parent-x@schoolos.edu.pk', name: 'Existing Parent', phone: '0300-1111111', childrenCount: 2 },
     ]);
     vi.mocked(useConfirm).mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
+  });
+
+  it('BL-23: finds an existing parent by exact login and links them to one of our students', async () => {
+    vi.mocked(api.lookupParent).mockResolvedValue({ id: 'p9', identifier: 'father@x.pk', name: 'Shared Father' });
+    vi.mocked(api.listAdminStudents).mockResolvedValue([
+      { id: 's5', grNumber: 'GR-5', name: 'Hamza', sectionName: '1A', className: 'Class 1', campusName: 'Main', parentNames: [] },
+    ]);
+    vi.mocked(api.linkParentChild).mockResolvedValue(undefined as never);
+    const wrapper = mount(ParentManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
+    await flushPromises();
+
+    await wrapper.find('[data-testid="open-find-parent"]').trigger('click');
+    await wrapper.find('[data-testid="find-key"]').setValue('father@x.pk');
+    await wrapper.find('[data-testid="find-submit"]').trigger('click');
+    await flushPromises();
+    expect(api.lookupParent).toHaveBeenCalledWith('token-1', { identifier: 'father@x.pk' });
+    expect(wrapper.find('[data-testid="find-result"]').text()).toContain('Shared Father');
+
+    await wrapper.find('[data-testid="find-student"]').setValue('s5');
+    await wrapper.find('[data-testid="find-relationship"]').setValue('FATHER');
+    await wrapper.find('[data-testid="find-link"]').trigger('click');
+    await flushPromises();
+    expect(api.linkParentChild).toHaveBeenCalledWith('token-1', 'p9', { studentId: 's5', relationshipType: 'FATHER' });
+    expect(pushMock).toHaveBeenCalledWith('/admin/parents/p9');
+  });
+
+  it('BL-23: a CNIC is looked up as a CNIC; not found shows the message', async () => {
+    vi.mocked(api.lookupParent).mockRejectedValue(new Error('No guardian with that key'));
+    const wrapper = mount(ParentManagementView, { global: { stubs: { RouterLink: RouterLinkStub } } });
+    await flushPromises();
+
+    await wrapper.find('[data-testid="open-find-parent"]').trigger('click');
+    await wrapper.find('[data-testid="find-key"]').setValue('35202-1234567-1');
+    await wrapper.find('[data-testid="find-submit"]').trigger('click');
+    await flushPromises();
+    expect(api.lookupParent).toHaveBeenCalledWith('token-1', { cnic: '35202-1234567-1' });
+    expect(wrapper.find('[data-testid="find-error"]').text()).toContain('No guardian');
   });
 
   it('lists parents (with their linked-children count) and creates a new one', async () => {

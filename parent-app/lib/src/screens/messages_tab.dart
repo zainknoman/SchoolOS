@@ -287,9 +287,13 @@ class _ComposeViewState extends State<_ComposeView> {
     super.dispose();
   }
 
+  /// The class teacher is per child; with children in several schools every message names its child
+  /// so it reaches that school's staff (BL-23).
+  bool get _asksForChild => _recipientType == 'CLASS_TEACHER' || childrenSpanSchools(widget.children);
+
   Future<void> _send() async {
     if (_bodyController.text.trim().isEmpty) return;
-    if (_recipientType == 'CLASS_TEACHER' && _studentId == null) return;
+    if (_asksForChild && _studentId == null) return;
     setState(() {
       _isSending = true;
       _error = null;
@@ -298,7 +302,7 @@ class _ComposeViewState extends State<_ComposeView> {
       await widget.api.startConversation(
         widget.accessToken,
         recipientType: _recipientType,
-        studentId: _recipientType == 'CLASS_TEACHER' ? _studentId : null,
+        studentId: _asksForChild ? _studentId : null,
         body: _bodyController.text.trim(),
       );
       widget.onSent();
@@ -342,7 +346,7 @@ class _ComposeViewState extends State<_ComposeView> {
                   onChanged: (value) => setState(() => _recipientType = value!),
                   decoration: const InputDecoration(labelText: 'Send to'),
                 ),
-                if (_recipientType == 'CLASS_TEACHER') ...[
+                if (_asksForChild) ...[
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     key: const Key('studentField'),

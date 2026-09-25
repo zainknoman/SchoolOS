@@ -1,8 +1,15 @@
 <!-- staff-console/src/views/ParentManagementView.vue -->
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { api, type ParentSummary } from '../lib/api';
+import {
+  api,
+  GUARDIAN_RELATIONSHIP_OPTIONS,
+  type ParentLookupResult,
+  type ParentSummary,
+  type StudentAdminSummary,
+} from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
@@ -15,7 +22,63 @@ const auth = useAuthStore();
 const { confirm } = useConfirm();
 const toast = useToast();
 
+const router = useRouter();
 const parents = ref<ParentSummary[]>([]);
+
+// BL-23: a parent who already has a child at another school is found by exact login or CNIC (never
+// by name) and linked to one of this school's students — never created a second time.
+const showFind = ref(false);
+const findKey = ref('');
+const found = ref<ParentLookupResult | null>(null);
+const findError = ref<string | null>(null);
+const findStudents = ref<StudentAdminSummary[]>([]);
+const findStudentId = ref('');
+const findRelationshipType = ref('');
+const isFinding = ref(false);
+
+function openFind() {
+  showFind.value = true;
+  findKey.value = '';
+  found.value = null;
+  findError.value = null;
+}
+
+async function onFind() {
+  const key = findKey.value.trim();
+  if (!auth.accessToken || !key) return;
+  findError.value = null;
+  found.value = null;
+  isFinding.value = true;
+  try {
+    // A CNIC is digits and dashes only; anything else is a login identifier.
+    found.value = await api.lookupParent(auth.accessToken, /^[\d-]+$/.test(key) && key.includes('-') ? { cnic: key } : { identifier: key });
+    if (findStudents.value.length === 0) findStudents.value = await api.listAdminStudents(auth.accessToken);
+  } catch (err) {
+    findError.value = err instanceof Error ? err.message : 'No parent found.';
+  } finally {
+    isFinding.value = false;
+  }
+}
+
+async function onLinkFound() {
+  if (!auth.accessToken || !found.value || !findStudentId.value || !findRelationshipType.value) return;
+  findError.value = null;
+  isFinding.value = true;
+  try {
+    await api.linkParentChild(auth.accessToken, found.value.id, {
+      studentId: findStudentId.value,
+      relationshipType: findRelationshipType.value,
+    });
+    toast.success(`${found.value.name} linked.`);
+    const id = found.value.id;
+    showFind.value = false;
+    await router.push(`/admin/parents/${id}`);
+  } catch (err) {
+    findError.value = err instanceof Error ? err.message : 'Could not link this parent.';
+  } finally {
+    isFinding.value = false;
+  }
+}
 const errorMessage = ref<string | null>(null);
 
 const showAddForm = ref(false);
@@ -126,6 +189,7 @@ async function onDelete(id: string) {
 <template>
   <ListPageCard icon="user-circle" title="Parents">
     <template #actions>
+      <Button variant="secondary" data-testid="open-find-parent" @click="openFind">Find existing parent</Button>
       <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
     </template>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
@@ -177,6 +241,37 @@ async function onDelete(id: string) {
         </template>
       </template>
     </EntityTable>
+
+    <AppModal v-model="showFind" title="Find existing parent">
+      <p class="muted">Exact login (e-mail/mobile) or CNIC — use this when the parent already has a child at another school.</p>
+      <div class="inline-form">
+        <FormField v-model="findKey" label="Login or CNIC" type="text" data-testid="find-key" placeholder="e.g. 0300-1234567 or 35202-1234567-1" grow />
+        <Button data-testid="find-submit" :disabled="isFinding || !findKey.trim()" @click="onFind">Find</Button>
+      </div>
+      <p v-if="findError" class="error" role="alert" data-testid="find-error">{{ findError }}</p>
+      <div v-if="found" class="inline-form" data-testid="find-result">
+        <p>
+          <strong>{{ found.name }}</strong> <span class="muted">{{ found.identifier }}</span>
+        </p>
+        <FormField
+          v-model="findStudentId"
+          label="Link to student"
+          type="select"
+          data-testid="find-student"
+          placeholder="Choose a student"
+          :options="findStudents.map((s) => ({ value: s.id, label: `${s.name} (${s.grNumber})` }))"
+        />
+        <FormField
+          v-model="findRelationshipType"
+          label="Relationship"
+          type="select"
+          data-testid="find-relationship"
+          placeholder="Choose a relationship"
+          :options="GUARDIAN_RELATIONSHIP_OPTIONS"
+        />
+        <Button data-testid="find-link" :disabled="isFinding || !findStudentId || !findRelationshipType" @click="onLinkFound">Link</Button>
+      </div>
+    </AppModal>
 
     <AppModal v-model="showAddForm" title="Add Parent">
       <div class="inline-form">

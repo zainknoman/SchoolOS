@@ -52,7 +52,11 @@ describe('MeService', () => {
             grNumber: 'GR-1001',
             enrollments: [
               {
-                campus: { id: 'c-1', name: 'Gulistan-e-Jauhar' },
+                campus: {
+                  id: 'c-1',
+                  name: 'Gulistan-e-Jauhar',
+                  school: { name: 'Demo School North' },
+                },
                 section: {
                   id: 'sec-1',
                   name: '3A',
@@ -70,7 +74,11 @@ describe('MeService', () => {
             grNumber: 'GR-2002',
             enrollments: [
               {
-                campus: { id: 'c-2', name: 'Gulshan-e-Iqbal' },
+                campus: {
+                  id: 'c-2',
+                  name: 'Gulshan-e-Iqbal',
+                  school: { name: 'Demo School South' },
+                },
                 section: {
                   id: 'sec-2',
                   name: '6B',
@@ -93,10 +101,13 @@ describe('MeService', () => {
       campus: 'Gulistan-e-Jauhar',
       class: 'Grade 3',
       section: '3A',
+      school: 'Demo School North',
       relationship: 'mother',
     });
     expect(children[1].relationship).toBe('guardian');
     expect(children[1].campus).toBe('Gulshan-e-Iqbal');
+    // BL-23: children in two schools are labelled by school.
+    expect(children[1].school).toBe('Demo School South');
   });
 
   it('returns an empty list for a user with no parent profile (e.g. a teacher/admin account)', async () => {
@@ -120,7 +131,11 @@ describe('MeService', () => {
             grNumber: 'GR-1001',
             enrollments: [
               {
-                campus: { id: 'c-1', name: 'Gulistan-e-Jauhar' },
+                campus: {
+                  id: 'c-1',
+                  name: 'Gulistan-e-Jauhar',
+                  school: { name: 'Demo School North' },
+                },
                 section: {
                   id: 'sec-1',
                   name: '3A',

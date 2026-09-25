@@ -318,7 +318,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         onOpenTimetable: () => setState(() => _tabIndex = 1),
         onSeeAllAnnouncements: () => setState(() => _tabIndex = 2),
         onOpenFees: () => setState(() => _tabIndex = 4),
-        campusName: child.campus,
+        // BL-23: the header names the active child's school when the backend sends it.
+        campusName: child.school ?? child.campus,
         children: _children,
         activeChildId: _activeChildId,
         onSelectChild: _selectChild,

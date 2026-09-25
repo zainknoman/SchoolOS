@@ -97,6 +97,7 @@ describe('School-scoped academic sessions (e2e)', () => {
         grNumber: 'BL01-NEW',
         name: 'BL01 New',
         sectionId: f.ids.sectionB,
+        relationshipType: 'FATHER', // BL-04: required
         parentProfileId: f.ids.parentB,
       })
       .expect(201);

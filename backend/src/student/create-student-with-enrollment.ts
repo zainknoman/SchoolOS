@@ -6,6 +6,10 @@ import {
   type CreateParentInput,
 } from '../parent/create-parent-with-user';
 import { normalizeIdentifier } from '../common/normalize-identifier';
+import {
+  legacyLinkFields,
+  type GuardianRelationshipName,
+} from '../parent/guardian-links';
 
 export interface CreateStudentWithEnrollmentInput {
   grNumber: string;
@@ -15,6 +19,9 @@ export interface CreateStudentWithEnrollmentInput {
   academicSessionId: string;
   parentProfileId?: string;
   newParent?: CreateParentInput;
+  /** BL-04: the guardian's relationship; a new student's only guardian is primary (slot 1). */
+  relationshipType: GuardianRelationshipName;
+  relationshipNote?: string;
 }
 
 /**
@@ -73,7 +80,7 @@ export async function createStudentWithEnrollment(
     if (existingParent) {
       parentProfileId = existingParent.id;
       await tx.studentParent.create({
-        data: { studentId: student.id, parentProfileId },
+        data: firstGuardianLink(student.id, parentProfileId, input),
       });
       await tx.auditLog.create({
         data: {
@@ -106,7 +113,7 @@ export async function createStudentWithEnrollment(
     });
   }
   await tx.studentParent.create({
-    data: { studentId: student.id, parentProfileId },
+    data: firstGuardianLink(student.id, parentProfileId, input),
   });
   await tx.auditLog.create({
     data: {
@@ -123,4 +130,23 @@ export async function createStudentWithEnrollment(
   });
 
   return { studentId: student.id };
+}
+
+/** The first guardian of a brand-new student: typed relationship, primary slot 1 (BL-04). */
+function firstGuardianLink(
+  studentId: string,
+  parentProfileId: string,
+  input: CreateStudentWithEnrollmentInput,
+) {
+  return {
+    studentId,
+    parentProfileId,
+    relationshipType: input.relationshipType,
+    relationshipNote:
+      input.relationshipType === 'OTHER'
+        ? input.relationshipNote?.trim() || null
+        : null,
+    primarySlot: 1,
+    ...legacyLinkFields(input.relationshipType, 1),
+  };
 }

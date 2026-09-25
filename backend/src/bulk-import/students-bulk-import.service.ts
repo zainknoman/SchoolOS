@@ -5,6 +5,10 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { createStudentWithEnrollment } from '../student/create-student-with-enrollment';
 import { parseCsv } from './csv';
+import {
+  GUARDIAN_RELATIONSHIPS,
+  type GuardianRelationshipName,
+} from '../parent/guardian-links';
 
 const MAX_ROWS = 2000;
 
@@ -38,10 +42,21 @@ export class StudentsBulkImportService {
       const newParentIdentifier = row.newParentIdentifier?.trim() || undefined;
       const newParentName = row.newParentName?.trim() || undefined;
       const newParentPhone = row.newParentPhone?.trim() || undefined;
+      // BL-04: the guardian's relationship is required (FATHER/MOTHER/GUARDIAN/OTHER, any case).
+      const relationshipType = row.relationshipType?.trim().toUpperCase() || '';
 
       if (!grNumber) errors.push('grNumber is required');
       if (!name) errors.push('name is required');
       if (!sectionId) errors.push('sectionId is required');
+      if (
+        !(GUARDIAN_RELATIONSHIPS as readonly string[]).includes(
+          relationshipType,
+        )
+      ) {
+        errors.push(
+          `relationshipType must be one of ${GUARDIAN_RELATIONSHIPS.join(', ')}`,
+        );
+      }
 
       const hasExisting = !!parentIdentifier;
       const hasNew = !!newParentIdentifier || !!newParentName;
@@ -99,6 +114,7 @@ export class StudentsBulkImportService {
           newParentIdentifier,
           newParentName,
           newParentPhone,
+          relationshipType,
         } as Record<string, string>,
         errors,
       });
@@ -181,6 +197,7 @@ export class StudentsBulkImportService {
                   phone: data.newParentPhone || undefined,
                 }
               : undefined,
+            relationshipType: data.relationshipType as GuardianRelationshipName,
           },
           actingUserId,
         );

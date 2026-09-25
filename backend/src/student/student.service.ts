@@ -123,6 +123,8 @@ export class StudentService {
             academicSessionId: activeSession.id,
             parentProfileId: dto.parentProfileId,
             newParent: dto.newParent,
+            relationshipType: dto.relationshipType,
+            relationshipNote: dto.relationshipNote,
           },
           actingUserId,
         ),

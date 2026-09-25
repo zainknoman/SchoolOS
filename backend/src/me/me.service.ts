@@ -50,6 +50,8 @@ export interface ChildSummary {
   campus: string;
   class: string;
   section: string;
+  /** BL-23: the child's school — a parent may have children in several schools. */
+  school: string;
   /** The logged-in parent's StudentParent.relationship to this child ("mother", "father", "guardian", …) — the parent-app uses it to pick its per-guardian accent colour. */
   relationship: string;
 }
@@ -238,7 +240,7 @@ export class MeService {
                   orderBy: { startDate: 'desc' },
                   take: 1,
                   include: {
-                    campus: true,
+                    campus: { include: { school: { select: { name: true } } } },
                     section: { include: { class: true } },
                   },
                 },
@@ -262,6 +264,7 @@ export class MeService {
         campus: enrollment.campus.name,
         class: enrollment.section.class.name,
         section: enrollment.section.name,
+        school: enrollment.campus.school.name,
         relationship,
       };
     });

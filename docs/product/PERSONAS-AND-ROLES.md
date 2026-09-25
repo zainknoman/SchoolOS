@@ -31,7 +31,7 @@
 | Subjects, terms | ✔ | terms CRUD, subjects R | subjects R | subjects R | — |
 | Students (admin) | CRUD | CRUD (own school/campus) | — | — | — |
 | Student profile (medical, emergency, docs, promotion history) | ✔ | ✔ | — | — | R/U own child via `/me/children/:id` |
-| Parents (admin) | CRUD | CRUD | — | — | — |
+| Parents (admin) | CRUD; dedupe report | C + R/U links of own students; profile U/D only when all the guardian's children are in own school/campus; lookup by identifier/CNIC | — | — | — |
 | Teachers (admin) | CRUD | CRUD | — | — | — |
 | Staff + profile | CRUD | CRUD | — | — | — |
 | Hiring (candidates, applications, approve/reject) | ✔ | ✔ | — | — | — |

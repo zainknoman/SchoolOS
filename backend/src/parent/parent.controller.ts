@@ -15,6 +15,8 @@ import { ParentService } from './parent.service';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
 import { UpdateParentChildLinkDto } from './dto/update-parent-child-link.dto';
+import { LinkParentChildDto } from './dto/link-parent-child.dto';
+import { LookupParentDto } from './dto/lookup-parent.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { AccountAccessService } from '../auth/account-access.service';
@@ -46,6 +48,19 @@ export class ParentController {
     return this.parentService.list(req.user, toPageRequest(page));
   }
 
+  /** BL-23: guardian profiles sharing a CNIC/identifier/phone/e-mail — report only, never merged. */
+  @Roles('SUPER_ADMIN')
+  @Get('duplicates')
+  duplicates(@Req() req: AuthenticatedRequest) {
+    return this.parentService.duplicates(req.user);
+  }
+
+  /** BL-23: find an existing guardian by exact identifier or CNIC (to link, not duplicate). */
+  @Post('lookup')
+  lookup(@Body() dto: LookupParentDto, @Req() req: AuthenticatedRequest) {
+    return this.parentService.lookup(dto, req.user);
+  }
+
   // BL-64: one-time temporary password for a parent (pilot fallback without e-mail). Throttled like
   // login; the password appears only in this response — never in logs or the audit trail.
   @Throttle({
@@ -59,6 +74,24 @@ export class ParentController {
   @Get(':id')
   profile(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.parentService.getProfile(id, req.user);
+  }
+
+  @Post(':id/children')
+  linkChild(
+    @Param('id') id: string,
+    @Body() dto: LinkParentChildDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.parentService.linkChild(id, dto, req.user);
+  }
+
+  @Delete(':id/children/:studentId')
+  async unlinkChild(
+    @Param('id') id: string,
+    @Param('studentId') studentId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    await this.parentService.unlinkChild(id, studentId, req.user);
   }
 
   @Patch(':id/children/:studentId')
@@ -77,11 +110,11 @@ export class ParentController {
     @Body() dto: UpdateParentDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.parentService.update(id, dto, req.user.id);
+    return this.parentService.update(id, dto, req.user);
   }
 
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    await this.parentService.delete(id, req.user.id);
+    await this.parentService.delete(id, req.user);
   }
 }

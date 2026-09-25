@@ -52,9 +52,9 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 
 | Suite | Files | Test blocks |
 |---|---|---|
-| Backend unit (`backend/src/**/*.spec.ts`) | 89 | 654 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 38 | 267 |
-| Staff console (`staff-console/src/**/*.spec.ts`) | 76 | 510 |
+| Backend unit (`backend/src/**/*.spec.ts`) | 89 | 656 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 38 | 276 |
+| Staff console (`staff-console/src/**/*.spec.ts`) | 76 | 515 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 30 | — |
 
 | Backend e2e spec | Test blocks |
@@ -65,7 +65,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `attendance-actor.e2e-spec.ts` | 5 |
 | `auth-password-reset.e2e-spec.ts` | 4 |
 | `auth.e2e-spec.ts` | 8 |
-| `bulk-import.e2e-spec.ts` | 13 |
+| `bulk-import.e2e-spec.ts` | 14 |
 | `cascade-delete-restrictions.e2e-spec.ts` | 4 |
 | `copy-structure.e2e-spec.ts` | 3 |
 | `cors.e2e-spec.ts` | 2 |
@@ -75,6 +75,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `fee-structures.e2e-spec.ts` | 5 |
 | `fees.e2e-spec.ts` | 11 |
 | `gradebook.e2e-spec.ts` | 10 |
+| `guardians.e2e-spec.ts` | 9 |
 | `holidays-complaints-report-cards.e2e-spec.ts` | 12 |
 | `job-lock.e2e-spec.ts` | 3 |
 | `leave.e2e-spec.ts` | 6 |
@@ -84,7 +85,6 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `org-provisioning.e2e-spec.ts` | 36 |
 | `org-structure.e2e-spec.ts` | 15 |
 | `pagination.e2e-spec.ts` | 6 |
-| `pending/bl18-failing-first.e2e-spec.ts` | 1 |
 | `people-crud.e2e-spec.ts` | 5 |
 | `promotions.e2e-spec.ts` | 6 |
 | `rate-limiting.e2e-spec.ts` | 2 |

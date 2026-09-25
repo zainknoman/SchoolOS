@@ -58,7 +58,7 @@ export class ConversationsService {
       );
     }
 
-    const staffUserId = await this.resolveStaffUserId(dto);
+    const staffUserId = await this.resolveStaffUserId(dto, parentUser);
 
     const conversation = await this.prisma.conversation.create({
       data: {
@@ -95,8 +95,39 @@ export class ConversationsService {
     return { id: conversation.id };
   }
 
+  /**
+   * BL-23: the school a parent's message goes to — the named child's school, or the only school
+   * the parent's children attend. A parent with children in several schools must name the child.
+   */
+  private async schoolForMessage(
+    dto: CreateConversationDto,
+    parentUser: RequestUser,
+  ): Promise<string> {
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: {
+        status: 'ACTIVE',
+        ...(dto.studentId
+          ? { studentId: dto.studentId }
+          : {
+              student: {
+                parents: { some: { parentProfile: { userId: parentUser.id } } },
+              },
+            }),
+      },
+      select: { campus: { select: { schoolId: true } } },
+    });
+    const schools = [...new Set(enrollments.map((e) => e.campus.schoolId))];
+    if (schools.length === 1) return schools[0];
+    throw new BadRequestException(
+      schools.length === 0
+        ? 'No enrolled child to send this message about'
+        : 'Your children attend different schools; choose which child this message is about',
+    );
+  }
+
   private async resolveStaffUserId(
     dto: CreateConversationDto,
+    parentUser: RequestUser,
   ): Promise<string> {
     if (dto.recipientType === 'CLASS_TEACHER') {
       const enrollment = await this.enrollmentService.getCurrentEnrollment(
@@ -116,6 +147,8 @@ export class ConversationsService {
       return teacher!.userId;
     }
 
+    // BL-23: school admin / accounts / principal of the CHILD'S school, never another school's.
+    const schoolId = await this.schoolForMessage(dto, parentUser);
     const where =
       dto.recipientType === 'PRINCIPAL'
         ? { isPrincipal: true }
@@ -124,7 +157,9 @@ export class ConversationsService {
             { role: dto.recipientType, grants: { has: 'MESSAGES' as const } }
           : { role: dto.recipientType };
     const user = await this.prisma.user.findFirst({
-      where,
+      where: {
+        AND: [where, { OR: [{ schoolId }, { campus: { schoolId } }] }],
+      },
       orderBy: { createdAt: 'asc' },
     });
     if (!user) {

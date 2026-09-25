@@ -4,8 +4,8 @@
 // example data row so a user can see the expected shape, not just the column names.
 export const BULK_IMPORT_SAMPLES: Record<string, string> = {
   students:
-    'grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone\n' +
-    'GR-00001,Ali Khan,<sectionId>,,father.ali,Muhammad Ali,0300-1234567\n',
+    'grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone,relationshipType\n' +
+    'GR-00001,Ali Khan,<sectionId>,,father.ali,Muhammad Ali,0300-1234567,FATHER\n',
   parents: 'identifier,name,phone\n' + 'father.ali,Muhammad Ali,0300-1234567\n',
   teachers:
     'identifier,name,campusId\n' + 'ayesha.khan,Ayesha Khan,<campusId>\n',

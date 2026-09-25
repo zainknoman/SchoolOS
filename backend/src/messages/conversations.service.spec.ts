@@ -16,6 +16,7 @@ describe('ConversationsService', () => {
     section: { findUnique: jest.Mock };
     teacher: { findUnique: jest.Mock };
     user: { findFirst: jest.Mock };
+    enrollment: { findMany: jest.Mock };
     conversation: {
       create: jest.Mock;
       findMany: jest.Mock;
@@ -34,6 +35,12 @@ describe('ConversationsService', () => {
       section: { findUnique: jest.fn() },
       teacher: { findUnique: jest.fn() },
       user: { findFirst: jest.fn() },
+      // BL-23: the parent's children attend one school unless a test says otherwise.
+      enrollment: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([{ campus: { schoolId: 'school-1' } }]),
+      },
       conversation: {
         create: jest.fn(),
         findMany: jest.fn(),
@@ -131,9 +138,61 @@ describe('ConversationsService', () => {
     );
 
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
-      where: { role: 'SCHOOL_ADMIN' },
+      where: {
+        AND: [
+          { role: 'SCHOOL_ADMIN' },
+          {
+            OR: [
+              { schoolId: 'school-1' },
+              { campus: { schoolId: 'school-1' } },
+            ],
+          },
+        ],
+      },
       orderBy: { createdAt: 'asc' },
     });
+  });
+
+  it("BL-23: a parent with children in two schools must name the child; the child's school decides", async () => {
+    prisma.enrollment.findMany.mockResolvedValueOnce([
+      { campus: { schoolId: 'school-1' } },
+      { campus: { schoolId: 'school-2' } },
+    ]);
+    await expect(
+      service.create(
+        { recipientType: 'SCHOOL_ADMIN', body: 'Which one?' },
+        { id: 'parent-1', role: 'PARENT' },
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    prisma.enrollment.findMany.mockResolvedValueOnce([
+      { campus: { schoolId: 'school-2' } },
+    ]);
+    prisma.user.findFirst.mockResolvedValue({ id: 'admin-2' });
+    prisma.conversation.create.mockResolvedValue({ id: 'conv-9' });
+    await service.create(
+      { recipientType: 'SCHOOL_ADMIN', studentId: 'stu-b', body: 'About B' },
+      { id: 'parent-1', role: 'PARENT' },
+    );
+    expect(prisma.enrollment.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ studentId: 'stu-b' }),
+      }),
+    );
+    expect(prisma.user.findFirst).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            {
+              OR: [
+                { schoolId: 'school-2' },
+                { campus: { schoolId: 'school-2' } },
+              ],
+            },
+          ]),
+        }),
+      }),
+    );
   });
 
   it('starting a PRINCIPAL conversation resolves the earliest isPrincipal=true user', async () => {
@@ -146,7 +205,17 @@ describe('ConversationsService', () => {
     );
 
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
-      where: { isPrincipal: true },
+      where: {
+        AND: [
+          { isPrincipal: true },
+          {
+            OR: [
+              { schoolId: 'school-1' },
+              { campus: { schoolId: 'school-1' } },
+            ],
+          },
+        ],
+      },
       orderBy: { createdAt: 'asc' },
     });
   });

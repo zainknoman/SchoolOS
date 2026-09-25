@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ParentService } from './parent.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -7,7 +11,7 @@ import { OrgScopeService } from '../common/org-scope.service';
 describe('ParentService — profile / guardian links', () => {
   let service: ParentService;
   let tx: {
-    studentParent: { updateMany: jest.Mock; update: jest.Mock };
+    studentParent: { findMany: jest.Mock; update: jest.Mock };
     auditLog: { create: jest.Mock };
   };
   let prisma: {
@@ -17,6 +21,7 @@ describe('ParentService — profile / guardian links', () => {
       update: jest.Mock;
     };
     studentParent: { findFirst: jest.Mock; findUnique: jest.Mock };
+    student: { findUnique: jest.Mock };
     user: { findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
@@ -45,6 +50,9 @@ describe('ParentService — profile / guardian links', () => {
     children: [
       {
         relationship: 'mother',
+        relationshipType: 'MOTHER',
+        relationshipNote: null,
+        primarySlot: 1,
         isPrimary: true,
         isEmergencyContact: true,
         student: {
@@ -52,7 +60,10 @@ describe('ParentService — profile / guardian links', () => {
           name: 'Eshaal',
           grNumber: 'GR-1',
           enrollments: [
-            { section: { name: '3A', class: { name: 'Grade 3' } } },
+            {
+              section: { name: '3A', class: { name: 'Grade 3' } },
+              campus: { school: { name: 'Demo School North' } },
+            },
           ],
         },
       },
@@ -61,7 +72,10 @@ describe('ParentService — profile / guardian links', () => {
 
   beforeEach(async () => {
     tx = {
-      studentParent: { updateMany: jest.fn(), update: jest.fn() },
+      studentParent: {
+        findMany: jest.fn().mockResolvedValue([]),
+        update: jest.fn(),
+      },
       auditLog: { create: jest.fn() },
     };
     prisma = {
@@ -83,8 +97,15 @@ describe('ParentService — profile / guardian links', () => {
       },
       studentParent: {
         findFirst: jest.fn().mockResolvedValue({ id: 'link' }),
-        findUnique: jest.fn().mockResolvedValue({ id: 'link1' }),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'link1',
+          relationshipType: 'MOTHER',
+          relationshipNote: null,
+          primarySlot: null,
+        }),
       },
+      // BL-23: the student must be in the caller's scope (a super admin passes).
+      student: { findUnique: jest.fn().mockResolvedValue({ enrollments: [] }) },
       user: {
         findUnique: jest.fn().mockResolvedValue({ schoolId: 'school-1' }),
       },
@@ -113,8 +134,11 @@ describe('ParentService — profile / guardian links', () => {
           studentName: 'Eshaal',
           className: 'Grade 3',
           sectionName: '3A',
+          relationshipType: 'MOTHER',
+          primarySlot: 1,
           isPrimary: true,
           isEmergencyContact: true,
+          schoolName: 'Demo School North',
         },
       ],
     });
@@ -134,26 +158,53 @@ describe('ParentService — profile / guardian links', () => {
     );
   });
 
-  it('demotes other primary guardians when one is marked primary', async () => {
+  // BL-04 replaces the old "demote every other primary" rule: up to two primaries, a third is refused.
+  it('marking primary takes the first free slot and keeps the legacy flags in step', async () => {
+    tx.studentParent.findMany.mockResolvedValue([{ primarySlot: 1 }]);
     await service.updateChildLink('p1', 's1', { isPrimary: true }, superAdmin);
-    expect(tx.studentParent.updateMany).toHaveBeenCalledWith({
-      where: { studentId: 's1', NOT: { parentProfileId: 'p1' } },
-      data: { isPrimary: false },
-    });
     expect(tx.studentParent.update).toHaveBeenCalledWith({
       where: { id: 'link1' },
-      data: { isPrimary: true },
+      data: expect.objectContaining({
+        primarySlot: 2,
+        isPrimary: true,
+        relationshipType: 'MOTHER',
+        relationship: 'mother',
+      }),
     });
   });
 
-  it('does not touch other guardians when un-marking primary or setting the emergency flag', async () => {
+  it('refuses a third primary guardian (409) and changes nothing', async () => {
+    tx.studentParent.findMany.mockResolvedValue([
+      { primarySlot: 1 },
+      { primarySlot: 2 },
+    ]);
+    await expect(
+      service.updateChildLink('p1', 's1', { isPrimary: true }, superAdmin),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.studentParent.update).not.toHaveBeenCalled();
+  });
+
+  it('un-marking primary releases the slot; the emergency flag is independent', async () => {
+    prisma.studentParent.findUnique.mockResolvedValue({
+      id: 'link1',
+      relationshipType: 'FATHER',
+      relationshipNote: null,
+      primarySlot: 1,
+    });
     await service.updateChildLink(
       'p1',
       's1',
       { isEmergencyContact: false, isPrimary: false },
       superAdmin,
     );
-    expect(tx.studentParent.updateMany).not.toHaveBeenCalled();
+    expect(tx.studentParent.update).toHaveBeenCalledWith({
+      where: { id: 'link1' },
+      data: expect.objectContaining({
+        primarySlot: null,
+        isPrimary: false,
+        isEmergencyContact: false,
+      }),
+    });
   });
 
   it('404s when the parent is not linked to the student', async () => {
@@ -171,7 +222,7 @@ describe('ParentService — profile / guardian links', () => {
         occupation: 'Teacher',
         currentAddress: { line1: '5 Rose St' },
       },
-      'u0',
+      superAdmin,
     );
     const data = prisma.parentProfile.update.mock.calls[0][0].data;
     expect(data.cnic).toBeNull();

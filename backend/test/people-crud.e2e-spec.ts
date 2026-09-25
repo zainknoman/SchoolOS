@@ -164,6 +164,7 @@ describe('People CRUD (e2e)', () => {
         grNumber: 'PC-BLOCKED',
         name: 'Blocked',
         sectionId: ids.section,
+        relationshipType: 'FATHER', // BL-04: required
         parentProfileId: 'x',
       })
       .expect(403);
@@ -228,6 +229,7 @@ describe('People CRUD (e2e)', () => {
         grNumber: 'PC-1001',
         name: 'PC Student',
         sectionId: ids.section,
+        relationshipType: 'FATHER', // BL-04: required
         parentProfileId: ids.parentProfile,
       })
       .expect(201);
@@ -262,6 +264,7 @@ describe('People CRUD (e2e)', () => {
         grNumber: 'PC-1002',
         name: 'PC Student Two',
         sectionId: ids.section,
+        relationshipType: 'FATHER', // BL-04: required
         newParent: {
           identifier: 'pc-inline-parent@schoolos.edu.pk',
           password: 'InlineParent1!',

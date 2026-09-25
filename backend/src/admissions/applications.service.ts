@@ -247,6 +247,8 @@ export class ApplicationsService {
             academicSessionId: existing.academicSessionId,
             parentProfileId: dto.parentProfileId,
             newParent: dto.newParent,
+            relationshipType: dto.relationshipType,
+            relationshipNote: dto.relationshipNote,
           },
           reviewedById,
         );

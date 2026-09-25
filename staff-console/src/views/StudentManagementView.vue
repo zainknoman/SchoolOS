@@ -3,7 +3,7 @@
 import { ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { api, type SectionSummary, type ParentSummary, type StudentAdminSummary } from '../lib/api';
+import { api, GUARDIAN_RELATIONSHIP_OPTIONS, type SectionSummary, type ParentSummary, type StudentAdminSummary } from '../lib/api';
 import { useFocusTarget } from '../lib/useFocusTarget';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
@@ -33,6 +33,8 @@ const newParentIdentifier = ref('');
 const newParentPassword = ref('');
 const newParentName = ref('');
 const newParentPhone = ref('');
+// BL-04: the parent's relationship to the new student is required.
+const newRelationshipType = ref('');
 const isSaving = ref(false);
 
 const grNumberFieldRef = ref<{ focus(): void } | null>(null);
@@ -91,10 +93,12 @@ function resetAddForm() {
   newParentPassword.value = '';
   newParentName.value = '';
   newParentPhone.value = '';
+  newRelationshipType.value = '';
 }
 
 async function onAdd() {
   if (!auth.accessToken || !newGrNumber.value.trim() || !newName.value.trim() || !newSectionId.value) return;
+  if (!newRelationshipType.value) return;
   if (useNewParent.value) {
     if (!newParentIdentifier.value.trim() || !newParentPassword.value || !newParentName.value.trim()) return;
   } else if (!newParentProfileId.value) {
@@ -117,6 +121,7 @@ async function onAdd() {
             },
           }
         : { parentProfileId: newParentProfileId.value }),
+      relationshipType: newRelationshipType.value,
     });
     resetAddForm();
     showAddForm.value = false;
@@ -265,6 +270,15 @@ async function onDelete(id: string) {
           <FormField v-model="newParentName" label="Parent full name" type="text" data-testid="new-parent-name" placeholder="Parent full name" grow />
           <FormField v-model="newParentPhone" label="Phone" type="text" data-testid="new-parent-phone" placeholder="Phone (optional)" grow />
         </div>
+
+        <FormField
+          v-model="newRelationshipType"
+          label="Parent's relationship"
+          type="select"
+          data-testid="add-relationship"
+          placeholder="Choose a relationship"
+          :options="GUARDIAN_RELATIONSHIP_OPTIONS"
+        />
 
         <Button data-testid="add-submit" :disabled="isSaving" @click="onAdd">Add Student</Button>
       </div>

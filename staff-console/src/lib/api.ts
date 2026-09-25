@@ -546,8 +546,29 @@ export interface ParentChildLink {
   className: string | null;
   sectionName: string | null;
   relationship: string;
+  /** BL-04: FATHER | MOTHER | GUARDIAN | OTHER (free text of OTHER in relationshipNote). */
+  relationshipType?: string;
+  relationshipNote?: string | null;
+  /** 1 or 2 for one of the student's (at most two) primary guardians, else null. */
+  primarySlot?: number | null;
   isPrimary: boolean;
   isEmergencyContact: boolean;
+  schoolName?: string | null;
+}
+
+/** BL-04 (Q4): the relationship a guardian has to a student — required on every new link. */
+export const GUARDIAN_RELATIONSHIP_OPTIONS = [
+  { value: 'FATHER', label: 'Father' },
+  { value: 'MOTHER', label: 'Mother' },
+  { value: 'GUARDIAN', label: 'Guardian' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+/** BL-23: what a lookup by exact login/CNIC reveals about an existing guardian. */
+export interface ParentLookupResult {
+  id: string;
+  identifier: string;
+  name: string;
 }
 
 export interface ParentProfileDetail extends ParentSummary {
@@ -1980,12 +2001,54 @@ export const api = {
     accessToken: string,
     parentId: string,
     studentId: string,
-    payload: { isPrimary?: boolean; isEmergencyContact?: boolean; relationship?: string },
+    payload: {
+      isPrimary?: boolean;
+      isEmergencyContact?: boolean;
+      relationshipType?: string;
+      relationshipNote?: string;
+    },
   ): Promise<ParentProfileDetail> {
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents/${parentId}/children/${studentId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
       body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  // BL-23: link another of the caller's students to a guardian / remove such a link.
+  async linkParentChild(
+    accessToken: string,
+    parentId: string,
+    payload: { studentId: string; relationshipType: string; relationshipNote?: string; isPrimary?: boolean },
+  ): Promise<ParentProfileDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents/${parentId}/children`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async unlinkParentChild(accessToken: string, parentId: string, studentId: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents/${parentId}/children/${studentId}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  // BL-23: find an existing guardian by exact login or CNIC (never by name) to link, not duplicate.
+  async lookupParent(
+    accessToken: string,
+    key: { identifier?: string; cnic?: string },
+  ): Promise<ParentLookupResult> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/parents/lookup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(key),
     });
     return asJson(res);
   },
@@ -2014,7 +2077,14 @@ export const api = {
 
   async createStudent(
     accessToken: string,
-    payload: { grNumber: string; name: string; sectionId: string; parentProfileId?: string; newParent?: NewParentInput },
+    payload: {
+      grNumber: string;
+      name: string;
+      sectionId: string;
+      parentProfileId?: string;
+      newParent?: NewParentInput;
+      relationshipType: string;
+    },
   ): Promise<StudentAdminSummary> {
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/students`, {
       method: 'POST',
@@ -2734,7 +2804,13 @@ export const api = {
   async approveApplication(
     accessToken: string,
     id: string,
-    payload: { grNumber: string; sectionId: string; parentProfileId?: string; newParent?: NewParentInput },
+    payload: {
+      grNumber: string;
+      sectionId: string;
+      parentProfileId?: string;
+      newParent?: NewParentInput;
+      relationshipType: string;
+    },
   ): Promise<ApplicationSummary> {
     const res = await fetch(`${API_BASE_URL}/api/v1/applications/${id}/approve`, {
       method: 'POST',

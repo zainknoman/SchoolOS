@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { api, type ApplicationSummary, type SectionSummary, type ParentSummary } from '../lib/api';
+import { api, GUARDIAN_RELATIONSHIP_OPTIONS, type ApplicationSummary, type SectionSummary, type ParentSummary } from '../lib/api';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
@@ -54,6 +54,8 @@ const newParentIdentifier = ref('');
 const newParentPassword = ref('');
 const newParentName = ref('');
 const newParentPhone = ref('');
+// BL-04: the parent's relationship to the admitted student is required.
+const newRelationshipType = ref('');
 const isApproving = ref(false);
 const approveErrorMessage = ref<string | null>(null);
 
@@ -100,6 +102,7 @@ async function onReject() {
 
 async function onApprove() {
   if (!auth.accessToken || !approveGrNumber.value.trim() || !approveSectionId.value) return;
+  if (!newRelationshipType.value) return;
   if (useNewParent.value) {
     if (!newParentIdentifier.value.trim() || !newParentPassword.value || !newParentName.value.trim()) return;
   } else if (!newParentProfileId.value) {
@@ -121,6 +124,7 @@ async function onApprove() {
             },
           }
         : { parentProfileId: newParentProfileId.value }),
+      relationshipType: newRelationshipType.value,
     });
     showApproveModal.value = false;
   } catch (err) {
@@ -216,6 +220,15 @@ async function onApprove() {
               <FormField v-model="newParentName" label="Parent full name" type="text" data-testid="new-parent-name" placeholder="Parent full name" grow />
               <FormField v-model="newParentPhone" label="Phone" type="text" data-testid="new-parent-phone" placeholder="Phone (optional)" grow />
             </div>
+
+            <FormField
+              v-model="newRelationshipType"
+              label="Parent's relationship"
+              type="select"
+              data-testid="approve-relationship"
+              placeholder="Choose a relationship"
+              :options="GUARDIAN_RELATIONSHIP_OPTIONS"
+            />
 
             <Button data-testid="approve-submit" :disabled="isApproving" @click="onApprove">Approve</Button>
           </div>

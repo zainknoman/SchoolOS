@@ -22,6 +22,14 @@ enum Role {
   PARENT
 }
 
+// BL-04 (Q4): a guardian's relationship to one student.
+enum GuardianRelationship {
+  FATHER
+  MOTHER
+  GUARDIAN
+  OTHER
+}
+
 // BL-32 (Q18): modules outside fees/finance that an ACCOUNTS user may reach only when granted.
 enum StaffGrant {
   ADMISSIONS
@@ -573,11 +581,11 @@ model Enrollment {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
+  // BL-53 (M12): a student has at most one ACTIVE enrolment.
+  @@unique([studentId], map: "Enrollment_one_active_per_student", where: raw("status = 'ACTIVE'"))
   @@index([studentId])
   @@index([sectionId])
   @@index([campusId])
-  // BL-53 (M12): a student has at most one ACTIVE enrolment.
-  @@unique([studentId], map: "Enrollment_one_active_per_student", where: raw("status = 'ACTIVE'"))
 }
 
 model StudentPromotion {
@@ -625,17 +633,24 @@ model ParentProfile {
 
 // Join table — a parent may be linked to many students, a student may have many parents/guardians.
 model StudentParent {
-  id                 String        @id @default(uuid())
+  id                 String               @id @default(uuid())
   studentId          String
-  student            Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student            Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
   parentProfileId    String
-  parentProfile      ParentProfile @relation(fields: [parentProfileId], references: [id], onDelete: Cascade)
-  relationship       String        @default("guardian") // e.g. "mother", "father", "guardian"
-  isPrimary          Boolean       @default(false) // the guardian the school contacts first for this student
-  isEmergencyContact Boolean       @default(false)
-  createdAt          DateTime      @default(now())
+  parentProfile      ParentProfile        @relation(fields: [parentProfileId], references: [id], onDelete: Cascade)
+  // Legacy (pre-M6) text and flag, kept in step with relationshipType / primarySlot until the contract step.
+  relationship       String               @default("guardian") // e.g. "mother", "father", "guardian"
+  isPrimary          Boolean              @default(false) // the guardian the school contacts first for this student
+  isEmergencyContact Boolean              @default(false)
+  // BL-04 (M6, Q4): typed relationship; the original free text of an OTHER link is kept in the note.
+  relationshipType   GuardianRelationship @default(OTHER)
+  relationshipNote   String?
+  // 1 or 2 when this guardian is one of the student's (at most two) primary guardians; NULL otherwise.
+  primarySlot        Int?
+  createdAt          DateTime             @default(now())
 
   @@unique([studentId, parentProfileId])
+  @@unique([studentId, primarySlot])
   @@index([parentProfileId])
   @@index([studentId])
 }
@@ -945,9 +960,9 @@ model FeeVoucher {
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
 
-  @@index([studentId])
   // BL-53 (M12): one voucher per student, session and month.
   @@unique([studentId, academicSessionId, month])
+  @@index([studentId])
 }
 
 model FeeItem {

@@ -9,6 +9,9 @@ jest.mock('argon2', () => ({
   hash: jest.fn().mockResolvedValue('hashed-password'),
 }));
 
+// BL-23: update/delete take the acting user; the scope rules are covered by e2e `guardians`.
+const SUPER = { id: 'admin-1', role: 'SUPER_ADMIN' };
+
 describe('ParentService', () => {
   let service: ParentService;
   let tx: {
@@ -192,7 +195,7 @@ describe('ParentService', () => {
     const result = await service.update(
       'p1',
       { name: 'Renamed', phone: '0300-9999999' },
-      'admin-1',
+      SUPER,
     );
 
     expect(result.name).toBe('Renamed');
@@ -212,7 +215,7 @@ describe('ParentService', () => {
       _count: { children: 0 },
     });
 
-    await service.update('p1', { password: 'NewPass123!' }, 'admin-1');
+    await service.update('p1', { password: 'NewPass123!' }, SUPER);
 
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: 'u1' },
@@ -224,7 +227,7 @@ describe('ParentService', () => {
     prisma.parentProfile.findUnique.mockResolvedValue(null);
 
     await expect(
-      service.update('missing', { name: 'x' }, 'admin-1'),
+      service.update('missing', { name: 'x' }, SUPER),
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -236,7 +239,7 @@ describe('ParentService', () => {
     tx.parentProfile.delete.mockResolvedValue({ id: 'p1' });
     tx.user.delete.mockResolvedValue({ id: 'u1' });
 
-    await service.delete('p1', 'admin-1');
+    await service.delete('p1', SUPER);
 
     expect(prisma.$transaction).toHaveBeenCalled();
     expect(tx.parentProfile.delete).toHaveBeenCalledWith({
@@ -265,7 +268,7 @@ describe('ParentService', () => {
       ),
     );
 
-    await expect(service.delete('p1', 'admin-1')).rejects.toThrow(
+    await expect(service.delete('p1', SUPER)).rejects.toThrow(
       BadRequestException,
     );
   });
@@ -283,7 +286,7 @@ describe('ParentService', () => {
       ),
     );
 
-    await expect(service.delete('p1', 'admin-1')).rejects.toThrow(
+    await expect(service.delete('p1', SUPER)).rejects.toThrow(
       BadRequestException,
     );
     expect(prisma.auditLog.create).not.toHaveBeenCalled();

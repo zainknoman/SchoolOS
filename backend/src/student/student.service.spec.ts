@@ -89,7 +89,12 @@ describe('StudentService', () => {
   it('rejects when neither parentProfileId nor newParent is given, without touching the database', async () => {
     await expect(
       service.create(
-        { grNumber: 'GR-2001', name: 'New Student', sectionId: 'sec1' },
+        {
+          grNumber: 'GR-2001',
+          name: 'New Student',
+          sectionId: 'sec1',
+          relationshipType: 'FATHER',
+        },
         'admin-1',
       ),
     ).rejects.toThrow(BadRequestException);
@@ -103,6 +108,7 @@ describe('StudentService', () => {
           grNumber: 'GR-2001',
           name: 'New Student',
           sectionId: 'sec1',
+          relationshipType: 'FATHER',
           parentProfileId: null,
           newParent: null,
         } as unknown as Parameters<typeof service.create>[0],
@@ -125,6 +131,7 @@ describe('StudentService', () => {
           grNumber: 'GR-2004',
           name: 'Mixed Null',
           sectionId: 'sec1',
+          relationshipType: 'FATHER',
           newParent: null,
         } as unknown as Parameters<typeof service.create>[0],
         'admin-1',
@@ -140,6 +147,7 @@ describe('StudentService', () => {
           grNumber: 'GR-2001',
           name: 'New Student',
           sectionId: 'sec1',
+          relationshipType: 'FATHER',
           parentProfileId: 'p1',
           newParent: {
             identifier: 'x@schoolos.edu.pk',
@@ -161,6 +169,7 @@ describe('StudentService', () => {
           grNumber: 'GR-2001',
           name: 'New Student',
           sectionId: 'missing',
+          relationshipType: 'FATHER',
           parentProfileId: 'p1',
         },
         'admin-1',
@@ -177,6 +186,7 @@ describe('StudentService', () => {
           grNumber: 'GR-2001',
           name: 'New Student',
           sectionId: 'sec1',
+          relationshipType: 'FATHER',
           parentProfileId: 'p1',
         },
         'admin-1',
@@ -207,6 +217,7 @@ describe('StudentService', () => {
         grNumber: 'GR-2001',
         name: 'New Student',
         sectionId: 'sec1',
+        relationshipType: 'FATHER',
         parentProfileId: 'p1',
       },
       'admin-1',
@@ -224,8 +235,16 @@ describe('StudentService', () => {
         status: 'ACTIVE',
       }),
     });
+    // BL-04: the first guardian is typed and takes primary slot 1.
     expect(tx.studentParent.create).toHaveBeenCalledWith({
-      data: { studentId: 's1', parentProfileId: 'p1' },
+      data: expect.objectContaining({
+        studentId: 's1',
+        parentProfileId: 'p1',
+        relationshipType: 'FATHER',
+        primarySlot: 1,
+        relationship: 'father',
+        isPrimary: true,
+      }),
     });
     expect(tx.user.create).not.toHaveBeenCalled();
     expect(tx.auditLog.create).toHaveBeenCalledWith(
@@ -266,6 +285,7 @@ describe('StudentService', () => {
         grNumber: 'GR-2002',
         name: 'Another Student',
         sectionId: 'sec1',
+        relationshipType: 'FATHER',
         newParent: {
           identifier: 'new-parent@schoolos.edu.pk',
           password: 'ChangeMe123!',
@@ -284,7 +304,12 @@ describe('StudentService', () => {
       }),
     );
     expect(tx.studentParent.create).toHaveBeenCalledWith({
-      data: { studentId: 's2', parentProfileId: 'p-new' },
+      data: expect.objectContaining({
+        studentId: 's2',
+        parentProfileId: 'p-new',
+        relationshipType: 'FATHER',
+        primarySlot: 1,
+      }),
     });
 
     // Finding 1: the inline-created Parent account must get its own parent.create audit-log row,
@@ -336,6 +361,7 @@ describe('StudentService', () => {
           grNumber: 'GR-1001',
           name: 'Dupe',
           sectionId: 'sec1',
+          relationshipType: 'FATHER',
           parentProfileId: 'p1',
         },
         'admin-1',
@@ -357,6 +383,7 @@ describe('StudentService', () => {
           grNumber: 'GR-2003',
           name: 'Orphan Link',
           sectionId: 'sec1',
+          relationshipType: 'FATHER',
           parentProfileId: 'does-not-exist',
         },
         'admin-1',

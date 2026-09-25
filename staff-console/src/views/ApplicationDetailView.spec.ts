@@ -7,6 +7,12 @@ import { useAuthStore } from '../stores/auth';
 import { api } from '../lib/api';
 
 vi.mock('../lib/api', () => ({
+  GUARDIAN_RELATIONSHIP_OPTIONS: [
+    { value: 'FATHER', label: 'Father' },
+    { value: 'MOTHER', label: 'Mother' },
+    { value: 'GUARDIAN', label: 'Guardian' },
+    { value: 'OTHER', label: 'Other' },
+  ],
   api: {
     getApplication: vi.fn(),
     listSections: vi.fn(),
@@ -101,6 +107,7 @@ describe('ApplicationDetailView', () => {
     await wrapper.find('[data-testid="new-parent-identifier"]').setValue('new-parent');
     await wrapper.find('[data-testid="new-parent-password"]').setValue('CorrectHorseBattery9!');
     await wrapper.find('[data-testid="new-parent-name"]').setValue('New Parent');
+    await wrapper.find('[data-testid="approve-relationship"]').setValue('MOTHER');
     await wrapper.find('[data-testid="approve-submit"]').trigger('click');
     await flushPromises();
 
@@ -113,6 +120,7 @@ describe('ApplicationDetailView', () => {
         name: 'New Parent',
         phone: undefined,
       },
+      relationshipType: 'MOTHER',
     });
   });
 
@@ -126,6 +134,7 @@ describe('ApplicationDetailView', () => {
     await wrapper.find('[data-testid="approve-gr-number"]').setValue('ADM-STU-1');
     await wrapper.find('[data-testid="approve-section"]').setValue('section-1');
     await wrapper.find('[data-testid="add-parent-select"]').setValue('parent-1');
+    await wrapper.find('[data-testid="approve-relationship"]').setValue('MOTHER');
     await wrapper.find('[data-testid="approve-submit"]').trigger('click');
     await flushPromises();
 

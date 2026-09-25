@@ -31,6 +31,7 @@ class ChildSummary {
     required this.schoolClass,
     required this.section,
     this.relationship = 'guardian',
+    this.school,
   });
 
   final String id;
@@ -39,6 +40,10 @@ class ChildSummary {
   final String campus;
   final String schoolClass;
   final String section;
+
+  /// The child's school (BL-23) — a parent may have children in several schools. Null on a
+  /// backend that predates the field.
+  final String? school;
 
   /// The logged-in parent's relationship to this child ("mother", "father", "guardian") — drives
   /// the per-guardian accent colour. Defaults to "guardian" for a backend that predates the field.
@@ -52,8 +57,14 @@ class ChildSummary {
     schoolClass: json['class'] as String,
     section: json['section'] as String,
     relationship: (json['relationship'] as String?) ?? 'guardian',
+    school: json['school'] as String?,
   );
 }
+
+/// True when the children attend more than one school — the app then labels every child with
+/// its school and asks which child a message is about (BL-23).
+bool childrenSpanSchools(List<ChildSummary> children) =>
+    children.map((c) => c.school).whereType<String>().toSet().length > 1;
 
 class TimetableEntry {
   const TimetableEntry({

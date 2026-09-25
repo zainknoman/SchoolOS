@@ -236,6 +236,7 @@ describe('Admissions (e2e)', () => {
         .send({
           grNumber: 'ADM-STU-1',
           sectionId: ids.section,
+          relationshipType: 'FATHER', // BL-04: required
           newParent: {
             identifier: 'adm-newparent',
             password: 'CorrectHorseBattery9!',
@@ -281,6 +282,7 @@ describe('Admissions (e2e)', () => {
         .send({
           grNumber: 'ADM-STU-1',
           sectionId: ids.section,
+          relationshipType: 'FATHER', // BL-04: required
           parentProfileId: 'not-a-real-parent-id',
         })
         .expect(400);
@@ -335,6 +337,7 @@ describe('Admissions (e2e)', () => {
         .send({
           grNumber: 'ADM-STU-2',
           sectionId: ids.section,
+          relationshipType: 'FATHER', // BL-04: required
           parentProfileId: 'irrelevant',
         })
         .expect(400);

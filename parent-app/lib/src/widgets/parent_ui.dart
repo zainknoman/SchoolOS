@@ -54,7 +54,11 @@ class TabHeader extends StatelessWidget {
                 key: Key('childOption-${c.id}'),
                 leading: CircleAvatar(child: Text(initialsOf(c.name))),
                 title: Text(c.name),
-                subtitle: Text('${c.schoolClass} ${c.section}'),
+                subtitle: Text(
+                  c.school != null && childrenSpanSchools(children)
+                      ? '${c.schoolClass} ${c.section} · ${c.school}'
+                      : '${c.schoolClass} ${c.section}',
+                ),
                 trailing: c.id == activeChildId ? const Icon(Icons.check) : null,
                 onTap: () => Navigator.of(sheetContext).pop(c.id),
               ),

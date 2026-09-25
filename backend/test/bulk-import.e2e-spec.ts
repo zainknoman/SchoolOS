@@ -122,7 +122,7 @@ describe('Bulk import (e2e)', () => {
 
     it('preview reports per-row validity and writes nothing', async () => {
       const adminToken = await loginAs('bi-admin');
-      const csv = `grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone\nBI-1001,Zainab,${ids.section},bi-existing-parent,,,\nBI-1002,Ahmed,${ids.section},,bi-new-parent,New Parent,03001234567\n`;
+      const csv = `grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone,relationshipType\nBI-1001,Zainab,${ids.section},bi-existing-parent,,,,FATHER\nBI-1002,Ahmed,${ids.section},,bi-new-parent,New Parent,03001234567,FATHER\n`;
       const res = await request(app.getHttpServer())
         .post('/api/v1/bulk-import/students/preview')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -140,7 +140,7 @@ describe('Bulk import (e2e)', () => {
 
     it('flags a within-file duplicate grNumber and a database duplicate, without blocking other valid rows', async () => {
       const adminToken = await loginAs('bi-admin');
-      const csv = `grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone\nBI-1001,Zainab,${ids.section},bi-existing-parent,,,\nBI-1001,Zainab Again,${ids.section},bi-existing-parent,,,\nBI-1003,Third,${ids.section},bi-existing-parent,,,\n`;
+      const csv = `grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone,relationshipType\nBI-1001,Zainab,${ids.section},bi-existing-parent,,,,FATHER\nBI-1001,Zainab Again,${ids.section},bi-existing-parent,,,,FATHER\nBI-1003,Third,${ids.section},bi-existing-parent,,,,FATHER\n`;
       const res = await request(app.getHttpServer())
         .post('/api/v1/bulk-import/students/preview')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -157,7 +157,7 @@ describe('Bulk import (e2e)', () => {
 
     it('commit rejects the entire batch if any row still errors', async () => {
       const adminToken = await loginAs('bi-admin');
-      const csv = `grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone\nBI-1004,Valid,${ids.section},bi-existing-parent,,,\nBI-BAD,,${ids.section},bi-existing-parent,,,\n`;
+      const csv = `grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone,relationshipType\nBI-1004,Valid,${ids.section},bi-existing-parent,,,,FATHER\nBI-BAD,,${ids.section},bi-existing-parent,,,,FATHER\n`;
       await request(app.getHttpServer())
         .post('/api/v1/bulk-import/students/commit')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -172,7 +172,7 @@ describe('Bulk import (e2e)', () => {
 
     it('commit creates every valid row transactionally, with one summarizing audit-log entry', async () => {
       const adminToken = await loginAs('bi-admin');
-      const csv = `grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone\nBI-1005,Fatima,${ids.section},bi-existing-parent,,,\nBI-1006,Bilal,${ids.section},,bi-new-parent-2,New Parent Two,03007654321\n`;
+      const csv = `grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone,relationshipType\nBI-1005,Fatima,${ids.section},bi-existing-parent,,,,FATHER\nBI-1006,Bilal,${ids.section},,bi-new-parent-2,New Parent Two,03007654321,FATHER\n`;
       const res = await request(app.getHttpServer())
         .post('/api/v1/bulk-import/students/commit')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -188,6 +188,23 @@ describe('Bulk import (e2e)', () => {
         where: { identifier: 'bi-new-parent-2' },
       });
       expect(newParentUser).not.toBeNull();
+    });
+
+    it('BL-04: a row without a valid relationshipType is rejected', async () => {
+      const adminToken = await loginAs('bi-admin');
+      const csv = `grNumber,name,sectionId,parentIdentifier,newParentIdentifier,newParentName,newParentPhone,relationshipType\nBI-1007,NoRel,${ids.section},bi-existing-parent,,,,\nBI-1008,BadRel,${ids.section},bi-existing-parent,,,,COUSIN\nBI-1009,Ok,${ids.section},bi-existing-parent,,,,mother\n`;
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/bulk-import/students/preview')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .attach('file', csvBuffer(csv), 'students.csv')
+        .expect(201);
+      expect(res.body.rows[0].errors).toEqual(
+        expect.arrayContaining([expect.stringContaining('relationshipType')]),
+      );
+      expect(res.body.rows[1].errors).toEqual(
+        expect.arrayContaining([expect.stringContaining('relationshipType')]),
+      );
+      expect(res.body.rows[2].errors).toEqual([]);
     });
 
     it('a TEACHER cannot access any bulk-import route', async () => {

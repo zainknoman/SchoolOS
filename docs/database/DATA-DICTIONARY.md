@@ -1,11 +1,12 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **58 models, 16 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **58 models, 17 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
 
 - **Role**: SUPER_ADMIN, SCHOOL_ADMIN, TEACHER, ACCOUNTS, PARENT
+- **GuardianRelationship**: FATHER, MOTHER, GUARDIAN, OTHER
 - **StaffGrant**: ADMISSIONS, COMPLAINTS, MESSAGES
 - **AttendanceStatus**: PRESENT, ABSENT, LATE, LEAVE, HOLIDAY
 - **EnrollmentStatus**: ACTIVE, TRANSFERRED, COMPLETED, WITHDRAWN
@@ -429,9 +430,12 @@ Block attributes: `@@index([status])`
 | relationship | String | @default("guardian") |
 | isPrimary | Boolean | @default(false) |
 | isEmergencyContact | Boolean | @default(false) |
+| relationshipType | GuardianRelationship (enum) | @default(OTHER) |
+| relationshipNote | String? |  |
+| primarySlot | Int? |  |
 | createdAt | DateTime | @default(now()) |
 
-Block attributes: `@@unique([studentId, parentProfileId])` · `@@index([parentProfileId])` · `@@index([studentId])`
+Block attributes: `@@unique([studentId, parentProfileId])` · `@@unique([studentId, primarySlot])` · `@@index([parentProfileId])` · `@@index([studentId])`
 
 ### Address
 
@@ -684,7 +688,7 @@ Block attributes: `@@index([staffId])`
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([studentId])` · `@@index([sectionId])` · `@@index([campusId])` · `@@unique([studentId], map: "Enrollment_one_active_per_student", where: raw("status = 'ACTIVE'"))`
+Block attributes: `@@unique([studentId], map: "Enrollment_one_active_per_student", where: raw("status = 'ACTIVE'"))` · `@@index([studentId])` · `@@index([sectionId])` · `@@index([campusId])`
 
 ### StudentPromotion
 
@@ -1115,7 +1119,7 @@ Block attributes: `@@index([schoolId])`
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([studentId])` · `@@unique([studentId, academicSessionId, month])`
+Block attributes: `@@unique([studentId, academicSessionId, month])` · `@@index([studentId])`
 
 ### FeeItem
 

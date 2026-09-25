@@ -5,6 +5,8 @@ import {
   type PageRequest,
 } from '../common/pagination';
 import {
+  BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -19,6 +21,11 @@ import { createParentWithUser } from './create-parent-with-user';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
 import { UpdateParentChildLinkDto } from './dto/update-parent-child-link.dto';
+import { LinkParentChildDto } from './dto/link-parent-child.dto';
+import { LookupParentDto } from './dto/lookup-parent.dto';
+import { freePrimarySlot, legacyLinkFields } from './guardian-links';
+import { normalizeIdentifier } from '../common/normalize-identifier';
+import { rethrowUniqueAsConflict } from '../common/prisma-create-guard';
 import type { AddressDto } from '../common/dto/address.dto';
 import type { RequestUser } from '../common/student-access.service';
 
@@ -60,16 +67,36 @@ export interface ParentProfileDetail extends ParentSummary {
     className: string | null;
     sectionName: string | null;
     relationship: string;
+    /** BL-04: typed relationship, free text for OTHER, primary slot (1|2|null). */
+    relationshipType: string;
+    relationshipNote: string | null;
+    primarySlot: number | null;
     isPrimary: boolean;
     isEmergencyContact: boolean;
+    schoolName: string | null;
   }>;
 }
 
-const PROFILE_INCLUDE = {
+/** BL-23: what another school learns when it looks a guardian up — no children, no contact data. */
+export interface ParentLookupResult {
+  id: string;
+  identifier: string;
+  name: string;
+}
+
+/** BL-23: a group of guardian profiles sharing one deterministic key (never a name). */
+export interface DuplicateGuardianGroup {
+  key: 'cnic' | 'identifier' | 'phone' | 'email';
+  parentIds: string[];
+}
+
+const profileInclude = (childWhere?: Prisma.StudentParentWhereInput) => ({
   user: { select: { identifier: true } },
   currentAddress: true,
   permanentAddress: true,
   children: {
+    // BL-23: a school admin sees only the links to children of their own school/campus.
+    ...(childWhere ? { where: childWhere } : {}),
     include: {
       student: {
         select: {
@@ -77,21 +104,22 @@ const PROFILE_INCLUDE = {
           name: true,
           grNumber: true,
           enrollments: {
-            where: { status: 'ACTIVE' },
-            orderBy: { startDate: 'desc' },
+            where: { status: 'ACTIVE' as const },
+            orderBy: { startDate: 'desc' as const },
             take: 1,
             select: {
               section: {
                 select: { name: true, class: { select: { name: true } } },
               },
+              campus: { select: { school: { select: { name: true } } } },
             },
           },
         },
       },
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'asc' as const },
   },
-} as const;
+});
 
 const toAddress = (
   a: {
@@ -189,6 +217,10 @@ export class ParentService {
     if (scope.denied) {
       return PagedResult.of([], 0, page);
     }
+    // BL-23: the children count covers only the caller's own school/campus.
+    const childWhere = scope.campusWhere
+      ? this.linkInScope(scope.campusWhere)
+      : undefined;
     if (scope.campusWhere) {
       where = {
         children: {
@@ -228,7 +260,12 @@ export class ParentService {
     const [records, total] = await Promise.all([
       this.prisma.parentProfile.findMany({
         where: filtered,
-        include: WITH_USER_AND_COUNT,
+        include: {
+          user: { select: { identifier: true } },
+          _count: {
+            select: { children: childWhere ? { where: childWhere } : true },
+          },
+        },
         orderBy: page.paged
           ? [{ name: 'asc' }, { id: 'asc' }]
           : { name: 'asc' },
@@ -282,9 +319,10 @@ export class ParentService {
     actingUser: RequestUser,
   ): Promise<ParentProfileDetail> {
     await this.assertParentInScope(id, actingUser);
+    const childWhere = await this.childWhereFor(actingUser);
     const p = await this.prisma.parentProfile.findUniqueOrThrow({
       where: { id },
-      include: PROFILE_INCLUDE,
+      include: profileInclude(childWhere),
     });
     return {
       id: p.id,
@@ -312,16 +350,105 @@ export class ParentService {
           className: section?.class.name ?? null,
           sectionName: section?.name ?? null,
           relationship: link.relationship,
-          isPrimary: link.isPrimary,
+          relationshipType: link.relationshipType,
+          relationshipNote: link.relationshipNote,
+          primarySlot: link.primarySlot,
+          isPrimary: link.primarySlot !== null,
           isEmergencyContact: link.isEmergencyContact,
+          schoolName: link.student.enrollments[0]?.campus.school.name ?? null,
         };
       }),
     };
   }
 
+  /** A guardian link whose student has an enrolment inside `campusWhere` (BL-23). */
+  private linkInScope(
+    campusWhere: Prisma.CampusWhereInput,
+  ): Prisma.StudentParentWhereInput {
+    return {
+      student: {
+        enrollments: { some: { section: { class: { campus: campusWhere } } } },
+      },
+    };
+  }
+
+  /** undefined = every link (SUPER_ADMIN); otherwise the caller's school/campus only. */
+  private async childWhereFor(
+    actingUser: RequestUser,
+  ): Promise<Prisma.StudentParentWhereInput | undefined> {
+    const scope = await this.orgScope.resolve(actingUser);
+    if (scope.unrestricted) return undefined;
+    if (scope.denied || !scope.campusWhere) {
+      throw new ForbiddenException('No school is linked to this account');
+    }
+    return this.linkInScope(scope.campusWhere);
+  }
+
+  /** The student must be actively enrolled inside the caller's scope (BL-23). */
+  private async assertStudentInScope(
+    studentId: string,
+    actingUser: RequestUser,
+  ): Promise<void> {
+    const scope = await this.orgScope.resolve(actingUser);
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      select: {
+        enrollments: {
+          where: { status: 'ACTIVE' },
+          select: { campusId: true, campus: { select: { schoolId: true } } },
+        },
+      },
+    });
+    if (!student) throw new NotFoundException('Student not found');
+    if (scope.unrestricted) return;
+    const ok = student.enrollments.some((e) =>
+      scope.allows({ campusId: e.campusId, schoolId: e.campus.schoolId }),
+    );
+    if (!ok) {
+      throw new ForbiddenException(
+        'Cannot manage guardians of a student outside your own school',
+      );
+    }
+  }
+
   /**
-   * Guardian flags for one child. Marking a guardian primary demotes any other primary guardian of
-   * the same student, so a child never has two primaries.
+   * BL-23 PII boundary: the guardian's own profile (name, CNIC, contact data, password) and the
+   * account itself are changed by a SCHOOL_ADMIN only when EVERY child of that guardian with an
+   * active enrolment is inside the admin's school/campus. A guardian shared with another school is
+   * edited or deleted only by a SUPER_ADMIN; each school still manages its own links.
+   */
+  private async assertParentEntirelyInScope(
+    parentId: string,
+    actingUser: RequestUser,
+  ): Promise<void> {
+    await this.assertParentInScope(parentId, actingUser);
+    if (actingUser.role === 'SUPER_ADMIN') return;
+    const scope = await this.orgScope.resolve(actingUser);
+    const outside = await this.prisma.studentParent.findFirst({
+      where: {
+        parentProfileId: parentId,
+        student: {
+          enrollments: {
+            some: {
+              status: 'ACTIVE',
+              NOT: { section: { class: { campus: scope.campusWhere } } },
+            },
+          },
+        },
+      },
+      select: { id: true },
+    });
+    if (outside) {
+      throw new ForbiddenException(
+        'This guardian also has children in another school or campus; only a super admin can change or delete the guardian profile',
+      );
+    }
+  }
+
+  /**
+   * Guardian fields for one child (BL-04). `isPrimary: true` takes a free primary slot — at most
+   * two per student, a third is rejected with 409; `false` releases the slot. Only the caller's
+   * own students' links can be changed (BL-23).
    */
   async updateChildLink(
     parentId: string,
@@ -329,7 +456,7 @@ export class ParentService {
     dto: UpdateParentChildLinkDto,
     actingUser: RequestUser,
   ): Promise<ParentProfileDetail> {
-    await this.assertParentInScope(parentId, actingUser);
+    await this.assertStudentInScope(studentId, actingUser);
     const link = await this.prisma.studentParent.findUnique({
       where: {
         studentId_parentProfileId: { studentId, parentProfileId: parentId },
@@ -338,36 +465,253 @@ export class ParentService {
     if (!link) {
       throw new NotFoundException('This parent is not linked to that student');
     }
-    await this.prisma.$transaction(async (tx) => {
-      if (dto.isPrimary === true) {
-        await tx.studentParent.updateMany({
-          where: { studentId, NOT: { parentProfileId: parentId } },
-          data: { isPrimary: false },
+    const type = dto.relationshipType ?? link.relationshipType;
+    await this.prisma
+      .$transaction(async (tx) => {
+        let primarySlot = link.primarySlot;
+        if (dto.isPrimary === true && primarySlot === null) {
+          primarySlot = await freePrimarySlot(tx, studentId, link.id);
+        } else if (dto.isPrimary === false) {
+          primarySlot = null;
+        }
+        await tx.studentParent.update({
+          where: { id: link.id },
+          data: {
+            relationshipType: type,
+            relationshipNote:
+              type === 'OTHER'
+                ? dto.relationshipNote !== undefined
+                  ? dto.relationshipNote.trim() || null
+                  : link.relationshipNote
+                : null,
+            primarySlot,
+            ...legacyLinkFields(type, primarySlot),
+            ...(dto.isEmergencyContact !== undefined
+              ? { isEmergencyContact: dto.isEmergencyContact }
+              : {}),
+          },
         });
-      }
-      await tx.studentParent.update({
-        where: { id: link.id },
-        data: {
-          ...(dto.isPrimary !== undefined ? { isPrimary: dto.isPrimary } : {}),
-          ...(dto.isEmergencyContact !== undefined
-            ? { isEmergencyContact: dto.isEmergencyContact }
-            : {}),
-          ...(dto.relationship !== undefined
-            ? { relationship: dto.relationship }
-            : {}),
-        },
-      });
-      await tx.auditLog.create({
+        await tx.auditLog.create({
+          data: {
+            userId: actingUser.id,
+            action: 'parent.link.update',
+            entity: 'StudentParent',
+            entityId: link.id,
+            metadata: JSON.stringify(dto),
+          },
+        });
+      })
+      .catch((error: unknown) =>
+        rethrowUniqueAsConflict(
+          error,
+          'Another primary guardian was set for this student at the same time; reload and try again',
+        ),
+      );
+    return this.getProfile(parentId, actingUser);
+  }
+
+  /**
+   * BL-23/BL-04: link an existing guardian (found via lookup — possibly already a guardian at
+   * another school) to one of the caller's students. The response shows only the caller's own
+   * children of that guardian.
+   */
+  async linkChild(
+    parentId: string,
+    dto: LinkParentChildDto,
+    actingUser: RequestUser,
+  ): Promise<ParentProfileDetail> {
+    await this.assertStudentInScope(dto.studentId, actingUser);
+    const parent = await this.prisma.parentProfile.findUnique({
+      where: { id: parentId },
+      select: { id: true },
+    });
+    if (!parent) throw new NotFoundException('Parent not found');
+    await this.prisma
+      .$transaction(async (tx) => {
+        const exists = await tx.studentParent.findUnique({
+          where: {
+            studentId_parentProfileId: {
+              studentId: dto.studentId,
+              parentProfileId: parentId,
+            },
+          },
+          select: { id: true },
+        });
+        if (exists) {
+          throw new ConflictException(
+            'This guardian is already linked to that student',
+          );
+        }
+        const primarySlot = dto.isPrimary
+          ? await freePrimarySlot(tx, dto.studentId)
+          : null;
+        const created = await tx.studentParent.create({
+          data: {
+            studentId: dto.studentId,
+            parentProfileId: parentId,
+            relationshipType: dto.relationshipType,
+            relationshipNote:
+              dto.relationshipType === 'OTHER'
+                ? dto.relationshipNote?.trim() || null
+                : null,
+            primarySlot,
+            isEmergencyContact: dto.isEmergencyContact ?? false,
+            ...legacyLinkFields(dto.relationshipType, primarySlot),
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            userId: actingUser.id,
+            action: 'parent.link.create',
+            entity: 'StudentParent',
+            entityId: created.id,
+            metadata: JSON.stringify({
+              parentId,
+              studentId: dto.studentId,
+              relationshipType: dto.relationshipType,
+              primarySlot,
+            }),
+          },
+        });
+      })
+      .catch((error: unknown) =>
+        rethrowUniqueAsConflict(
+          error,
+          'This link or primary slot was created by someone else at the same time; reload and try again',
+        ),
+      );
+    return this.getProfile(parentId, actingUser);
+  }
+
+  /** BL-23: remove a guardian link of one of the caller's students; a student keeps at least one. */
+  async unlinkChild(
+    parentId: string,
+    studentId: string,
+    actingUser: RequestUser,
+  ): Promise<void> {
+    await this.assertStudentInScope(studentId, actingUser);
+    const link = await this.prisma.studentParent.findUnique({
+      where: {
+        studentId_parentProfileId: { studentId, parentProfileId: parentId },
+      },
+    });
+    if (!link) {
+      throw new NotFoundException('This parent is not linked to that student');
+    }
+    const others = await this.prisma.studentParent.count({
+      where: { studentId, NOT: { id: link.id } },
+    });
+    if (others === 0) {
+      throw new BadRequestException(
+        "This is the student's only guardian; link another guardian first",
+      );
+    }
+    await this.prisma.$transaction([
+      this.prisma.studentParent.delete({ where: { id: link.id } }),
+      this.prisma.auditLog.create({
         data: {
           userId: actingUser.id,
-          action: 'parent.link.update',
+          action: 'parent.link.delete',
           entity: 'StudentParent',
           entityId: link.id,
-          metadata: JSON.stringify(dto),
+          metadata: JSON.stringify({ parentId, studentId }),
         },
-      });
+      }),
+    ]);
+  }
+
+  /**
+   * BL-23: find a guardian by a deterministic key only (exact login identifier or CNIC, never a
+   * name) so a second school links the same person instead of creating a duplicate. Returns the
+   * id, identifier and name only — nothing about other schools' children. Audited.
+   */
+  async lookup(
+    dto: LookupParentDto,
+    actingUser: RequestUser,
+  ): Promise<ParentLookupResult> {
+    if (!dto.identifier === !dto.cnic) {
+      throw new BadRequestException('Give exactly one of identifier or cnic');
+    }
+    const found = await this.prisma.parentProfile.findFirst({
+      where: dto.identifier
+        ? {
+            user: {
+              identifier: {
+                in: [
+                  dto.identifier.trim(),
+                  normalizeIdentifier(dto.identifier),
+                ],
+              },
+            },
+          }
+        : { cnic: dto.cnic!.trim() },
+      select: { id: true, name: true, user: { select: { identifier: true } } },
     });
-    return this.getProfile(parentId, actingUser);
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUser.id,
+        action: 'parent.lookup',
+        entity: 'ParentProfile',
+        entityId: found?.id ?? null,
+        metadata: JSON.stringify({
+          by: dto.identifier ? 'identifier' : 'cnic',
+          found: !!found,
+        }),
+      },
+    });
+    if (!found) throw new NotFoundException('No guardian with that key');
+    return {
+      id: found.id,
+      identifier: found.user.identifier,
+      name: found.name,
+    };
+  }
+
+  /**
+   * BL-23 dedupe report (SUPER_ADMIN): guardian profiles sharing a deterministic key — CNIC
+   * digits, normalised login identifier, phone digits or e-mail. Names are never compared and
+   * nothing is merged; any merge is a later, audited admin action.
+   */
+  async duplicates(actingUser: RequestUser): Promise<DuplicateGuardianGroup[]> {
+    const rows = await this.prisma.parentProfile.findMany({
+      select: {
+        id: true,
+        cnic: true,
+        phone: true,
+        email: true,
+        user: { select: { identifier: true } },
+      },
+    });
+    const digits = (v: string | null) => (v ?? '').replace(/\D/g, '');
+    const keys: Array<
+      [DuplicateGuardianGroup['key'], (r: (typeof rows)[number]) => string]
+    > = [
+      ['cnic', (r) => digits(r.cnic)],
+      ['identifier', (r) => normalizeIdentifier(r.user.identifier)],
+      ['phone', (r) => digits(r.phone)],
+      ['email', (r) => (r.email ?? '').trim().toLowerCase()],
+    ];
+    const groups: DuplicateGuardianGroup[] = [];
+    for (const [key, of] of keys) {
+      const byValue = new Map<string, string[]>();
+      for (const r of rows) {
+        const v = of(r);
+        if (v.length < 5) continue;
+        byValue.set(v, [...(byValue.get(v) ?? []), r.id]);
+      }
+      for (const ids of byValue.values()) {
+        if (ids.length > 1) groups.push({ key, parentIds: ids.sort() });
+      }
+    }
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUser.id,
+        action: 'parent.duplicates-report',
+        entity: 'ParentProfile',
+        metadata: JSON.stringify({ groups: groups.length }),
+      },
+    });
+    return groups;
   }
 
   private addressWrite(
@@ -381,8 +725,10 @@ export class ParentService {
   async update(
     id: string,
     dto: UpdateParentDto,
-    actingUserId: string,
+    actingUser: RequestUser,
   ): Promise<ParentSummary> {
+    const actingUserId = actingUser.id;
+    await this.assertParentEntirelyInScope(id, actingUser);
     const existing = await this.prisma.parentProfile.findUnique({
       where: { id },
     });
@@ -443,7 +789,9 @@ export class ParentService {
     return this.toSummary(record);
   }
 
-  async delete(id: string, actingUserId: string): Promise<void> {
+  async delete(id: string, actingUser: RequestUser): Promise<void> {
+    const actingUserId = actingUser.id;
+    await this.assertParentEntirelyInScope(id, actingUser);
     const existing = await this.prisma.parentProfile.findUnique({
       where: { id },
     });
