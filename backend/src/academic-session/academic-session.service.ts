@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -86,15 +87,23 @@ export class AcademicSessionService {
     return this.toSummary(record);
   }
 
-  // Rollover helper for promotions: clones the source session's classes and sections (names only,
-  // no class teachers) into the target session. Idempotent — anything already present in the target
-  // (same campus + class name, same section name) is left alone. SCHOOL_ADMIN is limited to their
-  // own school's campuses.
+  // Rollover helper (BL-33): copies the source session's structure into the target — classes and
+  // sections (names only, no class teachers), terms (dates shifted by the gap between the session
+  // starts), assessment categories and timetable templates. It only CREATES rows in the target:
+  // the source and every historical session are never updated or deleted. Idempotent — anything
+  // already present in the target is left alone. A school admin works within their own school.
   async copyStructure(
     targetSessionId: string,
     sourceSessionId: string,
     actingUser: RequestUser,
-  ): Promise<{ classesCreated: number; sectionsCreated: number }> {
+  ): Promise<{
+    classesCreated: number;
+    sectionsCreated: number;
+    termsCreated: number;
+    assessmentCategoriesCreated: number;
+    timetableEntriesCreated: number;
+    timetableEntriesSkipped: number;
+  }> {
     if (targetSessionId === sourceSessionId) {
       throw new BadRequestException('Source and target sessions must differ');
     }
@@ -119,17 +128,72 @@ export class AcademicSessionService {
     if (scope.denied) {
       throw new BadRequestException('No school is linked to this account');
     }
+    // BL-33: a school admin copies only within their own school's sessions.
+    if (
+      !scope.unrestricted &&
+      target.schoolId !== null &&
+      target.schoolId !== scope.schoolId
+    ) {
+      throw new ForbiddenException(
+        'This academic session belongs to another school',
+      );
+    }
+    // Terms keep their place in the year: dates move by the gap between the session starts.
+    const shiftMs = target.startDate.getTime() - source.startDate.getTime();
+    const shift = (d: Date) => new Date(d.getTime() + shiftMs);
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const counts = {
+        classesCreated: 0,
+        sectionsCreated: 0,
+        termsCreated: 0,
+        assessmentCategoriesCreated: 0,
+        timetableEntriesCreated: 0,
+        timetableEntriesSkipped: 0,
+      };
+
+      // Terms (session-level): created in the target only when that label is missing.
+      const targetTermByLabel = new Map(
+        (
+          await tx.term.findMany({
+            where: { academicSessionId: targetSessionId },
+          })
+        ).map((t) => [t.label, t.id]),
+      );
+      const sourceTerms = await tx.term.findMany({
+        where: { academicSessionId: sourceSessionId },
+        orderBy: { order: 'asc' },
+      });
+      const termMap = new Map<string, string>(); // source term id -> target term id
+      for (const t of sourceTerms) {
+        let id = targetTermByLabel.get(t.label);
+        if (!id) {
+          id = (
+            await tx.term.create({
+              data: {
+                academicSessionId: targetSessionId,
+                label: t.label,
+                order: t.order,
+                startDate: shift(t.startDate),
+                endDate: shift(t.endDate),
+              },
+            })
+          ).id;
+          counts.termsCreated += 1;
+        }
+        termMap.set(t.id, id);
+      }
+
       const sourceClasses = await tx.class.findMany({
         where: {
           academicSessionId: sourceSessionId,
           ...(scope.campusWhere ? { campus: scope.campusWhere } : {}),
         },
-        include: { sections: true },
+        include: {
+          sections: { include: { timetables: true } },
+          assessmentCategories: true,
+        },
       });
-      let classesCreated = 0;
-      let sectionsCreated = 0;
       for (const src of sourceClasses) {
         let dest = await tx.class.findFirst({
           where: {
@@ -137,7 +201,7 @@ export class AcademicSessionService {
             campusId: src.campusId,
             name: src.name,
           },
-          include: { sections: true },
+          include: { sections: true, assessmentCategories: true },
         });
         if (!dest) {
           dest = await tx.class.create({
@@ -146,20 +210,91 @@ export class AcademicSessionService {
               campusId: src.campusId,
               name: src.name,
             },
-            include: { sections: true },
+            include: { sections: true, assessmentCategories: true },
           });
-          classesCreated += 1;
+          counts.classesCreated += 1;
         }
-        const existing = new Set(dest.sections.map((s) => s.name));
-        for (const section of src.sections) {
-          if (existing.has(section.name)) continue;
-          await tx.section.create({
-            data: { classId: dest.id, name: section.name },
+
+        // Assessment categories: same name + mapped term, only when missing.
+        const haveCategory = new Set(
+          dest.assessmentCategories.map((c) => `${c.termId}|${c.name}`),
+        );
+        for (const cat of src.assessmentCategories) {
+          const termId = termMap.get(cat.termId);
+          if (!termId || haveCategory.has(`${termId}|${cat.name}`)) continue;
+          await tx.assessmentCategory.create({
+            data: {
+              classId: dest.id,
+              termId,
+              name: cat.name,
+              weightPercent: cat.weightPercent,
+            },
           });
-          sectionsCreated += 1;
+          counts.assessmentCategoriesCreated += 1;
+        }
+
+        const destSections = new Map(dest.sections.map((s) => [s.name, s.id]));
+        for (const section of src.sections) {
+          let destSectionId = destSections.get(section.name);
+          if (!destSectionId) {
+            destSectionId = (
+              await tx.section.create({
+                data: { classId: dest.id, name: section.name },
+              })
+            ).id;
+            counts.sectionsCreated += 1;
+          }
+          // Timetable template: only into a section that has no timetable yet (idempotent), and
+          // never an entry that would double-book a teacher or room in the target session.
+          if (section.timetables.length === 0) continue;
+          const hasTimetable = await tx.timetable.count({
+            where: { sectionId: destSectionId },
+          });
+          if (hasTimetable > 0) continue;
+          for (const e of section.timetables) {
+            const clashOn = [
+              ...(e.teacherId ? [{ teacherId: e.teacherId }] : []),
+              ...(e.room
+                ? [
+                    {
+                      room: e.room,
+                      section: { class: { campusId: src.campusId } },
+                    },
+                  ]
+                : []),
+            ];
+            const clash = clashOn.length
+              ? await tx.timetable.findFirst({
+                  where: {
+                    dayOfWeek: e.dayOfWeek,
+                    period: e.period,
+                    section: { class: { academicSessionId: targetSessionId } },
+                    OR: clashOn,
+                  },
+                  select: { id: true },
+                })
+              : null;
+            if (clash) {
+              counts.timetableEntriesSkipped += 1;
+              continue;
+            }
+            await tx.timetable.create({
+              data: {
+                sectionId: destSectionId,
+                subjectId: e.subjectId,
+                teacherId: e.teacherId,
+                dayOfWeek: e.dayOfWeek,
+                period: e.period,
+                startTime: e.startTime,
+                endTime: e.endTime,
+                room: e.room,
+              },
+            });
+            counts.timetableEntriesCreated += 1;
+          }
         }
       }
-      return { classesCreated, sectionsCreated };
+      return counts;
     });
     await this.prisma.auditLog.create({
       data: {

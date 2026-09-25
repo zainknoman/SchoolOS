@@ -13,6 +13,7 @@ vi.mock('../lib/api', () => ({
     updateAcademicSession: vi.fn(),
     deleteAcademicSession: vi.fn(),
     listSchools: vi.fn(),
+    copySessionStructure: vi.fn(),
   },
 }));
 vi.mock('../lib/useConfirm', () => ({
@@ -24,6 +25,7 @@ describe('AcademicSessionManagementView', () => {
     setActivePinia(createPinia());
     const auth = useAuthStore();
     auth.accessToken = 'token-1';
+    auth.role = 'SUPER_ADMIN';
     Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
     // BL-01: sessions are per school; one school is pre-selected in the add form.
     vi.mocked(api.listSchools).mockResolvedValue([
@@ -130,5 +132,25 @@ describe('AcademicSessionManagementView', () => {
     const inactivePill = pills.find((p) => p.text() === 'Inactive');
     expect(activePill?.classes()).toContain('tone-success');
     expect(inactivePill?.classes()).toContain('tone-neutral');
+  });
+
+  it('a school admin sees no add/edit/delete but can copy structure into a session (BL-33)', async () => {
+    useAuthStore().role = 'SCHOOL_ADMIN';
+    vi.mocked(api.listAcademicSessions).mockResolvedValue([
+      { id: 'as1', label: '2026-2027', startDate: '2026-08-01', endDate: '2027-06-30', isActive: true, schoolId: 'school-1' },
+      { id: 'as2', label: '2027-2028', startDate: '2027-08-01', endDate: '2028-06-30', isActive: false, schoolId: 'school-1' },
+    ]);
+    vi.mocked(api.copySessionStructure).mockResolvedValue({ classesCreated: 2, sectionsCreated: 4, termsCreated: 3 });
+    const wrapper = mount(AcademicSessionManagementView);
+    await flushPromises();
+    expect(api.listSchools).not.toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="open-add-form"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="edit-as2"]').exists()).toBe(false);
+
+    await wrapper.find('[data-testid="copy-as2"]').trigger('click');
+    await flushPromises();
+    await wrapper.find('[data-testid="copy-submit"]').trigger('click');
+    await flushPromises();
+    expect(api.copySessionStructure).toHaveBeenCalledWith('token-1', 'as2', 'as1');
   });
 });

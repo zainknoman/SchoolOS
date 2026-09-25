@@ -68,7 +68,14 @@ describe('router org-structure access', () => {
     },
   );
 
-  it.each(['/admin/schools', '/admin/schools/new', '/admin/schools/s1', '/admin/academic-sessions'])(
+  // BL-33 (KI-18): /admin/academic-sessions is open to SCHOOL_ADMIN (view + copy structure).
+  it('lets a SCHOOL_ADMIN open /admin/academic-sessions', async () => {
+    signInAs('SCHOOL_ADMIN');
+    await router.push('/admin/academic-sessions');
+    expect(router.currentRoute.value.path).toBe('/admin/academic-sessions');
+  });
+
+  it.each(['/admin/schools', '/admin/schools/new', '/admin/schools/s1'])(
     'keeps %s SUPER_ADMIN-only',
     async (path) => {
       signInAs('SCHOOL_ADMIN');

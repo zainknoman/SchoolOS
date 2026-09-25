@@ -108,6 +108,16 @@ export interface CampusSummary {
   staffCount: number;
 }
 
+/** BL-33: what a copy-structure run created (0s on a repeat run) and skipped. */
+export interface CopyStructureResult {
+  classesCreated: number;
+  sectionsCreated: number;
+  termsCreated?: number;
+  assessmentCategoriesCreated?: number;
+  timetableEntriesCreated?: number;
+  timetableEntriesSkipped?: number;
+}
+
 export interface AcademicSessionSummary {
   id: string;
   /** BL-01: sessions belong to a school (null only for legacy rows awaiting the M3 backfill). */
@@ -1736,7 +1746,7 @@ export const api = {
     accessToken: string,
     targetSessionId: string,
     sourceSessionId: string,
-  ): Promise<{ classesCreated: number; sectionsCreated: number }> {
+  ): Promise<CopyStructureResult> {
     const res = await fetch(`${API_BASE_URL}/api/v1/academic-sessions/${targetSessionId}/copy-structure`, {
       method: 'POST',
       headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },

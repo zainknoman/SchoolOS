@@ -122,7 +122,8 @@ async function onCopyStructure() {
     );
     await loadReferenceData();
     toast.success(
-      `Created ${result.classesCreated} class(es) and ${result.sectionsCreated} section(s) in ${targetSessionLabel.value}.`,
+      `Created ${result.classesCreated} class(es), ${result.sectionsCreated} section(s), ${result.termsCreated ?? 0} term(s) ` +
+        `and ${result.timetableEntriesCreated ?? 0} timetable slot(s) in ${targetSessionLabel.value}.`,
     );
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not copy classes and sections.';
@@ -289,7 +290,7 @@ async function onExecute() {
         :disabled="isCopyingStructure"
         @click="onCopyStructure"
       >
-        Copy classes &amp; sections from {{ activeSession?.label }}
+        Copy classes, sections, terms &amp; timetable from {{ activeSession?.label }}
       </Button>
     </div>
 

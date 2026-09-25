@@ -127,7 +127,8 @@ describe('AppShell (role-gated nav)', () => {
 
     // Schools/Academic Sessions stay SUPER_ADMIN-only; Campuses/Classes/Sections are open to SCHOOL_ADMIN.
     expect(wrapper.find('[data-testid="nav-schools"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="nav-academic-sessions"]').exists()).toBe(false);
+    // BL-33: school admins reach the sessions screen (view + copy structure).
+    expect(wrapper.find('[data-testid="nav-academic-sessions"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-campuses"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-classes"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-sections"]').exists()).toBe(true);

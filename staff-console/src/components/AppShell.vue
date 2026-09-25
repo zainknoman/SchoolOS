@@ -76,6 +76,7 @@ const canManageLeave = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role 
 const canManagePromotions = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 // Schools and Academic Sessions are SUPER_ADMIN-only; Campuses/Classes/Sections are also open to SCHOOL_ADMIN.
 const canManageOrgStructure = computed(() => auth.role === 'SUPER_ADMIN');
+const canViewSessions = computed(() => auth.role === 'SUPER_ADMIN' || auth.role === 'SCHOOL_ADMIN');
 const canManageOrgUnits = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 const canManagePeople = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 // Fixes a real pre-existing bug (PROJECT-STATUS.md): the nav used to show Circulars/Timetable to
@@ -596,7 +597,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
               ><Icon name="chalkboard" />{{ t('nav.schools') }}</RouterLink
             >
             <RouterLink data-testid="nav-campuses" to="/admin/campuses"><Icon name="grid" />{{ t('nav.campuses') }}</RouterLink>
-            <RouterLink v-if="canManageOrgStructure" data-testid="nav-academic-sessions" to="/admin/academic-sessions"
+            <RouterLink v-if="canViewSessions" data-testid="nav-academic-sessions" to="/admin/academic-sessions"
               ><Icon name="calendar" />{{ t('nav.academicSessions') }}</RouterLink
             >
             <RouterLink data-testid="nav-classes" to="/admin/classes"><Icon name="grid" />{{ t('nav.classes') }}</RouterLink>

@@ -22,7 +22,7 @@
 | KI-15 | Data | Attendance is daily-only (`@@unique(studentId,date)`) while timetable is per period | DB-6 | product limitation | DECIDED (daily now, per-period later) → BL-45 |
 | KI-16 | Grades | Category weights not required to total 100 (warning only) | `assessment-categories.service.ts:40` | wrong grades | DECIDED → BL-27 (weights must total 100 to publish) |
 | KI-17 | Promotions | Preview suggests PROMOTED for everyone; no eligibility checks | `promotions.service.ts` | mistaken promotions | DECIDED (manual + indicators + confirmation) → BL-05 |
-| KI-18 | UI | `/admin/academic-sessions` restricted to SUPER_ADMIN in the router while `copy-structure` API allows SCHOOL_ADMIN | router vs `academic-session.controller.ts` | school admins cannot use copy-structure from the UI | DECIDED (UI must match API) → BL-33 |
+| KI-18 | UI | `/admin/academic-sessions` restricted to SUPER_ADMIN in the router while `copy-structure` API allows SCHOOL_ADMIN | router vs `academic-session.controller.ts` | school admins cannot use copy-structure from the UI | DECIDED (UI must match API) → BL-33 — **Resolved 2026-09-25 (BL-33):** school admins open the Sessions screen (view + copy structure); create/edit/delete stay super-admin |
 | KI-19 | Attendance | Holiday double-count edge case documented in code | `attendance.service.ts:20-23` | report totals | — |
 | KI-20 | Seed | One active session per school; real-sounding school name; no production guard | [SEEDING](../database/SEEDING.md) | data hygiene | DECIDED (neutral Demo School, per-school sessions) → BL-34, BL-01 |
 | KI-21 | CI | Backend lint failing (2,014 errors, mostly formatting) but non-blocking; comment says ~672 | `ci.yml:42`, run 2026-09-20 | quality gate weak | DECIDED (blocking after cleanup) → BL-37 |

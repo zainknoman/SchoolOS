@@ -127,7 +127,9 @@ const router = createRouter({
       path: '/admin/academic-sessions',
       name: 'admin-academic-sessions',
       component: () => import('../views/AcademicSessionManagementPageView.vue'),
-      meta: { requiresRole: ['SUPER_ADMIN'], title: 'Academic Sessions', group: 'Org Structure' },
+      // BL-33 (KI-18): school admins see their school's sessions and can copy structure; only a
+      // super admin creates/edits/deletes sessions (the view hides those actions).
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Academic Sessions', group: 'Org Structure' },
     },
     {
       path: '/admin/classes',

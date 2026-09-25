@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type AcademicSessionSummary, type SchoolSummary } from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
@@ -25,6 +25,40 @@ const newEnd = ref('');
 const newActive = ref(false);
 // BL-01: each school runs its own calendar — a session is created for one school.
 const schools = ref<SchoolSummary[]>([]);
+// BL-33: school admins may view and copy structure; creating/editing/deleting stays super-admin only.
+const isSuperAdmin = auth.role === 'SUPER_ADMIN';
+const copyTargetId = ref<string | null>(null);
+const copySourceId = ref('');
+const isCopying = ref(false);
+const copyTarget = computed(() => sessions.value.find((s) => s.id === copyTargetId.value) ?? null);
+const copySources = computed(() =>
+  sessions.value.filter((s) => s.id !== copyTargetId.value && s.schoolId === copyTarget.value?.schoolId),
+);
+
+function openCopy(session: AcademicSessionSummary) {
+  copyTargetId.value = session.id;
+  copySourceId.value = sessions.value.find((s) => s.isActive && s.id !== session.id && s.schoolId === session.schoolId)?.id ?? '';
+}
+
+async function onCopy() {
+  if (!auth.accessToken || !copyTargetId.value || !copySourceId.value) return;
+  errorMessage.value = null;
+  isCopying.value = true;
+  try {
+    const r = await api.copySessionStructure(auth.accessToken, copyTargetId.value, copySourceId.value);
+    copyTargetId.value = null;
+    toast.success(
+      `Copied: ${r.classesCreated} class(es), ${r.sectionsCreated} section(s), ${r.termsCreated ?? 0} term(s), ` +
+        `${r.assessmentCategoriesCreated ?? 0} categor(ies), ${r.timetableEntriesCreated ?? 0} timetable slot(s)` +
+        (r.timetableEntriesSkipped ? ` (${r.timetableEntriesSkipped} skipped: teacher/room already booked)` : '') +
+        '.',
+    );
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not copy the structure.';
+  } finally {
+    isCopying.value = false;
+  }
+}
 const newSchoolId = ref('');
 const isSaving = ref(false);
 const schoolName = (id: string | null | undefined) =>
@@ -41,7 +75,7 @@ async function load() {
   try {
     [sessions.value, schools.value] = await Promise.all([
       api.listAcademicSessions(auth.accessToken),
-      api.listSchools(auth.accessToken),
+      isSuperAdmin ? api.listSchools(auth.accessToken) : Promise.resolve([]),
     ]);
     const only = schools.value.length === 1 ? schools.value[0] : undefined;
     if (!newSchoolId.value && only) newSchoolId.value = only.id;
@@ -131,7 +165,7 @@ async function onDelete(id: string) {
 <template>
   <ListPageCard icon="clock" title="Academic Sessions">
     <template #actions>
-      <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
+      <Button v-if="isSuperAdmin" data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
     </template>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
@@ -172,13 +206,38 @@ async function onDelete(id: string) {
           <Button variant="secondary" @click="cancelEdit">Cancel</Button>
         </template>
         <template v-else>
-          <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
-          <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
-            Delete
-          </Button>
+          <Button variant="secondary" :data-testid="`copy-${item.id}`" @click="openCopy(item)">Copy structure here</Button>
+          <template v-if="isSuperAdmin">
+            <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
+            <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
+              Delete
+            </Button>
+          </template>
         </template>
       </template>
     </EntityTable>
+
+    <AppModal
+      :model-value="copyTargetId !== null"
+      :title="`Copy structure into ${copyTarget?.label ?? ''}`"
+      @update:model-value="(open: boolean) => { if (!open) copyTargetId = null; }"
+    >
+      <p class="muted">
+        Creates, in this session only, the classes, sections, terms, assessment categories and timetable of the
+        source session. Nothing in the source session changes; running it again creates nothing new.
+      </p>
+      <div class="inline-form">
+        <FormField
+          v-model="copySourceId"
+          label="Copy from"
+          type="select"
+          data-testid="copy-source"
+          placeholder="Choose a session"
+          :options="copySources.map((s) => ({ value: s.id, label: s.label }))"
+        />
+        <Button data-testid="copy-submit" :disabled="isCopying || !copySourceId" @click="onCopy">Copy</Button>
+      </div>
+    </AppModal>
 
     <AppModal v-model="showAddForm" title="Add Academic Session">
       <div class="inline-form">

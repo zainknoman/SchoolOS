@@ -1,7 +1,7 @@
 # School Admin and Principal Guide
 
 > **Status:** PARTIAL (see [verification level](README.md)) · **Verified:** 2026-09-20 · Role: `SCHOOL_ADMIN` — your school (or only your campus, if your login is campus-scoped). A **Principal** is a School Admin whose account has the principal flag: you additionally see **Principal → School Overview** and **Academics & Staff**.
-> **Decided, not yet implemented (owner, 2026-09-20):** copy-structure available to SCHOOL_ADMIN in the UI (BL-33); subject management (BL-02); leave approval without a class teacher (BL-29). This guide describes current behaviour and is not click-tested.
+> **Implemented 2026-09-25:** copy-structure for school admins (BL-33), subject management (BL-02), leave approval without a class teacher (BL-60/BL-29 part). **Still to come:** the leave recommendation step (BL-29). This guide describes current behaviour and is not click-tested.
 
 Menu groups: Overview · People · Operations · Communication · Org Structure.
 
@@ -17,6 +17,7 @@ Menu groups: Overview · People · Operations · Communication · Org Structure.
 
 ## 2. People
 - **Students → add student:** requires an active academic session and a section. Link either an existing parent or create a new parent login (exactly one). GR number must be unique. Open **Student Profile** to add address, previous school, medical info, emergency contacts and documents (mark documents verified).
+- **New academic year** (Org Structure → Academic Sessions → *Copy structure here* on the new session, or from Promotions): copies classes, sections, terms, assessment categories and the timetable from the chosen session — nothing in the old session changes, and running it twice is harmless (BL-33).
 - **Subjects** (Operations → Subjects): add your school's subjects, rename them, **deactivate** one you no longer teach (it disappears from pickers, history stays), delete only an unused one (BL-02).
 - **Parents:** create/edit parents and link or unlink children. **Reset password** (parent profile) gives a one-time password, shown once — read it to the parent; they must choose their own at next sign-in and are signed out everywhere. Not available when e-mail reset is configured, or for a parent who also has children in another school (ask the super admin).
 - **Staff / Hiring:** add staff and keep profiles, experience and documents. For hiring: **Hiring → New Candidate** (upload résumé first) → create application → **approve** (creates the staff record; for a teacher you must give a login) or **reject**. Decisions are final.
