@@ -9,7 +9,8 @@
         "PasswordResetToken",
         "DeviceToken",
         "AuditLog",
-        "MigrationReviewItem"
+        "MigrationReviewItem",
+        "RetentionPolicy"
       ]
     },
     {

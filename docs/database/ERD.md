@@ -14,6 +14,7 @@ flowchart LR
   PasswordResetToken -->|Cascade| User
   DeviceToken -->|Cascade| User
   MigrationReviewItem -->|SetNull, optional| User
+  RetentionPolicy -->|SetNull, optional| User
 ```
 
 ## Organization
@@ -48,6 +49,7 @@ flowchart LR
   Staff -->|SetNull, optional| Address
   Staff -->|SetNull, optional| Address
   Staff -->|SetNull, optional| Teacher
+  Staff -->|SetNull, optional| User
   StaffEmergencyContact -->|Cascade| Staff
   StaffEmergencyContact -->|SetNull, optional| Address
   StaffExperience -->|Cascade| Staff
@@ -57,6 +59,7 @@ flowchart LR
   Student -->|SetNull, optional| File
   Student -->|SetNull, optional| Address
   Student -->|SetNull, optional| Address
+  Student -->|SetNull, optional| User
   ParentProfile -->|Cascade| User
   ParentProfile -->|SetNull, optional| Address
   ParentProfile -->|SetNull, optional| Address

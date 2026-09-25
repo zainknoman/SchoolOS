@@ -62,7 +62,10 @@ describe('StaffService', () => {
       },
     ]);
     expect(prisma.staff.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: undefined, orderBy: { name: 'asc' } }),
+      expect.objectContaining({
+        where: { archivedAt: null },
+        orderBy: { name: 'asc' },
+      }),
     );
   });
 
@@ -72,7 +75,9 @@ describe('StaffService', () => {
     await service.list({ id: 'super-1', role: 'SUPER_ADMIN' }, 'GUARD');
 
     expect(prisma.staff.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { employeeType: 'GUARD' } }),
+      expect.objectContaining({
+        where: { archivedAt: null, employeeType: 'GUARD' },
+      }),
     );
   });
 
@@ -87,7 +92,11 @@ describe('StaffService', () => {
 
     expect(prisma.staff.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { employeeType: 'GUARD', campus: { schoolId: 'school-1' } },
+        where: {
+          archivedAt: null,
+          employeeType: 'GUARD',
+          campus: { schoolId: 'school-1' },
+        },
       }),
     );
   });

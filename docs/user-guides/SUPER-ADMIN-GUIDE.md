@@ -20,6 +20,10 @@ Deleting a school or campus is blocked while anything still refers to it.
 ## Monitoring
 The **Dashboard** shows the network overview across schools. There is no built-in audit-log viewer, user-management screen, account unlock or account disable: to unlock a locked user wait 15 minutes; other account fixes need database access ([RUNBOOKS](../operations/RUNBOOKS.md)).
 
+## Privacy: erasure and retention (BL-07, BL-63)
+- **Erase** a student, staff member or teacher permanently: archive it first, then `POST /api/v1/admin/students|staff|teachers/:id/erase` (audited). It is refused while records kept for retention (attendance, vouchers, marks …) still refer to the person — that is intended.
+- **Retention policy** (`/api/v1/admin/retention-policy`): every data category is listed with its period *unset*. Enter a period only after legal review; the **report** (`…/report`) counts records past their period. Nothing is ever deleted automatically.
+
 ## Cautions
 - Subjects are managed per school in **Subjects** (choose the school when adding one); school admins manage their own school's (BL-02).
 - A whole-school circular, or a holiday without a campus, belongs to one school: choose the **School** in the form (BL-20).

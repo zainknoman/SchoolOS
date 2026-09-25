@@ -1,6 +1,6 @@
 BL-39 ✅ |BL-53 ✅ |BL-32 ✅ |BL-25 ✅ |BL-61, BL-05 ✅ |BL-04, BL-23 ✅ |BL-03 ✅ |BL-02 ✅ |BL-01 ✅ |BL-20 ✅ |BL-60 ✅ |# Pilot-Readiness Execution Plan (Waves 0–7)
 
-> **Status:** CURRENT — **Waves 0–3 done, Wave 4 in progress** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-25) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
+> **Status:** CURRENT — **Waves 0–3 done, Wave 4 in progress** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-07/BL-63) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
 > Companion to the gap analysis: this file fixes the **order of execution**, the **schema/migration dependencies that must precede application code**, the affected layers, the docs to regenerate, and rollback rules. Findings F1–F10 (2026-09-20) are folded in. Item detail and acceptance criteria live in the BACKLOG.
 
 ## 0. Progress and handoff (updated 2026-09-27)
@@ -14,8 +14,8 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 2 | BL-10 · BL-11 · BL-39 · BL-40 | ✅ (BL-13 = Ops, open) | `fd7e7f2` · `608ab16` · `c04c789` · `ca4d24e` |
 | 3 | BL-20 (M2) · BL-01 (M3) · BL-02 (M4) · BL-03 (M5) · BL-33 · BL-32 (M11) · BL-53 (M12) · BL-34 | ✅ | `a2a7bf7` · `2339247` · `566f183` · `9f9f138` · `f49631f` · `896aef2` · `3384a60` · `b4f7f60` |
 | 4 | BL-23 + BL-04 (M6) | ✅ | `5e4a352` |
-| 4 | BL-61 (M7) · BL-05 · BL-25 (M8) | ✅ | `79aabed` · `bb6e744` · (this commit) |
-| 4 | BL-07 + BL-63 (M9) · BL-41 | ⏭ **next, in this order** | — |
+| 4 | BL-61 (M7) · BL-05 · BL-25 (M8) · BL-07 + BL-63 (M9, + M8 fixes, KG-25) | ✅ | `79aabed` · `bb6e744` · `5225c4c` · (this commit) |
+| 4 | BL-41 | ⏭ **next** | — |
 | 5 | BL-26 · BL-27 · BL-06 · BL-28 · BL-29 (M1b) | ⏳ | — |
 | 6 | BL-08 · BL-30 · BL-35 · BL-43 · BL-54 · BL-14 | ⏳ | — |
 | 7 | BL-15 · BL-55 · BL-36 · BL-37 part 2 · BL-56 · BL-57 · BL-58 | ⏳ | — |
@@ -29,10 +29,10 @@ Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a
 - Data-changing migration: expand SQL + `migration-harness/backfills/mN-*.mjs` + `backfill-mN-cli.mjs` + `npm run backfill:mN` + scenario `migration-harness/scenarios/mN-*.mjs` (idempotency is checked automatically) + `prisma migrate diff` shows no drift + record the rehearsal in MIGRATION-STRATEGY.
 - Two-school e2e fixture: `backend/test/pending/two-school-fixture.ts` (`createTwoSchools(prefix)`); the BL-18 scaffold is fully graduated.
 - **Do not** run `prettier --write` on `staff-console/**` or `backend/migration-harness/**` (it reformats whole files); backend `src/`/`test/` are fine. **Do not** commit `docs/UI-Screenshots/sample4` CSVs. Write multi-line edit scripts with a file (Git Bash heredocs mangle backslashes).
-- Last verified counts (2026-09-27): backend unit 719, e2e 296 (40 suites), harness 10 scenarios + 13 tests, console 543, parent app 110.
+- Last verified counts (2026-09-27): backend unit 732, e2e 306 (41 suites), harness 10 scenarios + 13 tests, console 544, parent app 110.
 - Full e2e on a scratch DB: create `schoolos_scratch_e2e` (drop first), `DATABASE_URL=<…/schoolos_scratch_e2e> npx prisma migrate deploy`, then the same `DATABASE_URL` for `npm run test:e2e`. Suites that call validated endpoints must install the global `ValidationPipe` (production does it in `main.ts`, `AppModule` does not).
 
-**Next step:** BL-07 + BL-63 — migration M9: archive instead of hard delete for students/staff (`archivedAt`, erasure only by SUPER_ADMIN/privacy role, audited, no automatic deletion) and the configurable retention policy (`RetentionPolicy`, all periods unset, review report only). Then BL-41 (controlled, audited export).
+**Next step:** BL-41 — controlled, audited export for school admins (students, guardians, enrolments, attendance, results, fees), limited to the caller's school, sensitive fields (`common/sensitive-fields.ts`) excluded unless explicitly requested and permitted. Then Wave 5 (BL-26 · BL-27 · BL-06 · BL-28 · BL-29/M1b).
 
 ## 1. Findings folded in (F1–F10)
 | # | Finding | Where handled |
@@ -53,7 +53,7 @@ Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a
 Hard gates: **BL-62 approved (✅ 2026-09-24) + BL-65 available (✅)** before any of BL-01, BL-02, BL-03, BL-20 (M2), BL-23, BL-61 executes; **BL-21 before BL-64**; **BL-60 (M1) before BL-29 (M1b)**; **BL-61 before BL-05**; **BL-40 (pagination) before new list screens**; **BL-34 before BL-43** (identifiers created once); **BL-66 before the first regeneration of docs**.
 
 ## 3. Schema / migration order (schema before application code)
-✅ = migration shipped (see §0 for commits); M9 in progress.
+✅ = migration shipped (see §0 for commits).
 Every data-changing migration uses **expand → backfill → contract** (contract one release later), an idempotent backfill script, a dry-run reconciliation report, and is rehearsed on the BL-65 harness first.
 | M | Change | Item | Backfill / ambiguity handling |
 |---|---|---|---|
@@ -66,7 +66,7 @@ Every data-changing migration uses **expand → backfill → contract** (contrac
 | M6 | `StudentParent.relationshipType` (from the existing free-text `relationship`), `primarySlot` 1–2 (unique per student; `isPrimary` already exists since `20260919090000`) | BL-04, BL-23 ✅ | rules G4/G5 of [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md): known texts mapped, others → `OTHER`; > 2 primaries → review. **No `schoolId` on the guardian identity** |
 | M7 | Add `StudentStatus.TRANSFERRED`; rename `PromotionDecision.TRANSFERRED_OUT`→`TRANSFERRED`; add `PROMOTED_WITH_CONDITIONS` | BL-61, BL-05 ✅ | **`LEFT` + matching `TRANSFERRED_OUT` promotion → `TRANSFERRED`; all other `LEFT` → manual review; never renamed blindly**; `LEFT` removed only when zero rows remain; `EnrollmentStatus` unchanged |
 | M8 | `TeachingAssignmentHistory` | BL-25 ✅ | from current section/timetable, start date flagged unknown |
-| M9 | `archivedAt`; `RetentionPolicy` (periods null) | BL-07, BL-63 | none |
+| M9 | `archivedAt`; `RetentionPolicy` (periods null) | BL-07, BL-63 ✅ | none |
 | M10 | Complaint fields + `ComplaintNote`, `ComplaintAttachment`; syllabus; grading scale; report-card source/snapshot/version; risk settings; promotion config | BL-30/26/27/06/28/05 (BL-05 part ✅: `PromotionPolicy`) | additive |
 | M11 | `UserPermission` grants | BL-32 ✅ | preserve current ACCOUNTS behaviour, then restrict |
 | M12 | one ACTIVE enrolment per student; one voucher per student/session/month | BL-53 ✅ | pre-check duplicates; raw-SQL partial unique index |

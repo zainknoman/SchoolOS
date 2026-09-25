@@ -7,6 +7,7 @@ import {
 } from '../common/pagination';
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { assertCreatable } from '../common/prisma-create-guard';
+import { assertArchivedForErasure } from '../common/archive';
 import { createStudentWithEnrollment } from './create-student-with-enrollment';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
@@ -148,17 +150,22 @@ export class StudentService {
   // active one used for display) so a withdrawn/graduated student stays visible to the school that
   // actually enrolled them, instead of disappearing from the roster once they leave.
   /** Paged/searchable (BL-40): `q` matches name or GR number. */
+  // BL-07: archived students are left out unless `archived` is true (then only archived ones).
   async list(
     actingUser: RequestUser,
     page: PageRequest = toPageRequest(),
+    archived = false,
   ): Promise<PagedResult<StudentAdminSummary>> {
-    let where: Prisma.StudentWhereInput | undefined;
+    let where: Prisma.StudentWhereInput = {
+      archivedAt: archived ? { not: null } : null,
+    };
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
       return PagedResult.of([], 0, page);
     }
     if (scope.campusWhere) {
       where = {
+        ...where,
         enrollments: {
           some: { section: { class: { campus: scope.campusWhere } } },
         },
@@ -168,7 +175,7 @@ export class StudentService {
     const filtered: Prisma.StudentWhereInput | undefined = page.q
       ? {
           AND: [
-            where ?? {},
+            where,
             {
               OR: [
                 { name: { contains: page.q, mode: 'insensitive' as const } },
@@ -227,11 +234,102 @@ export class StudentService {
     return this.toSummary(record);
   }
 
-  async delete(id: string, actingUserId: string): Promise<void> {
+  /**
+   * BL-07 (Q7): "deleting" a student archives it. The active enrolment (if any) is closed as
+   * WITHDRAWN and an ACTIVE student becomes WITHDRAWN, so rosters, attendance and fees stop
+   * including them; every record stays readable and `unarchive` brings the record back.
+   */
+  async archive(
+    id: string,
+    actingUserId: string,
+    reason?: string,
+  ): Promise<{ id: string; archivedAt: Date }> {
     const existing = await this.prisma.student.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Student not found');
     }
+    if (existing.archivedAt) {
+      throw new ConflictException('This student is already archived');
+    }
+    const now = new Date();
+    const note = reason?.trim() || null;
+    await this.prisma.$transaction(async (tx) => {
+      const active = await tx.enrollment.findFirst({
+        where: { studentId: id, status: 'ACTIVE' },
+      });
+      if (active) {
+        await tx.enrollment.update({
+          where: { id: active.id },
+          data: { status: 'WITHDRAWN', endDate: now },
+        });
+      }
+      await tx.student.update({
+        where: { id },
+        data: {
+          archivedAt: now,
+          archivedById: actingUserId,
+          archiveReason: note,
+          ...(existing.status === 'ACTIVE'
+            ? {
+                status: 'WITHDRAWN',
+                leavingDate: existing.leavingDate ?? now,
+                leavingReason: existing.leavingReason ?? note,
+              }
+            : {}),
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          userId: actingUserId,
+          action: 'student.archive',
+          entity: 'Student',
+          entityId: id,
+          metadata: JSON.stringify({
+            reason: note,
+            closedEnrollmentId: active?.id ?? null,
+          }),
+        },
+      });
+    });
+    return { id, archivedAt: now };
+  }
+
+  /** Brings an archived student back into the lists; it does not re-enrol them. */
+  async unarchive(id: string, actingUserId: string): Promise<void> {
+    const existing = await this.prisma.student.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Student not found');
+    }
+    if (!existing.archivedAt) {
+      throw new ConflictException('This student is not archived');
+    }
+    await this.prisma.$transaction([
+      this.prisma.student.update({
+        where: { id },
+        data: { archivedAt: null, archivedById: null, archiveReason: null },
+      }),
+      this.prisma.auditLog.create({
+        data: {
+          userId: actingUserId,
+          action: 'student.unarchive',
+          entity: 'Student',
+          entityId: id,
+        },
+      }),
+    ]);
+  }
+
+  /**
+   * BL-07: erasure — the only hard delete of a student, SUPER_ADMIN only (the privacy-administrator
+   * role maps to SUPER_ADMIN until RD-6 names one), archived records only, audited. Records that the
+   * database keeps for retention (attendance, vouchers, …) still block it (409).
+   */
+  async erase(id: string, actingUserId: string): Promise<void> {
+    const existing = await this.prisma.student.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Student not found');
+    }
+    assertArchivedForErasure(existing.archivedAt, 'student');
     try {
       await this.prisma.student.delete({ where: { id } });
     } catch (error) {
@@ -240,9 +338,10 @@ export class StudentService {
     await this.prisma.auditLog.create({
       data: {
         userId: actingUserId,
-        action: 'student.delete',
+        action: 'student.erase',
         entity: 'Student',
         entityId: id,
+        metadata: JSON.stringify({ archivedAt: existing.archivedAt }),
       },
     });
   }

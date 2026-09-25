@@ -24,9 +24,9 @@ Authenticated, role- and scope-checked access; parents limited to own children; 
 ## Gaps
 | Gap | Note |
 |---|---|
-| No encryption at application level for CNIC/B-Form/medical fields | Relies on database/disk encryption (deployment-defined) |
+| No encryption at application level for CNIC/B-Form/medical fields | Relies on database/disk encryption (deployment-defined); the columns are listed in one place so field-level encryption can be added later — [SENSITIVE-DATA](SENSITIVE-DATA.md) (BL-07) |
 | Plain-text PII in application logs | Password-reset links logged when SMTP unset (KG-4); other logs not reviewed; no redaction policy |
-| No retention/deletion policy; hard deletes | Q7, KG-17; graduates' data stays indefinitely; backups not defined |
+| Retention periods not yet approved | Delete = archive and erasure is SUPER_ADMIN-only (BL-07, 2026-09-27); every category exists in **Retention policy** with its period unset (BL-63) — graduates' data stays until periods are approved; backups not defined |
 | No consent/notice records | — |
 | No data export/erasure workflow | Not implemented |
 | Files on local disk | Backup/encryption/location unmanaged; not portable |
@@ -44,7 +44,7 @@ SchoolOS stores sensitive information about children and families in Pakistan (C
 | Secure password storage | IMPLEMENTED (argon2) | — |
 | Restricted access to sensitive fields (CNIC, B-Form, medical) | PARTIALLY IMPLEMENTED (role/scope only; no field-level restriction) | BL-41, BL-07 |
 | Backups | NOT IMPLEMENTED | BL-13 (RPO ≤ 24 h, RTO ≤ 4 h, ≥ 30 days) |
-| Retention/archive controls | NOT IMPLEMENTED — records are **retained**, archived not hard-deleted; **no automatic permanent deletion** until a retention policy is formally defined | BL-07 |
+| Retention/archive controls | IMPLEMENTED 2026-09-27 — archive instead of delete, SUPER_ADMIN erasure of archived records (audited), `RetentionPolicy` settings + review report (`/admin/retention-policy`); **no automatic permanent deletion** (a test asserts it) | BL-07, BL-63 |
 | Consent/notice mechanisms | NOT IMPLEMENTED | BL-56 |
 | Controlled exports | NOT IMPLEMENTED — authorised school admins only, audited | BL-41 |
 | Breach/incident procedures | NOT IMPLEMENTED — must be documented **before production** | BL-56 |

@@ -6,6 +6,7 @@ import {
 } from '../common/pagination';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -16,6 +17,11 @@ import { OrgScopeService } from '../common/org-scope.service';
 import { createStaffWithOptionalTeacher } from '../hiring/create-staff-with-optional-teacher';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { assertDeletable } from '../common/prisma-delete-guard';
+import {
+  archiveTeacherTx,
+  assertArchivedForErasure,
+  disableLoginTx,
+} from '../common/archive';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import type { RequestUser } from '../common/student-access.service';
@@ -58,10 +64,13 @@ export class StaffService {
     actingUser: RequestUser,
     employeeType?: EmployeeType,
     page: PageRequest = toPageRequest(),
+    archived = false,
   ): Promise<PagedResult<StaffSummary>> {
-    let where: Prisma.StaffWhereInput | undefined = employeeType
-      ? { employeeType }
-      : undefined;
+    // BL-07: archived staff are left out unless `archived` is true (then only archived ones).
+    let where: Prisma.StaffWhereInput = {
+      archivedAt: archived ? { not: null } : null,
+      ...(employeeType ? { employeeType } : {}),
+    };
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
       return PagedResult.of([], 0, page);
@@ -73,7 +82,7 @@ export class StaffService {
     const filtered: Prisma.StaffWhereInput | undefined = page.q
       ? {
           AND: [
-            where ?? {},
+            where,
             {
               OR: [
                 { name: { contains: page.q, mode: 'insensitive' as const } },
@@ -157,24 +166,103 @@ export class StaffService {
    * the Staff row would orphan a working login — those are refused and should be marked Terminated
    * or Resigned instead. Everyone else (support/admin staff) is deleted outright.
    */
-  async remove(id: string, actingUser: RequestUser): Promise<void> {
+  /**
+   * BL-07 (Q7): "deleting" a staff member archives them. A linked teacher is archived too (leaves
+   * class-teacher and timetable slots; teaching history is end-dated) and any login is disabled
+   * with its sessions revoked. Records stay readable; `erase` is the super-admin hard delete.
+   */
+  async archive(
+    id: string,
+    actingUser: RequestUser,
+    reason?: string,
+  ): Promise<{ id: string; archivedAt: Date }> {
     const staff = await this.getScopedStaff(id, actingUser);
-    if (staff.teacherId || staff.userId) {
-      throw new BadRequestException(
-        'This staff member has a login. Set their employment status to Terminated or Resigned instead of deleting.',
-      );
+    if (staff.archivedAt) {
+      throw new ConflictException('This staff member is already archived');
     }
+    const now = new Date();
+    const note = reason?.trim() || null;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.staff.update({
+        where: { id },
+        data: {
+          archivedAt: now,
+          archivedById: actingUser.id,
+          archiveReason: note,
+        },
+      });
+      if (staff.teacherId) await archiveTeacherTx(tx, staff.teacherId, now);
+      if (staff.userId) await disableLoginTx(tx, staff.userId, now);
+      await tx.auditLog.create({
+        data: {
+          userId: actingUser.id,
+          action: 'staff.archive',
+          entity: 'Staff',
+          entityId: id,
+          metadata: JSON.stringify({
+            reason: note,
+            teacherId: staff.teacherId,
+          }),
+        },
+      });
+    });
+    return { id, archivedAt: now };
+  }
+
+  /** Back into the lists. Logins stay disabled until re-enabled on purpose (account access). */
+  async unarchive(id: string, actingUser: RequestUser): Promise<void> {
+    const staff = await this.getScopedStaff(id, actingUser);
+    if (!staff.archivedAt) {
+      throw new ConflictException('This staff member is not archived');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.staff.update({
+        where: { id },
+        data: { archivedAt: null, archivedById: null, archiveReason: null },
+      });
+      if (staff.teacherId) {
+        await tx.teacher.update({
+          where: { id: staff.teacherId },
+          data: { archivedAt: null },
+        });
+      }
+      await tx.auditLog.create({
+        data: {
+          userId: actingUser.id,
+          action: 'staff.unarchive',
+          entity: 'Staff',
+          entityId: id,
+        },
+      });
+    });
+  }
+
+  /** BL-07: SUPER_ADMIN-only hard delete of an archived staff member (and their teacher + login). */
+  async erase(id: string, actingUser: RequestUser): Promise<void> {
+    const staff = await this.getScopedStaff(id, actingUser);
+    assertArchivedForErasure(staff.archivedAt, 'staff member');
     try {
-      await this.prisma.staff.delete({ where: { id } });
+      await this.prisma.$transaction(async (tx) => {
+        await tx.staff.delete({ where: { id } });
+        if (staff.teacherId) {
+          const teacher = await tx.teacher.delete({
+            where: { id: staff.teacherId },
+          });
+          await tx.user.delete({ where: { id: teacher.userId } });
+        } else if (staff.userId) {
+          await tx.user.delete({ where: { id: staff.userId } });
+        }
+      });
     } catch (error) {
       assertDeletable(error, 'staff member');
     }
     await this.prisma.auditLog.create({
       data: {
         userId: actingUser.id,
-        action: 'staff.delete',
+        action: 'staff.erase',
         entity: 'Staff',
         entityId: id,
+        metadata: JSON.stringify({ archivedAt: staff.archivedAt }),
       },
     });
   }

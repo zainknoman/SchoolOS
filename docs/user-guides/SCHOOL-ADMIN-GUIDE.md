@@ -47,4 +47,4 @@ A teacher's staff profile (**People → Staff → the teacher → Teaching Histo
 **School Overview** and **Academics & Staff** summarise the school. They are read-only dashboards.
 
 ## Cautions
-Deleting a student or staff record is permanent (there is no undo or archive); the system blocks it only if other records still refer to them. Subjects cannot be added in the product. You cannot disable or unlock a user account from the UI.
+**Archive** (the old *Delete*) takes a student or staff member out of the lists without losing anything: a student's current enrolment is ended (withdrawn); a teacher is taken off their classes and timetable and can no longer sign in. **Show archived** lists them and **Restore** brings them back (a restored student is not re-enrolled; a restored teacher's login stays disabled until re-enabled). Only a super admin can erase a record permanently. Subjects cannot be added in the product. You cannot disable or unlock a user account from the UI.

@@ -7,6 +7,7 @@ import {
   Req,
   Delete,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { StaffProfileService } from './staff-profile.service';
@@ -16,6 +17,7 @@ import { UpdateStaffEmergencyContactDto } from './dto/update-staff-emergency-con
 import { CreateStaffExperienceDto } from './dto/create-staff-experience.dto';
 import { UpdateStaffExperienceDto } from './dto/update-staff-experience.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RecordScopeGuard, ScopedRecord } from '../common/record-scope.guard';
 import type { RequestUser } from '../common/student-access.service';
 import { CreateStaffDocumentDto } from './dto/create-staff-document.dto';
 import { VerifyStaffDocumentDto } from './dto/verify-staff-document.dto';
@@ -26,6 +28,8 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('api/v1/admin/staff/:staffId')
 @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+@UseGuards(RecordScopeGuard)
+@ScopedRecord('staff', 'staffId')
 export class StaffProfileController {
   constructor(private readonly service: StaffProfileService) {}
 

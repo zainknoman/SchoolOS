@@ -8,7 +8,9 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
+import { RecordScopeGuard, ScopedRecord } from '../common/record-scope.guard';
 import type { Request } from 'express';
 import { StudentProfileService } from './student-profile.service';
 import { PromotionsService } from '../promotions/promotions.service';
@@ -29,6 +31,8 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('api/v1/admin/students/:studentId')
 @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+@UseGuards(RecordScopeGuard)
+@ScopedRecord('student', 'studentId')
 export class StudentProfileController {
   constructor(
     private readonly service: StudentProfileService,

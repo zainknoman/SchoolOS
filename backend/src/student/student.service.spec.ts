@@ -1,5 +1,9 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { StudentService } from './student.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -429,7 +433,7 @@ describe('StudentService', () => {
     ]);
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
     expect(prisma.student.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: undefined }),
+      expect.objectContaining({ where: { archivedAt: null } }), // BL-07: archived left out
     );
   });
 
@@ -460,6 +464,7 @@ describe('StudentService', () => {
     expect(prisma.student.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          archivedAt: null,
           enrollments: {
             some: { section: { class: { campus: { schoolId: 's1' } } } },
           },
@@ -507,33 +512,106 @@ describe('StudentService', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
-  it('deletes a student and audit-logs it', async () => {
-    prisma.student.findUnique.mockResolvedValue({ id: 's1' });
-    prisma.student.delete.mockResolvedValue({ id: 's1' });
+  describe('BL-07 archive / erase', () => {
+    beforeEach(() => {
+      Object.assign(tx, {
+        enrollment: {
+          ...(tx.enrollment as object),
+          findFirst: jest.fn().mockResolvedValue({ id: 'e1' }),
+          update: jest.fn(),
+        },
+        student: { ...(tx.student as object), update: jest.fn() },
+      });
+    });
 
-    await service.delete('s1', 'admin-1');
-
-    expect(prisma.auditLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({
+    it('archives: closes the active enrolment as WITHDRAWN, marks an ACTIVE student WITHDRAWN, audits', async () => {
+      prisma.student.findUnique.mockResolvedValue({
+        id: 's1',
+        status: 'ACTIVE',
+        archivedAt: null,
+        leavingDate: null,
+        leavingReason: null,
+      });
+      await service.archive('s1', 'admin-1', ' Duplicate record ');
+      const t = tx as unknown as {
+        enrollment: { update: jest.Mock };
+        student: { update: jest.Mock };
+        auditLog: { create: jest.Mock };
+      };
+      expect(t.enrollment.update).toHaveBeenCalledWith({
+        where: { id: 'e1' },
+        data: expect.objectContaining({ status: 'WITHDRAWN' }),
+      });
+      expect(t.student.update).toHaveBeenCalledWith({
+        where: { id: 's1' },
         data: expect.objectContaining({
-          action: 'student.delete',
+          archivedById: 'admin-1',
+          archiveReason: 'Duplicate record',
+          status: 'WITHDRAWN',
+        }),
+      });
+      expect(t.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'student.archive',
           entityId: 's1',
         }),
-      }),
-    );
-  });
+      });
+      expect(prisma.student.delete).not.toHaveBeenCalled();
+    });
 
-  it('translates a foreign-key violation on delete into a BadRequestException (e.g. real Attendance/FeeVoucher/LeaveRequest history exists)', async () => {
-    prisma.student.findUnique.mockResolvedValue({ id: 's1' });
-    prisma.student.delete.mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError(
-        'Foreign key constraint failed',
-        { code: 'P2003', clientVersion: 'test' },
-      ),
-    );
+    it('refuses to archive twice (409) and 404s a missing student', async () => {
+      prisma.student.findUnique.mockResolvedValueOnce({
+        id: 's1',
+        archivedAt: new Date(),
+      });
+      await expect(service.archive('s1', 'admin-1')).rejects.toThrow(
+        ConflictException,
+      );
+      prisma.student.findUnique.mockResolvedValueOnce(null);
+      await expect(service.archive('x', 'admin-1')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
 
-    await expect(service.delete('s1', 'admin-1')).rejects.toThrow(
-      BadRequestException,
-    );
+    it('erases only an archived student, audited; retained records still block it', async () => {
+      prisma.student.findUnique.mockResolvedValueOnce({
+        id: 's1',
+        archivedAt: null,
+      });
+      await expect(service.erase('s1', 'super-1')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(prisma.student.delete).not.toHaveBeenCalled();
+
+      prisma.student.findUnique.mockResolvedValueOnce({
+        id: 's1',
+        archivedAt: new Date(),
+      });
+      prisma.student.delete.mockResolvedValueOnce({ id: 's1' });
+      await service.erase('s1', 'super-1');
+      expect(prisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'student.erase',
+          entityId: 's1',
+        }),
+      });
+
+      prisma.student.findUnique.mockResolvedValueOnce({
+        id: 's1',
+        archivedAt: new Date(),
+      });
+      prisma.student.delete.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError(
+          'Foreign key constraint failed',
+          {
+            code: 'P2003',
+            clientVersion: 'test',
+          },
+        ),
+      );
+      await expect(service.erase('s1', 'super-1')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 });

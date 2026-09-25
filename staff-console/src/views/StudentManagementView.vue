@@ -48,14 +48,20 @@ const editName = ref('');
 const PAGE_SIZE = 25;
 const studentsTotal = ref(0);
 const pageQuery = ref({ page: 1, q: '' });
+// BL-07: archived students are hidden; this toggle lists only them (with a Restore action).
+const showArchived = ref(false);
 
 async function fetchStudents() {
   if (!auth.accessToken) return;
-  const page = await api.listAdminStudentsPage(auth.accessToken, {
-    page: pageQuery.value.page,
-    limit: PAGE_SIZE,
-    q: pageQuery.value.q || undefined,
-  });
+  const page = await api.listAdminStudentsPage(
+    auth.accessToken,
+    {
+      page: pageQuery.value.page,
+      limit: PAGE_SIZE,
+      q: pageQuery.value.q || undefined,
+    },
+    showArchived.value,
+  );
   students.value = page.items;
   studentsTotal.value = page.total;
 }
@@ -162,14 +168,44 @@ async function onSaveEdit(id: string) {
 
 async function onDelete(id: string) {
   if (!auth.accessToken) return;
-  if (!(await confirm({ title: 'Delete this student?', message: 'This cannot be undone.', danger: true }))) return;
+  if (
+    !(await confirm({
+      title: 'Archive this student?',
+      message:
+        'Their current enrolment is ended (withdrawn) and they leave the student list. All records are kept; you can restore them from "Show archived".',
+      danger: true,
+    }))
+  )
+    return;
   errorMessage.value = null;
   try {
     await api.deleteStudent(auth.accessToken, id);
     await load();
-    toast.success('Student deleted.');
+    toast.success('Student archived.');
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : 'Could not delete this student.';
+    errorMessage.value = err instanceof Error ? err.message : 'Could not archive this student.';
+  }
+}
+
+async function onToggleArchived() {
+  showArchived.value = !showArchived.value;
+  pageQuery.value = { ...pageQuery.value, page: 1 };
+  try {
+    await fetchStudents();
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load students.';
+  }
+}
+
+async function onRestore(id: string) {
+  if (!auth.accessToken) return;
+  errorMessage.value = null;
+  try {
+    await api.unarchiveRecord(auth.accessToken, 'students', id);
+    await fetchStudents();
+    toast.success('Student restored (not re-enrolled).');
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not restore this student.';
   }
 }
 </script>
@@ -177,6 +213,9 @@ async function onDelete(id: string) {
 <template>
   <ListPageCard icon="users" title="Students">
     <template #actions>
+      <Button variant="secondary" data-testid="toggle-archived" @click="onToggleArchived">
+        {{ showArchived ? 'Show active' : 'Show archived' }}
+      </Button>
       <Button data-testid="open-add-form" @click="showAddForm = true">+ Add New</Button>
     </template>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
@@ -221,10 +260,15 @@ async function onDelete(id: string) {
         </template>
         <template v-else>
           <Button :data-testid="`view-profile-${item.id}`" :to="`/admin/students/${item.id}`">View Profile</Button>
-          <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
-          <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
-            Delete
-          </Button>
+          <template v-if="showArchived">
+            <Button variant="secondary" :data-testid="`restore-${item.id}`" @click="onRestore(item.id)">Restore</Button>
+          </template>
+          <template v-else>
+            <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
+            <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">
+              Archive
+            </Button>
+          </template>
         </template>
       </template>
     </EntityTable>

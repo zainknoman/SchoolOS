@@ -1,5 +1,5 @@
 import {
-  BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -61,7 +61,7 @@ describe('StaffService — update / remove', () => {
     await expect(
       service.update('s1', { name: 'X' }, schoolAdmin),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(service.remove('s1', schoolAdmin)).rejects.toBeInstanceOf(
+    await expect(service.archive('s1', schoolAdmin)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
     expect(prisma.staff.update).not.toHaveBeenCalled();
@@ -104,20 +104,78 @@ describe('StaffService — update / remove', () => {
     expect(prisma.auditLog.create).toHaveBeenCalled();
   });
 
-  it('refuses to delete a staff member who has a teacher login', async () => {
-    prisma.staff.findUnique.mockResolvedValue(
-      staffRow({ teacherId: 't1', userId: 'u9' }),
-    );
-    await expect(service.remove('s1', superAdmin)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-    expect(prisma.staff.delete).not.toHaveBeenCalled();
-  });
+  describe('BL-07 archive / erase', () => {
+    let tx: Record<string, Record<string, jest.Mock>>;
+    beforeEach(() => {
+      tx = {
+        staff: { update: jest.fn(), delete: jest.fn() },
+        teacher: {
+          update: jest.fn().mockResolvedValue({ userId: 'u9' }),
+          delete: jest.fn().mockResolvedValue({ userId: 'u9' }),
+        },
+        section: { updateMany: jest.fn() },
+        timetable: { updateMany: jest.fn() },
+        user: { update: jest.fn(), delete: jest.fn() },
+        refreshToken: { updateMany: jest.fn() },
+        auditLog: { create: jest.fn() },
+      };
+      (prisma as unknown as Record<string, unknown>).$transaction = jest.fn(
+        (cb: (t: unknown) => unknown) => cb(tx),
+      );
+    });
 
-  it('deletes a staff member with no login', async () => {
-    prisma.staff.findUnique.mockResolvedValue(staffRow());
-    await service.remove('s1', superAdmin);
-    expect(prisma.staff.delete).toHaveBeenCalledWith({ where: { id: 's1' } });
-    expect(prisma.auditLog.create).toHaveBeenCalled();
+    it('archives a staff member with a teacher login: teacher off every slot, login disabled, nothing deleted', async () => {
+      prisma.staff.findUnique.mockResolvedValue(
+        staffRow({ teacherId: 't1', userId: null, archivedAt: null }),
+      );
+      await service.archive('s1', superAdmin, 'Resigned');
+      expect(tx.staff.update).toHaveBeenCalledWith({
+        where: { id: 's1' },
+        data: expect.objectContaining({ archiveReason: 'Resigned' }),
+      });
+      expect(tx.section.updateMany).toHaveBeenCalledWith({
+        where: { classTeacherId: 't1' },
+        data: { classTeacherId: null },
+      });
+      expect(tx.timetable.updateMany).toHaveBeenCalledWith({
+        where: { teacherId: 't1' },
+        data: { teacherId: null },
+      });
+      expect(tx.user.update).toHaveBeenCalledWith({
+        where: { id: 'u9' },
+        data: { isLocked: true, tokenVersion: { increment: 1 } },
+      });
+      expect(tx.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action: 'staff.archive' }),
+      });
+      expect(prisma.staff.delete).not.toHaveBeenCalled();
+      expect(tx.staff.delete).not.toHaveBeenCalled();
+    });
+
+    it('refuses to archive twice, and to erase a record that is not archived', async () => {
+      prisma.staff.findUnique.mockResolvedValue(
+        staffRow({ archivedAt: new Date() }),
+      );
+      await expect(service.archive('s1', superAdmin)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      prisma.staff.findUnique.mockResolvedValue(staffRow({ archivedAt: null }));
+      await expect(service.erase('s1', superAdmin)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+    });
+
+    it('erases an archived staff member with their teacher and login, audited', async () => {
+      prisma.staff.findUnique.mockResolvedValue(
+        staffRow({ teacherId: 't1', archivedAt: new Date() }),
+      );
+      await service.erase('s1', superAdmin);
+      expect(tx.staff.delete).toHaveBeenCalledWith({ where: { id: 's1' } });
+      expect(tx.teacher.delete).toHaveBeenCalledWith({ where: { id: 't1' } });
+      expect(tx.user.delete).toHaveBeenCalledWith({ where: { id: 'u9' } });
+      expect(prisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action: 'staff.erase' }),
+      });
+    });
   });
 });

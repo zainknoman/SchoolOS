@@ -208,7 +208,7 @@ describe('People CRUD (e2e)', () => {
       .expect(400);
   });
 
-  it('deleting a Teacher who has marked attendance is blocked with a 400, real DB constraint', async () => {
+  it('BL-07: deleting a Teacher who has marked attendance archives them; the attendance record is kept', async () => {
     const adminToken = await loginAs('pc-school-admin@schoolos.edu.pk');
 
     const parentRes = await request(app.getHttpServer())
@@ -249,7 +249,14 @@ describe('People CRUD (e2e)', () => {
     await request(app.getHttpServer())
       .delete(`/api/v1/admin/teachers/${ids.teacher}`)
       .set('Authorization', `Bearer ${adminToken}`)
-      .expect(400);
+      .expect(200);
+    const teacher = await prisma.teacher.findUniqueOrThrow({
+      where: { id: ids.teacher },
+    });
+    expect(teacher.archivedAt).not.toBeNull();
+    expect(
+      await prisma.attendance.count({ where: { markedById: ids.teacher } }),
+    ).toBe(1);
 
     await prisma.attendance.deleteMany({ where: { markedById: ids.teacher } });
   });

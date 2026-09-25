@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -8,6 +9,7 @@ import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
+import { archiveTeacherTx, assertArchivedForErasure } from '../common/archive';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
@@ -88,9 +90,11 @@ export class TeacherService {
     if (scope.denied) {
       return [];
     }
-    const where: Prisma.TeacherWhereInput | undefined = scope.campusWhere
-      ? { campus: scope.campusWhere }
-      : undefined;
+    // BL-07: archived teachers are no longer offered for class-teacher/timetable assignment.
+    const where: Prisma.TeacherWhereInput = {
+      archivedAt: null,
+      ...(scope.campusWhere ? { campus: scope.campusWhere } : {}),
+    };
     const records = await this.prisma.teacher.findMany({
       where,
       include: WITH_USER,
@@ -135,13 +139,51 @@ export class TeacherService {
     return this.toSummary(record);
   }
 
-  async delete(id: string, actingUserId: string): Promise<void> {
+  /**
+   * BL-07 (Q7): "deleting" a teacher archives them (and their staff record, if any): out of the
+   * teacher list, off every class-teacher/timetable slot, login disabled. `erase` is the
+   * super-admin hard delete.
+   */
+  async archive(id: string, actingUserId: string): Promise<void> {
+    const existing = await this.prisma.teacher.findUnique({
+      where: { id },
+      include: { staff: { select: { id: true } } },
+    });
+    if (!existing) {
+      throw new NotFoundException('Teacher not found');
+    }
+    if (existing.archivedAt) {
+      throw new ConflictException('This teacher is already archived');
+    }
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await archiveTeacherTx(tx, id, now);
+      if (existing.staff) {
+        await tx.staff.update({
+          where: { id: existing.staff.id },
+          data: { archivedAt: now, archivedById: actingUserId },
+        });
+      }
+      await tx.auditLog.create({
+        data: {
+          userId: actingUserId,
+          action: 'teacher.archive',
+          entity: 'Teacher',
+          entityId: id,
+        },
+      });
+    });
+  }
+
+  async erase(id: string, actingUserId: string): Promise<void> {
     const existing = await this.prisma.teacher.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Teacher not found');
     }
+    assertArchivedForErasure(existing.archivedAt, 'teacher');
     try {
       await this.prisma.$transaction(async (tx) => {
+        await tx.staff.deleteMany({ where: { teacherId: id } });
         await tx.teacher.delete({ where: { id } });
         await tx.user.delete({ where: { id: existing.userId } });
       });
@@ -151,9 +193,10 @@ export class TeacherService {
     await this.prisma.auditLog.create({
       data: {
         userId: actingUserId,
-        action: 'teacher.delete',
+        action: 'teacher.erase',
         entity: 'Teacher',
         entityId: id,
+        metadata: JSON.stringify({ archivedAt: existing.archivedAt }),
       },
     });
   }

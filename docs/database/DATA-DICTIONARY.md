@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **60 models, 18 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **61 models, 19 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -23,6 +23,7 @@
 - **DocumentType**: BIRTH_CERTIFICATE, B_FORM, LEAVING_CERTIFICATE, TRANSFER_CERTIFICATE, PREVIOUS_REPORT_CARD, PHOTOGRAPH, MEDICAL_CERTIFICATE, CNIC, DEGREE_CERTIFICATE, CV, OTHER
 - **DocumentVerificationStatus**: PENDING, VERIFIED, REJECTED
 - **FeeStructureStatus**: DRAFT, ACTIVE, LOCKED, ARCHIVED
+- **RetentionCategory**: STUDENT, GUARDIAN, STAFF, ATTENDANCE, ACADEMIC_RESULTS, FEES_FINANCIAL, COMPLAINTS, AUDIT_LOGS, AUTH_SECURITY_LOGS, UPLOADED_DOCUMENTS, BACKUPS
 
 ## Identity
 
@@ -47,6 +48,9 @@
 | failedLoginCount | Int | @default(0) |
 | notificationChannel | NotificationChannel (enum) | @default(PUSH) |
 | digestEnabled | Boolean | @default(false) |
+| studentsArchived | Student[] (relation) | @relation("StudentArchivedBy") |
+| staffArchived | Staff[] (relation) | @relation("StaffArchivedBy") |
+| retentionPoliciesUpdated | RetentionPolicy[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 | parentProfile | ParentProfile? (relation) |  |
@@ -153,6 +157,17 @@ Block attributes: `@@index([userId])` · `@@index([entity, entityId])`
 | createdAt | DateTime | @default(now()) |
 
 Block attributes: `@@unique([migration, category, entity, entityId])` · `@@index([status])`
+
+### RetentionPolicy
+
+| Field | Type | Attributes |
+|---|---|---|
+| category | RetentionCategory (enum) | @id |
+| periodMonths | Int? |  |
+| legalBasis | String? |  |
+| updatedById | String? |  |
+| updatedBy | User? (relation) | @relation(fields: [updatedById], references: [id], onDelete: SetNull) |
+| updatedAt | DateTime | @default(now()) @updatedAt |
 
 ## Organization
 
@@ -396,10 +411,14 @@ Block attributes: `@@index([campusId])` · `@@index([schoolId])` · `@@index([st
 | marks | Mark[] (relation) |  |
 | application | Application? (relation) |  |
 | promotions | StudentPromotion[] (relation) |  |
+| archivedAt | DateTime? |  |
+| archivedById | String? |  |
+| archivedBy | User? (relation) | @relation("StudentArchivedBy", fields: [archivedById], references: [id], onDelete: SetNull) |
+| archiveReason | String? |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([status])`
+Block attributes: `@@index([status])` · `@@index([archivedAt])`
 
 ### ParentProfile
 
@@ -568,10 +587,11 @@ Block attributes: `@@index([studentId])`
 | attendanceMarks | Attendance[] (relation) | @relation("AttendanceMarkedBy") |
 | staff | Staff? (relation) |  |
 | teachingAssignments | TeachingAssignment[] (relation) |  |
+| archivedAt | DateTime? |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([campusId])`
+Block attributes: `@@index([campusId])` · `@@index([archivedAt])`
 
 ### TeachingAssignment
 
@@ -640,10 +660,14 @@ Block attributes: `@@index([teacherId])` · `@@index([sectionId])` · `@@index([
 | experience | StaffExperience[] (relation) |  |
 | documents | StaffDocument[] (relation) |  |
 | hiringApplication | HiringApplication? (relation) |  |
+| archivedAt | DateTime? |  |
+| archivedById | String? |  |
+| archivedBy | User? (relation) | @relation("StaffArchivedBy", fields: [archivedById], references: [id], onDelete: SetNull) |
+| archiveReason | String? |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([campusId])` · `@@index([employeeType])`
+Block attributes: `@@index([campusId])` · `@@index([employeeType])` · `@@index([archivedAt])`
 
 ### StaffEmergencyContact
 

@@ -2167,8 +2167,14 @@ export const api = {
     }
   },
 
-  async listAdminStudentsPage(accessToken: string, params: PageParams): Promise<Page<StudentAdminSummary>> {
-    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students?${pageQuery(params)}`, {
+  /** BL-07: `archived` lists only archived students (default: only active ones). */
+  async listAdminStudentsPage(
+    accessToken: string,
+    params: PageParams,
+    archived = false,
+  ): Promise<Page<StudentAdminSummary>> {
+    const suffix = archived ? '&archived=true' : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/students?${pageQuery(params)}${suffix}`, {
       headers: authHeaders(accessToken),
     });
     return asPage(res);
@@ -2213,6 +2219,18 @@ export const api = {
     }
   },
 
+  /** BL-07: brings an archived student/staff member back into the lists. */
+  async unarchiveRecord(accessToken: string, kind: 'students' | 'staff', id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/${kind}/${id}/unarchive`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  /** BL-07: archives (the API never hard-deletes a student). */
   async deleteStudent(accessToken: string, id: string): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/students/${id}`, {
       method: 'DELETE',
@@ -2352,8 +2370,11 @@ export const api = {
     return asJson(res);
   },
 
-  async listAdminStaff(accessToken: string, employeeType?: string): Promise<StaffAdminSummary[]> {
-    const suffix = employeeType ? `?employeeType=${encodeURIComponent(employeeType)}` : '';
+  async listAdminStaff(accessToken: string, employeeType?: string, archived = false): Promise<StaffAdminSummary[]> {
+    const qs = new URLSearchParams();
+    if (employeeType) qs.set('employeeType', employeeType);
+    if (archived) qs.set('archived', 'true');
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
     const res = await fetch(`${API_BASE_URL}/api/v1/admin/staff${suffix}`, {
       headers: authHeaders(accessToken),
     });

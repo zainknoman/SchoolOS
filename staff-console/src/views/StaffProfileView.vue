@@ -550,8 +550,9 @@ async function onDeleteLogin() {
   if (!auth.accessToken || !teacherId) return;
   if (
     !(await confirm({
-      title: 'Delete this teacher login?',
-      message: 'This removes their staff-console access. The staff record itself is not deleted.',
+      title: 'Archive this teacher?',
+      message:
+        'Removes them from classes and the timetable, disables their login and archives this staff record. Nothing is deleted; it can be restored from the staff list.',
       danger: true,
     }))
   ) {
@@ -561,9 +562,9 @@ async function onDeleteLogin() {
   try {
     await api.deleteTeacher(auth.accessToken, teacherId);
     await load();
-    toast.success('Login deleted.');
+    toast.success('Teacher archived.');
   } catch (err) {
-    loginErrorMessage.value = err instanceof Error ? err.message : 'Could not delete this login.';
+    loginErrorMessage.value = err instanceof Error ? err.message : 'Could not archive this teacher.';
   }
 }
 </script>
@@ -723,7 +724,7 @@ async function onDeleteLogin() {
               <Button data-testid="login-reset-password" :disabled="isSavingLogin || !newLoginPassword" @click="onResetLoginPassword">
                 Reset password
               </Button>
-              <Button variant="secondary" data-testid="login-delete" @click="onDeleteLogin">Delete teacher login</Button>
+              <Button variant="secondary" data-testid="login-delete" @click="onDeleteLogin">Archive teacher</Button>
             </div>
           </ProfileSectionCard>
         </template>

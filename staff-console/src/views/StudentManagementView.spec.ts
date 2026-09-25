@@ -35,6 +35,7 @@ vi.mock('../lib/api', () => ({
     createStudent: vi.fn(),
     updateStudent: vi.fn(),
     deleteStudent: vi.fn(),
+    unarchiveRecord: vi.fn(),
   },
 }));
 vi.mock('../lib/useConfirm', () => ({
@@ -168,6 +169,21 @@ describe('StudentManagementView', () => {
     expect(api.updateStudent).toHaveBeenCalledWith('token-1', 's1', { grNumber: 'GR-1001', name: 'Renamed Student' });
   });
 
+  it('BL-07: "Show archived" lists archived students with a Restore action', async () => {
+    vi.mocked(api.unarchiveRecord).mockResolvedValue(undefined);
+    const wrapper = await mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="toggle-archived"]').trigger('click');
+    await flushPromises();
+    expect(api.listAdminStudentsPage).toHaveBeenLastCalledWith('token-1', { page: 1, limit: 25, q: undefined }, true);
+    expect(wrapper.find('[data-testid="delete-s1"]').exists()).toBe(false);
+
+    await wrapper.find('[data-testid="restore-s1"]').trigger('click');
+    await flushPromises();
+    expect(api.unarchiveRecord).toHaveBeenCalledWith('token-1', 'students', 's1');
+  });
+
   it('deletes a student after confirmation, and does nothing if the confirmation is declined', async () => {
     vi.mocked(api.deleteStudent).mockResolvedValue(undefined);
     const confirmFn = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
@@ -184,8 +200,8 @@ describe('StudentManagementView', () => {
     await flushPromises();
     expect(api.deleteStudent).toHaveBeenCalledWith('token-1', 's1');
     expect(confirmFn).toHaveBeenCalledWith({
-      title: 'Delete this student?',
-      message: 'This cannot be undone.',
+      title: 'Archive this student?',
+      message: expect.stringContaining('All records are kept'),
       danger: true,
     });
   });
@@ -207,12 +223,12 @@ describe('StudentManagementView', () => {
     try {
       const wrapper = await mountView();
       await flushPromises();
-      expect(api.listAdminStudentsPage).toHaveBeenCalledWith('token-1', { page: 1, limit: 25, q: undefined });
+      expect(api.listAdminStudentsPage).toHaveBeenCalledWith('token-1', { page: 1, limit: 25, q: undefined }, false);
 
       await wrapper.find('[data-testid="entity-search"]').setValue('ali');
       vi.advanceTimersByTime(350);
       await flushPromises();
-      expect(api.listAdminStudentsPage).toHaveBeenLastCalledWith('token-1', { page: 1, limit: 25, q: 'ali' });
+      expect(api.listAdminStudentsPage).toHaveBeenLastCalledWith('token-1', { page: 1, limit: 25, q: 'ali' }, false);
     } finally {
       vi.useRealTimers();
     }

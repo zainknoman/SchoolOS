@@ -63,7 +63,7 @@ describe('StaffManagementView', () => {
     await wrapper.find('[data-testid="filter-employee-type"]').setValue('GUARD');
     await flushPromises();
 
-    expect(api.listAdminStaff).toHaveBeenCalledWith('token-1', 'GUARD');
+    expect(api.listAdminStaff).toHaveBeenCalledWith('token-1', 'GUARD', false);
   });
 
   it('opens an Add New modal and creates a non-teacher staff member with no login fields', async () => {

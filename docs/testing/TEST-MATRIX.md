@@ -52,9 +52,9 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 
 | Suite | Files | Test blocks |
 |---|---|---|
-| Backend unit (`backend/src/**/*.spec.ts`) | 91 | 671 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 40 | 293 |
-| Staff console (`staff-console/src/**/*.spec.ts`) | 76 | 519 |
+| Backend unit (`backend/src/**/*.spec.ts`) | 94 | 684 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 41 | 303 |
+| Staff console (`staff-console/src/**/*.spec.ts`) | 76 | 520 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 30 | — |
 
 | Backend e2e spec | Test blocks |
@@ -62,6 +62,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `account-access.e2e-spec.ts` | 16 |
 | `admissions.e2e-spec.ts` | 7 |
 | `app.e2e-spec.ts` | 1 |
+| `archive-retention.e2e-spec.ts` | 10 |
 | `attendance-actor.e2e-spec.ts` | 5 |
 | `auth-password-reset.e2e-spec.ts` | 4 |
 | `auth.e2e-spec.ts` | 8 |

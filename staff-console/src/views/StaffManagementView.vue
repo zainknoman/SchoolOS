@@ -19,13 +19,15 @@ const staff = ref<StaffAdminSummary[]>([]);
 const campuses = ref<CampusSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 const selectedEmployeeType = ref('');
+// BL-07: archived staff are hidden; this toggle lists only them (with a Restore action).
+const showArchived = ref(false);
 
 async function load() {
   if (!auth.accessToken) return;
   errorMessage.value = null;
   try {
     [staff.value, campuses.value] = await Promise.all([
-      api.listAdminStaff(auth.accessToken, selectedEmployeeType.value || undefined),
+      api.listAdminStaff(auth.accessToken, selectedEmployeeType.value || undefined, showArchived.value),
       api.listCampuses(auth.accessToken),
     ]);
   } catch (err) {
@@ -64,14 +66,39 @@ async function onSaveEdit(id: string) {
 
 async function onDelete(id: string) {
   if (!auth.accessToken) return;
-  if (!(await confirm({ title: 'Delete this staff member?', message: 'This cannot be undone.', danger: true }))) return;
+  if (
+    !(await confirm({
+      title: 'Archive this staff member?',
+      message:
+        'They leave the staff list; a teacher is removed from classes and the timetable and their login is disabled. All records are kept; you can restore them from "Show archived".',
+      danger: true,
+    }))
+  )
+    return;
   errorMessage.value = null;
   try {
     await api.deleteStaff(auth.accessToken, id);
     await load();
-    toast.success('Staff member deleted.');
+    toast.success('Staff member archived.');
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : 'Could not delete this staff member.';
+    errorMessage.value = err instanceof Error ? err.message : 'Could not archive this staff member.';
+  }
+}
+
+async function onToggleArchived() {
+  showArchived.value = !showArchived.value;
+  await load();
+}
+
+async function onRestore(id: string) {
+  if (!auth.accessToken) return;
+  errorMessage.value = null;
+  try {
+    await api.unarchiveRecord(auth.accessToken, 'staff', id);
+    await load();
+    toast.success('Staff member restored. Re-enable their login separately if needed.');
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not restore this staff member.';
   }
 }
 
@@ -149,6 +176,9 @@ async function onAdd() {
 <template>
   <ListPageCard icon="briefcase" title="Staff">
     <template #actions>
+      <Button variant="secondary" data-testid="toggle-archived" @click="onToggleArchived">
+        {{ showArchived ? 'Show active' : 'Show archived' }}
+      </Button>
       <Button data-testid="open-add-form" @click="openAddForm">+ Add New</Button>
     </template>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
@@ -200,7 +230,8 @@ async function onAdd() {
         <template v-else>
           <Button :data-testid="`view-profile-${item.id}`" :to="`/admin/staff/${item.id}`">View Profile</Button>
           <Button :data-testid="`edit-${item.id}`" @click="startEdit(item)">Edit</Button>
-          <Button variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">Delete</Button>
+          <Button v-if="showArchived" variant="secondary" :data-testid="`restore-${item.id}`" @click="onRestore(item.id)">Restore</Button>
+          <Button v-else variant="secondary" :data-testid="`delete-${item.id}`" @click="onDelete(item.id)">Archive</Button>
         </template>
       </template>
     </EntityTable>

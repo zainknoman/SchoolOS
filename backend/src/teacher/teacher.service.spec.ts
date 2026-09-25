@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -16,8 +17,13 @@ jest.mock('argon2', () => ({
 describe('TeacherService', () => {
   let service: TeacherService;
   let tx: {
-    user: { create: jest.Mock; delete: jest.Mock };
-    teacher: { create: jest.Mock; delete: jest.Mock };
+    user: { create: jest.Mock; delete: jest.Mock; update: jest.Mock };
+    teacher: { create: jest.Mock; delete: jest.Mock; update: jest.Mock };
+    staff: { deleteMany: jest.Mock; update: jest.Mock };
+    section: { updateMany: jest.Mock };
+    timetable: { updateMany: jest.Mock };
+    refreshToken: { updateMany: jest.Mock };
+    auditLog: { create: jest.Mock };
   };
   let prisma: {
     teacher: {
@@ -34,8 +40,13 @@ describe('TeacherService', () => {
 
   beforeEach(async () => {
     tx = {
-      user: { create: jest.fn(), delete: jest.fn() },
-      teacher: { create: jest.fn(), delete: jest.fn() },
+      user: { create: jest.fn(), delete: jest.fn(), update: jest.fn() },
+      teacher: { create: jest.fn(), delete: jest.fn(), update: jest.fn() },
+      staff: { deleteMany: jest.fn(), update: jest.fn() },
+      section: { updateMany: jest.fn() },
+      timetable: { updateMany: jest.fn() },
+      refreshToken: { updateMany: jest.fn() },
+      auditLog: { create: jest.fn() },
     };
     prisma = {
       teacher: {
@@ -197,7 +208,7 @@ describe('TeacherService', () => {
       },
     ]);
     expect(prisma.teacher.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: undefined }),
+      expect.objectContaining({ where: { archivedAt: null } }),
     );
   });
 
@@ -224,7 +235,9 @@ describe('TeacherService', () => {
       },
     ]);
     expect(prisma.teacher.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { campus: { schoolId: 'school-1' } } }),
+      expect.objectContaining({
+        where: { archivedAt: null, campus: { schoolId: 'school-1' } },
+      }),
     );
   });
 
@@ -275,12 +288,56 @@ describe('TeacherService', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
-  it('deletes a teacher (Teacher then User) inside one transaction and audit-logs it', async () => {
-    prisma.teacher.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
+  it('BL-07: archiving a teacher frees their slots, disables the login and archives the staff record; nothing is deleted', async () => {
+    prisma.teacher.findUnique.mockResolvedValue({
+      id: 't1',
+      userId: 'u1',
+      archivedAt: null,
+      staff: { id: 'st1' },
+    });
+    tx.teacher.update.mockResolvedValue({ id: 't1', userId: 'u1' });
+
+    await service.archive('t1', 'admin-1');
+
+    expect(tx.teacher.update).toHaveBeenCalledWith({
+      where: { id: 't1' },
+      data: { archivedAt: expect.any(Date) },
+    });
+    expect(tx.section.updateMany).toHaveBeenCalled();
+    expect(tx.timetable.updateMany).toHaveBeenCalled();
+    expect(tx.user.update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { isLocked: true, tokenVersion: { increment: 1 } },
+    });
+    expect(tx.staff.update).toHaveBeenCalledWith({
+      where: { id: 'st1' },
+      data: expect.objectContaining({ archivedById: 'admin-1' }),
+    });
+    expect(tx.teacher.delete).not.toHaveBeenCalled();
+    expect(tx.user.delete).not.toHaveBeenCalled();
+  });
+
+  it('refuses to erase a teacher who is not archived (409)', async () => {
+    prisma.teacher.findUnique.mockResolvedValue({
+      id: 't1',
+      userId: 'u1',
+      archivedAt: null,
+    });
+    await expect(service.erase('t1', 'super-1')).rejects.toThrow(
+      ConflictException,
+    );
+  });
+
+  it('erases an archived teacher (Teacher then User) inside one transaction and audit-logs it', async () => {
+    prisma.teacher.findUnique.mockResolvedValue({
+      id: 't1',
+      userId: 'u1',
+      archivedAt: new Date(),
+    });
     tx.teacher.delete.mockResolvedValue({ id: 't1' });
     tx.user.delete.mockResolvedValue({ id: 'u1' });
 
-    await service.delete('t1', 'admin-1');
+    await service.erase('t1', 'admin-1');
 
     expect(prisma.$transaction).toHaveBeenCalled();
     expect(tx.teacher.delete).toHaveBeenCalledWith({ where: { id: 't1' } });
@@ -288,7 +345,7 @@ describe('TeacherService', () => {
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          action: 'teacher.delete',
+          action: 'teacher.erase',
           entityId: 't1',
         }),
       }),
@@ -296,7 +353,11 @@ describe('TeacherService', () => {
   });
 
   it('translates a foreign-key violation on delete into a BadRequestException (e.g. Attendance.markedById still references this teacher)', async () => {
-    prisma.teacher.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
+    prisma.teacher.findUnique.mockResolvedValue({
+      id: 't1',
+      userId: 'u1',
+      archivedAt: new Date(),
+    });
     tx.teacher.delete.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError(
         'Foreign key constraint failed',
@@ -304,13 +365,17 @@ describe('TeacherService', () => {
       ),
     );
 
-    await expect(service.delete('t1', 'admin-1')).rejects.toThrow(
+    await expect(service.erase('t1', 'admin-1')).rejects.toThrow(
       BadRequestException,
     );
   });
 
   it('rolls back and translates a foreign-key violation when the second delete (User) fails, without audit-logging a mutation that did not happen (e.g. DiaryEntry.author still references this teacher)', async () => {
-    prisma.teacher.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
+    prisma.teacher.findUnique.mockResolvedValue({
+      id: 't1',
+      userId: 'u1',
+      archivedAt: new Date(),
+    });
     tx.teacher.delete.mockResolvedValue({ id: 't1' });
     tx.user.delete.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError(
@@ -319,7 +384,7 @@ describe('TeacherService', () => {
       ),
     );
 
-    await expect(service.delete('t1', 'admin-1')).rejects.toThrow(
+    await expect(service.erase('t1', 'admin-1')).rejects.toThrow(
       BadRequestException,
     );
     expect(prisma.auditLog.create).not.toHaveBeenCalled();

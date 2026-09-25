@@ -3,11 +3,14 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
+import { RecordScopeGuard, ScopedRecord } from '../common/record-scope.guard';
 import type { Request } from 'express';
 import { TeacherService } from './teacher.service';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
@@ -21,6 +24,8 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('api/v1/admin/teachers')
 @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+@UseGuards(RecordScopeGuard)
+@ScopedRecord('teacher', 'id')
 export class TeacherController {
   constructor(private readonly teacherService: TeacherService) {}
 
@@ -43,8 +48,16 @@ export class TeacherController {
     return this.teacherService.update(id, dto, req.user.id);
   }
 
+  /** BL-07: archives (never hard-deletes). */
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    await this.teacherService.delete(id, req.user.id);
+    await this.teacherService.archive(id, req.user.id);
+  }
+
+  @Post(':id/erase')
+  @Roles('SUPER_ADMIN')
+  @HttpCode(204)
+  async erase(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    await this.teacherService.erase(id, req.user.id);
   }
 }
