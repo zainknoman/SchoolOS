@@ -3,6 +3,8 @@ import { Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { EmployeeType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
+import type { RequestUser } from '../common/student-access.service';
 import { createStaffWithOptionalTeacher } from '../hiring/create-staff-with-optional-teacher';
 import { parseCsv } from './csv';
 import type { RowOutcome, PreviewResult } from './students-bulk-import.service';
@@ -12,10 +14,18 @@ const EMPLOYEE_TYPES = new Set(Object.values(EmployeeType) as string[]);
 
 @Injectable()
 export class StaffBulkImportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
-  private async validateRows(buffer: Buffer): Promise<RowOutcome[]> {
+  private async validateRows(
+    buffer: Buffer,
+    actingUser: RequestUser,
+  ): Promise<RowOutcome[]> {
     const parsed = parseCsv(buffer, MAX_ROWS);
+    // Only campuses inside the importer's own school/campus are accepted.
+    const scope = await this.orgScope.resolve(actingUser);
     const seenLoginIdentifiers = new Set<string>();
     const outcomes: RowOutcome[] = [];
 
@@ -66,6 +76,11 @@ export class StaffBulkImportService {
           where: { id: campusId },
         });
         if (!campus) errors.push(`Campus "${campusId}" not found`);
+        else if (!scope.allows({ campusId, schoolId: campus.schoolId })) {
+          errors.push(
+            `Campus "${campusId}" belongs to another school or campus`,
+          );
+        }
       }
       if (cnic) {
         const existingStaff = await this.prisma.staff.findUnique({
@@ -93,8 +108,11 @@ export class StaffBulkImportService {
     return outcomes;
   }
 
-  async preview(buffer: Buffer): Promise<PreviewResult> {
-    const rows = await this.validateRows(buffer);
+  async preview(
+    buffer: Buffer,
+    actingUser: RequestUser,
+  ): Promise<PreviewResult> {
+    const rows = await this.validateRows(buffer, actingUser);
     return {
       rows,
       validCount: rows.filter((r) => r.errors.length === 0).length,
@@ -104,9 +122,10 @@ export class StaffBulkImportService {
 
   async commit(
     buffer: Buffer,
-    actingUserId: string,
+    actingUser: RequestUser,
   ): Promise<{ createdCount: number; staffIds: string[] }> {
-    const rows = await this.validateRows(buffer);
+    const actingUserId = actingUser.id;
+    const rows = await this.validateRows(buffer, actingUser);
     const invalid = rows.filter((r) => r.errors.length > 0);
     if (invalid.length > 0) {
       throw Object.assign(

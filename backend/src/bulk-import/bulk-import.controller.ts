@@ -67,8 +67,11 @@ export class BulkImportController {
 
   @Post('students/preview')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
-  previewStudents(@UploadedFile() file: Express.Multer.File) {
-    return this.studentsService.preview(file.buffer);
+  previewStudents(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: { user: RequestUser },
+  ) {
+    return this.studentsService.preview(file.buffer, req.user);
   }
 
   @Post('students/commit')
@@ -78,7 +81,7 @@ export class BulkImportController {
     @Req() req: AuthenticatedRequest,
   ) {
     try {
-      return await this.studentsService.commit(file.buffer, req.user.id);
+      return await this.studentsService.commit(file.buffer, req.user);
     } catch (error) {
       if (error instanceof Error && 'rows' in error) {
         throw new BadRequestException({
@@ -117,8 +120,11 @@ export class BulkImportController {
 
   @Post('teachers/preview')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
-  previewTeachers(@UploadedFile() file: Express.Multer.File) {
-    return this.teachersService.preview(file.buffer);
+  previewTeachers(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: { user: RequestUser },
+  ) {
+    return this.teachersService.preview(file.buffer, req.user);
   }
 
   @Post('teachers/commit')
@@ -128,7 +134,7 @@ export class BulkImportController {
     @Req() req: AuthenticatedRequest,
   ) {
     try {
-      return await this.teachersService.commit(file.buffer, req.user.id);
+      return await this.teachersService.commit(file.buffer, req.user);
     } catch (error) {
       if (error instanceof Error && 'rows' in error) {
         throw new BadRequestException({
@@ -142,8 +148,11 @@ export class BulkImportController {
 
   @Post('staff/preview')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
-  previewStaff(@UploadedFile() file: Express.Multer.File) {
-    return this.staffService.preview(file.buffer);
+  previewStaff(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: { user: RequestUser },
+  ) {
+    return this.staffService.preview(file.buffer, req.user);
   }
 
   @Post('staff/commit')
@@ -153,7 +162,7 @@ export class BulkImportController {
     @Req() req: AuthenticatedRequest,
   ) {
     try {
-      return await this.staffService.commit(file.buffer, req.user.id);
+      return await this.staffService.commit(file.buffer, req.user);
     } catch (error) {
       if (error instanceof Error && 'rows' in error) {
         throw new BadRequestException({

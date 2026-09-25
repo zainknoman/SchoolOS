@@ -3,6 +3,8 @@ import { activeSessionForSchool } from '../academic-session/active-session';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
+import type { RequestUser } from '../common/student-access.service';
 import { createStudentWithEnrollment } from '../student/create-student-with-enrollment';
 import { parseCsv } from './csv';
 import {
@@ -26,10 +28,19 @@ export interface PreviewResult {
 
 @Injectable()
 export class StudentsBulkImportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
-  private async validateRows(buffer: Buffer): Promise<RowOutcome[]> {
+  private async validateRows(
+    buffer: Buffer,
+    actingUser: RequestUser,
+  ): Promise<RowOutcome[]> {
     const parsed = parseCsv(buffer, MAX_ROWS);
+    // Only the importer's own school/campus sections are accepted (a school admin cannot enrol
+    // students into another school by naming its section id).
+    const scope = await this.orgScope.resolve(actingUser);
     const seenGrNumbers = new Set<string>();
     const outcomes: RowOutcome[] = [];
 
@@ -80,8 +91,26 @@ export class StudentsBulkImportService {
       if (sectionId) {
         const section = await this.prisma.section.findUnique({
           where: { id: sectionId },
+          select: {
+            class: {
+              select: {
+                campusId: true,
+                campus: { select: { schoolId: true } },
+              },
+            },
+          },
         });
         if (!section) errors.push(`Section "${sectionId}" not found`);
+        else if (
+          !scope.allows({
+            campusId: section.class.campusId,
+            schoolId: section.class.campus.schoolId,
+          })
+        ) {
+          errors.push(
+            `Section "${sectionId}" belongs to another school or campus`,
+          );
+        }
       }
       if (parentIdentifier) {
         const parent = await this.prisma.parentProfile.findFirst({
@@ -122,8 +151,11 @@ export class StudentsBulkImportService {
     return outcomes;
   }
 
-  async preview(buffer: Buffer): Promise<PreviewResult> {
-    const rows = await this.validateRows(buffer);
+  async preview(
+    buffer: Buffer,
+    actingUser: RequestUser,
+  ): Promise<PreviewResult> {
+    const rows = await this.validateRows(buffer, actingUser);
     return {
       rows,
       validCount: rows.filter((r) => r.errors.length === 0).length,
@@ -133,9 +165,10 @@ export class StudentsBulkImportService {
 
   async commit(
     buffer: Buffer,
-    actingUserId: string,
+    actingUser: RequestUser,
   ): Promise<{ createdCount: number; studentIds: string[] }> {
-    const rows = await this.validateRows(buffer);
+    const actingUserId = actingUser.id;
+    const rows = await this.validateRows(buffer, actingUser);
     const invalid = rows.filter((r) => r.errors.length > 0);
     if (invalid.length > 0) {
       throw Object.assign(

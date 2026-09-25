@@ -28,6 +28,7 @@
 | KG-21 | Low | Proprietary `LICENSE` notice and `SECURITY.md` now exist as **placeholders** (`[LEGAL_ENTITY_NAME]`, `[SECURITY_EMAIL]`); real entity, domain and mailbox pending (RD-1/RD-2); `package.json` stays `UNLICENSED` (correct for closed source) | repo root | — |
 | KG-23 | Med | `User.isLocked` exists in the schema but is never read or written by application logic, and no endpoint unlocks or disables an account; the only way to stop a compromised account is deleting it or editing the database | `schema.prisma:138`; `auth.service.ts:66` checks only `lockedUntil`; `isLocked` appears in `src/` only as a fixture field in `auth.service.spec.ts` | **Closed 2026-09-24 (BL-21):** `isLocked` = disabled; admin `POST /admin/users/:id/disable|enable|revoke-sessions` (scoped, audited); enable also clears the failed-login lockout |
 | KG-22 | Low | Notification failures swallowed, no retry/alerting | `notifications.service.ts:72` | — |
+| KG-24 | High | ~~Bulk import (students, teachers, staff) accepted another school's section/campus id~~ — **closed 2026-09-26:** every row's section/campus must be inside the importer's school/campus (e2e `bulk-import-scope`) | `bulk-import/*.service.ts` | found during BL-23 |
 
 ## Decided remediation (owner, 2026-09-20) — all NOT YET IMPLEMENTED
 | Gap | Decision / work item | Phase |
