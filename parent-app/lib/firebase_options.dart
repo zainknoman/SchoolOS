@@ -27,21 +27,21 @@ class DefaultFirebaseOptions {
     apiKey: 'placeholder-web-api-key',
     appId: '1:000000000000:web:0000000000000000000000',
     messagingSenderId: '000000000000',
-    projectId: 'schoolportal-placeholder',
+    projectId: 'schoolos-placeholder',
   );
 
   static const android = FirebaseOptions(
     apiKey: 'placeholder-android-api-key',
     appId: '1:000000000000:android:0000000000000000000000',
     messagingSenderId: '000000000000',
-    projectId: 'schoolportal-placeholder',
+    projectId: 'schoolos-placeholder',
   );
 
   static const ios = FirebaseOptions(
     apiKey: 'placeholder-ios-api-key',
     appId: '1:000000000000:ios:0000000000000000000000',
     messagingSenderId: '000000000000',
-    projectId: 'schoolportal-placeholder',
+    projectId: 'schoolos-placeholder',
     iosBundleId: 'pk.edu.schoolos.parent_app',
   );
 }

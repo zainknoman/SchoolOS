@@ -34,7 +34,7 @@ describe('StaffManagementView', () => {
       { id: 'st1', name: 'Nazir Ahmed', employeeType: 'JANITORIAL', employmentStatus: 'ACTIVE', campusName: 'PECHS Campus' },
     ]);
     vi.mocked(api.listCampuses).mockResolvedValue([
-      { id: 'cam1', name: 'PECHS Campus', schoolId: 'sch1', schoolName: 'Beacon House', code: null, campusType: null, logoFileId: null, principalName: null, principalPhone: null, principalEmail: null, openingDate: null, capacity: null, latitude: null, longitude: null, status: 'ACTIVE' as const, departments: [], alternatePhone: null, addressId: null, address: null, phone: null, email: null, studentCount: 0, staffCount: 0 },
+      { id: 'cam1', name: 'Main Campus', schoolId: 'sch1', schoolName: 'Demo School North', code: null, campusType: null, logoFileId: null, principalName: null, principalPhone: null, principalEmail: null, openingDate: null, capacity: null, latitude: null, longitude: null, status: 'ACTIVE' as const, departments: [], alternatePhone: null, addressId: null, address: null, phone: null, email: null, studentCount: 0, staffCount: 0 },
     ]);
   });
 

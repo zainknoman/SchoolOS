@@ -42,7 +42,7 @@
 - Variables the decided design **adds** (names indicative, `NOT IMPLEMENTED`): object-storage endpoint/bucket/credentials (BL-10); Sentry DSN and scrubbing settings (BL-11); bootstrap SUPER_ADMIN credentials, consumed once (BL-22); separate parent reset base URL/deep-link scheme (BL-35); per-integration feature flags, default **off** for payment gateways, WhatsApp and AI drafting (Q34, Q38, Q39); SMS/e-mail provider selection variables (Q36, Q37).
 - `FRONTEND_URL` remains a single staff-console URL today; parents must not be sent to it (KI-7 -> BL-35).
 - Signing keys, keystores, Firebase service accounts and store credentials are **never committed** (Q32); the parent app's `firebase_options.dart` placeholder is replaced per environment (BL-34, BL-43).
-- `.env.example` and `backend/.env` still contain `schoolportal` naming (DB name); the rename is decided (BL-34) but needs an explicit keep/rename decision for existing local databases.
+- Default database name is `schoolos` in `.env.example` and CI (BL-34, 2026-09-26). **Existing local databases keep working**: your own `backend/.env` is not touched, so a database still named `schoolportal` needs no rename — change `DATABASE_URL` only if you create a fresh one.
 
 ## Staff console (Vite)
 | Variable | Default | Notes |

@@ -81,7 +81,7 @@ Automated-test column lists the backend e2e spec (`backend/test/`) that exercise
 8. **In-process scheduled jobs** (`attendance-risk`, `digest-dispatch`) — single-instance assumption.
 9. **Licence is decided as proprietary (`LICENSE` is a placeholder notice; `package.json`: UNLICENSED); no backups/restore, deployment target, monitoring; SMS sender uses a placeholder URL.** (CHANGELOG, SECURITY.md and runbooks now exist as documentation — the *capabilities* do not.)
 10. Backend lint fails with 2,014 errors (mostly formatting) and is non-blocking in CI.
-11. Seed data, `.env.example`, CI, Postman and the Firebase options file still use `schoolportal` naming and a real-sounding demo school name; the owner decided to rename to SchoolOS and use a neutral `Demo School` (BL-34) — **not yet done**.
+11. ~~Rebrand residue~~ — done 2026-09-26 (BL-34): seed (Demo School North/South, `@schoolos.local`), `.env.example`/CI database name `schoolos`, Postman, test fixtures, console locale key, Firebase placeholder. Kept on purpose: archived/historical docs; the harness's refusal list still names `schoolportal`.
 
 ## Where things live
 

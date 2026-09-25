@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "SchoolOS API",
-    "description": "SchoolOS backend (NestJS). All routes are under `/api/v1` except the health check. Generated from the controllers and DTOs.\n\n**Getting started:** import the `SchoolOS Local` environment, set `identifier` and `password` (seed users are `superadmin@schoolportal.local`, `admin@<bh|tcs>.schoolportal.local`, etc.; password is the `SEED_PASSWORD` used when seeding), then run **Auth → POST /auth/login**. The login test script stores `accessToken`/`refreshToken`, which every other request sends as a Bearer token.\n\nIDs in path/query/body (`{{studentId}}`, `{{sectionId}}`, …) are collection variables — fill them in from list responses.",
+    "description": "SchoolOS backend (NestJS). All routes are under `/api/v1` except the health check. Generated from the controllers and DTOs.\n\n**Getting started:** import the `SchoolOS Local` environment, set `identifier` and `password` (seed users are `superadmin@schoolos.local`, `admin@<dsn|dss>.schoolos.local`, etc.; password is the `SEED_PASSWORD` used when seeding), then run **Auth → POST /auth/login**. The login test script stores `accessToken`/`refreshToken`, which every other request sends as a Bearer token.\n\nIDs in path/query/body (`{{studentId}}`, `{{sectionId}}`, …) are collection variables — fill them in from list responses.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {

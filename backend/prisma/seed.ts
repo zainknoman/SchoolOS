@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 
-// BL-22: the demo seed creates well-known accounts (superadmin@schoolportal.local, SEED_PASSWORD) and
+// BL-22: the demo seed creates well-known accounts (superadmin@schoolos.local, SEED_PASSWORD) and
 // must never populate a real system. A real first administrator comes from
 // `npm run bootstrap:super-admin` instead.
 if (process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test') {
@@ -24,45 +24,47 @@ const PREVIOUS_START = new Date('2025-08-01');
 const PREVIOUS_END = new Date('2026-06-30');
 const schoolsDef = [
   {
-    name: 'Beacon House',
-    code: 'BH',
-    registrationNumber: 'REG-BH-2010-001',
-    website: 'https://beaconhouse.example.edu.pk',
+    // BL-34: neutral, obviously fictional demo schools (no real school brands).
+    name: 'Demo School North',
+    code: 'DSN',
+    registrationNumber: 'REG-DSN-2010-001',
+    website: 'https://north.demo-school.example.edu.pk',
     principalName: 'Dr. Ayesha Rahman',
     principalPhone: '021-111-2222',
-    principalEmail: 'principal@bh.schoolportal.local',
+    principalEmail: 'principal@dsn.schoolos.local',
     establishedDate: new Date('1975-04-01'),
     schoolType: 'PRIVATE',
     educationBoard: 'Cambridge',
     timezone: 'Asia/Karachi',
     currency: 'PKR',
     alternatePhone: '021-111-2223',
-    branches: ['Gulshan Campus', 'PECHS Campus', 'North Nazimabad Campus'],
+    branches: ['Main Campus', 'East Campus', 'West Campus'],
   },
   {
-    name: 'The City School',
-    code: 'TCS',
-    registrationNumber: 'REG-TCS-2010-001',
-    website: 'https://thecityschool.example.edu.pk',
+    name: 'Demo School South',
+    code: 'DSS',
+    registrationNumber: 'REG-DSS-2010-001',
+    website: 'https://south.demo-school.example.edu.pk',
     principalName: 'Mr. Bilal Chaudhry',
     principalPhone: '021-333-4444',
-    principalEmail: 'principal@tcs.schoolportal.local',
+    principalEmail: 'principal@dss.schoolos.local',
     establishedDate: new Date('1978-09-01'),
     schoolType: 'PRIVATE',
     educationBoard: 'Federal Board',
     timezone: 'Asia/Karachi',
     currency: 'PKR',
     alternatePhone: '021-333-4445',
-    branches: ['PAF Chapter', 'Gulshan Campus'],
+    branches: ['Main Campus', 'Lakeside Campus'],
   },
 ];
 const CAMPUS_DEPARTMENTS = ['Academics', 'Administration', 'Accounts'];
-const grades = Array.from({ length: 8 }, (_, i) => `Grade ${i + 1}`);
+// Glossary: "Class", not "Grade" (owner, Q17).
+const grades = Array.from({ length: 8 }, (_, i) => `Class ${i + 1}`);
 const subjectsDef = ['Mathematics', 'English', 'Urdu', 'Science', 'Social Studies', 'Computer', 'Islamiyat', 'Art'];
 const statuses = ['PRESENT', 'ABSENT', 'LATE', 'LEAVE', 'HOLIDAY'] as const;
 const periods = [['08:00', '08:40'], ['08:40', '09:20'], ['09:20', '10:00'], ['10:20', '11:00'], ['11:00', '11:40'], ['11:40', '12:20']];
 const day = (offset: number) => { const x = new Date(); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() + offset); return x; };
-const schoolCode = (name: string) => name === 'Beacon House' ? 'bh' : 'tcs';
+const schoolCode = (name: string) => schoolsDef.find((s) => s.name === name)!.code.toLowerCase();
 
 async function main() {
   const passwordHash = await argon2.hash(PASSWORD);
@@ -109,7 +111,7 @@ async function main() {
       addressId: schoolAddress.id,
       address: schoolAddress.line1,
       phone: def.principalPhone,
-      email: `info@${def.code.toLowerCase()}.schoolportal.local`,
+      email: `info@${def.code.toLowerCase()}.schoolos.local`,
     };
     schools.push(school);
     await prisma.school.create({ data: school });
@@ -143,7 +145,7 @@ async function main() {
       logoFileId: campusLogos[i].id,
       principalName: `${name} Head of Campus`,
       principalPhone: `${def.principalPhone.slice(0, -1)}${(i + 1) % 10}`,
-      principalEmail: `principal.${def.code.toLowerCase()}${i + 1}@schoolportal.local`,
+      principalEmail: `principal.${def.code.toLowerCase()}${i + 1}@schoolos.local`,
       openingDate: new Date(`${1980 + i * 3}-01-15`),
       capacity: 800 + i * 100,
       latitude: 24.86 + i * 0.015,
@@ -153,7 +155,7 @@ async function main() {
       addressId: campusAddresses[i].id,
       address: campusAddresses[i].line1,
       phone: `${def.principalPhone.slice(0, -1)}${(i + 1) % 10}`,
-      email: `campus.${def.code.toLowerCase()}${i + 1}@schoolportal.local`,
+      email: `campus.${def.code.toLowerCase()}${i + 1}@schoolos.local`,
     }));
     branchRows.forEach((row, i) => campusIndex.set(row.id, i + 1));
     campuses.push(...branchRows);
@@ -166,16 +168,16 @@ async function main() {
 
   await prisma.subject.createMany({ data: subjectsDef.map(name => ({ id: randomUUID(), name })) });
   const subjects = await prisma.subject.findMany({ orderBy: { name: 'asc' } });
-  const users: any[] = [{ id: randomUUID(), identifier: 'superadmin@schoolportal.local', passwordHash, role: 'SUPER_ADMIN' }];
+  const users: any[] = [{ id: randomUUID(), identifier: 'superadmin@schoolos.local', passwordHash, role: 'SUPER_ADMIN' }];
   const classes: any[] = [], sections: any[] = [], teachers: any[] = [], staff: any[] = [];
   const teacherBySection = new Map<string, { teacherId: string; userId: string }>();
 
   for (const school of schools) {
     const c = schoolCode(school.name);
     users.push(
-      { id: randomUUID(), identifier: `admin@${c}.schoolportal.local`, passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
-      { id: randomUUID(), identifier: `principal@${c}.schoolportal.local`, passwordHash, role: 'SCHOOL_ADMIN', isPrincipal: true, schoolId: school.id },
-      { id: randomUUID(), identifier: `accounts@${c}.schoolportal.local`, passwordHash, role: 'ACCOUNTS', schoolId: school.id },
+      { id: randomUUID(), identifier: `admin@${c}.schoolos.local`, passwordHash, role: 'SCHOOL_ADMIN', schoolId: school.id },
+      { id: randomUUID(), identifier: `principal@${c}.schoolos.local`, passwordHash, role: 'SCHOOL_ADMIN', isPrincipal: true, schoolId: school.id },
+      { id: randomUUID(), identifier: `accounts@${c}.schoolos.local`, passwordHash, role: 'ACCOUNTS', schoolId: school.id },
     );
   }
 
@@ -188,7 +190,7 @@ async function main() {
       for (const letter of ['A', 'B']) {
         const sectionId = randomUUID(), teacherId = randomUUID(), userId = randomUUID();
         const name = `${letter === 'A' ? 'Ayesha' : 'Hamza'} ${g + 1} Teacher`;
-        users.push({ id: userId, identifier: `${schoolCode(school.name)}.c${campusIndex.get(campus.id)}.g${g + 1}${letter.toLowerCase()}@schoolportal.local`, passwordHash, role: 'TEACHER', schoolId: school.id });
+        users.push({ id: userId, identifier: `${schoolCode(school.name)}.c${campusIndex.get(campus.id)}.g${g + 1}${letter.toLowerCase()}@schoolos.local`, passwordHash, role: 'TEACHER', schoolId: school.id });
         teachers.push({ id: teacherId, userId, name, campusId: campus.id });
         staff.push({ id: randomUUID(), userId, name, firstName: name.split(' ')[0], lastName: 'Teacher', employeeType: 'TEACHER', campusId: campus.id, joiningDate: new Date('2022-08-01'), employmentStatus: 'ACTIVE', teacherId });
         sections.push({ id: sectionId, classId, name: `${g + 1}${letter}`, classTeacherId: teacherId });
@@ -222,21 +224,21 @@ async function main() {
       const gr = `GR-${String(sequence).padStart(5, '0')}`;
       const first = ['Ayaan', 'Eman', 'Hassan', 'Maham', 'Rayyan', 'Hiba', 'Zayan', 'Areeba'][sequence % 8];
       const last = ['Khan', 'Ahmed', 'Malik', 'Sheikh', 'Hussain', 'Raza'][sequence % 6];
-      students.push({ id: studentId, grNumber: gr, name: `${first} ${last}`, firstName: first, lastName: last, preferredName: first, gender: sequence % 2 ? 'MALE' : 'FEMALE', dateOfBirth: new Date(`${2013 + sequence % 7}-${String(sequence % 9 + 1).padStart(2, '0')}-15`), placeOfBirth: 'Karachi', nationality: 'Pakistani', religion: 'Islam', bFormNumber: `BFORM-${String(sequence).padStart(8, '0')}`, status: 'ACTIVE', admissionDate: new Date('2022-08-01'), studentMobile: `0300-${String(1000000 + sequence).slice(-7)}`, studentEmail: `${gr.toLowerCase()}@student.schoolportal.local`, currentAddressId, permanentAddressId });
+      students.push({ id: studentId, grNumber: gr, name: `${first} ${last}`, firstName: first, lastName: last, preferredName: first, gender: sequence % 2 ? 'MALE' : 'FEMALE', dateOfBirth: new Date(`${2013 + sequence % 7}-${String(sequence % 9 + 1).padStart(2, '0')}-15`), placeOfBirth: 'Karachi', nationality: 'Pakistani', religion: 'Islam', bFormNumber: `BFORM-${String(sequence).padStart(8, '0')}`, status: 'ACTIVE', admissionDate: new Date('2022-08-01'), studentMobile: `0300-${String(1000000 + sequence).slice(-7)}`, studentEmail: `${gr.toLowerCase()}@student.schoolos.local`, currentAddressId, permanentAddressId });
       addresses.push(
         { id: currentAddressId, line1: `House ${10 + sequence % 90}, Street ${1 + sequence % 8}`, area: campus.name.replace(`${school.name} - `, ''), city: 'Karachi', district: 'Karachi', province: 'Sindh', postalCode: '75000', country: 'Pakistan' },
         { id: permanentAddressId, line1: `House ${20 + sequence % 70}, Street ${2 + sequence % 7}`, area: 'Gulshan-e-Iqbal', city: 'Karachi', district: 'Karachi', province: 'Sindh', postalCode: '75300', country: 'Pakistan' },
         { id: previousAddressId, line1: 'Main Road, Previous School Campus', city: 'Karachi', province: 'Sindh', postalCode: '75000', country: 'Pakistan' },
       );
       previousSchools.push({ id: randomUUID(), studentId, schoolName: `${school.name} Junior School`, addressId: previousAddressId, contactNumber: `021-3456${String(1000 + sequence).slice(-4)}`, email: `admissions${sequence}@previous-school.local`, lastClassAttended: cls.name, admissionDate: new Date('2021-08-01'), leavingDate: new Date('2022-06-30'), leavingCertificateNumber: `LC-${gr}`, leavingCertificateDate: new Date('2022-07-15'), reasonForLeaving: 'Family relocation', academicRemarks: 'Good academic standing' });
-      emergencies.push({ id: randomUUID(), studentId, name: `Emergency Contact ${sequence}`, relationship: 'Uncle', phone: `0321-${String(2000000 + sequence).slice(-7)}`, alternatePhone: `0333-${String(3000000 + sequence).slice(-7)}`, email: `emergency${sequence}@schoolportal.local`, priority: 1, isPrimary: true });
+      emergencies.push({ id: randomUUID(), studentId, name: `Emergency Contact ${sequence}`, relationship: 'Uncle', phone: `0321-${String(2000000 + sequence).slice(-7)}`, alternatePhone: `0333-${String(3000000 + sequence).slice(-7)}`, email: `emergency${sequence}@schoolos.local`, priority: 1, isPrimary: true });
       medical.push({ id: randomUUID(), studentId, bloodGroup: ['A_POS', 'B_POS', 'O_POS', 'AB_POS'][sequence % 4], allergies: 'None known', emergencyMedicalNotes: 'Contact parent in case of emergency.' });
       enrollments.push({ id: randomUUID(), studentId, campusId: campus.id, sectionId: section.id, academicSessionId: session.id, startDate: CURRENT_START, status: 'ACTIVE', rollNumber: String(roll).padStart(2, '0'), remarks: 'Seeded demo enrollment' });
       for (const relationship of ['father', 'mother']) {
         const userId = randomUUID(), profileId = randomUUID();
         const prefix = relationship;
-        parentUsers.push({ id: userId, identifier: `${prefix}.${gr.toLowerCase()}@parent.schoolportal.local`, passwordHash, role: 'PARENT', schoolId: school.id });
-        parentProfiles.push({ id: profileId, userId, name: `${relationship === 'father' ? 'Father' : 'Mother'} of ${first} ${last}`, phone: `03${relationship === 'father' ? '00' : '01'}-${String((relationship === 'father' ? 4000000 : 5000000) + sequence).slice(-7)}`, gender: relationship === 'father' ? 'MALE' : 'FEMALE', email: `${prefix}.${gr.toLowerCase()}@parent.schoolportal.local`, occupation: relationship === 'father' ? 'Businessman' : 'Homemaker' });
+        parentUsers.push({ id: userId, identifier: `${prefix}.${gr.toLowerCase()}@parent.schoolos.local`, passwordHash, role: 'PARENT', schoolId: school.id });
+        parentProfiles.push({ id: profileId, userId, name: `${relationship === 'father' ? 'Father' : 'Mother'} of ${first} ${last}`, phone: `03${relationship === 'father' ? '00' : '01'}-${String((relationship === 'father' ? 4000000 : 5000000) + sequence).slice(-7)}`, gender: relationship === 'father' ? 'MALE' : 'FEMALE', email: `${prefix}.${gr.toLowerCase()}@parent.schoolos.local`, occupation: relationship === 'father' ? 'Businessman' : 'Homemaker' });
         studentParents.push({ id: randomUUID(), studentId, parentProfileId: profileId, relationship, isPrimary: relationship === 'father', isEmergencyContact: true });
       }
     }
@@ -291,7 +293,7 @@ async function main() {
   await prisma.applicant.createMany({ data: applicants });
   await prisma.application.createMany({ data: applications });
 
-  const candidates = campuses.map((_campus, i) => ({ id: randomUUID(), name: `Hiring Candidate ${i + 1}`, dateOfBirth: new Date('1990-04-10'), contactPhone: `0355-${String(7000000 + i).slice(-7)}`, contactEmail: `candidate${i + 1}@schoolportal.local` }));
+  const candidates = campuses.map((_campus, i) => ({ id: randomUUID(), name: `Hiring Candidate ${i + 1}`, dateOfBirth: new Date('1990-04-10'), contactPhone: `0355-${String(7000000 + i).slice(-7)}`, contactEmail: `candidate${i + 1}@schoolos.local` }));
   await prisma.hiringCandidate.createMany({ data: candidates });
   await prisma.hiringApplication.createMany({ data: candidates.map((c, i) => ({ id: randomUUID(), candidateId: c.id, employeeType: i % 2 ? 'GUARD' : 'OFFICE_STAFF', campusId: campuses[i].id, status: i % 2 ? 'SHORTLISTED' : 'SUBMITTED' })) });
 

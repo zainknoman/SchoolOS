@@ -1,7 +1,7 @@
 # SchoolOS — Glossary
 
 > **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/prisma/schema.prisma`, `seed.ts`, UI labels · **Owner:** Product Owner
-> **Canonical terms (owner, 2026-09-20):** product = **SchoolOS**; **Campus** (not Branch); **Class** (not Grade). "SchoolPortal"/`schoolportal` still appears in seed identifiers, the default database name, `.env.example`, CI, Postman and other config — the rename to SchoolOS is decided but **not yet done** in code/config (BL-34); it may remain only in archived historical documents. Rows marked *Decided* describe the owner's intended meaning, which the code does not yet implement.
+> **Canonical terms (owner, 2026-09-20):** product = **SchoolOS**; **Campus** (not Branch); **Class** (not Grade). The rename from "SchoolPortal"/`schoolportal` was completed in code, seed and config on 2026-09-26 (BL-34); the old name remains only in archived/historical documents and as the legacy console locale key that is still read once. Rows marked *Decided* describe the owner's intended meaning, which the code does not yet implement.
 
 | Term | Meaning in SchoolOS | Code |
 |---|---|---|

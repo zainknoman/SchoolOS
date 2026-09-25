@@ -302,7 +302,7 @@ describe('StudentProfileView', () => {
   it('shows an existing previous school read-only, and its address when present', async () => {
     vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile({
         previousSchool: {
-        id: 'ps1', schoolName: 'Beaconhouse Prep', address: { id: 'a1', line1: 'Old House', line2: null, area: null, city: 'Karachi', district: null, province: null, postalCode: null, country: 'Pakistan' },
+        id: 'ps1', schoolName: 'Demo Prep School', address: { id: 'a1', line1: 'Old House', line2: null, area: null, city: 'Karachi', district: null, province: null, postalCode: null, country: 'Pakistan' },
         contactNumber: null, email: null, lastClassAttended: 'Grade 2', admissionDate: null, leavingDate: null,
         leavingCertificateNumber: null, leavingCertificateDate: null, reasonForLeaving: null, academicRemarks: null,
         },
@@ -311,7 +311,7 @@ describe('StudentProfileView', () => {
     const wrapper = await mountView();
     await flushPromises();
 
-    expect(wrapper.text()).toContain('Beaconhouse Prep');
+    expect(wrapper.text()).toContain('Demo Prep School');
     expect(wrapper.text()).toContain('Old House');
   });
 

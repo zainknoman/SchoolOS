@@ -16,16 +16,16 @@ describe('resolveFirebaseConfig', () => {
     const result = resolveFirebaseConfig(
       fakeConfig({
         NODE_ENV: 'production',
-        FIREBASE_PROJECT_ID: 'schoolportal-prod',
-        FIREBASE_CLIENT_EMAIL: 'fcm@schoolportal-prod.iam.gserviceaccount.com',
+        FIREBASE_PROJECT_ID: 'schoolos-prod',
+        FIREBASE_CLIENT_EMAIL: 'fcm@schoolos-prod.iam.gserviceaccount.com',
         FIREBASE_PRIVATE_KEY:
           '-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----\\n',
       }),
     );
 
     expect(result).toEqual({
-      projectId: 'schoolportal-prod',
-      clientEmail: 'fcm@schoolportal-prod.iam.gserviceaccount.com',
+      projectId: 'schoolos-prod',
+      clientEmail: 'fcm@schoolos-prod.iam.gserviceaccount.com',
       privateKey:
         '-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n',
     });
@@ -36,7 +36,7 @@ describe('resolveFirebaseConfig', () => {
       resolveFirebaseConfig(
         fakeConfig({
           NODE_ENV: 'development',
-          FIREBASE_PROJECT_ID: 'schoolportal-prod',
+          FIREBASE_PROJECT_ID: 'schoolos-prod',
         }),
       ),
     ).toBeUndefined();
@@ -47,7 +47,7 @@ describe('resolveFirebaseConfig', () => {
       resolveFirebaseConfig(
         fakeConfig({
           NODE_ENV: 'production',
-          FIREBASE_PROJECT_ID: 'schoolportal-prod',
+          FIREBASE_PROJECT_ID: 'schoolos-prod',
         }),
       ),
     ).toThrow(/Incomplete Firebase configuration/);
@@ -56,7 +56,7 @@ describe('resolveFirebaseConfig', () => {
   it('treats an unset NODE_ENV as strict, not development — a partial config is a startup error (BL-51)', () => {
     expect(() =>
       resolveFirebaseConfig(
-        fakeConfig({ FIREBASE_PROJECT_ID: 'schoolportal-prod' }),
+        fakeConfig({ FIREBASE_PROJECT_ID: 'schoolos-prod' }),
       ),
     ).toThrow();
   });

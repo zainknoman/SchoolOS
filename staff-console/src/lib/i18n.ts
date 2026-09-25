@@ -2,12 +2,14 @@ import { createI18n } from 'vue-i18n';
 import en from '../locales/en.json';
 import ur from '../locales/ur.json';
 
-export const LOCALE_STORAGE_KEY = 'schoolportal.locale';
+export const LOCALE_STORAGE_KEY = 'schoolos.locale';
+// BL-34: the pre-rebrand key; still read so a saved language choice survives the rename.
+const LEGACY_LOCALE_STORAGE_KEY = 'schoolportal.locale';
 export type AppLocale = 'en' | 'ur';
 
 export function loadLocalePreference(): AppLocale {
   try {
-    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+    const stored = localStorage.getItem(LOCALE_STORAGE_KEY) ?? localStorage.getItem(LEGACY_LOCALE_STORAGE_KEY);
     return stored === 'ur' ? 'ur' : 'en';
   } catch {
     return 'en';

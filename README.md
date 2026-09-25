@@ -77,7 +77,7 @@ flutter run -d chrome       # API URL: --dart-define=API_BASE_URL=... (default h
 
 *These commands match the package scripts; they were not executed as part of the documentation pass.*
 
-**Demo accounts** come from `backend/prisma/seed.ts` (password = your `SEED_PASSWORD`): `superadmin@schoolportal.local`, per-school `admin@…`, `principal@…`, `accounts@…`, per-section teachers, and per-student parent accounts (`father.gr-00001@parent.schoolportal.local` pattern). The `schoolportal` naming is a known rebrand leftover. Seed content and caveats: [`docs/database/SEEDING.md`](docs/database/SEEDING.md).
+**Demo accounts** come from `backend/prisma/seed.ts` (password = your `SEED_PASSWORD`): `superadmin@schoolos.local`, per-school `admin@dsn.schoolos.local` / `admin@dss.schoolos.local`, `principal@…`, `accounts@…`, per-section teachers, and per-student parent accounts (`father.gr-00001@parent.schoolos.local` pattern) in two fictional schools, *Demo School North* and *Demo School South* (BL-34). Seed content and caveats: [`docs/database/SEEDING.md`](docs/database/SEEDING.md).
 
 ## Configuration
 

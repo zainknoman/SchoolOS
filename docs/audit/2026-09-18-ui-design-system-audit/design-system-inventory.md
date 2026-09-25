@@ -87,7 +87,7 @@ Every one follows the identical two-line pattern: `<AppShell><XxxView /></AppShe
 ## 5. RTL / i18n implementation
 
 - **Library-level i18n**: `vue-i18n`, locale files `locales/en.json` / `locales/ur.json`,
-  persisted via `localStorage` (`schoolportal.locale`), applied via `lib/i18n.ts`.
+  persisted via `localStorage` (`schoolportal.locale`; renamed `schoolos.locale` by BL-34, old key still read), applied via `lib/i18n.ts`.
 - **Document-level direction**: `applyLocaleToDocument()` sets `document.documentElement.lang` and
   `.dir` — a coarse flip. Code comment explicitly flags this as interim: "browser-default bidi +
   flex behavior does most of the visual mirroring; a full CSS logical-properties refactor is a
