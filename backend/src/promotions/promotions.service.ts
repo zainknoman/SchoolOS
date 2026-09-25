@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { rethrowUniqueAsConflict } from '../common/prisma-create-guard';
 import type { RequestUser } from '../common/student-access.service';
 import { OrgScopeService } from '../common/org-scope.service';
 import type { PromotionDecision } from '@prisma/client';
@@ -157,7 +158,9 @@ export class PromotionsService {
       throw new NotFoundException('Target academic session not found');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    // BL-53: two promotions of the same student racing each other cannot both leave an ACTIVE
+    // enrolment — the partial unique index (M12) rejects the second, which becomes a 409.
+    const promoted = this.prisma.$transaction(async (tx) => {
       const scope = await this.orgScope.resolve(actingUser);
 
       for (const item of dto.decisions) {
@@ -268,6 +271,12 @@ export class PromotionsService {
       }
       return { processed: dto.decisions.length };
     });
+    return promoted.catch((error: unknown) =>
+      rethrowUniqueAsConflict(
+        error,
+        'One of these students was promoted by someone else at the same time; nothing was changed — reload and try again',
+      ),
+    );
   }
 
   async getPromotionHistory(studentId: string): Promise<PromotionHistoryRow[]> {

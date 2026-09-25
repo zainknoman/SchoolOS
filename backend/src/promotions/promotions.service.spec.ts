@@ -1,5 +1,10 @@
 import { Test } from '@nestjs/testing';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PromotionsService } from './promotions.service';
 import { OrgScopeService } from '../common/org-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -129,6 +134,39 @@ describe('PromotionsService', () => {
         },
       ],
     };
+
+    it('BL-53: a concurrent promotion that hits the one-ACTIVE-enrolment index becomes a 409', async () => {
+      prisma.enrollment.findFirst.mockResolvedValue({
+        id: 'enr-old',
+        studentId: 'stu-1',
+        academicSessionId: 'session-2025',
+        status: 'ACTIVE',
+        section: { class: { campus: { schoolId: 'school-1' } } },
+      });
+      prisma.section.findUnique.mockResolvedValue({
+        id: 'sec-target',
+        class: {
+          academicSessionId: 'session-2026',
+          campusId: 'campus-1',
+          campus: { schoolId: 'school-1' },
+        },
+      });
+      prisma.academicSession.findUnique.mockResolvedValue({
+        id: 'session-2026',
+        startDate: new Date('2026-04-01'),
+      });
+      prisma.enrollment.update.mockResolvedValue({});
+      prisma.enrollment.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+        }),
+      );
+
+      await expect(
+        service.execute({ id: 'admin-1', role: 'SUPER_ADMIN' }, baseDto),
+      ).rejects.toThrow(ConflictException);
+    });
 
     it('closes the old enrollment as COMPLETED and creates a new ACTIVE enrollment for a PROMOTED decision', async () => {
       prisma.enrollment.findFirst.mockResolvedValue({

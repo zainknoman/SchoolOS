@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { rethrowUniqueAsConflict } from '../common/prisma-create-guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { IssueVouchersDto } from './dto/issue-vouchers.dto';
 
@@ -116,27 +117,39 @@ export class FeeVouchersService {
     }
 
     const dueDate = new Date(dto.dueDate);
-    const created: VoucherSummary[] = [];
-    for (const studentId of studentIds) {
-      const voucher = await this.prisma.feeVoucher.create({
-        data: {
-          studentId,
-          academicSessionId: activeSession.id,
-          month: dto.month,
-          issueDate: new Date(),
-          dueDate,
-          items: {
-            create: structures.map((s) => ({
-              feeStructureId: s.id,
-              label: s.name,
-              amount: s.amount,
-            })),
-          },
-        },
-        include: { items: true },
-      });
-      created.push(this.toSummary(voucher, 0));
-    }
+    // BL-53: all-or-nothing, and a voucher issued concurrently for the same student/month hits the
+    // unique index (M12) -> 409 instead of a duplicate.
+    const created = await this.prisma
+      .$transaction(async (tx) => {
+        const out: VoucherSummary[] = [];
+        for (const studentId of studentIds) {
+          const voucher = await tx.feeVoucher.create({
+            data: {
+              studentId,
+              academicSessionId: activeSession.id,
+              month: dto.month,
+              issueDate: new Date(),
+              dueDate,
+              items: {
+                create: structures.map((s) => ({
+                  feeStructureId: s.id,
+                  label: s.name,
+                  amount: s.amount,
+                })),
+              },
+            },
+            include: { items: true },
+          });
+          out.push(this.toSummary(voucher, 0));
+        }
+        return out;
+      })
+      .catch((error: unknown) =>
+        rethrowUniqueAsConflict(
+          error,
+          `A voucher for ${dto.month} was issued for one of these students at the same time; nothing was created`,
+        ),
+      );
 
     // BL-03: once invoiced, a structure is LOCKED (its name/amount can no longer change).
     await this.prisma.feeStructure.updateMany({

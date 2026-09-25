@@ -1,5 +1,10 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { FeeVouchersService } from './fee-vouchers.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -16,6 +21,7 @@ describe('FeeVouchersService', () => {
       findUnique: jest.Mock;
     };
     auditLog: { create: jest.Mock };
+    $transaction: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -31,7 +37,12 @@ describe('FeeVouchersService', () => {
         findUnique: jest.fn(),
       },
       auditLog: { create: jest.fn() },
+      $transaction: jest.fn(),
     };
+    // BL-53: vouchers are created inside one transaction (the tx client is this same mock).
+    prisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) =>
+      Promise.resolve(cb(prisma)),
+    );
     const moduleRef = await Test.createTestingModule({
       providers: [
         FeeVouchersService,
@@ -126,6 +137,40 @@ describe('FeeVouchersService', () => {
     expect(result).toHaveLength(2);
     expect(prisma.feeVoucher.create).toHaveBeenCalledTimes(2);
     expect(prisma.auditLog.create).toHaveBeenCalled();
+  });
+
+  it('BL-53: a voucher issued concurrently (unique index hit) becomes a 409 and nothing is audited', async () => {
+    prisma.academicSession.findFirst.mockResolvedValue({ id: 'session-1' });
+    prisma.feeStructure.findMany.mockResolvedValue([
+      {
+        id: 'fs-1',
+        name: 'Tuition Fee',
+        amount: 500000,
+        status: 'ACTIVE',
+        schoolId: 'school-1',
+      },
+    ]);
+    prisma.feeVoucher.findMany.mockResolvedValue([]); // the pre-check saw nothing yet
+    prisma.feeVoucher.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    );
+
+    await expect(
+      service.issue(
+        {
+          studentIds: ['s1'],
+          month: '2026-09',
+          dueDate: '2026-09-10',
+          feeStructureIds: ['fs-1'],
+        },
+        'admin-1',
+      ),
+    ).rejects.toThrow(ConflictException);
+    expect(prisma.feeStructure.updateMany).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 
   it('rejects issuing a voucher when one already exists for that student and month', async () => {

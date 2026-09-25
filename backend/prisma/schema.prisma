@@ -5,7 +5,9 @@
 // including local dev (SQLite is no longer a valid fallback).
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // BL-53: models the partial unique index "one ACTIVE enrolment per student" (M12).
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -574,6 +576,8 @@ model Enrollment {
   @@index([studentId])
   @@index([sectionId])
   @@index([campusId])
+  // BL-53 (M12): a student has at most one ACTIVE enrolment.
+  @@unique([studentId], map: "Enrollment_one_active_per_student", where: raw("status = 'ACTIVE'"))
 }
 
 model StudentPromotion {
@@ -942,6 +946,8 @@ model FeeVoucher {
   updatedAt         DateTime               @updatedAt
 
   @@index([studentId])
+  // BL-53 (M12): one voucher per student, session and month.
+  @@unique([studentId, academicSessionId, month])
 }
 
 model FeeItem {

@@ -5,7 +5,7 @@
 
 ## Conventions (observed)
 - PostgreSQL via Prisma 7; string UUID primary keys (`@default(uuid())`); `createdAt` on most tables, `updatedAt` on 36 of 57 (append-only/log tables lack it).
-- Money = `Int` in the smallest currency unit. Statuses are Prisma enums for core lifecycles (`Role`, `AttendanceStatus`, `EnrollmentStatus`, `PromotionDecision`, `StudentStatus`, `EmployeeType`, `EmploymentStatus`, `NotificationChannel`, `OrgStatus`, `Gender`, `BloodGroup`, `DocumentType`, `DocumentVerificationStatus`, `ConversationRecipientType`) but **free strings** for several others (`Circular.scope`, `Circular.priority`, `Complaint.status`, `LeaveRequest.status`, application statuses) — validated only in code.
+- Money = `Int` in the smallest currency unit. Statuses are Prisma enums for core lifecycles (`Role`, `AttendanceStatus`, `EnrollmentStatus`, `PromotionDecision`, `StudentStatus`, `EmployeeType`, `EmploymentStatus`, `NotificationChannel`, `OrgStatus`, `Gender`, `BloodGroup`, `DocumentType`, `DocumentVerificationStatus`, `ConversationRecipientType`) but **free strings** for several others (`Circular.scope`, `Circular.priority`, `Complaint.status`, `LeaveRequest.status`, `FeePayment.status`, application statuses). Since BL-53 (M12) the status strings are limited by database `CHECK` constraints (`<Table>_status_check`) to the values the code writes; `Circular.scope/priority` remain code-validated.
 - Foreign-key delete behaviour is a mix (108 edges): 30 `Restrict`, 38 `Cascade`, 25 `SetNull`, 15 Prisma default. Structural children (satellite profile tables, terms, recipients) cascade; business records restrict.
 - Indexes: 40 of 57 models declare `@@index`/`@@unique`; 7 have none (`AcademicSession`, `Address`, `DiaryAttachment`, `CircularAttachment`, `FeeStructure`, `FeeItem`, `LeaveRequest`). Key uniques: `User.identifier`, `Student.grNumber`, `Student.bFormNumber`, `ParentProfile.cnic`, `Attendance(studentId,date)`, `Mark(assessmentId,studentId)`, `ReportCard(studentId,academicSessionId)`, `StudentParent(studentId,parentProfileId)`, `Subject.name`.
 - Missing uniqueness where code assumes it: one ACTIVE `Enrollment` per student; one `FeeVoucher` per student/session/month (both enforced only in services).
@@ -32,8 +32,8 @@
 | ID | Issue |
 |---|---|
 | DB-2 | `AcademicSession`, `Subject`, `FeeStructure` have no school column ([TENANCY](TENANCY.md)) |
-| DB-3 | Stringly-typed status fields (see Conventions) |
-| DB-4 | Missing uniqueness for single ACTIVE enrollment and per-month vouchers |
+| DB-3 | ~~Stringly-typed status fields~~ — **mitigated 2026-09-26 (BL-53, M12):** `CHECK` constraints on Complaint, LeaveRequest, FeePayment, Application, HiringApplication and MigrationReviewItem status; conversion to Prisma enums not done (would change every writer) |
+| DB-4 | ~~Missing uniqueness for single ACTIVE enrollment and per-month vouchers~~ — **fixed 2026-09-26 (BL-53, M12):** partial unique index `Enrollment_one_active_per_student` (Prisma `partialIndexes` preview) and unique `FeeVoucher(studentId, academicSessionId, month)` |
 | DB-5 | No soft delete; `Cascade` on structural children means deleting a student removes its profile satellites, and deleting an academic session removes its terms (and whatever cascades from them) |
 | DB-6 | `Attendance` is daily only; no per-period attendance despite a period-based timetable |
 

@@ -132,6 +132,8 @@
 
 **M5 (BL-03) rehearsal** (`npm run migration:harness -- m5-school-fee-structures`, 2026-09-25): voucher lines unchanged in number; Tuition (issued in both schools) kept by the anchor and cloned, both LOCKED; Transport (school A only) → A, LOCKED; the never-issued Lab Fee left unassigned (blocking review); the two same-named "Admission Fee" structures left unassigned (2 blocking collision rows); every issued line with an enrolment linked to a structure of its own school; second run changed nothing. Deploy order: migration, then `npm run backfill:m5`.
 
+**M12 (BL-53) rehearsal** (`npm run migration:harness -- m12-db-invariants`, 2026-09-26): on dirty data (a second ACTIVE enrolment + a duplicate voucher) the migration refuses with the counts and changes nothing; on the legacy dataset it applies with row counts unchanged; afterwards a second ACTIVE enrolment and a duplicate voucher are rejected (23505), a WITHDRAWN extra enrolment is allowed, an invalid leave status is rejected (23514). The data check is `npm run migration:dry-run` (`M12_*` blocking rows). No schema drift after `migrate deploy` (`prisma migrate diff` empty).
+
 **Not yet evidenced.** No production copy has been examined, and M6–M7 do not exist yet. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

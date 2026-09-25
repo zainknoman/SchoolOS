@@ -684,7 +684,7 @@ Block attributes: `@@index([staffId])`
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([studentId])` · `@@index([sectionId])` · `@@index([campusId])`
+Block attributes: `@@index([studentId])` · `@@index([sectionId])` · `@@index([campusId])` · `@@unique([studentId], map: "Enrollment_one_active_per_student", where: raw("status = 'ACTIVE'"))`
 
 ### StudentPromotion
 
@@ -1115,7 +1115,7 @@ Block attributes: `@@index([schoolId])`
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([studentId])`
+Block attributes: `@@index([studentId])` · `@@unique([studentId, academicSessionId, month])`
 
 ### FeeItem
 

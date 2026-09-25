@@ -173,5 +173,26 @@ export async function dryRun(client) {
   summary.attendanceActorUnresolvable = att.filter((r) => !r.backfillable).length;
   summary.sectionsWithoutClassTeacher = (await q(`SELECT count(*)::int AS n FROM "Section" WHERE "classTeacherId" IS NULL`))[0].n;
 
+  // ---- M12 (BL-53) invariants: migration 20260926120000 refuses to run while any of these exist (all blocking).
+  const dupEnr = await q(`SELECT "studentId", array_agg(id ORDER BY "startDate") AS ids FROM "Enrollment" WHERE status = 'ACTIVE' GROUP BY 1 HAVING count(*) > 1`);
+  summary.studentsWithSeveralActiveEnrolments = dupEnr.length;
+  for (const r of dupEnr) review.push({ category: 'M12_DUPLICATE_ACTIVE_ENROLMENT', entity: 'Student', id: r.studentId, detail: `${r.ids.length} ACTIVE enrolments (${r.ids.join(', ')}) — close all but the current one before M12 (blocking)` });
+  const dupVch = await q(`SELECT "studentId", "academicSessionId", month, array_agg(id ORDER BY "createdAt") AS ids FROM "FeeVoucher" GROUP BY 1, 2, 3 HAVING count(*) > 1`);
+  summary.duplicateVoucherGroups = dupVch.length;
+  for (const r of dupVch) review.push({ category: 'M12_DUPLICATE_VOUCHER', entity: 'FeeVoucher', id: r.ids.join('|'), detail: `student ${r.studentId}: ${r.ids.length} vouchers for ${r.month} in one session — keep one (move payments first) before M12 (blocking)` });
+  const allowed = {
+    Complaint: ['open', 'in_progress', 'resolved'],
+    LeaveRequest: ['pending', 'approved', 'rejected'],
+    FeePayment: ['pending', 'completed', 'failed'],
+    Application: ['SUBMITTED', 'UNDER_REVIEW', 'WITHDRAWN', 'APPROVED', 'REJECTED'],
+    HiringApplication: ['SUBMITTED', 'SHORTLISTED', 'INTERVIEWED', 'APPROVED', 'REJECTED'],
+  };
+  summary.invalidStatusRows = 0;
+  for (const [table, values] of Object.entries(allowed)) {
+    const bad = await q(`SELECT id, status FROM "${table}" WHERE status <> ALL($1::text[])`, [values]);
+    summary.invalidStatusRows += bad.length;
+    for (const r of bad) review.push({ category: 'M12_INVALID_STATUS', entity: table, id: r.id, detail: `status "${r.status}" is not one of ${values.join('/')} — correct it before M12 (blocking)` });
+  }
+
   return { summary, review };
 }

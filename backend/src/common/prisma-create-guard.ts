@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 /**
@@ -12,6 +12,23 @@ export function assertCreatable(error: unknown, message: string): never {
     error.code === 'P2002'
   ) {
     throw new BadRequestException(message);
+  }
+  throw error;
+}
+
+/**
+ * BL-53: a write that lost a race against a DB invariant (unique / partial-unique index, M12)
+ * becomes a 409 with a clear message; any other error is rethrown unchanged.
+ */
+export function rethrowUniqueAsConflict(
+  error: unknown,
+  message: string,
+): never {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  ) {
+    throw new ConflictException(message);
   }
   throw error;
 }

@@ -16,8 +16,8 @@
 | KI-9 | API | No global exception filter/request logging; default error bodies | API-2 | diagnosability | DECIDED (structured logs, Sentry) → BL-11 — **Resolved 2026-09-25 (BL-11):** global filter, JSON logs with request id, error reporting |
 | KI-10 | API | Unknown request fields silently dropped | API-3 | hidden client bugs | — |
 | KI-11 | API | No OpenAPI; hand-mirrored client types | API-4 | drift | — |
-| KI-12 | Data | Missing DB uniqueness: one ACTIVE enrollment per student; one voucher per student/session/month | `schema.prisma` | race-condition duplicates | → BL-53 |
-| KI-13 | Data | Stringly-typed status columns | DB-3 | invalid states possible | → BL-53 |
+| KI-12 | Data | Missing DB uniqueness: one ACTIVE enrollment per student; one voucher per student/session/month | `schema.prisma` | race-condition duplicates | → BL-53 — **Resolved 2026-09-26 (BL-53, M12):** partial unique + unique index; races return 409 |
+| KI-13 | Data | Stringly-typed status columns | DB-3 | invalid states possible | → BL-53 — **Mitigated 2026-09-26 (BL-53, M12):** DB CHECK constraints on the status strings |
 | KI-14 | Data | Hard deletes of PII; no soft delete/archive; cascades on structural children | `student.service.ts:155`, DB-5 | irrecoverable loss | DECIDED (retain/archive) → BL-07 |
 | KI-15 | Data | Attendance is daily-only (`@@unique(studentId,date)`) while timetable is per period | DB-6 | product limitation | DECIDED (daily now, per-period later) → BL-45 |
 | KI-16 | Grades | Category weights not required to total 100 (warning only) | `assessment-categories.service.ts:40` | wrong grades | DECIDED → BL-27 (weights must total 100 to publish) |
