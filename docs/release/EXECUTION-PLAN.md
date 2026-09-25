@@ -1,4 +1,4 @@
-# Pilot-Readiness Execution Plan (Waves 0–7)
+BL-39 ✅ |BL-53 ✅ |BL-32 ✅ |BL-25 ✅ |BL-61, BL-05 ✅ |BL-04, BL-23 ✅ |BL-03 ✅ |BL-02 ✅ |BL-01 ✅ |BL-20 ✅ |BL-60 ✅ |# Pilot-Readiness Execution Plan (Waves 0–7)
 
 > **Status:** CURRENT — **Waves 0–3 done, Wave 4 in progress** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-25) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
 > Companion to the gap analysis: this file fixes the **order of execution**, the **schema/migration dependencies that must precede application code**, the affected layers, the docs to regenerate, and rollback rules. Findings F1–F10 (2026-09-20) are folded in. Item detail and acceptance criteria live in the BACKLOG.
@@ -53,23 +53,24 @@ Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a
 Hard gates: **BL-62 approved (✅ 2026-09-24) + BL-65 available (✅)** before any of BL-01, BL-02, BL-03, BL-20 (M2), BL-23, BL-61 executes; **BL-21 before BL-64**; **BL-60 (M1) before BL-29 (M1b)**; **BL-61 before BL-05**; **BL-40 (pagination) before new list screens**; **BL-34 before BL-43** (identifiers created once); **BL-66 before the first regeneration of docs**.
 
 ## 3. Schema / migration order (schema before application code)
+✅ = migration shipped (see §0 for commits); M9 in progress.
 Every data-changing migration uses **expand → backfill → contract** (contract one release later), an idempotent backfill script, a dry-run reconciliation report, and is rehearsed on the BL-65 harness first.
 | M | Change | Item | Backfill / ambiguity handling |
 |---|---|---|---|
-| M1 | `Attendance.markedById` nullable; add `markedByUserId` (→ `User`) | BL-60 | from `AuditLog` actions `attendance.mark`, `attendance.mark-bulk`, `leave-request.approve` (no `attendance.update` exists — corrected 2026-09-24); unresolved stays null (keeps old `markedById`) |
+| M1 | `Attendance.markedById` nullable; add `markedByUserId` (→ `User`) | BL-60 ✅ | from `AuditLog` actions `attendance.mark`, `attendance.mark-bulk`, `leave-request.approve` (no `attendance.update` exists — corrected 2026-09-24); unresolved stays null (keeps old `markedById`) |
 | M1b | `LeaveRequest`: recommender/decider ids, timestamps, notes | BL-29 | none (new columns) |
-| M2 | `Circular.schoolId`, `Holiday.schoolId` | BL-20 | Holiday from campus; Circular from section→class→campus→school, else author's school; SUPER_ADMIN author or ambiguity → manual review |
-| M3 | `AcademicSession.schoolId` (+ `legacySessionId`, unique `(schoolId,label)`) | BL-01 | shared global sessions split per school and dependents re-pointed; ambiguity → review, never an arbitrary "current" session |
-| M4 | `Subject.schoolId`, `isActive`, unique `(schoolId,name)` | BL-02 | referenced subjects cloned per school; dependents re-pointed; unreferenced rule set in BL-62 |
-| M5 | `FeeStructure.schoolId` + lifecycle; `Term` follows session | BL-03 | school via vouchers' students; ambiguity → review |
-| M6 | `StudentParent.relationshipType` (from the existing free-text `relationship`), `primarySlot` 1–2 (unique per student; `isPrimary` already exists since `20260919090000`) | BL-04, BL-23 | rules G4/G5 of [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md): known texts mapped, others → `OTHER`; > 2 primaries → review. **No `schoolId` on the guardian identity** |
-| M7 | Add `StudentStatus.TRANSFERRED`; rename `PromotionDecision.TRANSFERRED_OUT`→`TRANSFERRED`; add `PROMOTED_WITH_CONDITIONS` | BL-61, BL-05 | **`LEFT` + matching `TRANSFERRED_OUT` promotion → `TRANSFERRED`; all other `LEFT` → manual review; never renamed blindly**; `LEFT` removed only when zero rows remain; `EnrollmentStatus` unchanged |
-| M8 | `TeachingAssignmentHistory` | BL-25 | from current section/timetable, start date flagged unknown |
+| M2 | `Circular.schoolId`, `Holiday.schoolId` | BL-20 ✅ | Holiday from campus; Circular from section→class→campus→school, else author's school; SUPER_ADMIN author or ambiguity → manual review |
+| M3 | `AcademicSession.schoolId` (+ `legacySessionId`, unique `(schoolId,label)`) | BL-01 ✅ | shared global sessions split per school and dependents re-pointed; ambiguity → review, never an arbitrary "current" session |
+| M4 | `Subject.schoolId`, `isActive`, unique `(schoolId,name)` | BL-02 ✅ | referenced subjects cloned per school; dependents re-pointed; unreferenced rule set in BL-62 |
+| M5 | `FeeStructure.schoolId` + lifecycle; `Term` follows session | BL-03 ✅ | school via vouchers' students; ambiguity → review |
+| M6 | `StudentParent.relationshipType` (from the existing free-text `relationship`), `primarySlot` 1–2 (unique per student; `isPrimary` already exists since `20260919090000`) | BL-04, BL-23 ✅ | rules G4/G5 of [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md): known texts mapped, others → `OTHER`; > 2 primaries → review. **No `schoolId` on the guardian identity** |
+| M7 | Add `StudentStatus.TRANSFERRED`; rename `PromotionDecision.TRANSFERRED_OUT`→`TRANSFERRED`; add `PROMOTED_WITH_CONDITIONS` | BL-61, BL-05 ✅ | **`LEFT` + matching `TRANSFERRED_OUT` promotion → `TRANSFERRED`; all other `LEFT` → manual review; never renamed blindly**; `LEFT` removed only when zero rows remain; `EnrollmentStatus` unchanged |
+| M8 | `TeachingAssignmentHistory` | BL-25 ✅ | from current section/timetable, start date flagged unknown |
 | M9 | `archivedAt`; `RetentionPolicy` (periods null) | BL-07, BL-63 | none |
-| M10 | Complaint fields + `ComplaintNote`, `ComplaintAttachment`; syllabus; grading scale; report-card source/snapshot/version; risk settings; promotion config | BL-30/26/27/06/28/05 | additive |
-| M11 | `UserPermission` grants | BL-32 | preserve current ACCOUNTS behaviour, then restrict |
-| M12 | one ACTIVE enrolment per student; one voucher per student/session/month | BL-53 | pre-check duplicates; raw-SQL partial unique index |
-| M13 | job lock (or advisory locks) | BL-39 | — |
+| M10 | Complaint fields + `ComplaintNote`, `ComplaintAttachment`; syllabus; grading scale; report-card source/snapshot/version; risk settings; promotion config | BL-30/26/27/06/28/05 (BL-05 part ✅: `PromotionPolicy`) | additive |
+| M11 | `UserPermission` grants | BL-32 ✅ | preserve current ACCOUNTS behaviour, then restrict |
+| M12 | one ACTIVE enrolment per student; one voucher per student/session/month | BL-53 ✅ | pre-check duplicates; raw-SQL partial unique index |
+| M13 | job lock (or advisory locks) | BL-39 ✅ | — |
 
 ## 4. Layers touched per wave
 | Wave | Backend / schema | Staff console | Parent app | Tests (new or replaced) |

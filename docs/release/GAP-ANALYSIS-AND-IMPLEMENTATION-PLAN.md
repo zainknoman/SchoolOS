@@ -1,6 +1,6 @@
 # Product Readiness Gap Analysis and Phased Implementation Plan
 
-> **Status:** CURRENT (plan; **nothing here is implemented**) · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** [OWNER-DECISIONS](../product/OWNER-DECISIONS.md), [BACKLOG](../product/requirements/BACKLOG.md), [KNOWN-GAPS](../security/KNOWN-GAPS.md), [KNOWN-ISSUES](KNOWN-ISSUES.md), [PRODUCTION-READINESS](PRODUCTION-READINESS.md) · **Owner:** Engineering Lead with Product Owner
+> **Status:** CURRENT (plan) — **implementation in progress; the live progress table is [EXECUTION-PLAN §0](EXECUTION-PLAN.md), and each done item carries a "Done" note in the [BACKLOG](../product/requirements/BACKLOG.md)**. The "Current" column below records the state at 2026-09-20; the **Progress** note after the table lists what has since been delivered · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** [OWNER-DECISIONS](../product/OWNER-DECISIONS.md), [BACKLOG](../product/requirements/BACKLOG.md), [KNOWN-GAPS](../security/KNOWN-GAPS.md), [KNOWN-ISSUES](KNOWN-ISSUES.md), [PRODUCTION-READINESS](PRODUCTION-READINESS.md) · **Owner:** Engineering Lead with Product Owner
 > Verdict is unchanged: **NO-GO** until the pilot blockers below are closed. The owner has decided the product rules; the gap is now almost entirely **engineering and infrastructure work**, plus **placeholder/TBD values** (vendors, domains, legal values — §5). All 15 open owner items were answered on 2026-09-20; nothing that remains is an architecture decision. No estimates are given because none were supplied; phases are ordered by dependency and by the owner's pilot scope (Q33).
 > Principle applied (owner ruling 2026-09-20): where code conflicts with a confirmed product rule, **the rule stands, the conflict is documented, and a work item is created** — no requirement was weakened to fit the code.
 
@@ -53,6 +53,15 @@ Legend: ✅ exists · ⚠ partial · ❌ missing · 🔁 conflicts with the deci
 | Privacy operations, breach process, support process (Q22, Q27) | ❌ documents absent | write, approve, counsel review | BL-56 |
 | Integrations (Q34–Q39) | ⚠ adapters, unverified | verify FCM/SMTP for pilot; gateways post-pilot | BL-14, BL-38, BL-48, BL-49 |
 | Licence, security contact, domains (Q20, Q21, RD-1, RD-2) | ⚠ placeholders (`[LEGAL_ENTITY_NAME]`, `[SECURITY_EMAIL]`, `[PRODUCTION_DOMAIN]`, `[SUPPORT_EMAIL]`, `[EMAIL_FROM]`) | supply values; config-driven | §5 |
+
+
+**Progress (updated 2026-09-27, branch `wave-0/foundations`)** — delivered since this table was written (✅ = done, commit in EXECUTION-PLAN §0):
+- ✅ Wave 0: BL-65 harness, BL-62 strategy (approved), BL-18 scaffold, BL-66 generators, BL-37 part 1.
+- ✅ Wave 1: BL-51 config safety, BL-12 headers/audit, BL-21 account controls, BL-64 parent reset without e-mail, BL-22 bootstrap super admin, BL-52 upload checks, BL-60 attendance without class teacher (M1).
+- ✅ Wave 2: BL-10 object storage, BL-11 health/logs/Sentry, BL-39 job lock, BL-40 pagination (BL-13 is Ops, open).
+- ✅ Wave 3: BL-20 circular/holiday anchors (M2), BL-01 school sessions (M3), BL-02 school subjects (M4), BL-03 fee structures (M5), BL-33 copy structure, BL-32 accounts grants, BL-53 DB invariants (M12), BL-34 rebrand/neutral demo data.
+- ✅ Wave 4 so far: BL-23 + BL-04 guardians (M6), BL-61 lifecycle terms (M7), BL-05 promotion indicators/confirmation, BL-25 teaching-assignment history (M8). In progress: BL-07 + BL-63 (M9); next BL-41, then Waves 5–7.
+So in the table: Q4, Q5, Q15, Q19, Q17/Q23 (code part), Q30, Q40, Q29 (app part), Q44 pagination part, Q46 part 1, the tenant-isolation/unsafe-default row, RD-4 × Q41, RD-10 and RD-11 are now ✅; Q28/Q25/Q26 infrastructure, Q32/Q35, and the rest remain as listed.
 
 ## 3. Phased implementation plan (dependency order)
 The wave-by-wave execution plan, migration list (M1–M13), regeneration matrix and rollback rules are in [EXECUTION-PLAN](EXECUTION-PLAN.md); Wave 0 (BL-62, BL-65, BL-66, BL-37 part 1, BL-18 scaffold) precedes Phase A here.
