@@ -146,6 +146,8 @@
 
 **M10 part 3 (BL-06, `20260928110000_m10_report_cards`, 2026-09-26):** additive (one table) plus the `GeneratedReportCard_immutable` trigger; applied to the scratch database, no drift; e2e `generated-report-cards` proves the trigger refuses edits and un-superseding.
 
+**M10 part 4 (BL-28, `20260928120000_m10_attendance_risk`, 2026-09-26):** additive (one table; no row = defaults, so existing behaviour is unchanged until a school saves settings); applied to the scratch database, no drift, full e2e green.
+
 **Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

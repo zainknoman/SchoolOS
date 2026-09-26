@@ -1,7 +1,7 @@
 # Teacher Guide
 
 > **Status:** PARTIAL (see [verification level](README.md)) · **Verified:** 2026-09-20 · Role: `TEACHER`. You see only the sections you teach (from the timetable) or are class teacher of. Screens: **My Day**, **Attendance**, **Diary**, **Timetable**, **Messages**, **Complaints**, **Report Cards**, **Gradebook**.
-> **Decided, not yet implemented (owner, 2026-09-20):** teachers can recommend leave (BL-29) and see attendance-risk alerts with configurable thresholds (BL-28). This guide describes current behaviour.
+> **Decided, not yet implemented (owner, 2026-09-20):** teachers can recommend leave (BL-29). Attendance-risk alerts with per-school thresholds are live (BL-28). This guide describes current behaviour.
 
 | Task | Where | Notes |
 |---|---|---|
@@ -18,5 +18,5 @@
 
 ## Good to know
 - A student's *final grade* is the weighted percentage across their class's categories (weights set by the administrator), with the letter grade and remark from the school's grading scale. Parents see a term's results only after the administrator publishes them; while published, categories and assessments are locked but you can still enter or correct marks.
-- Attendance risk flags (students with ≥ 25 % absence over 30 days) appear on dashboards after the nightly run.
+- Attendance risk: after the nightly check you get a notification when a student in a section you are class teacher of is newly flagged (absent on at least your school's threshold of school days in its window — by default 25 % over 30 days; late counts as present).
 - You cannot approve leave (school admins do), edit the timetable, or see other teachers' sections.

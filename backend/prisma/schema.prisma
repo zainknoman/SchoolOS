@@ -186,12 +186,12 @@ model User {
   refreshTokens              RefreshToken[]
   auditLogs                  AuditLog[]
   deviceTokens               DeviceToken[]
-  circularsCreated           Circular[]            @relation("CircularAuthor")
+  circularsCreated           Circular[]             @relation("CircularAuthor")
   circularRecipients         CircularRecipient[]
   diaryEntriesAuthored       DiaryEntry[]
-  conversationsAsParent      Conversation[]        @relation("ConversationParent")
-  conversationsAsStaff       Conversation[]        @relation("ConversationStaff")
-  messagesSent               Message[]             @relation("MessageSender")
+  conversationsAsParent      Conversation[]         @relation("ConversationParent")
+  conversationsAsStaff       Conversation[]         @relation("ConversationStaff")
+  messagesSent               Message[]              @relation("MessageSender")
   passwordResetTokens        PasswordResetToken[]
   complaintsRaised           Complaint[]
   reportCardsUploaded        ReportCard[]
@@ -203,13 +203,14 @@ model User {
   verifiedStaffDocuments     StaffDocument[]
   reviewedHiringApplications HiringApplication[]
   promotionsDecided          StudentPromotion[]
-  attendanceMarked           Attendance[]          @relation("AttendanceMarkedByUser")
+  attendanceMarked           Attendance[]           @relation("AttendanceMarkedByUser")
   migrationReviewsResolved   MigrationReviewItem[]
-  promotionPoliciesUpdated   PromotionPolicy[]     @relation("PromotionPolicyUpdatedBy")
-  syllabiUpdated             Syllabus[]            @relation("SyllabusUpdatedBy")
-  gradingScalesUpdated       GradingScale[]        @relation("GradingScaleUpdatedBy")
-  resultsPublished           ResultPublication[]   @relation("ResultPublishedBy")
-  reportCardsIssued          GeneratedReportCard[] @relation("ReportCardIssuedBy")
+  promotionPoliciesUpdated   PromotionPolicy[]      @relation("PromotionPolicyUpdatedBy")
+  riskPoliciesUpdated        AttendanceRiskPolicy[] @relation("AttendanceRiskPolicyUpdatedBy")
+  syllabiUpdated             Syllabus[]             @relation("SyllabusUpdatedBy")
+  gradingScalesUpdated       GradingScale[]         @relation("GradingScaleUpdatedBy")
+  resultsPublished           ResultPublication[]    @relation("ResultPublishedBy")
+  reportCardsIssued          GeneratedReportCard[]  @relation("ReportCardIssuedBy")
 
   @@index([role])
   @@index([schoolId])
@@ -231,40 +232,41 @@ model RefreshToken {
 // --- School structure -----------------------------------------------------
 
 model School {
-  id                  String               @id @default(uuid())
-  name                String
-  code                String?              @unique
-  registrationNumber  String?
-  website             String?
-  logoFileId          String?
-  logo                File?                @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
-  principalName       String?
-  principalPhone      String?
-  principalEmail      String?
-  establishedDate     DateTime?
-  schoolType          String?
-  educationBoard      String?
-  status              OrgStatus            @default(ACTIVE)
-  timezone            String?              @default("Asia/Karachi")
-  currency            String?              @default("PKR")
-  alternatePhone      String?
-  addressId           String?
-  structuredAddress   Address?             @relation(fields: [addressId], references: [id], onDelete: SetNull)
-  address             String?
-  phone               String?
-  email               String?
-  campuses            Campus[]
-  users               User[]
-  circulars           Circular[]
-  holidays            Holiday[]
-  academicSessions    AcademicSession[]
-  subjects            Subject[]
-  feeStructures       FeeStructure[]
-  promotionPolicy     PromotionPolicy?
-  gradingScales       GradingScale[]
-  teachingAssignments TeachingAssignment[]
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  id                   String                @id @default(uuid())
+  name                 String
+  code                 String?               @unique
+  registrationNumber   String?
+  website              String?
+  logoFileId           String?
+  logo                 File?                 @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
+  principalName        String?
+  principalPhone       String?
+  principalEmail       String?
+  establishedDate      DateTime?
+  schoolType           String?
+  educationBoard       String?
+  status               OrgStatus             @default(ACTIVE)
+  timezone             String?               @default("Asia/Karachi")
+  currency             String?               @default("PKR")
+  alternatePhone       String?
+  addressId            String?
+  structuredAddress    Address?              @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  address              String?
+  phone                String?
+  email                String?
+  campuses             Campus[]
+  users                User[]
+  circulars            Circular[]
+  holidays             Holiday[]
+  academicSessions     AcademicSession[]
+  subjects             Subject[]
+  feeStructures        FeeStructure[]
+  promotionPolicy      PromotionPolicy?
+  gradingScales        GradingScale[]
+  attendanceRiskPolicy AttendanceRiskPolicy?
+  teachingAssignments  TeachingAssignment[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 }
 
 model Campus {
@@ -650,6 +652,24 @@ model PromotionPolicy {
   updatedBy            User?    @relation("PromotionPolicyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+}
+
+// BL-28 (Q8): a school's attendance-risk settings. No row = the defaults below. Absence rate =
+// ABSENT days / tracked school days in the window (LATE counts as present; LEAVE and holidays are
+// not tracked).
+model AttendanceRiskPolicy {
+  id               String   @id @default(uuid())
+  schoolId         String   @unique
+  school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  windowDays       Int      @default(30)
+  thresholdPercent Int      @default(25)
+  minTrackedDays   Int      @default(5)
+  // alerts to the student's guardians — off until the school turns it on
+  notifyParents    Boolean  @default(false)
+  updatedById      String?
+  updatedBy        User?    @relation("AttendanceRiskPolicyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 // Rows are history: a DB trigger (BL-05) refuses any UPDATE.

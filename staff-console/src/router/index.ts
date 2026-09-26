@@ -284,6 +284,13 @@ const router = createRouter({
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Assessment Categories', group: 'Operations' },
     },
     {
+      // BL-28: attendance-risk settings and the flagged-student list.
+      path: '/admin/attendance-risk',
+      name: 'admin-attendance-risk',
+      component: () => import('../views/AttendanceRiskPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Attendance Risk', group: 'Operations' },
+    },
+    {
       // BL-27: per-school grading scales (letters, remarks, grade points).
       path: '/admin/grading-scales',
       name: 'admin-grading-scales',

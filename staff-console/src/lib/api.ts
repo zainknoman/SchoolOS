@@ -485,6 +485,15 @@ export interface ResultPublicationStatus {
   blockers: string[];
 }
 
+/** BL-28: a school's attendance-risk settings (defaults 30 days / 25 % / 5 days, parents off). */
+export interface AttendanceRiskSettings {
+  schoolId: string;
+  windowDays: number;
+  thresholdPercent: number;
+  minTrackedDays: number;
+  notifyParents: boolean;
+}
+
 export interface AttendanceRiskSummary {
   studentId: string;
   studentName: string;
@@ -2823,6 +2832,24 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
       body: JSON.stringify({ context }),
+    });
+    return asJson(res);
+  },
+
+  async getAttendanceRiskSettings(accessToken: string, schoolId?: string): Promise<AttendanceRiskSettings> {
+    const q = schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/attendance-risk/settings${q}`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async updateAttendanceRiskSettings(
+    accessToken: string,
+    input: Omit<AttendanceRiskSettings, 'schoolId'> & { schoolId?: string },
+  ): Promise<AttendanceRiskSettings> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/attendance-risk/settings`, {
+      method: 'PUT',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
     });
     return asJson(res);
   },

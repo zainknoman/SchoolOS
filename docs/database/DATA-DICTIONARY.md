@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **67 models, 19 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **68 models, 19 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -78,6 +78,7 @@
 | attendanceMarked | Attendance[] (relation) | @relation("AttendanceMarkedByUser") |
 | migrationReviewsResolved | MigrationReviewItem[] (relation) |  |
 | promotionPoliciesUpdated | PromotionPolicy[] (relation) | @relation("PromotionPolicyUpdatedBy") |
+| riskPoliciesUpdated | AttendanceRiskPolicy[] (relation) | @relation("AttendanceRiskPolicyUpdatedBy") |
 | syllabiUpdated | Syllabus[] (relation) | @relation("SyllabusUpdatedBy") |
 | gradingScalesUpdated | GradingScale[] (relation) | @relation("GradingScaleUpdatedBy") |
 | resultsPublished | ResultPublication[] (relation) | @relation("ResultPublishedBy") |
@@ -210,6 +211,7 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | feeStructures | FeeStructure[] (relation) |  |
 | promotionPolicy | PromotionPolicy? (relation) |  |
 | gradingScales | GradingScale[] (relation) |  |
+| attendanceRiskPolicy | AttendanceRiskPolicy? (relation) |  |
 | teachingAssignments | TeachingAssignment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
@@ -1019,6 +1021,22 @@ Block attributes: `@@unique([studentId, date])` · `@@index([studentId])` · `@@
 | flagged | Boolean |  |
 | windowStart | DateTime |  |
 | windowEnd | DateTime |  |
+| updatedAt | DateTime | @updatedAt |
+
+### AttendanceRiskPolicy
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| schoolId | String | @unique |
+| school | School (relation) | @relation(fields: [schoolId], references: [id], onDelete: Cascade) |
+| windowDays | Int | @default(30) |
+| thresholdPercent | Int | @default(25) |
+| minTrackedDays | Int | @default(5) |
+| notifyParents | Boolean | @default(false) |
+| updatedById | String? |  |
+| updatedBy | User? (relation) | @relation("AttendanceRiskPolicyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull) |
+| createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
 ### DiaryEntry

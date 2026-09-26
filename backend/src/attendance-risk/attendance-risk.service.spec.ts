@@ -4,6 +4,7 @@ import { AttendanceRiskService } from './attendance-risk.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { HolidaysService } from '../holidays/holidays.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { OrgScopeService } from '../common/org-scope.service';
 import { RISK_MIN_TRACKED_DAYS } from './attendance-risk.constants';
 
 describe('AttendanceRiskService', () => {
@@ -19,6 +20,9 @@ describe('AttendanceRiskService', () => {
     section: { findUnique: jest.Mock };
     teacher: { findUnique: jest.Mock };
     student: { findUnique: jest.Mock };
+    attendanceRiskPolicy: { findMany: jest.Mock };
+    user: { findMany: jest.Mock };
+    studentParent: { findMany: jest.Mock };
   };
   let holidaysService: { isHoliday: jest.Mock };
   let notificationsService: { notify: jest.Mock };
@@ -35,6 +39,10 @@ describe('AttendanceRiskService', () => {
       section: { findUnique: jest.fn() },
       teacher: { findUnique: jest.fn() },
       student: { findUnique: jest.fn() },
+      // BL-28: no saved settings = the Q8 defaults; no admins/guardians unless a test adds them.
+      attendanceRiskPolicy: { findMany: jest.fn().mockResolvedValue([]) },
+      user: { findMany: jest.fn().mockResolvedValue([]) },
+      studentParent: { findMany: jest.fn().mockResolvedValue([]) },
     };
     holidaysService = { isHoliday: jest.fn().mockResolvedValue(false) };
     notificationsService = { notify: jest.fn().mockResolvedValue(undefined) };
@@ -44,6 +52,7 @@ describe('AttendanceRiskService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: HolidaysService, useValue: holidaysService },
         { provide: NotificationsService, useValue: notificationsService },
+        { provide: OrgScopeService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(AttendanceRiskService);
@@ -58,7 +67,12 @@ describe('AttendanceRiskService', () => {
 
   it('flags a student whose absence rate meets the threshold over enough tracked days', async () => {
     prisma.enrollment.findMany.mockResolvedValue([
-      { studentId: 's1', campusId: 'campus-1', sectionId: 'sec-1' },
+      {
+        studentId: 's1',
+        campusId: 'campus-1',
+        sectionId: 'sec-1',
+        campus: { schoolId: 'school-1' },
+      },
     ]);
     // 8 tracked days, 2 absent => 25% >= RISK_THRESHOLD (0.25)
     prisma.attendance.findMany.mockResolvedValue([
@@ -68,9 +82,8 @@ describe('AttendanceRiskService', () => {
     prisma.attendanceRiskFlag.findUnique.mockResolvedValue(null); // wasFlagged = false
     prisma.attendanceRiskFlag.upsert.mockResolvedValue({});
     prisma.section.findUnique.mockResolvedValue({
-      classTeacherId: 'teacher-1',
+      classTeacher: { userId: 'teacher-user-1' },
     });
-    prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-user-1' });
     prisma.student.findUnique.mockResolvedValue({ name: 'Ali' });
 
     await service.recomputeAll();
@@ -90,7 +103,12 @@ describe('AttendanceRiskService', () => {
 
   it('notifies the class teacher only on the false->true transition, never on repeat flags', async () => {
     prisma.enrollment.findMany.mockResolvedValue([
-      { studentId: 's1', campusId: 'campus-1', sectionId: 'sec-1' },
+      {
+        studentId: 's1',
+        campusId: 'campus-1',
+        sectionId: 'sec-1',
+        campus: { schoolId: 'school-1' },
+      },
     ]);
     prisma.attendance.findMany.mockResolvedValue([
       ...daysOfStatus(6, 'PRESENT'),
@@ -98,9 +116,8 @@ describe('AttendanceRiskService', () => {
     ]);
     prisma.attendanceRiskFlag.upsert.mockResolvedValue({});
     prisma.section.findUnique.mockResolvedValue({
-      classTeacherId: 'teacher-1',
+      classTeacher: { userId: 'teacher-user-1' },
     });
-    prisma.teacher.findUnique.mockResolvedValue({ userId: 'teacher-user-1' });
     prisma.student.findUnique.mockResolvedValue({ name: 'Ali' });
 
     // Case A: previously unflagged -> notify fires
@@ -125,7 +142,12 @@ describe('AttendanceRiskService', () => {
 
   it('excludes holiday days from both the tracked-day and absent-day counts', async () => {
     prisma.enrollment.findMany.mockResolvedValue([
-      { studentId: 's1', campusId: 'campus-1', sectionId: 'sec-1' },
+      {
+        studentId: 's1',
+        campusId: 'campus-1',
+        sectionId: 'sec-1',
+        campus: { schoolId: 'school-1' },
+      },
     ]);
     const records = [
       ...daysOfStatus(5, 'PRESENT', 1),
@@ -156,7 +178,12 @@ describe('AttendanceRiskService', () => {
 
   it('skips a student entirely when fewer than RISK_MIN_TRACKED_DAYS days are tracked', async () => {
     prisma.enrollment.findMany.mockResolvedValue([
-      { studentId: 's1', campusId: 'campus-1', sectionId: 'sec-1' },
+      {
+        studentId: 's1',
+        campusId: 'campus-1',
+        sectionId: 'sec-1',
+        campus: { schoolId: 'school-1' },
+      },
     ]);
     prisma.attendance.findMany.mockResolvedValue(
       daysOfStatus(RISK_MIN_TRACKED_DAYS - 1, 'ABSENT'),
@@ -170,7 +197,12 @@ describe('AttendanceRiskService', () => {
 
   it('does not flag when the absence rate is below RISK_THRESHOLD', async () => {
     prisma.enrollment.findMany.mockResolvedValue([
-      { studentId: 's1', campusId: 'campus-1', sectionId: 'sec-1' },
+      {
+        studentId: 's1',
+        campusId: 'campus-1',
+        sectionId: 'sec-1',
+        campus: { schoolId: 'school-1' },
+      },
     ]);
     // 10 tracked, 1 absent = 10% < 25%
     prisma.attendance.findMany.mockResolvedValue([
@@ -265,5 +297,103 @@ describe('AttendanceRiskService', () => {
         }),
       }),
     );
+  });
+
+  describe('per-school settings and alert recipients (BL-28)', () => {
+    const enrolled = () =>
+      prisma.enrollment.findMany.mockResolvedValue([
+        {
+          studentId: 's1',
+          campusId: 'campus-1',
+          sectionId: 'sec-1',
+          campus: { schoolId: 'school-1' },
+        },
+      ]);
+
+    beforeEach(() => {
+      prisma.attendanceRiskFlag.findUnique.mockResolvedValue(null);
+      prisma.attendanceRiskFlag.upsert.mockResolvedValue({});
+      prisma.student.findUnique.mockResolvedValue({ name: 'Ali' });
+      prisma.section.findUnique.mockResolvedValue({
+        classTeacher: { userId: 'teacher-user-1' },
+      });
+    });
+
+    it("uses the school's own threshold, window and minimum days", async () => {
+      enrolled();
+      prisma.attendanceRiskPolicy.findMany.mockResolvedValue([
+        {
+          schoolId: 'school-1',
+          windowDays: 14,
+          thresholdPercent: 10,
+          minTrackedDays: 3,
+          notifyParents: false,
+        },
+      ]);
+      // 3 tracked, 1 absent = 33 % — below the default minimum days (5) but above this school's 3.
+      prisma.attendance.findMany.mockResolvedValue([
+        ...daysOfStatus(2, 'PRESENT'),
+        ...daysOfStatus(1, 'ABSENT'),
+      ]);
+      await service.recomputeAll(new Date('2026-09-20T10:00:00Z'));
+      const where = prisma.attendance.findMany.mock.calls[0][0].where;
+      expect(where.date.gte.toISOString()).toBe('2026-09-06T00:00:00.000Z'); // 14 days
+      expect(prisma.attendanceRiskFlag.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ flagged: true }),
+        }),
+      );
+    });
+
+    it('LATE counts as present in the absence rate', async () => {
+      enrolled();
+      prisma.attendance.findMany.mockResolvedValue([
+        ...daysOfStatus(8, 'LATE'),
+        ...daysOfStatus(2, 'ABSENT', 20),
+      ]);
+      await service.recomputeAll();
+      expect(prisma.attendanceRiskFlag.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ absenceRate: 0.2, flagged: false }),
+        }),
+      );
+    });
+
+    it('alerts the class teacher and the school admins once; guardians only when enabled', async () => {
+      enrolled();
+      prisma.attendance.findMany.mockResolvedValue(daysOfStatus(5, 'ABSENT'));
+      prisma.user.findMany.mockResolvedValue([
+        { id: 'admin-1' },
+        { id: 'teacher-user-1' },
+      ]);
+      prisma.studentParent.findMany.mockResolvedValue([
+        { parentProfile: { userId: 'parent-1' } },
+      ]);
+      await service.recomputeAll();
+      const recipients = () =>
+        notificationsService.notify.mock.calls.map(
+          (c: [{ userId: string }]) => c[0].userId,
+        );
+      expect(recipients().sort()).toEqual(['admin-1', 'teacher-user-1']);
+      expect(prisma.user.findMany.mock.calls[0][0].where).toMatchObject({
+        role: 'SCHOOL_ADMIN',
+        schoolId: 'school-1',
+        OR: [{ campusId: null }, { campusId: 'campus-1' }],
+      });
+      expect(prisma.studentParent.findMany).not.toHaveBeenCalled();
+
+      notificationsService.notify.mockClear();
+      prisma.attendanceRiskPolicy.findMany.mockResolvedValue([
+        {
+          schoolId: 'school-1',
+          windowDays: 30,
+          thresholdPercent: 25,
+          minTrackedDays: 5,
+          notifyParents: true,
+        },
+      ]);
+      await service.recomputeAll();
+      expect(recipients()).toContain('parent-1');
+    });
   });
 });

@@ -581,6 +581,9 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
             <RouterLink v-if="canManageHolidays" data-testid="nav-subjects" to="/admin/subjects"
               ><Icon name="grid" />{{ t('nav.subjects') }}</RouterLink
             >
+            <RouterLink v-if="canManageHolidays" data-testid="nav-attendance-risk" to="/admin/attendance-risk"
+              ><Icon name="calendar" />{{ t('nav.attendanceRisk') }}</RouterLink
+            >
             <RouterLink v-if="canManageHolidays" data-testid="nav-holidays" to="/admin/holidays"
               ><Icon name="calendar" />{{ t('nav.holidays') }}</RouterLink
             >

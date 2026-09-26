@@ -68,6 +68,7 @@
         "Timetable",
         "Attendance",
         "AttendanceRiskFlag",
+        "AttendanceRiskPolicy",
         "DiaryEntry",
         "DiaryAttachment",
         "AssessmentCategory",

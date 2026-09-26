@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { AttendanceRiskService } from './attendance-risk.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -8,6 +8,7 @@ import {
 } from '../common/student-access.service';
 import { OrgScopeService } from '../common/org-scope.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { UpdateAttendanceRiskPolicyDto } from './update-attendance-risk-policy.dto';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -29,6 +30,29 @@ export class AttendanceRiskController {
   ) {
     await this.studentAccess.assertCanAccessStudent(req.user, studentId);
     return this.attendanceRiskService.getForStudent(studentId);
+  }
+
+  /** BL-28: the school's settings (defaults when none are saved). */
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @Get('attendance-risk/settings')
+  getSettings(
+    @Query('schoolId') schoolId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.attendanceRiskService.getPolicy(
+      req.user,
+      schoolId || undefined,
+    );
+  }
+
+  /** BL-28: school-wide admins and SUPER_ADMIN; audited. Applied by the next nightly run. */
+  @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @Put('attendance-risk/settings')
+  updateSettings(
+    @Body() dto: UpdateAttendanceRiskPolicyDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.attendanceRiskService.updatePolicy(req.user, dto);
   }
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')

@@ -123,6 +123,8 @@ flowchart LR
 
 ```mermaid
 flowchart LR
+  AttendanceRiskPolicy -->|Cascade| School
+  AttendanceRiskPolicy -->|SetNull, optional| User
   Timetable -->|Restrict| Section
   Timetable -->|Cascade| Subject
   Timetable -->|SetNull, optional| Teacher
