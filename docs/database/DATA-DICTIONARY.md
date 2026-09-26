@@ -79,6 +79,8 @@
 | migrationReviewsResolved | MigrationReviewItem[] (relation) |  |
 | promotionPoliciesUpdated | PromotionPolicy[] (relation) | @relation("PromotionPolicyUpdatedBy") |
 | riskPoliciesUpdated | AttendanceRiskPolicy[] (relation) | @relation("AttendanceRiskPolicyUpdatedBy") |
+| leaveRecommended | LeaveRequest[] (relation) | @relation("LeaveRecommendedBy") |
+| leaveDecided | LeaveRequest[] (relation) | @relation("LeaveDecidedBy") |
 | syllabiUpdated | Syllabus[] (relation) | @relation("SyllabusUpdatedBy") |
 | gradingScalesUpdated | GradingScale[] (relation) | @relation("GradingScaleUpdatedBy") |
 | resultsPublished | ResultPublication[] (relation) | @relation("ResultPublishedBy") |
@@ -1172,6 +1174,15 @@ Block attributes: `@@unique([studentId, termId, version])` · `@@index([classId,
 | endDate | DateTime |  |
 | reason | String |  |
 | status | String | @default("pending") |
+| recommendedById | String? |  |
+| recommendedBy | User? (relation) | @relation("LeaveRecommendedBy", fields: [recommendedById], references: [id], onDelete: SetNull) |
+| recommendedAt | DateTime? |  |
+| recommendsApproval | Boolean? |  |
+| recommendationNote | String? |  |
+| decidedById | String? |  |
+| decidedBy | User? (relation) | @relation("LeaveDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull) |
+| decidedAt | DateTime? |  |
+| decisionNote | String? |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 

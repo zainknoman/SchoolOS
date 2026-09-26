@@ -1,7 +1,7 @@
 # School Admin and Principal Guide
 
 > **Status:** PARTIAL (see [verification level](README.md)) · **Verified:** 2026-09-20 · Role: `SCHOOL_ADMIN` — your school (or only your campus, if your login is campus-scoped). A **Principal** is a School Admin whose account has the principal flag: you additionally see **Principal → School Overview** and **Academics & Staff**.
-> **Implemented 2026-09-25:** copy-structure for school admins (BL-33), subject management (BL-02), leave approval without a class teacher (BL-60/BL-29 part). **Still to come:** the leave recommendation step (BL-29). This guide describes current behaviour and is not click-tested.
+> **Implemented 2026-09-25:** copy-structure for school admins (BL-33), subject management (BL-02), leave approval without a class teacher (BL-60); leave recommendations by teachers (BL-29, 2026-09-26). This guide describes current behaviour and is not click-tested.
 
 Menu groups: Overview · People · Operations · Communication · Org Structure.
 
@@ -10,7 +10,7 @@ Menu groups: Overview · People · Operations · Communication · Org Structure.
 |---|---|---|
 | See what needs attention | **Dashboard** | summary cards for your school |
 | Mark or review attendance | *Teachers do this;* admins can review reports via the API/dashboards | — |
-| Approve or reject leave | **Operations → Leave Applications** | open a request → approve or reject (once). Approval fails if the child's section has no class teacher — assign one first |
+| Approve or reject leave | **Operations → Leave Applications** | each request shows the teacher's recommendation, if any; add an optional note (the parent sees it) → approve or reject (once). No class teacher or recommendation is needed |
 | Publish a notice | **Communication → Circulars** | choose whole school or one section, write, publish; see read counts. (since BL-20 a school-wide circular reaches only your school's parents — a campus principal's, only their campus) ⚠ old note: school-wide circulars previously reach parents of *all* schools (KG-1) |
 | Reply to parents | **Communication → Messages** | open a conversation and answer |
 | Complaints | **Communication → Complaints** | log and update status (open → resolved) per student |
@@ -29,7 +29,7 @@ Menu groups: Overview · People · Operations · Communication · Org Structure.
 
 ## 4. Academic setup
 1. **Classes:** create classes (grade levels) for your campus and the session (**Org Structure → Classes**); you can also add a campus (**Campuses → Add Campus**) for your school — editing or deleting a campus needs a super admin.
-2. **Sections:** create sections and assign a **class teacher** (must belong to the same campus) — attendance and leave approval need it.
+2. **Sections:** create sections and assign a **class teacher** (must belong to the same campus); the class teacher receives attendance-risk alerts and can recommend on leave requests (neither attendance nor leave approval requires one).
 3. **Timetable:** build each section's week; the system rejects a teacher or room double-booked in the same period.
 4. **Terms** and **Assessment Categories** (weights per class/term — they must total 100 % before results can be published; a warning shows otherwise).
 4b. **Grading Scales** (**Operations → Grading Scales**, school-wide admins): the bands that turn a percentage into a letter, remark and grade point. **+ New scale** starts from a typical A+…F scale you can change; one band must start at 0. The default scale is used when results are published.

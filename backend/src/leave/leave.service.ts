@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,7 +9,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
-import type { RequestUser } from '../common/student-access.service';
+import {
+  StudentAccessService,
+  type RequestUser,
+} from '../common/student-access.service';
 
 export interface LeaveRequestSummary {
   id: string;
@@ -19,9 +23,38 @@ export interface LeaveRequestSummary {
   reason: string;
   status: string;
   createdAt: string;
+  /** BL-29: a teacher's recommendation — staff only (left out for parents) */
+  recommendation?: {
+    by: string | null;
+    at: string;
+    approve: boolean | null;
+    note: string | null;
+  } | null;
+  /** BL-29: the final decision (parents see the note, not who decided) */
+  decision?: {
+    by?: string | null;
+    at: string;
+    note: string | null;
+  } | null;
 }
 
-const STUDENT_INCLUDE = { student: { select: { name: true } } } as const;
+const ACTOR = {
+  select: { identifier: true, teacher: { select: { name: true } } },
+} as const;
+
+const STUDENT_INCLUDE = {
+  student: { select: { name: true } },
+  recommendedBy: ACTOR,
+  decidedBy: ACTOR,
+} as const;
+
+type LeaveRow = Prisma.LeaveRequestGetPayload<{
+  include: typeof STUDENT_INCLUDE;
+}>;
+
+const actorName = (
+  u: { identifier: string; teacher: { name: string } | null } | null,
+) => (u ? (u.teacher?.name ?? u.identifier) : null);
 
 @Injectable()
 export class LeaveService {
@@ -29,7 +62,62 @@ export class LeaveService {
     private readonly prisma: PrismaService,
     private readonly orgScope: OrgScopeService,
     private readonly enrollmentService: EnrollmentService,
+    private readonly studentAccess: StudentAccessService,
   ) {}
+
+  /**
+   * BL-29 (Q12): a teacher of the student recommends approving or rejecting a pending request. It
+   * never changes the status and can be revised until the decision; each one is audited under the
+   * teacher's own account.
+   */
+  async recommend(
+    id: string,
+    actingUserId: string,
+    input: { approve: boolean; note?: string | null },
+  ): Promise<LeaveRequestSummary> {
+    const note = input.note?.trim() || null;
+    const record = await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.leaveRequest.updateMany({
+        where: { id, status: 'pending' },
+        data: {
+          recommendedById: actingUserId,
+          recommendedAt: new Date(),
+          recommendsApproval: input.approve,
+          recommendationNote: note,
+        },
+      });
+      if (count === 0) await this.assertPending(tx, id);
+      await tx.auditLog.create({
+        data: {
+          userId: actingUserId,
+          action: 'leave-request.recommend',
+          entity: 'LeaveRequest',
+          entityId: id,
+          metadata: JSON.stringify({ approve: input.approve, note }),
+        },
+      });
+      return tx.leaveRequest.findUniqueOrThrow({
+        where: { id },
+        include: STUDENT_INCLUDE,
+      });
+    });
+    return this.toSummary(record);
+  }
+
+  /** Throws the right error for a request that is missing or no longer pending. */
+  private async assertPending(
+    tx: Prisma.TransactionClient,
+    id: string,
+  ): Promise<never> {
+    const existing = await tx.leaveRequest.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('Leave request not found');
+    throw new BadRequestException(
+      'This leave request has already been decided',
+    );
+  }
 
   async create(
     dto: CreateLeaveRequestDto,
@@ -67,13 +155,16 @@ export class LeaveService {
     return this.toSummary(record);
   }
 
-  async listForStudent(studentId: string): Promise<LeaveRequestSummary[]> {
+  async listForStudent(
+    studentId: string,
+    viewer?: RequestUser,
+  ): Promise<LeaveRequestSummary[]> {
     const records = await this.prisma.leaveRequest.findMany({
       where: { studentId },
       include: STUDENT_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
-    return records.map((r) => this.toSummary(r));
+    return records.map((r) => this.toSummary(r, viewer?.role === 'PARENT'));
   }
 
   async listAll(
@@ -83,6 +174,30 @@ export class LeaveService {
     let where: Prisma.LeaveRequestWhereInput | undefined = status
       ? { status }
       : undefined;
+    if (actingUser.role === 'TEACHER') {
+      // BL-29: a teacher sees requests of students actively enrolled in sections they teach.
+      const teacher = await this.prisma.teacher.findUnique({
+        where: { userId: actingUser.id },
+        select: { id: true },
+      });
+      if (!teacher) return [];
+      const sectionIds = [
+        ...(await this.studentAccess.getTeacherSectionIds(teacher.id)),
+      ];
+      const records = await this.prisma.leaveRequest.findMany({
+        where: {
+          ...where,
+          student: {
+            enrollments: {
+              some: { status: 'ACTIVE', sectionId: { in: sectionIds } },
+            },
+          },
+        },
+        include: STUDENT_INCLUDE,
+        orderBy: { createdAt: 'desc' },
+      });
+      return records.map((r) => this.toSummary(r));
+    }
     const scope = await this.orgScope.resolve(actingUser);
     if (scope.denied) {
       return [];
@@ -121,6 +236,7 @@ export class LeaveService {
   async approve(
     id: string,
     actingUserId: string,
+    note?: string | null,
   ): Promise<LeaveRequestSummary> {
     const existing = await this.prisma.leaveRequest.findUnique({
       where: { id },
@@ -146,9 +262,19 @@ export class LeaveService {
     };
 
     const record = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.leaveRequest.update({
+      // Conditional on 'pending', so two simultaneous decisions cannot both win (BL-29).
+      const { count } = await tx.leaveRequest.updateMany({
+        where: { id, status: 'pending' },
+        data: {
+          status: 'approved',
+          decidedById: actingUserId,
+          decidedAt: new Date(),
+          decisionNote: note?.trim() || null,
+        },
+      });
+      if (count === 0) await this.assertPending(tx, id);
+      const updated = await tx.leaveRequest.findUniqueOrThrow({
         where: { id },
-        data: { status: 'approved' },
         include: STUDENT_INCLUDE,
       });
 
@@ -194,6 +320,7 @@ export class LeaveService {
           metadata: JSON.stringify({
             studentId: updated.studentId,
             dateCount: dates.length,
+            note: updated.decisionNote,
           }),
         },
       });
@@ -204,48 +331,71 @@ export class LeaveService {
     return this.toSummary(record);
   }
 
-  async reject(id: string, actingUserId: string): Promise<LeaveRequestSummary> {
-    const record = await this.decide(id, 'rejected');
-    await this.prisma.auditLog.create({
-      data: {
-        userId: actingUserId,
-        action: 'leave-request.reject',
-        entity: 'LeaveRequest',
-        entityId: id,
-      },
+  async reject(
+    id: string,
+    actingUserId: string,
+    note?: string | null,
+  ): Promise<LeaveRequestSummary> {
+    const decisionNote = note?.trim() || null;
+    const record = await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.leaveRequest.updateMany({
+        where: { id, status: 'pending' },
+        data: {
+          status: 'rejected',
+          decidedById: actingUserId,
+          decidedAt: new Date(),
+          decisionNote,
+        },
+      });
+      if (count === 0) await this.assertPending(tx, id);
+      await tx.auditLog.create({
+        data: {
+          userId: actingUserId,
+          action: 'leave-request.reject',
+          entity: 'LeaveRequest',
+          entityId: id,
+          metadata: JSON.stringify({ note: decisionNote }),
+        },
+      });
+      return tx.leaveRequest.findUniqueOrThrow({
+        where: { id },
+        include: STUDENT_INCLUDE,
+      });
     });
     return this.toSummary(record);
   }
 
-  private async decide(id: string, status: 'approved' | 'rejected') {
-    const existing = await this.prisma.leaveRequest.findUnique({
-      where: { id },
+  /** BL-29 (KG-27): the caller administers the school/campus of the student's latest enrolment. */
+  async assertAdminScope(user: RequestUser, studentId: string): Promise<void> {
+    const scope = await this.orgScope.resolve(user);
+    if (scope.unrestricted) return;
+    const latest = await this.prisma.enrollment.findFirst({
+      where: { studentId },
+      orderBy: { startDate: 'desc' },
+      select: { campusId: true, campus: { select: { schoolId: true } } },
     });
-    if (!existing) {
-      throw new NotFoundException('Leave request not found');
+    if (
+      !latest ||
+      !scope.allows({
+        campusId: latest.campusId,
+        schoolId: latest.campus.schoolId,
+      })
+    ) {
+      throw new ForbiddenException('You do not have access to this student');
     }
-    if (existing.status !== 'pending') {
-      throw new BadRequestException(
-        'This leave request has already been decided',
-      );
-    }
-    return this.prisma.leaveRequest.update({
-      where: { id },
-      data: { status },
-      include: STUDENT_INCLUDE,
-    });
   }
 
-  private toSummary(record: {
-    id: string;
-    studentId: string;
-    startDate: Date;
-    endDate: Date;
-    reason: string;
-    status: string;
-    createdAt: Date;
-    student: { name: string };
-  }): LeaveRequestSummary {
+  /** The student a request is for — the controller checks the caller may act for that student. */
+  async studentIdOf(id: string): Promise<string> {
+    const existing = await this.prisma.leaveRequest.findUnique({
+      where: { id },
+      select: { studentId: true },
+    });
+    if (!existing) throw new NotFoundException('Leave request not found');
+    return existing.studentId;
+  }
+
+  private toSummary(record: LeaveRow, forParent = false): LeaveRequestSummary {
     return {
       id: record.id,
       studentId: record.studentId,
@@ -255,6 +405,25 @@ export class LeaveService {
       reason: record.reason,
       status: record.status,
       createdAt: record.createdAt.toISOString(),
+      ...(forParent
+        ? {}
+        : {
+            recommendation: record.recommendedAt
+              ? {
+                  by: actorName(record.recommendedBy),
+                  at: record.recommendedAt.toISOString(),
+                  approve: record.recommendsApproval,
+                  note: record.recommendationNote,
+                }
+              : null,
+          }),
+      decision: record.decidedAt
+        ? {
+            ...(forParent ? {} : { by: actorName(record.decidedBy) }),
+            at: record.decidedAt.toISOString(),
+            note: record.decisionNote,
+          }
+        : null,
     };
   }
 }

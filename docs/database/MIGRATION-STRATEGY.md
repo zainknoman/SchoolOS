@@ -148,6 +148,8 @@
 
 **M10 part 4 (BL-28, `20260928120000_m10_attendance_risk`, 2026-09-26):** additive (one table; no row = defaults, so existing behaviour is unchanged until a school saves settings); applied to the scratch database, no drift, full e2e green.
 
+**M1b (BL-29, `20260928130000_m1b_leave_workflow`, 2026-09-26):** additive (seven nullable columns, two FKs to `User`); no backfill — already-decided legacy requests keep a null decider, the audit log names who decided them; applied to the scratch database, no drift, full e2e green.
+
 **Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

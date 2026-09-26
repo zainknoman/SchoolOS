@@ -2,7 +2,7 @@
 
 > **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from every `backend/src/**/*.controller.ts` — **do not edit by hand**; regenerate with `node scripts/docs/generate.mjs` (CI runs `--check`) · **Sources:** `@Controller` + `@Get/@Post/@Put/@Patch/@Delete` + `@Roles/@Public/@Throttle`; method-level `@Roles`/`@Public` override class-level ones · **Owner:** Engineering Lead
 > All paths are prefixed with `/api/v1`. **Roles** = the `@Roles(...)` decorator (`RolesGuard` does an exact `includes(user.role)` check — SUPER_ADMIN has **no implicit override**). "any authenticated (service-scoped)" = no decorator: every logged-in role passes the guard and the **service** decides by scope (see [AUTHORIZATION](AUTHORIZATION.md)). `T` = route-level throttle decorator (auth routes, 5/min); all routes also fall under the global 100/min limit.
-> Total: **224** route handlers in 49 controllers.
+> Total: **225** route handlers in 49 controllers.
 
 ## (root)
 
@@ -338,7 +338,8 @@
 | Method | Path | Roles | T | Controller |
 |---|---|---|---|---|
 | POST | `/leave-requests` | PARENT |  | `leave/leave.controller.ts` |
-| GET | `/leave-requests` | SCHOOL_ADMIN, SUPER_ADMIN |  | `leave/leave.controller.ts` |
+| GET | `/leave-requests` | TEACHER, SCHOOL_ADMIN, SUPER_ADMIN |  | `leave/leave.controller.ts` |
+| POST | `/leave-requests/:id/recommend` | TEACHER |  | `leave/leave.controller.ts` |
 | POST | `/leave-requests/:id/approve` | SCHOOL_ADMIN, SUPER_ADMIN |  | `leave/leave.controller.ts` |
 | POST | `/leave-requests/:id/reject` | SCHOOL_ADMIN, SUPER_ADMIN |  | `leave/leave.controller.ts` |
 

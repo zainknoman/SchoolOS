@@ -222,6 +222,12 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                               ),
                               Text(r.reason, style: TextStyle(fontSize: 11.5, color: tones.muted)),
+                              if (r.decisionNote != null)
+                                Text(
+                                  'School: ${r.decisionNote}',
+                                  key: Key('leaveDecisionNote${r.id}'),
+                                  style: const TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic),
+                                ),
                             ],
                           ),
                         ),

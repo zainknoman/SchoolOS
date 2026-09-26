@@ -137,6 +137,8 @@ flowchart LR
   DiaryAttachment -->|Cascade| DiaryEntry
   DiaryAttachment -->|default| File
   LeaveRequest -->|Restrict| Student
+  LeaveRequest -->|SetNull, optional| User
+  LeaveRequest -->|SetNull, optional| User
   Complaint -->|Restrict| Student
   Complaint -->|default| User
   ReportCard -->|Restrict| Student

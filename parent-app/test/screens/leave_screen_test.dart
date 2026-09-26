@@ -85,6 +85,50 @@ void main() {
     expect(find.text('Family trip'), findsWidgets);
   });
 
+  testWidgets("shows the school's decision note on a decided request (BL-29)", (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        if (request.url.path == '/api/v1/students/child-1/leave-requests') {
+          return http.Response(
+            jsonEncode([
+              {
+                'id': 'lr-2',
+                'studentId': 'child-1',
+                'startDate': '2026-10-06',
+                'endDate': '2026-10-06',
+                'reason': 'Wedding',
+                'status': 'rejected',
+                'decision': {'at': '2026-10-03T00:00:00.000Z', 'note': 'Exam day'},
+              },
+              {
+                'id': 'lr-3',
+                'studentId': 'child-1',
+                'startDate': '2026-10-07',
+                'endDate': '2026-10-07',
+                'reason': 'Fever',
+                'status': 'pending',
+                'decision': null,
+              },
+            ]),
+            200,
+          );
+        }
+        return http.Response('not found', 404);
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LeaveScreen(accessToken: 'tok', api: api, children: const [_child]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('School: Exam day'), findsOneWidget);
+    expect(find.byKey(const Key('leaveDecisionNotelr-3')), findsNothing);
+  });
+
   testWidgets('defaults to the actively-selected child, not always the first one', (tester) async {
     String? requestedStudentId;
     final api = ApiClient(

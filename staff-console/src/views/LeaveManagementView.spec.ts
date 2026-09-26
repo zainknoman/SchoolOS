@@ -11,6 +11,7 @@ vi.mock('../lib/api', () => ({
     listLeaveRequests: vi.fn(),
     approveLeaveRequest: vi.fn(),
     rejectLeaveRequest: vi.fn(),
+    recommendLeaveRequest: vi.fn(),
   },
 }));
 vi.mock('../lib/useConfirm', () => ({
@@ -53,7 +54,7 @@ describe('LeaveManagementView', () => {
     await wrapper.find('[data-testid="approve-lr-1"]').trigger('click');
     await flushPromises();
 
-    expect(api.approveLeaveRequest).toHaveBeenCalledWith('token-1', 'lr-1');
+    expect(api.approveLeaveRequest).toHaveBeenCalledWith('token-1', 'lr-1', undefined);
   });
 
   it('rejects a request after confirmation, and does nothing if declined', async () => {
@@ -84,7 +85,7 @@ describe('LeaveManagementView', () => {
     await wrapper.find('[data-testid="reject-lr-2"]').trigger('click');
     await flushPromises();
 
-    expect(api.rejectLeaveRequest).toHaveBeenCalledWith('token-1', 'lr-2');
+    expect(api.rejectLeaveRequest).toHaveBeenCalledWith('token-1', 'lr-2', undefined);
     expect(confirmFn).toHaveBeenCalledWith({
       title: 'Reject this leave request?',
       message: 'This cannot be undone.',
@@ -112,5 +113,57 @@ describe('LeaveManagementView', () => {
     const pill = wrapper.find('[data-testid="status-pill"]');
     expect(pill.classes()).toContain('tone-warning');
     expect(pill.text()).toBe('pending');
+  });
+
+  describe('recommendation and decision notes (BL-29)', () => {
+    const pending = {
+      id: 'lr-9',
+      studentId: 's9',
+      studentName: 'Sara Sample',
+      startDate: '2026-10-05',
+      endDate: '2026-10-05',
+      reason: 'Fever',
+      status: 'pending' as const,
+      createdAt: '2026-10-01T00:00:00.000Z',
+      recommendation: { by: 'Ms Teacher', at: '2026-10-02', approve: true, note: 'Mother called' },
+      decision: null,
+    };
+
+    it('an admin sees the recommendation and sends a decision note', async () => {
+      vi.mocked(api.listLeaveRequests).mockResolvedValue([pending]);
+      vi.mocked(api.approveLeaveRequest).mockResolvedValue(undefined);
+      const wrapper = mount(LeaveManagementView);
+      await flushPromises();
+      const recommendation = wrapper.find('[data-testid="recommendation-lr-9"]').text().replace(/\s+/g, ' ');
+      expect(recommendation).toContain('Recommended approval by Ms Teacher');
+      expect(wrapper.find('[data-testid="recommend-approve-lr-9"]').exists()).toBe(false);
+      await wrapper.find('[data-testid="note-lr-9"]').setValue('Get well soon');
+      await wrapper.find('[data-testid="approve-lr-9"]').trigger('click');
+      await flushPromises();
+      expect(api.approveLeaveRequest).toHaveBeenCalledWith('token-1', 'lr-9', 'Get well soon');
+    });
+
+    it('a teacher recommends instead of deciding', async () => {
+      useAuthStore().role = 'TEACHER' as never;
+      vi.mocked(api.listLeaveRequests).mockResolvedValue([{ ...pending, recommendation: null }]);
+      vi.mocked(api.recommendLeaveRequest).mockReset().mockResolvedValue(undefined);
+      const wrapper = mount(LeaveManagementView);
+      await flushPromises();
+      expect(wrapper.find('[data-testid="approve-lr-9"]').exists()).toBe(false);
+      await wrapper.find('[data-testid="note-lr-9"]').setValue('Seems genuine');
+      await wrapper.find('[data-testid="recommend-reject-lr-9"]').trigger('click');
+      await flushPromises();
+      expect(api.recommendLeaveRequest).toHaveBeenCalledWith('token-1', 'lr-9', { approve: false, note: 'Seems genuine' });
+    });
+
+    it('shows who decided and the note on decided requests', async () => {
+      vi.mocked(api.listLeaveRequests).mockResolvedValue([
+        { ...pending, status: 'rejected', decision: { by: 'admin@school', at: '2026-10-03', note: 'Exam day' } },
+      ]);
+      const wrapper = mount(LeaveManagementView);
+      await flushPromises();
+      expect(wrapper.find('[data-testid="decision-lr-9"]').text()).toContain('Decided by admin@school — “Exam day”');
+      expect(wrapper.find('[data-testid="note-lr-9"]').exists()).toBe(false);
+    });
   });
 });

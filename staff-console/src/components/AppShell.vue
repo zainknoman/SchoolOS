@@ -513,6 +513,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
           <RouterLink data-testid="nav-diary" to="/teacher/diary"><Icon name="notebook" />{{ t('nav.diary') }}</RouterLink>
           <RouterLink data-testid="nav-timetable" to="/teacher/timetable"><Icon name="grid" />{{ t('nav.timetable') }}</RouterLink>
           <RouterLink data-testid="nav-messages" to="/teacher/messages"><Icon name="chat" />{{ t('nav.messages') }}</RouterLink>
+          <RouterLink data-testid="nav-teacher-leave" to="/teacher/leave"><Icon name="calendar" />{{ t('nav.leave') }}</RouterLink>
           <RouterLink data-testid="nav-complaints" to="/teacher/complaints"><Icon name="chat" />{{ t('nav.complaints') }}</RouterLink>
           <RouterLink data-testid="nav-report-cards" to="/teacher/report-cards"><Icon name="grid" />{{ t('nav.reportCards') }}</RouterLink>
           <RouterLink data-testid="nav-gradebook" to="/teacher/gradebook"><Icon name="grid" />{{ t('nav.gradebook') }}</RouterLink>

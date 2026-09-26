@@ -70,6 +70,13 @@ const router = createRouter({
       meta: { requiresRole: ['TEACHER'], title: 'Messages' },
     },
     {
+      // BL-29: teachers recommend on their students' leave requests (same screen, teacher mode).
+      path: '/teacher/leave',
+      name: 'teacher-leave',
+      component: () => import('../views/LeaveManagementPageView.vue'),
+      meta: { requiresRole: ['TEACHER'], title: 'Leave Applications' },
+    },
+    {
       path: '/teacher/complaints',
       name: 'teacher-complaints',
       component: () => import('../views/TeacherComplaintsPageView.vue'),

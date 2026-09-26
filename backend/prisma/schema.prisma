@@ -207,6 +207,8 @@ model User {
   migrationReviewsResolved   MigrationReviewItem[]
   promotionPoliciesUpdated   PromotionPolicy[]      @relation("PromotionPolicyUpdatedBy")
   riskPoliciesUpdated        AttendanceRiskPolicy[] @relation("AttendanceRiskPolicyUpdatedBy")
+  leaveRecommended           LeaveRequest[]         @relation("LeaveRecommendedBy")
+  leaveDecided               LeaveRequest[]         @relation("LeaveDecidedBy")
   syllabiUpdated             Syllabus[]             @relation("SyllabusUpdatedBy")
   gradingScalesUpdated       GradingScale[]         @relation("GradingScaleUpdatedBy")
   resultsPublished           ResultPublication[]    @relation("ResultPublishedBy")
@@ -1100,15 +1102,26 @@ model Receipt {
 }
 
 model LeaveRequest {
-  id        String   @id @default(uuid())
-  studentId String
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  startDate DateTime
-  endDate   DateTime
-  reason    String
-  status    String   @default("pending") // "pending" | "approved" | "rejected"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  studentId          String
+  student            Student   @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  startDate          DateTime
+  endDate            DateTime
+  reason             String
+  status             String    @default("pending") // "pending" | "approved" | "rejected"
+  // BL-29 (M1b, Q12): a teacher of the student may recommend (for or against) while pending — this
+  // never changes status; a school admin then decides once. Each step names its real actor.
+  recommendedById    String?
+  recommendedBy      User?     @relation("LeaveRecommendedBy", fields: [recommendedById], references: [id], onDelete: SetNull)
+  recommendedAt      DateTime?
+  recommendsApproval Boolean?
+  recommendationNote String?
+  decidedById        String?
+  decidedBy          User?     @relation("LeaveDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt          DateTime?
+  decisionNote       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
 
 model File {

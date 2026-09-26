@@ -573,6 +573,10 @@ export interface LeaveRequestSummary {
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+  /** BL-29: a teacher's recommendation (staff only) */
+  recommendation?: { by: string | null; at: string; approve: boolean | null; note: string | null } | null;
+  /** BL-29: the final decision */
+  decision?: { by?: string | null; at: string; note: string | null } | null;
 }
 
 // BL-05: indicators are warnings; a row is `blocked` only when the school turned a rule into a block,
@@ -1918,20 +1922,35 @@ export const api = {
     return asJson(res);
   },
 
-  async approveLeaveRequest(accessToken: string, id: string): Promise<void> {
+  // BL-29: the decision may carry a note (parents see it).
+  async approveLeaveRequest(accessToken: string, id: string, note?: string): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/leave-requests/${id}/approve`, {
       method: 'POST',
-      headers: authHeaders(accessToken),
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify(note ? { note } : {}),
     });
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
   },
 
-  async rejectLeaveRequest(accessToken: string, id: string): Promise<void> {
+  async rejectLeaveRequest(accessToken: string, id: string, note?: string): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/leave-requests/${id}/reject`, {
       method: 'POST',
-      headers: authHeaders(accessToken),
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify(note ? { note } : {}),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  /** BL-29: a teacher of the student recommends; the status stays pending. */
+  async recommendLeaveRequest(accessToken: string, id: string, input: { approve: boolean; note?: string }): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/leave-requests/${id}/recommend`, {
+      method: 'POST',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
     });
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);

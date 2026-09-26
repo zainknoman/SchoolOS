@@ -520,6 +520,7 @@ class LeaveRequestSummary {
     required this.endDate,
     required this.reason,
     required this.status,
+    this.decisionNote,
   });
 
   final String id;
@@ -529,6 +530,9 @@ class LeaveRequestSummary {
   final String reason;
   final String status;
 
+  /// BL-29: the school's note with its decision, if it left one.
+  final String? decisionNote;
+
   factory LeaveRequestSummary.fromJson(Map<String, dynamic> json) =>
       LeaveRequestSummary(
         id: json['id'] as String,
@@ -537,6 +541,7 @@ class LeaveRequestSummary {
         endDate: json['endDate'] as String,
         reason: json['reason'] as String,
         status: json['status'] as String,
+        decisionNote: (json['decision'] as Map<String, dynamic>?)?['note'] as String?,
       );
 }
 

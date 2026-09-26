@@ -17,7 +17,7 @@ Open the app → enter the email/identifier your school gave you and your passwo
 | **More** | Leave Applications · Complaints · Report Cards · child information · Appearance · Language · Notification channel |
 
 ## More menu
-- **Leave Applications:** apply for leave for a child (dates; the start must not be after the end). The school approves or rejects it once.
+- **Leave Applications:** apply for leave for a child (dates; the start must not be after the end). The school approves or rejects it once; if it leaves a note, you see it under the request ("School: …").
 - **Complaints:** you can **view** complaints the school has logged about your child; you cannot raise one.
 - **Report Cards:** the **Report cards** section lists the cards the school issued for each term (overall grade and %), with a download button for the PDF; if the school corrects results you see the latest version. Uploaded report-card PDFs are listed below it.
 - **Student information:** view your child's record and edit limited contact details.
