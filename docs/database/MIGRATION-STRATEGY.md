@@ -140,6 +140,8 @@
 
 **M12 (BL-53) rehearsal** (`npm run migration:harness -- m12-db-invariants`, 2026-09-26): on dirty data (a second ACTIVE enrolment + a duplicate voucher) the migration refuses with the counts and changes nothing; on the legacy dataset it applies with row counts unchanged; afterwards a second ACTIVE enrolment and a duplicate voucher are rejected (23505), a WITHDRAWN extra enrolment is allowed, an invalid leave status is rejected (23514). The data check is `npm run migration:dry-run` (`M12_*` blocking rows). No schema drift after `migrate deploy` (`prisma migrate diff` empty).
 
+**M10 part 1 (BL-26, `20260928090000_m10_syllabus`, 2026-09-26):** additive only (two new tables, no existing row touched), so no backfill or harness scenario; applied to the scratch database with `migrate deploy`, `prisma migrate diff` shows no drift, and the full e2e suite (including school deletion cascades) passes on it.
+
 **Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

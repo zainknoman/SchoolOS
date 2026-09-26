@@ -34,6 +34,11 @@ flowchart LR
   Subject -->|Cascade, optional| School
   Holiday -->|Cascade, optional| School
   Holiday -->|Cascade, optional| Campus
+  Syllabus -->|Cascade| Class
+  Syllabus -->|NoAction| Subject
+  Syllabus -->|SetNull, optional| User
+  SyllabusUnit -->|Cascade| Syllabus
+  SyllabusUnit -->|SetNull, optional| Term
   Term -->|Cascade| AcademicSession
 ```
 

@@ -14,6 +14,7 @@
 | Report card | **Report Cards** | attach the report-card document for a student and session (one per student per session) |
 | Handle a parent's message | **Messages** | reply to conversations addressed to you as class teacher |
 | Log a complaint | **Complaints** | for students in your sections |
+| Read the syllabus | **Syllabus** | choose a class you teach, then a subject: the yearly plan with units, terms and planned dates. Read-only; the administrator writes it |
 
 ## Good to know
 - A student's *final grade* is the weighted percentage across categories (weights set by the administrator); there are no letter grades.

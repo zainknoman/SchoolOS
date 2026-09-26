@@ -23,6 +23,8 @@
         "Section",
         "Subject",
         "Term",
+        "Syllabus",
+        "SyllabusUnit",
         "Holiday"
       ]
     },

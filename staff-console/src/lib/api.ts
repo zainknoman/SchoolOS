@@ -129,6 +129,7 @@ export interface CopyStructureResult {
   sectionsCreated: number;
   termsCreated?: number;
   assessmentCategoriesCreated?: number;
+  syllabiCreated?: number;
   timetableEntriesCreated?: number;
   timetableEntriesSkipped?: number;
 }
@@ -352,6 +353,46 @@ export interface ReportCardSummary {
   fileId: string;
   createdAt: string;
 }
+
+/** BL-26: yearly syllabus of one subject in one class (and so one session). */
+export interface SyllabusSummary {
+  id: string;
+  classId: string;
+  className: string;
+  academicSessionId: string;
+  subjectId: string;
+  subjectName: string;
+  unitCount: number;
+  updatedAt: string;
+}
+
+export interface SyllabusUnit {
+  id?: string;
+  order?: number;
+  title: string;
+  topics: string | null;
+  termId: string | null;
+  termLabel?: string | null;
+  plannedStart: string | null;
+  plannedEnd: string | null;
+}
+
+export interface SyllabusDetail {
+  id: string;
+  classId: string;
+  className: string;
+  academicSessionId: string;
+  sessionLabel: string;
+  /** false once the session has ended (kept as history) */
+  editable: boolean;
+  subjectId: string;
+  subjectName: string;
+  overview: string | null;
+  units: SyllabusUnit[];
+  updatedAt: string;
+}
+
+export type SyllabusUnitInput = Pick<SyllabusUnit, 'title' | 'topics' | 'termId' | 'plannedStart' | 'plannedEnd'>;
 
 export interface TermSummary {
   id: string;
@@ -2809,6 +2850,54 @@ export const api = {
       body: JSON.stringify(payload),
     });
     return asJson(res);
+  },
+
+  // BL-26: syllabus per class + subject.
+  async listSyllabi(accessToken: string, classId: string): Promise<SyllabusSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/syllabi?classId=${encodeURIComponent(classId)}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async getSyllabus(accessToken: string, id: string): Promise<SyllabusDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/syllabi/${id}`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createSyllabus(
+    accessToken: string,
+    input: { classId: string; subjectId: string; overview?: string | null; units?: SyllabusUnitInput[] },
+  ): Promise<SyllabusDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/syllabi`, {
+      method: 'POST',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    return asJson(res);
+  },
+
+  async updateSyllabus(
+    accessToken: string,
+    id: string,
+    input: { overview: string | null; units: SyllabusUnitInput[] },
+  ): Promise<SyllabusDetail> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/syllabi/${id}`, {
+      method: 'PUT',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    return asJson(res);
+  },
+
+  async deleteSyllabus(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/syllabi/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
   },
 
   async deleteAssessmentCategory(accessToken: string, id: string): Promise<void> {

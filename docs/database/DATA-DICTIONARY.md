@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **61 models, 19 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **63 models, 19 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -78,6 +78,7 @@
 | attendanceMarked | Attendance[] (relation) | @relation("AttendanceMarkedByUser") |
 | migrationReviewsResolved | MigrationReviewItem[] (relation) |  |
 | promotionPoliciesUpdated | PromotionPolicy[] (relation) | @relation("PromotionPolicyUpdatedBy") |
+| syllabiUpdated | Syllabus[] (relation) | @relation("SyllabusUpdatedBy") |
 
 Block attributes: `@@index([role])` · `@@index([schoolId])` · `@@index([campusId])`
 
@@ -287,6 +288,7 @@ Block attributes: `@@index([schoolId])`
 | assessmentCategories | AssessmentCategory[] (relation) |  |
 | applications | Application[] (relation) |  |
 | teachingAssignments | TeachingAssignment[] (relation) |  |
+| syllabi | Syllabus[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -326,6 +328,7 @@ Block attributes: `@@index([classId])`
 | diaryEntries | DiaryEntry[] (relation) |  |
 | assessments | Assessment[] (relation) |  |
 | teachingAssignments | TeachingAssignment[] (relation) |  |
+| syllabi | Syllabus[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -343,10 +346,46 @@ Block attributes: `@@unique([schoolId, name])` · `@@index([schoolId])`
 | startDate | DateTime |  |
 | endDate | DateTime |  |
 | assessmentCategories | AssessmentCategory[] (relation) |  |
+| syllabusUnits | SyllabusUnit[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
 Block attributes: `@@unique([academicSessionId, label])` · `@@index([academicSessionId])`
+
+### Syllabus
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| classId | String |  |
+| class | Class (relation) | @relation(fields: [classId], references: [id], onDelete: Cascade) |
+| subjectId | String |  |
+| subject | Subject (relation) | @relation(fields: [subjectId], references: [id], onDelete: NoAction) |
+| overview | String? |  |
+| units | SyllabusUnit[] (relation) |  |
+| updatedById | String? |  |
+| updatedBy | User? (relation) | @relation("SyllabusUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull) |
+| createdAt | DateTime | @default(now()) |
+| updatedAt | DateTime | @updatedAt |
+
+Block attributes: `@@unique([classId, subjectId])` · `@@index([subjectId])`
+
+### SyllabusUnit
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| syllabusId | String |  |
+| syllabus | Syllabus (relation) | @relation(fields: [syllabusId], references: [id], onDelete: Cascade) |
+| order | Int |  |
+| title | String |  |
+| topics | String? |  |
+| termId | String? |  |
+| term | Term? (relation) | @relation(fields: [termId], references: [id], onDelete: SetNull) |
+| plannedStart | DateTime? |  |
+| plannedEnd | DateTime? |  |
+
+Block attributes: `@@unique([syllabusId, order])` · `@@index([termId])`
 
 ### Holiday
 

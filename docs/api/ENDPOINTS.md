@@ -2,7 +2,7 @@
 
 > **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from every `backend/src/**/*.controller.ts` — **do not edit by hand**; regenerate with `node scripts/docs/generate.mjs` (CI runs `--check`) · **Sources:** `@Controller` + `@Get/@Post/@Put/@Patch/@Delete` + `@Roles/@Public/@Throttle`; method-level `@Roles`/`@Public` override class-level ones · **Owner:** Engineering Lead
 > All paths are prefixed with `/api/v1`. **Roles** = the `@Roles(...)` decorator (`RolesGuard` does an exact `includes(user.role)` check — SUPER_ADMIN has **no implicit override**). "any authenticated (service-scoped)" = no decorator: every logged-in role passes the guard and the **service** decides by scope (see [AUTHORIZATION](AUTHORIZATION.md)). `T` = route-level throttle decorator (auth routes, 5/min); all routes also fall under the global 100/min limit.
-> Total: **209** route handlers in 46 controllers.
+> Total: **214** route handlers in 47 controllers.
 
 ## (root)
 
@@ -408,6 +408,16 @@
 | GET | `/students/:id/grades` | any authenticated (service-scoped) |  | `gradebook/grades.controller.ts` |
 | GET | `/students/:id/leave-requests` | any authenticated (service-scoped) |  | `leave/leave.controller.ts` |
 | GET | `/students/:id/timetable` | any authenticated (service-scoped) |  | `timetable/timetable.controller.ts` |
+
+## syllabi
+
+| Method | Path | Roles | T | Controller |
+|---|---|---|---|---|
+| GET | `/syllabi` | TEACHER, SCHOOL_ADMIN, SUPER_ADMIN |  | `syllabus/syllabus.controller.ts` |
+| GET | `/syllabi/:id` | TEACHER, SCHOOL_ADMIN, SUPER_ADMIN |  | `syllabus/syllabus.controller.ts` |
+| POST | `/syllabi` | SCHOOL_ADMIN, SUPER_ADMIN |  | `syllabus/syllabus.controller.ts` |
+| PUT | `/syllabi/:id` | SCHOOL_ADMIN, SUPER_ADMIN |  | `syllabus/syllabus.controller.ts` |
+| DELETE | `/syllabi/:id` | SCHOOL_ADMIN, SUPER_ADMIN |  | `syllabus/syllabus.controller.ts` |
 
 ## teachers
 

@@ -89,7 +89,8 @@ export class AcademicSessionService {
 
   // Rollover helper (BL-33): copies the source session's structure into the target — classes and
   // sections (names only, no class teachers), terms (dates shifted by the gap between the session
-  // starts), assessment categories and timetable templates. It only CREATES rows in the target:
+  // starts), assessment categories, syllabi (BL-26; unit terms mapped, planned dates shifted) and
+  // timetable templates. It only CREATES rows in the target:
   // the source and every historical session are never updated or deleted. Idempotent — anything
   // already present in the target is left alone. A school admin works within their own school.
   async copyStructure(
@@ -101,6 +102,7 @@ export class AcademicSessionService {
     sectionsCreated: number;
     termsCreated: number;
     assessmentCategoriesCreated: number;
+    syllabiCreated: number;
     timetableEntriesCreated: number;
     timetableEntriesSkipped: number;
   }> {
@@ -148,6 +150,7 @@ export class AcademicSessionService {
         sectionsCreated: 0,
         termsCreated: 0,
         assessmentCategoriesCreated: 0,
+        syllabiCreated: 0,
         timetableEntriesCreated: 0,
         timetableEntriesSkipped: 0,
       };
@@ -192,6 +195,7 @@ export class AcademicSessionService {
         include: {
           sections: { include: { timetables: true } },
           assessmentCategories: true,
+          syllabi: { include: { units: { orderBy: { order: 'asc' } } } },
         },
       });
       for (const src of sourceClasses) {
@@ -201,7 +205,11 @@ export class AcademicSessionService {
             campusId: src.campusId,
             name: src.name,
           },
-          include: { sections: true, assessmentCategories: true },
+          include: {
+            sections: true,
+            assessmentCategories: true,
+            syllabi: true,
+          },
         });
         if (!dest) {
           dest = await tx.class.create({
@@ -210,7 +218,11 @@ export class AcademicSessionService {
               campusId: src.campusId,
               name: src.name,
             },
-            include: { sections: true, assessmentCategories: true },
+            include: {
+              sections: true,
+              assessmentCategories: true,
+              syllabi: true,
+            },
           });
           counts.classesCreated += 1;
         }
@@ -231,6 +243,31 @@ export class AcademicSessionService {
             },
           });
           counts.assessmentCategoriesCreated += 1;
+        }
+
+        // Syllabi (BL-26): one per subject, only when the target class has none for it.
+        const haveSyllabus = new Set(dest.syllabi.map((s) => s.subjectId));
+        for (const syl of src.syllabi) {
+          if (haveSyllabus.has(syl.subjectId)) continue;
+          await tx.syllabus.create({
+            data: {
+              classId: dest.id,
+              subjectId: syl.subjectId,
+              overview: syl.overview,
+              updatedById: actingUser.id,
+              units: {
+                create: syl.units.map((u) => ({
+                  order: u.order,
+                  title: u.title,
+                  topics: u.topics,
+                  termId: u.termId ? (termMap.get(u.termId) ?? null) : null,
+                  plannedStart: u.plannedStart ? shift(u.plannedStart) : null,
+                  plannedEnd: u.plannedEnd ? shift(u.plannedEnd) : null,
+                })),
+              },
+            },
+          });
+          counts.syllabiCreated += 1;
         }
 
         const destSections = new Map(dest.sections.map((s) => [s.name, s.id]));

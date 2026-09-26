@@ -32,6 +32,7 @@ Menu groups: Overview · People · Operations · Communication · Org Structure.
 2. **Sections:** create sections and assign a **class teacher** (must belong to the same campus) — attendance and leave approval need it.
 3. **Timetable:** build each section's week; the system rejects a teacher or room double-booked in the same period.
 4. **Terms** and **Assessment Categories** (weights per class/term — aim for 100 %; a warning shows otherwise).
+4a. **Syllabus** (**Operations → Syllabus**): choose a class, **Add syllabus** for a subject, then write an overview and the units in teaching order (title, topics, term, planned dates; ↑/↓ to reorder) and **Save**. Teachers of that class can read it. **Copy structure** to a new session copies syllabi too. A finished session's syllabus is kept as history and cannot be edited.
 5. **Holidays:** school-wide or per campus; attendance cannot be marked on holidays. Leaving the campus empty makes it apply to every campus of **your** school (BL-20); a campus principal can only add holidays for their campus.
 6. **Report Cards:** attach one report-card document per student per session (not generated from marks).
 

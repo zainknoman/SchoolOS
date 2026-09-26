@@ -284,6 +284,19 @@ const router = createRouter({
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Assessment Categories', group: 'Operations' },
     },
     {
+      // BL-26: syllabus per class + subject — admins edit, teachers of the class read.
+      path: '/admin/syllabus',
+      name: 'admin-syllabus',
+      component: () => import('../views/SyllabusPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Syllabus', group: 'Operations' },
+    },
+    {
+      path: '/teacher/syllabus',
+      name: 'teacher-syllabus',
+      component: () => import('../views/SyllabusPageView.vue'),
+      meta: { requiresRole: ['TEACHER'], title: 'Syllabus' },
+    },
+    {
       path: '/teacher/gradebook',
       name: 'teacher-gradebook',
       component: () => import('../views/TeacherGradebookOverviewPageView.vue'),

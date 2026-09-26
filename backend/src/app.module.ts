@@ -17,6 +17,7 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { TeachingAssignmentsModule } from './teaching-assignments/teaching-assignments.module';
 import { RetentionModule } from './retention/retention.module';
 import { DataExportModule } from './data-export/data-export.module';
+import { SyllabusModule } from './syllabus/syllabus.module';
 import { TeachersModule } from './teachers/teachers.module';
 import { DiaryModule } from './diary/diary.module';
 import { CircularsModule } from './circulars/circulars.module';
@@ -73,6 +74,7 @@ import {
     TeachingAssignmentsModule,
     RetentionModule,
     DataExportModule,
+    SyllabusModule,
     TeachersModule,
     DiaryModule,
     CircularsModule,

@@ -11,7 +11,7 @@ describe('Copy session structure (e2e)', () => {
 
   /** Everything in the source session, as comparable text. */
   async function sourceSnapshot() {
-    const [terms, classes, sections, categories, timetables] =
+    const [terms, classes, sections, categories, timetables, syllabi] =
       await Promise.all([
         f.prisma.term.findMany({
           where: { academicSessionId: f.ids.sessionA },
@@ -33,8 +33,20 @@ describe('Copy session structure (e2e)', () => {
           where: { section: { class: { academicSessionId: f.ids.sessionA } } },
           orderBy: { id: 'asc' },
         }),
+        f.prisma.syllabus.findMany({
+          where: { class: { academicSessionId: f.ids.sessionA } },
+          orderBy: { id: 'asc' },
+          include: { units: { orderBy: { order: 'asc' } } },
+        }),
       ]);
-    return JSON.stringify({ terms, classes, sections, categories, timetables });
+    return JSON.stringify({
+      terms,
+      classes,
+      sections,
+      categories,
+      timetables,
+      syllabi,
+    });
   }
 
   beforeAll(async () => {
@@ -80,6 +92,23 @@ describe('Copy session structure (e2e)', () => {
         room: 'R1',
       },
     });
+    // BL-26: a syllabus with one unit placed in Term 1 and dated.
+    await f.prisma.syllabus.create({
+      data: {
+        classId: klass.id,
+        subjectId: subject.id,
+        overview: 'Numbers and shapes',
+        units: {
+          create: {
+            order: 1,
+            title: 'Fractions',
+            termId: term.id,
+            plannedStart: new Date('2026-02-01'),
+            plannedEnd: new Date('2026-02-28'),
+          },
+        },
+      },
+    });
     const next = await f.prisma.academicSession.create({
       data: {
         schoolId: f.ids.schoolA,
@@ -94,6 +123,9 @@ describe('Copy session structure (e2e)', () => {
   afterAll(async () => {
     await f.prisma.timetable.deleteMany({
       where: { section: { class: { campus: { schoolId: f.ids.schoolA } } } },
+    });
+    await f.prisma.syllabus.deleteMany({
+      where: { subject: { schoolId: f.ids.schoolA } },
     });
     await f.prisma.subject.deleteMany({ where: { schoolId: f.ids.schoolA } });
     await f.prisma.academicSession.deleteMany({ where: { id: target } });
@@ -112,6 +144,7 @@ describe('Copy session structure (e2e)', () => {
       sectionsCreated: 2,
       termsCreated: 1,
       assessmentCategoriesCreated: 1,
+      syllabiCreated: 1,
       timetableEntriesCreated: 1,
       timetableEntriesSkipped: 0,
     });
@@ -121,6 +154,16 @@ describe('Copy session structure (e2e)', () => {
       where: { academicSessionId: target },
     });
     expect(term.startDate.toISOString().slice(0, 10)).toBe('2027-01-01'); // shifted by one year
+    const syllabus = await f.prisma.syllabus.findFirstOrThrow({
+      where: { class: { academicSessionId: target } },
+      include: { units: true },
+    });
+    expect(syllabus.overview).toBe('Numbers and shapes');
+    expect(syllabus.units).toHaveLength(1);
+    expect(syllabus.units[0].termId).toBe(term.id); // the target session's term
+    expect(syllabus.units[0].plannedStart?.toISOString().slice(0, 10)).toBe(
+      '2027-02-01',
+    );
     const audit = await f.prisma.auditLog.findFirst({
       where: { action: 'academic-session.copy-structure', entityId: target },
     });
@@ -138,6 +181,7 @@ describe('Copy session structure (e2e)', () => {
       sectionsCreated: 0,
       termsCreated: 0,
       assessmentCategoriesCreated: 0,
+      syllabiCreated: 0,
       timetableEntriesCreated: 0,
     });
   });

@@ -49,7 +49,7 @@ async function onCopy() {
     copyTargetId.value = null;
     toast.success(
       `Copied: ${r.classesCreated} class(es), ${r.sectionsCreated} section(s), ${r.termsCreated ?? 0} term(s), ` +
-        `${r.assessmentCategoriesCreated ?? 0} categor(ies), ${r.timetableEntriesCreated ?? 0} timetable slot(s)` +
+        `${r.assessmentCategoriesCreated ?? 0} categor(ies), ${r.syllabiCreated ?? 0} syllab(i), ${r.timetableEntriesCreated ?? 0} timetable slot(s)` +
         (r.timetableEntriesSkipped ? ` (${r.timetableEntriesSkipped} skipped: teacher/room already booked)` : '') +
         '.',
     );

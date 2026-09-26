@@ -516,6 +516,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
           <RouterLink data-testid="nav-complaints" to="/teacher/complaints"><Icon name="chat" />{{ t('nav.complaints') }}</RouterLink>
           <RouterLink data-testid="nav-report-cards" to="/teacher/report-cards"><Icon name="grid" />{{ t('nav.reportCards') }}</RouterLink>
           <RouterLink data-testid="nav-gradebook" to="/teacher/gradebook"><Icon name="grid" />{{ t('nav.gradebook') }}</RouterLink>
+          <RouterLink data-testid="nav-syllabus" to="/teacher/syllabus"><Icon name="notebook" />{{ t('nav.syllabus') }}</RouterLink>
         </template>
         <template v-else-if="isAdmin">
           <div class="nav-group">
@@ -591,6 +592,9 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
               data-testid="nav-assessment-categories"
               to="/admin/assessment-categories"
               ><Icon name="grid" />{{ t('nav.assessmentCategories') }}</RouterLink
+            >
+            <RouterLink v-if="canManageGradebook" data-testid="nav-syllabus" to="/admin/syllabus"
+              ><Icon name="notebook" />{{ t('nav.syllabus') }}</RouterLink
             >
           </div>
 

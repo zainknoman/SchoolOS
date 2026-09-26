@@ -206,6 +206,7 @@ model User {
   attendanceMarked           Attendance[]          @relation("AttendanceMarkedByUser")
   migrationReviewsResolved   MigrationReviewItem[]
   promotionPoliciesUpdated   PromotionPolicy[]     @relation("PromotionPolicyUpdatedBy")
+  syllabiUpdated             Syllabus[]            @relation("SyllabusUpdatedBy")
 
   @@index([role])
   @@index([schoolId])
@@ -336,6 +337,7 @@ model Class {
   assessmentCategories AssessmentCategory[]
   applications         Application[]
   teachingAssignments  TeachingAssignment[]
+  syllabi              Syllabus[]
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
@@ -375,6 +377,7 @@ model Subject {
   diaryEntries        DiaryEntry[]
   assessments         Assessment[]
   teachingAssignments TeachingAssignment[]
+  syllabi             Syllabus[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -1208,6 +1211,43 @@ model DeviceToken {
   @@index([userId])
 }
 
+// BL-26 (Q2, Q19): the yearly syllabus of one subject in one class. A class belongs to exactly one
+// academic session, so (classId, subjectId) is unique per class, subject and session. Copied into
+// a new session by copy-structure (BL-33); read-only once the session has ended.
+model Syllabus {
+  id          String         @id @default(uuid())
+  classId     String
+  class       Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject        @relation(fields: [subjectId], references: [id], onDelete: NoAction)
+  overview    String?
+  units       SyllabusUnit[]
+  updatedById String?
+  updatedBy   User?          @relation("SyllabusUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([classId, subjectId])
+  @@index([subjectId])
+}
+
+// BL-26: one unit/chapter of a syllabus, in teaching order; optionally placed in a term and dated.
+model SyllabusUnit {
+  id           String    @id @default(uuid())
+  syllabusId   String
+  syllabus     Syllabus  @relation(fields: [syllabusId], references: [id], onDelete: Cascade)
+  order        Int
+  title        String
+  topics       String?
+  termId       String?
+  term         Term?     @relation(fields: [termId], references: [id], onDelete: SetNull)
+  plannedStart DateTime?
+  plannedEnd   DateTime?
+
+  @@unique([syllabusId, order])
+  @@index([termId])
+}
+
 model Term {
   id                   String               @id @default(uuid())
   academicSessionId    String
@@ -1217,6 +1257,7 @@ model Term {
   startDate            DateTime
   endDate              DateTime
   assessmentCategories AssessmentCategory[]
+  syllabusUnits        SyllabusUnit[]
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
