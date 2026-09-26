@@ -20,7 +20,7 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 5 | BL-27 grading scales + result publication (M10 part, KI-16, KG-26) | ✅ | `e232068` |
 | 5 | BL-06 generated report cards (M10 part) | ✅ | `5df46a8` |
 | 5 | BL-28 attendance-risk settings (M10 part) | ✅ | `384f885` |
-| 5 | BL-29 leave workflow (M1b, KG-27) | ✅ | (this commit) |
+| 5 | BL-29 leave workflow (M1b, KG-27) | ✅ | `9c6ec52` |
 | 6 | BL-08 · BL-30 · BL-35 · BL-43 · BL-54 · BL-14 | ⏭ **next** (BL-08 first) | — |
 | 7 | BL-15 · BL-55 · BL-36 · BL-37 part 2 · BL-56 · BL-57 · BL-58 | ⏳ | — |
 
