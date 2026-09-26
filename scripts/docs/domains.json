@@ -74,6 +74,7 @@
         "Assessment",
         "Mark",
         "ReportCard",
+        "GeneratedReportCard",
         "LeaveRequest",
         "Complaint"
       ]

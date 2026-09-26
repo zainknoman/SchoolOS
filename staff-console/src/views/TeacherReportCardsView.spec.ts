@@ -15,6 +15,8 @@ vi.mock('../lib/api', () => ({
     reportCardPdfUrl: vi.fn(() => 'https://example.test/pdf'),
     listTerms: vi.fn(),
     getStudentGrades: vi.fn(),
+    listGeneratedReportCards: vi.fn().mockResolvedValue([]),
+    generatedReportCardPdfUrl: vi.fn((token: string, id: string) => `gen/${id}?t=${token}`),
   },
 }));
 

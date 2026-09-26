@@ -2,7 +2,7 @@
 
 > **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from every `backend/src/**/*.controller.ts` — **do not edit by hand**; regenerate with `node scripts/docs/generate.mjs` (CI runs `--check`) · **Sources:** `@Controller` + `@Get/@Post/@Put/@Patch/@Delete` + `@Roles/@Public/@Throttle`; method-level `@Roles`/`@Public` override class-level ones · **Owner:** Engineering Lead
 > All paths are prefixed with `/api/v1`. **Roles** = the `@Roles(...)` decorator (`RolesGuard` does an exact `includes(user.role)` check — SUPER_ADMIN has **no implicit override**). "any authenticated (service-scoped)" = no decorator: every logged-in role passes the guard and the **service** decides by scope (see [AUTHORIZATION](AUTHORIZATION.md)). `T` = route-level throttle decorator (auth routes, 5/min); all routes also fall under the global 100/min limit.
-> Total: **218** route handlers in 48 controllers.
+> Total: **222** route handlers in 49 controllers.
 
 ## (root)
 
@@ -378,6 +378,10 @@
 
 | Method | Path | Roles | T | Controller |
 |---|---|---|---|---|
+| POST | `/report-cards/generated` | SCHOOL_ADMIN, SUPER_ADMIN |  | `report-cards/generated-report-cards.controller.ts` |
+| GET | `/report-cards/generated` | PARENT, TEACHER, SCHOOL_ADMIN, SUPER_ADMIN |  | `report-cards/generated-report-cards.controller.ts` |
+| GET | `/report-cards/generated/:id` | PARENT, TEACHER, SCHOOL_ADMIN, SUPER_ADMIN |  | `report-cards/generated-report-cards.controller.ts` |
+| GET | `/report-cards/generated/:id/pdf` | PARENT, TEACHER, SCHOOL_ADMIN, SUPER_ADMIN |  | `report-cards/generated-report-cards.controller.ts` |
 | POST | `/report-cards` | TEACHER, SCHOOL_ADMIN, SUPER_ADMIN |  | `report-cards/report-cards.controller.ts` |
 | GET | `/report-cards` | any authenticated (service-scoped) |  | `report-cards/report-cards.controller.ts` |
 | GET | `/report-cards/:id/pdf` | any authenticated (service-scoped) |  | `report-cards/report-cards.controller.ts` |

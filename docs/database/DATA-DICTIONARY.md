@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **66 models, 19 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **67 models, 19 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -81,6 +81,7 @@
 | syllabiUpdated | Syllabus[] (relation) | @relation("SyllabusUpdatedBy") |
 | gradingScalesUpdated | GradingScale[] (relation) | @relation("GradingScaleUpdatedBy") |
 | resultsPublished | ResultPublication[] (relation) | @relation("ResultPublishedBy") |
+| reportCardsIssued | GeneratedReportCard[] (relation) | @relation("ReportCardIssuedBy") |
 
 Block attributes: `@@index([role])` · `@@index([schoolId])` · `@@index([campusId])`
 
@@ -293,6 +294,7 @@ Block attributes: `@@index([schoolId])`
 | teachingAssignments | TeachingAssignment[] (relation) |  |
 | syllabi | Syllabus[] (relation) |  |
 | resultPublications | ResultPublication[] (relation) |  |
+| generatedReportCards | GeneratedReportCard[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -352,6 +354,7 @@ Block attributes: `@@unique([schoolId, name])` · `@@index([schoolId])`
 | assessmentCategories | AssessmentCategory[] (relation) |  |
 | syllabusUnits | SyllabusUnit[] (relation) |  |
 | resultPublications | ResultPublication[] (relation) |  |
+| generatedReportCards | GeneratedReportCard[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -500,6 +503,7 @@ Block attributes: `@@index([campusId])` · `@@index([schoolId])` · `@@index([st
 | conversations | Conversation[] (relation) |  |
 | complaints | Complaint[] (relation) |  |
 | reportCards | ReportCard[] (relation) |  |
+| generatedReportCards | GeneratedReportCard[] (relation) |  |
 | attendanceRiskFlag | AttendanceRiskFlag? (relation) |  |
 | marks | Mark[] (relation) |  |
 | application | Application? (relation) |  |
@@ -1115,6 +1119,29 @@ Block attributes: `@@unique([assessmentId, studentId])` · `@@index([studentId])
 | createdAt | DateTime | @default(now()) |
 
 Block attributes: `@@unique([studentId, academicSessionId])`
+
+### GeneratedReportCard
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| studentId | String |  |
+| student | Student (relation) | @relation(fields: [studentId], references: [id], onDelete: Restrict) |
+| classId | String |  |
+| class | Class (relation) | @relation(fields: [classId], references: [id], onDelete: NoAction) |
+| termId | String |  |
+| term | Term (relation) | @relation(fields: [termId], references: [id], onDelete: NoAction) |
+| version | Int |  |
+| snapshot | Json |  |
+| overallPercent | Float |  |
+| overallLetter | String? |  |
+| remark | String? |  |
+| issuedById | String? |  |
+| issuedBy | User? (relation) | @relation("ReportCardIssuedBy", fields: [issuedById], references: [id], onDelete: SetNull) |
+| issuedAt | DateTime | @default(now()) |
+| supersededAt | DateTime? |  |
+
+Block attributes: `@@unique([studentId, termId, version])` · `@@index([classId, termId])`
 
 ### LeaveRequest
 

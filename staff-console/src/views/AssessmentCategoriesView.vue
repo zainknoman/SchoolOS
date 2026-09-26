@@ -30,6 +30,7 @@ const weightWarning = ref<string | null>(null);
 // BL-27: publication status of the selected class/term (weights must total 100 % to publish).
 const publication = ref<ResultPublicationStatus | null>(null);
 const isPublishing = ref(false);
+const isGenerating = ref(false);
 
 const showAddForm = ref(false);
 const newName = ref('');
@@ -71,6 +72,24 @@ async function loadCategories() {
     publication.value = await api.getResultPublication(auth.accessToken, selectedClassId.value, selectedTermId.value);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load assessment categories.';
+  }
+}
+
+// BL-06: once published, issue report cards for every student of the class (new versions only
+// where results changed since the last run).
+async function onGenerateReportCards() {
+  if (!auth.accessToken) return;
+  errorMessage.value = null;
+  isGenerating.value = true;
+  try {
+    const r = await api.generateReportCards(auth.accessToken, selectedClassId.value, selectedTermId.value);
+    toast.success(
+      `Report cards: ${r.generated} issued, ${r.unchanged} unchanged` + (r.skipped.length ? `, ${r.skipped.length} skipped (no marks)` : '') + '.',
+    );
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not generate report cards.';
+  } finally {
+    isGenerating.value = false;
   }
 }
 
@@ -227,6 +246,15 @@ async function onDelete(id: string) {
           Categories and assessments are locked while published; marks can still be entered.
         </p>
       </div>
+      <div class="publication-actions">
+      <Button
+        v-if="publication.published"
+        data-testid="generate-report-cards"
+        :disabled="isGenerating"
+        @click="onGenerateReportCards"
+      >
+        Generate report cards
+      </Button>
       <Button
         data-testid="publication-toggle"
         :variant="publication.published ? 'secondary' : 'primary'"
@@ -235,6 +263,7 @@ async function onDelete(id: string) {
       >
         {{ publication.published ? 'Unpublish results' : 'Publish results' }}
       </Button>
+      </div>
     </div>
 
     <EntityTable
@@ -299,6 +328,11 @@ async function onDelete(id: string) {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
+}
+.publication-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 .publication p,
 .blockers {

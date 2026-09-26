@@ -11,7 +11,7 @@
 | Post homework/activity | **Diary** | choose section and subject, write the entry; parents read it in the app. Optional *draft suggestion* button ⚠ needs the AI service (otherwise returns a placeholder) |
 | Enter marks | **Gradebook → Enter Marks** | pick the assessment; enter marks per student. Marks cannot exceed the maximum; only students enrolled in that class can receive marks |
 | Create an assessment | **Gradebook** | name, subject, maximum marks under a category defined by the administrator |
-| Report card | **Report Cards** | attach the report-card document for a student and session (one per student per session) |
+| Report card | **Report Cards** | see a student's grades and the report cards the school generated (all versions, with PDF); you can still attach an uploaded report-card document per student and session. Generating cards is done by the administrator after publishing results |
 | Handle a parent's message | **Messages** | reply to conversations addressed to you as class teacher |
 | Log a complaint | **Complaints** | for students in your sections |
 | Read the syllabus | **Syllabus** | choose a class you teach, then a subject: the yearly plan with units, terms and planned dates. Read-only; the administrator writes it |

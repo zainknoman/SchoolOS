@@ -18,6 +18,7 @@ vi.mock('../lib/api', () => ({
     getResultPublication: vi.fn(),
     publishResults: vi.fn(),
     unpublishResults: vi.fn(),
+    generateReportCards: vi.fn(),
   },
 }));
 vi.mock('../lib/useConfirm', () => ({
@@ -174,6 +175,24 @@ describe('AssessmentCategoriesView', () => {
     await flushPromises();
 
     expect(wrapper.find('[role="alert"]').text()).toContain('Network down');
+  });
+
+  it('generates report cards once results are published (BL-06)', async () => {
+    vi.mocked(api.listAssessmentCategories).mockResolvedValue([]);
+    vi.mocked(api.getResultPublication).mockResolvedValue(status({ published: true }));
+    vi.mocked(api.generateReportCards).mockResolvedValue({ generated: 12, unchanged: 3, skipped: [] });
+    const wrapper = mount(AssessmentCategoriesView);
+    await pickClassAndTerm(wrapper);
+    await wrapper.find('[data-testid="generate-report-cards"]').trigger('click');
+    await flushPromises();
+    expect(api.generateReportCards).toHaveBeenCalledWith('token-1', 'c1', 't1');
+  });
+
+  it('offers no report-card generation before publication', async () => {
+    vi.mocked(api.listAssessmentCategories).mockResolvedValue([]);
+    const wrapper = mount(AssessmentCategoriesView);
+    await pickClassAndTerm(wrapper);
+    expect(wrapper.find('[data-testid="generate-report-cards"]').exists()).toBe(false);
   });
 
   describe('result publication (BL-27)', () => {

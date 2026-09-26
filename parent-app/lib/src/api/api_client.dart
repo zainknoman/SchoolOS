@@ -411,6 +411,18 @@ class ApiClient {
     '$baseUrl/api/v1/report-cards/$reportCardId/pdf',
   ).replace(queryParameters: {'access_token': accessToken});
 
+  Future<List<GeneratedReportCard>> generatedReportCards(String accessToken, String studentId) async {
+    final list = await _get(
+      '/api/v1/report-cards/generated?studentId=${Uri.encodeQueryComponent(studentId)}',
+      accessToken,
+    ) as List<dynamic>;
+    return list.map((e) => GeneratedReportCard.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Uri generatedReportCardPdfUrl(String id, String accessToken) => Uri.parse(
+    '$baseUrl/api/v1/report-cards/generated/$id/pdf',
+  ).replace(queryParameters: {'access_token': accessToken});
+
   Future<List<SubjectGrade>> studentGrades(String accessToken, String studentId, String termId) async {
     final list = await _get(
       '/api/v1/students/$studentId/grades?termId=${Uri.encodeQueryComponent(termId)}',

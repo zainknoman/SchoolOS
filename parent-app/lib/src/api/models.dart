@@ -623,6 +623,41 @@ class ReportCard {
   );
 }
 
+/// BL-06: a report card generated from the gradebook — the parent sees the current version of a
+/// term's card while the school keeps its results published.
+class GeneratedReportCard {
+  const GeneratedReportCard({
+    required this.id,
+    required this.term,
+    required this.session,
+    required this.className,
+    required this.version,
+    required this.overallPercent,
+    required this.overallLetter,
+    required this.issuedAt,
+  });
+
+  final String id;
+  final String term;
+  final String session;
+  final String className;
+  final int version;
+  final double overallPercent;
+  final String? overallLetter;
+  final String issuedAt;
+
+  factory GeneratedReportCard.fromJson(Map<String, dynamic> json) => GeneratedReportCard(
+    id: json['id'] as String,
+    term: json['term'] as String,
+    session: json['session'] as String,
+    className: json['className'] as String,
+    version: (json['version'] as num).toInt(),
+    overallPercent: (json['overallPercent'] as num).toDouble(),
+    overallLetter: json['overallLetter'] as String?,
+    issuedAt: json['issuedAt'] as String,
+  );
+}
+
 class SubjectGrade {
   const SubjectGrade({
     required this.subjectId,

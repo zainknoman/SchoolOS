@@ -55,13 +55,13 @@ Legend: ✅ exists · ⚠ partial · ❌ missing · 🔁 conflicts with the deci
 | Licence, security contact, domains (Q20, Q21, RD-1, RD-2) | ⚠ placeholders (`[LEGAL_ENTITY_NAME]`, `[SECURITY_EMAIL]`, `[PRODUCTION_DOMAIN]`, `[SUPPORT_EMAIL]`, `[EMAIL_FROM]`) | supply values; config-driven | §5 |
 
 
-**Progress (updated 2026-09-26 after BL-27, branch `wave-0/foundations`)** — delivered since this table was written (✅ = done, commit in EXECUTION-PLAN §0):
+**Progress (updated 2026-09-26 after BL-06, branch `wave-0/foundations`)** — delivered since this table was written (✅ = done, commit in EXECUTION-PLAN §0):
 - ✅ Wave 0: BL-65 harness, BL-62 strategy (approved), BL-18 scaffold, BL-66 generators, BL-37 part 1.
 - ✅ Wave 1: BL-51 config safety, BL-12 headers/audit, BL-21 account controls, BL-64 parent reset without e-mail, BL-22 bootstrap super admin, BL-52 upload checks, BL-60 attendance without class teacher (M1).
 - ✅ Wave 2: BL-10 object storage, BL-11 health/logs/Sentry, BL-39 job lock, BL-40 pagination (BL-13 is Ops, open).
 - ✅ Wave 3: BL-20 circular/holiday anchors (M2), BL-01 school sessions (M3), BL-02 school subjects (M4), BL-03 fee structures (M5), BL-33 copy structure, BL-32 accounts grants, BL-53 DB invariants (M12), BL-34 rebrand/neutral demo data.
 - ✅ Wave 4: BL-23 + BL-04 guardians (M6), BL-61 lifecycle terms (M7), BL-05 promotion indicators/confirmation, BL-25 teaching-assignment history (M8), BL-07 archive/erasure + BL-63 retention settings (M9; also closed KG-25, record-scoped student/staff/teacher routes), BL-41 audited one-school CSV export (sensitive fields for the principal/SUPER_ADMIN only).
-- ✅ Wave 5 so far: BL-26 yearly syllabus per class + subject (admins edit, teachers of the class read, copied by copy-structure, ended sessions read-only); BL-27 per-school grading scales with letters/remarks/grade points and result publication gated on weights of 100 % (closes KI-16; also KG-26). Next: BL-06, BL-28, BL-29, then Waves 6–7.
+- ✅ Wave 5 so far: BL-26 yearly syllabus per class + subject (admins edit, teachers of the class read, copied by copy-structure, ended sessions read-only); BL-27 per-school grading scales with letters/remarks/grade points and result publication gated on weights of 100 % (closes KI-16; also KG-26); BL-06 report cards generated from the published results (versioned, immutable, PDF, parents see the current card). Next: BL-28, BL-29, then Waves 6–7.
 So in the table: Q4, Q5, Q15, Q19, Q17/Q23 (code part), Q30, Q40, Q29 (app part), Q44 pagination part, Q46 part 1, the tenant-isolation/unsafe-default row, RD-4 × Q41, RD-6 (retention settings; enforcement post-pilot), Q7 (archive instead of delete, controlled export), Q22 (export part), RD-10 and RD-11 are now ✅; Q28/Q25/Q26 infrastructure, Q32/Q35, and the rest remain as listed.
 
 ## 3. Phased implementation plan (dependency order)

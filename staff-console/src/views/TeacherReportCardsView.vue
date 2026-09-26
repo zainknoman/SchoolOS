@@ -9,6 +9,7 @@ import {
   type AcademicSessionSummary,
   type TermSummary,
   type SubjectGrade,
+  type GeneratedReportCardSummary,
 } from '../lib/api';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
@@ -31,6 +32,8 @@ const isUploading = ref(false);
 const terms = ref<TermSummary[]>([]);
 const selectedTermId = ref('');
 const grades = ref<SubjectGrade[]>([]);
+// BL-06: cards generated from the gradebook (all versions; superseded ones marked).
+const generatedCards = ref<GeneratedReportCardSummary[]>([]);
 
 async function loadOptions() {
   if (!auth.accessToken) return;
@@ -61,10 +64,14 @@ async function loadStudents() {
 async function loadReportCards() {
   if (!auth.accessToken || !selectedStudentId.value) {
     reportCards.value = [];
+    generatedCards.value = [];
     return;
   }
   try {
-    reportCards.value = await api.listReportCards(auth.accessToken, selectedStudentId.value);
+    [reportCards.value, generatedCards.value] = await Promise.all([
+      api.listReportCards(auth.accessToken, selectedStudentId.value),
+      api.listGeneratedReportCards(auth.accessToken, selectedStudentId.value),
+    ]);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load report cards.';
   }
@@ -115,6 +122,10 @@ async function onUpload() {
   } finally {
     isUploading.value = false;
   }
+}
+
+function generatedDownloadUrl(id: string): string {
+  return api.generatedReportCardPdfUrl(auth.accessToken ?? '', id);
 }
 
 function downloadUrl(id: string): string {
@@ -175,6 +186,17 @@ function downloadUrl(id: string): string {
 
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
+    <div v-if="generatedCards.length" class="generated-card" data-testid="generated-report-cards">
+      <h3 class="generated-title">Generated report cards</h3>
+      <div v-for="card in generatedCards" :key="card.id" class="report-card-row" :data-testid="`generated-${card.id}`">
+        <span>
+          {{ card.term }} · {{ card.session }} — v{{ card.version }} · {{ card.overallLetter ?? '—' }} ({{ card.overallPercent }}%)
+          <span v-if="!card.current" class="superseded">superseded</span>
+        </span>
+        <a :href="generatedDownloadUrl(card.id)" target="_blank" rel="noopener" class="link">Download</a>
+      </div>
+    </div>
+
     <div v-if="grades.length" class="grades-card">
       <table class="grades-table" data-testid="grades-table">
         <thead>
@@ -223,6 +245,20 @@ function downloadUrl(id: string): string {
 </template>
 
 <style scoped>
+.generated-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.generated-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+.superseded {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  margin-left: var(--space-1);
+}
 .grade-remark {
   color: var(--color-muted);
   font-size: var(--font-size-xs);

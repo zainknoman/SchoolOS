@@ -452,6 +452,28 @@ export interface GradingScale {
   updatedAt: string;
 }
 
+/** BL-06: a report card generated from the gradebook (versioned; issued cards never change). */
+export interface GeneratedReportCardSummary {
+  id: string;
+  studentId: string;
+  termId: string;
+  term: string;
+  session: string;
+  className: string;
+  version: number;
+  current: boolean;
+  overallPercent: number;
+  overallLetter: string | null;
+  issuedAt: string;
+  supersededAt: string | null;
+}
+
+export interface GenerateReportCardsResult {
+  generated: number;
+  unchanged: number;
+  skipped: { studentId: string; reason: string }[];
+}
+
 export interface ResultPublicationStatus {
   classId: string;
   termId: string;
@@ -2083,6 +2105,10 @@ export const api = {
     return `${API_BASE_URL}/api/v1/fee-payments/${paymentId}/receipt.pdf?access_token=${encodeURIComponent(accessToken)}`;
   },
 
+  generatedReportCardPdfUrl(accessToken: string, id: string): string {
+    return `${API_BASE_URL}/api/v1/report-cards/generated/${id}/pdf?access_token=${encodeURIComponent(accessToken)}`;
+  },
+
   reportCardPdfUrl(accessToken: string, reportCardId: string): string {
     return `${API_BASE_URL}/api/v1/report-cards/${reportCardId}/pdf?access_token=${encodeURIComponent(accessToken)}`;
   },
@@ -2975,6 +3001,24 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+  },
+
+  // BL-06: report cards generated from the gradebook.
+  async listGeneratedReportCards(accessToken: string, studentId: string): Promise<GeneratedReportCardSummary[]> {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/report-cards/generated?studentId=${encodeURIComponent(studentId)}`,
+      { headers: authHeaders(accessToken) },
+    );
+    return asJson(res);
+  },
+
+  async generateReportCards(accessToken: string, classId: string, termId: string): Promise<GenerateReportCardsResult> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/report-cards/generated`, {
+      method: 'POST',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ classId, termId }),
+    });
+    return asJson(res);
   },
 
   async getResultPublication(accessToken: string, classId: string, termId: string): Promise<ResultPublicationStatus> {

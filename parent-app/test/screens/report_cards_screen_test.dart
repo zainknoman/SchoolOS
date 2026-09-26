@@ -63,6 +63,74 @@ void main() {
     expect(find.byIcon(Icons.download_outlined), findsOneWidget);
   });
 
+  testWidgets('shows generated report cards with the overall grade (BL-06)', (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        if (request.url.path == '/api/v1/report-cards/generated') {
+          expect(request.url.queryParameters['studentId'], 'child-1');
+          return http.Response(
+            jsonEncode([
+              {
+                'id': 'g1',
+                'studentId': 'child-1',
+                'termId': 't1',
+                'term': 'Term 1',
+                'session': '2026',
+                'className': 'Grade 3',
+                'version': 2,
+                'current': true,
+                'overallPercent': 86.0,
+                'overallLetter': 'A',
+                'issuedAt': '2026-09-26T00:00:00.000Z',
+                'supersededAt': null,
+              },
+            ]),
+            200,
+          );
+        }
+        return http.Response(jsonEncode(<dynamic>[]), 200);
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReportCardsScreen(accessToken: 'tok', api: api, children: const [_child]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('generatedReportCardg1')), findsOneWidget);
+    expect(find.text('Term 1 · 2026'), findsOneWidget);
+    expect(find.text('A (86%)'), findsOneWidget);
+    expect(
+      api.generatedReportCardPdfUrl('g1', 'tok').toString(),
+      'http://test/api/v1/report-cards/generated/g1/pdf?access_token=tok',
+    );
+  });
+
+  testWidgets('a failing generated-card request never hides the uploaded PDFs (BL-06)', (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      client: MockClient((request) async {
+        if (request.url.path == '/api/v1/report-cards/generated') {
+          return http.Response('boom', 500);
+        }
+        return http.Response(jsonEncode(<dynamic>[]), 200);
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReportCardsScreen(accessToken: 'tok', api: api, children: const [_child]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Report cards'), findsNothing);
+    expect(find.text('No report cards uploaded yet.'), findsOneWidget);
+  });
+
   testWidgets('shows an empty state when there are no report cards', (tester) async {
     final api = ApiClient(
       baseUrl: 'http://test',

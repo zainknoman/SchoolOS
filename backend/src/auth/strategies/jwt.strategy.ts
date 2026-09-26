@@ -41,6 +41,8 @@ const DOWNLOAD_ROUTE_PATTERNS = [
   /^\/api\/v1\/fee-vouchers\/[^/]+\/pdf$/,
   /^\/api\/v1\/fee-payments\/[^/]+\/receipt\.pdf$/,
   /^\/api\/v1\/report-cards\/[^/]+\/pdf$/,
+  // BL-06: a generated report card's PDF
+  /^\/api\/v1\/report-cards\/generated\/[^/]+\/pdf$/,
 ];
 
 export function extractAccessTokenForDownloadRoutes(

@@ -209,6 +209,7 @@ model User {
   syllabiUpdated             Syllabus[]            @relation("SyllabusUpdatedBy")
   gradingScalesUpdated       GradingScale[]        @relation("GradingScaleUpdatedBy")
   resultsPublished           ResultPublication[]   @relation("ResultPublishedBy")
+  reportCardsIssued          GeneratedReportCard[] @relation("ReportCardIssuedBy")
 
   @@index([role])
   @@index([schoolId])
@@ -330,11 +331,11 @@ model AcademicSession {
 }
 
 model Class {
-  id                   String               @id @default(uuid())
+  id                   String                @id @default(uuid())
   campusId             String
-  campus               Campus               @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  campus               Campus                @relation(fields: [campusId], references: [id], onDelete: Cascade)
   academicSessionId    String
-  academicSession      AcademicSession      @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
+  academicSession      AcademicSession       @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
   name                 String // e.g. "Grade 3"
   sections             Section[]
   assessmentCategories AssessmentCategory[]
@@ -342,8 +343,9 @@ model Class {
   teachingAssignments  TeachingAssignment[]
   syllabi              Syllabus[]
   resultPublications   ResultPublication[]
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  generatedReportCards GeneratedReportCard[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   @@index([campusId])
   @@index([academicSessionId])
@@ -550,55 +552,56 @@ model HiringApplication {
 // --- Students & parents -----------------------------------------------------
 
 model Student {
-  id                 String                    @id @default(uuid())
-  grNumber           String                    @unique
-  name               String
-  firstName          String?
-  middleName         String?
-  lastName           String?
-  preferredName      String?
-  gender             Gender?
-  dateOfBirth        DateTime?
-  placeOfBirth       String?
-  nationality        String?                   @default("Pakistani")
-  religion           String?
-  bFormNumber        String?                   @unique
-  profilePhotoFileId String?
-  profilePhoto       File?                     @relation(fields: [profilePhotoFileId], references: [id], onDelete: SetNull)
-  status             StudentStatus             @default(ACTIVE)
-  admissionDate      DateTime?
-  leavingDate        DateTime?
-  leavingReason      String?
-  studentMobile      String?
-  studentEmail       String?
-  currentAddressId   String?
-  currentAddress     Address?                  @relation("StudentCurrentAddress", fields: [currentAddressId], references: [id], onDelete: SetNull)
-  permanentAddressId String?
-  permanentAddress   Address?                  @relation("StudentPermanentAddress", fields: [permanentAddressId], references: [id], onDelete: SetNull)
-  previousSchool     StudentPreviousSchool?
-  emergencyContacts  StudentEmergencyContact[]
-  medicalInfo        StudentMedicalInfo?
-  documents          StudentDocument[]
-  parents            StudentParent[]
-  enrollments        Enrollment[]
-  attendance         Attendance[]
-  feeVouchers        FeeVoucher[]
-  leaveRequests      LeaveRequest[]
-  conversations      Conversation[]
-  complaints         Complaint[]
-  reportCards        ReportCard[]
-  attendanceRiskFlag AttendanceRiskFlag?
-  marks              Mark[]
-  application        Application?
-  promotions         StudentPromotion[]
+  id                   String                    @id @default(uuid())
+  grNumber             String                    @unique
+  name                 String
+  firstName            String?
+  middleName           String?
+  lastName             String?
+  preferredName        String?
+  gender               Gender?
+  dateOfBirth          DateTime?
+  placeOfBirth         String?
+  nationality          String?                   @default("Pakistani")
+  religion             String?
+  bFormNumber          String?                   @unique
+  profilePhotoFileId   String?
+  profilePhoto         File?                     @relation(fields: [profilePhotoFileId], references: [id], onDelete: SetNull)
+  status               StudentStatus             @default(ACTIVE)
+  admissionDate        DateTime?
+  leavingDate          DateTime?
+  leavingReason        String?
+  studentMobile        String?
+  studentEmail         String?
+  currentAddressId     String?
+  currentAddress       Address?                  @relation("StudentCurrentAddress", fields: [currentAddressId], references: [id], onDelete: SetNull)
+  permanentAddressId   String?
+  permanentAddress     Address?                  @relation("StudentPermanentAddress", fields: [permanentAddressId], references: [id], onDelete: SetNull)
+  previousSchool       StudentPreviousSchool?
+  emergencyContacts    StudentEmergencyContact[]
+  medicalInfo          StudentMedicalInfo?
+  documents            StudentDocument[]
+  parents              StudentParent[]
+  enrollments          Enrollment[]
+  attendance           Attendance[]
+  feeVouchers          FeeVoucher[]
+  leaveRequests        LeaveRequest[]
+  conversations        Conversation[]
+  complaints           Complaint[]
+  reportCards          ReportCard[]
+  generatedReportCards GeneratedReportCard[]
+  attendanceRiskFlag   AttendanceRiskFlag?
+  marks                Mark[]
+  application          Application?
+  promotions           StudentPromotion[]
   // BL-07 (Q7): archived instead of deleted — out of the active lists, still readable; erasure is a
   // separate SUPER_ADMIN action
-  archivedAt         DateTime?
-  archivedById       String?
-  archivedBy         User?                     @relation("StudentArchivedBy", fields: [archivedById], references: [id], onDelete: SetNull)
-  archiveReason      String?
-  createdAt          DateTime                  @default(now())
-  updatedAt          DateTime                  @updatedAt
+  archivedAt           DateTime?
+  archivedById         String?
+  archivedBy           User?                     @relation("StudentArchivedBy", fields: [archivedById], references: [id], onDelete: SetNull)
+  archiveReason        String?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
 
   @@index([status])
   @@index([archivedAt])
@@ -1181,6 +1184,32 @@ model ReportCard {
   @@unique([studentId, academicSessionId])
 }
 
+// BL-06 (Q6): a report card generated from the gradebook for one student and term. Issued cards are
+// immutable (DB trigger); regenerating after a mark change issues version n+1 and marks the previous
+// one superseded. `snapshot` holds everything the card shows. Uploaded historical cards stay in
+// ReportCard.
+model GeneratedReportCard {
+  id             String    @id @default(uuid())
+  studentId      String
+  student        Student   @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  classId        String
+  class          Class     @relation(fields: [classId], references: [id], onDelete: NoAction)
+  termId         String
+  term           Term      @relation(fields: [termId], references: [id], onDelete: NoAction)
+  version        Int
+  snapshot       Json
+  overallPercent Float
+  overallLetter  String?
+  remark         String?
+  issuedById     String?
+  issuedBy       User?     @relation("ReportCardIssuedBy", fields: [issuedById], references: [id], onDelete: SetNull)
+  issuedAt       DateTime  @default(now())
+  supersededAt   DateTime?
+
+  @@unique([studentId, termId, version])
+  @@index([classId, termId])
+}
+
 model DraftSuggestion {
   id         String   @id @default(uuid())
   userId     String?
@@ -1305,9 +1334,9 @@ model ResultPublication {
 }
 
 model Term {
-  id                   String               @id @default(uuid())
+  id                   String                @id @default(uuid())
   academicSessionId    String
-  academicSession      AcademicSession      @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
+  academicSession      AcademicSession       @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
   label                String
   order                Int
   startDate            DateTime
@@ -1315,8 +1344,9 @@ model Term {
   assessmentCategories AssessmentCategory[]
   syllabusUnits        SyllabusUnit[]
   resultPublications   ResultPublication[]
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  generatedReportCards GeneratedReportCard[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   @@unique([academicSessionId, label])
   @@index([academicSessionId])

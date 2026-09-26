@@ -38,6 +38,7 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
       ? widget.initialChildId!
       : widget.children.first.id;
   List<ReportCard>? _reportCards;
+  List<GeneratedReportCard> _generated = [];
   List<SubjectGrade> _grades = [];
   String? _error;
 
@@ -50,6 +51,7 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
   Future<void> _load() async {
     setState(() {
       _reportCards = null;
+      _generated = [];
       _grades = [];
       _error = null;
     });
@@ -59,7 +61,19 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     }
+    await _loadGenerated();
     await _loadGrades();
+  }
+
+  // BL-06: cards generated from the gradebook. Best-effort like the grades below — a failure here
+  // must never hide the uploaded report-card PDFs.
+  Future<void> _loadGenerated() async {
+    try {
+      final cards = await widget.api.generatedReportCards(widget.accessToken, _selectedChildId);
+      if (mounted) setState(() => _generated = cards);
+    } catch (_) {
+      // Convenience only.
+    }
   }
 
   // Best-effort, same as AdminHomeView.vue's "non-critical, swallow and continue" precedent for a
@@ -130,6 +144,43 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
                             fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (_generated.isNotEmpty) ...[
+            const SectionLabel('Report cards'),
+            GroupedCard(
+              children: [
+                for (final card in _generated)
+                  GroupedRow(
+                    key: Key('generatedReportCard${card.id}'),
+                    child: Row(
+                      children: [
+                        const IconBadge(Icons.workspace_premium_outlined),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '${card.term} · ${card.session}',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                          ),
+                        ),
+                        Text(
+                          '${card.overallLetter ?? '—'} (${_formatPercent(card.overallPercent)}%)',
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: Icon(Icons.download_outlined, size: 18, color: tones.muted),
+                          tooltip: 'Download report card',
+                          onPressed: () => launchUrl(
+                            widget.api.generatedReportCardPdfUrl(card.id, widget.accessToken),
+                            mode: LaunchMode.externalApplication,
                           ),
                         ),
                       ],

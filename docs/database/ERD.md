@@ -141,6 +141,10 @@ flowchart LR
   ReportCard -->|Restrict| AcademicSession
   ReportCard -->|Restrict| File
   ReportCard -->|default| User
+  GeneratedReportCard -->|Restrict| Student
+  GeneratedReportCard -->|NoAction| Class
+  GeneratedReportCard -->|NoAction| Term
+  GeneratedReportCard -->|SetNull, optional| User
   AttendanceRiskFlag -->|Cascade| Student
   AssessmentCategory -->|Cascade| Class
   AssessmentCategory -->|Cascade| Term

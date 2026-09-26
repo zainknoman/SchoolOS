@@ -15,6 +15,8 @@ vi.mock('../lib/api', () => ({
     reportCardPdfUrl: vi.fn(() => 'https://example.test/pdf'),
     listTerms: vi.fn(),
     getStudentGrades: vi.fn(),
+    listGeneratedReportCards: vi.fn().mockResolvedValue([]),
+    generatedReportCardPdfUrl: vi.fn((token: string, id: string) => `gen/${id}?t=${token}`),
   },
 }));
 
@@ -166,6 +168,51 @@ describe('ReportCardsView', () => {
     expect(wrapper.find('[data-testid="grade-letter-sub-1"]').text()).toContain('Very good');
     expect(wrapper.text()).toContain('43 / 50');
     expect(wrapper.find('[data-testid="grades-unpublished"]').exists()).toBe(true);
+  });
+
+  it('lists generated report cards with their versions and PDF links (BL-06)', async () => {
+    vi.mocked(api.listReportCards).mockResolvedValue([]);
+    vi.mocked(api.listGeneratedReportCards).mockResolvedValue([
+      {
+        id: 'g2',
+        studentId: 's1',
+        termId: 't1',
+        term: 'Term 1',
+        session: '2026',
+        className: 'Grade 3',
+        version: 2,
+        current: true,
+        overallPercent: 70,
+        overallLetter: 'B',
+        issuedAt: '2026-09-26',
+        supersededAt: null,
+      },
+      {
+        id: 'g1',
+        studentId: 's1',
+        termId: 't1',
+        term: 'Term 1',
+        session: '2026',
+        className: 'Grade 3',
+        version: 1,
+        current: false,
+        overallPercent: 86,
+        overallLetter: 'A',
+        issuedAt: '2026-09-20',
+        supersededAt: '2026-09-26',
+      },
+    ]);
+    const wrapper = mount(ReportCardsView);
+    await flushPromises();
+    await wrapper.find('[data-testid="select-student"]').setValue('s1');
+    await flushPromises();
+
+    expect(api.listGeneratedReportCards).toHaveBeenCalledWith('token-1', 's1');
+    const current = wrapper.find('[data-testid="generated-g2"]');
+    expect(current.text()).toContain('v2 · B (70%)');
+    expect(current.text()).not.toContain('superseded');
+    expect(wrapper.find('[data-testid="generated-g1"]').text()).toContain('superseded');
+    expect(current.find('a').attributes('href')).toBe('gen/g2?t=token-1');
   });
 
   it('falls back to the PDF list when no structured grades exist for this term', async () => {

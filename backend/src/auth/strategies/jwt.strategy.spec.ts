@@ -53,6 +53,19 @@ describe('extractAccessTokenForDownloadRoutes', () => {
     ).toBe('tok-1');
   });
 
+  it('extracts ?access_token= on a generated report card PDF route (BL-06), not on its JSON route', () => {
+    expect(
+      extractAccessTokenForDownloadRoutes(
+        makeRequest('/api/v1/report-cards/generated/abc123/pdf', 'tok-1'),
+      ),
+    ).toBe('tok-1');
+    expect(
+      extractAccessTokenForDownloadRoutes(
+        makeRequest('/api/v1/report-cards/generated/abc123', 'tok-1'),
+      ),
+    ).toBeNull();
+  });
+
   it('returns null on a non-download route even when ?access_token= is present', () => {
     expect(
       extractAccessTokenForDownloadRoutes(
