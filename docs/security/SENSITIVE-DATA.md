@@ -1,6 +1,6 @@
 # Sensitive Personal Data — Column Boundary (design note)
 
-> **Status:** CURRENT · **Verified:** 2026-09-27 against `wave-0/foundations` (BL-07) · **Sources:** `backend/src/common/sensitive-fields.ts`, `backend/prisma/schema.prisma` · **Owner:** Security Owner (Engineering Lead until assigned) · **Review:** pending (Security Owner, RD-6 privacy administrator when named)
+> **Status:** CURRENT · **Verified:** 2026-09-26 against `wave-0/foundations` (BL-07, BL-41) · **Sources:** `backend/src/common/sensitive-fields.ts`, `backend/prisma/schema.prisma` · **Owner:** Security Owner (Engineering Lead until assigned) · **Review:** pending (Security Owner, RD-6 privacy administrator when named)
 
 ## Why
 BL-07 (Q7, RD-6) asks that national identifiers and health data stay **separable**, so that encryption at rest — and, if later required, field-level encryption — can be added without redesigning the data model.
@@ -17,7 +17,7 @@ BL-07 (Q7, RD-6) asks that national identifiers and health data stay **separable
 The list lives in **one place**: `SENSITIVE_FIELDS` in `backend/src/common/sensitive-fields.ts`. A unit test fails if a listed column no longer exists in `schema.prisma`, so the list cannot drift silently.
 
 ## Rules
-1. Code that copies personal data **out** of the system (exports — BL-41 —, reports, integrations) passes rows through `withoutSensitive(model, row)` unless the caller explicitly asked for the sensitive fields **and** is permitted to receive them; the request is audited.
+1. Code that copies personal data **out** of the system (exports, reports, integrations) passes rows through `withoutSensitive(model, row)` — or builds an explicit column list that takes sensitive columns only from `SENSITIVE_FIELDS` — unless the caller explicitly asked for the sensitive fields **and** is permitted to receive them; the request is audited. The BL-41 export (`backend/src/data-export/`) uses explicit column lists, adds the sensitive ones only for the school's principal or SUPER_ADMIN with `includeSensitive=true`, and refuses to write any `SENSITIVE_FIELDS` column otherwise (fail closed).
 2. Health data stays in `StudentMedicalInfo`; new health fields go there, never on `Student`.
 3. A new identifier or health column is added to `SENSITIVE_FIELDS` in the same change.
 4. Lookup by CNIC (guardian lookup, BL-23) uses exact match on the column; if the column is later encrypted, a deterministic keyed hash column (`cnicHash`) is added for lookup and uniqueness — the API does not change.

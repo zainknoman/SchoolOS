@@ -133,6 +133,19 @@ export interface CopyStructureResult {
   timetableEntriesSkipped?: number;
 }
 
+/** BL-41: datasets of the controlled export (`GET /api/v1/admin/exports/:dataset`). */
+export const DATA_EXPORT_DATASETS = ['students', 'guardians', 'enrolments', 'attendance', 'results', 'fees'] as const;
+export type DataExportDataset = (typeof DATA_EXPORT_DATASETS)[number];
+
+export interface DataExportParams {
+  schoolId?: string;
+  campusId?: string;
+  academicSessionId?: string;
+  from?: string;
+  to?: string;
+  includeSensitive?: boolean;
+}
+
 export interface AcademicSessionSummary {
   id: string;
   /** BL-01: sessions belong to a school (null only for legacy rows awaiting the M3 backfill). */
@@ -3060,6 +3073,31 @@ export const api = {
       throw new ApiError(body?.message ?? 'Import failed.', res.status);
     }
     return res.json();
+  },
+
+  /** BL-41: audited CSV export of one school's records; the server decides scope and sensitive columns. */
+  async downloadDataExport(accessToken: string, dataset: DataExportDataset, params: DataExportParams = {}): Promise<void> {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== '' && value !== false) query.set(key, String(value));
+    }
+    const qs = query.toString();
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/exports/${dataset}${qs ? `?${qs}` : ''}`, {
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+    const filename = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? `${dataset}.csv`;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
   },
 
   async downloadBulkImportSample(accessToken: string, entity: BulkImportEntity): Promise<void> {

@@ -42,11 +42,11 @@ SchoolOS stores sensitive information about children and families in Pakistan (C
 | Audit logging | PARTIALLY IMPLEMENTED (no old/new values; completeness unproven) | BL-18 |
 | Encryption in transit | CONFIGURATION REQUIRED (TLS at the deployment edge; none defined) | BL-13 |
 | Secure password storage | IMPLEMENTED (argon2) | — |
-| Restricted access to sensitive fields (CNIC, B-Form, medical) | PARTIALLY IMPLEMENTED (role/scope only; no field-level restriction) | BL-41, BL-07 |
+| Restricted access to sensitive fields (CNIC, B-Form, medical) | PARTIALLY IMPLEMENTED — role/scope on screens and APIs; **exports** leave them out unless the principal or SUPER_ADMIN asks for them (BL-41, 2026-09-26); no field-level encryption (design note [SENSITIVE-DATA](SENSITIVE-DATA.md)) | BL-41, BL-07 |
 | Backups | NOT IMPLEMENTED | BL-13 (RPO ≤ 24 h, RTO ≤ 4 h, ≥ 30 days) |
 | Retention/archive controls | IMPLEMENTED 2026-09-27 — archive instead of delete, SUPER_ADMIN erasure of archived records (audited), `RetentionPolicy` settings + review report (`/admin/retention-policy`); **no automatic permanent deletion** (a test asserts it) | BL-07, BL-63 |
 | Consent/notice mechanisms | NOT IMPLEMENTED | BL-56 |
-| Controlled exports | NOT IMPLEMENTED — authorised school admins only, audited | BL-41 |
+| Controlled exports | IMPLEMENTED 2026-09-26 — `GET /api/v1/admin/exports/:dataset` (CSV): school admins and SUPER_ADMIN, one school per export (campus-level admins: their campus), every export audited (`data-export.<dataset>` with scope, filters, sensitive flag, row count); sensitive columns only on explicit request by the principal or SUPER_ADMIN; formula cells neutralised | BL-41 |
 | Breach/incident procedures | NOT IMPLEMENTED — must be documented **before production** | BL-56 |
 | PII scrubbing in error tracking/logs (never capture passwords, tokens, CNIC/B-Form, medical or sensitive student/guardian data) | NOT IMPLEMENTED | BL-11 |
 | Object storage with access checks for documents | NOT IMPLEMENTED (local disk) | BL-10 |

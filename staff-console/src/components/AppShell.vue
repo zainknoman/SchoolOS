@@ -561,6 +561,9 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
             <RouterLink v-if="canManageBulkImport" data-testid="nav-accounts-access" to="/admin/accounts-access"
               ><Icon name="users" />Accounts Access</RouterLink
             >
+            <RouterLink v-if="canManageBulkImport" data-testid="nav-data-export" to="/admin/data-export"
+              ><Icon name="grid" />Data Export</RouterLink
+            >
             <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />{{ t('nav.fees') }}</RouterLink>
             <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"
               ><Icon name="calendar" />{{ t('nav.leave') }}</RouterLink

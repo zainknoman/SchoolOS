@@ -353,6 +353,13 @@ const router = createRouter({
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Accounts Staff Access', group: 'Operations' },
     },
     {
+      // BL-41: audited CSV export of one school's records.
+      path: '/admin/data-export',
+      name: 'admin-data-export',
+      component: () => import('../views/DataExportPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Data Export', group: 'Operations' },
+    },
+    {
       path: '/admin/bulk-import',
       name: 'admin-bulk-import',
       component: () => import('../views/BulkImportPageView.vue'),

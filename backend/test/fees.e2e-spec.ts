@@ -207,7 +207,7 @@ describe('Fees (e2e)', () => {
       .send({
         studentIds: [ids.childA],
         month: '2026-09',
-        dueDate: '2026-09-25',
+        dueDate: '2099-09-25', // far future: the status check below expects 'unpaid', not 'overdue'
         feeStructureIds: [ids.structure],
       })
       .expect(403);
@@ -222,7 +222,7 @@ describe('Fees (e2e)', () => {
       .send({
         studentIds: [ids.childA],
         month: '2026-09',
-        dueDate: '2026-09-25',
+        dueDate: '2099-09-25', // far future: the status check below expects 'unpaid', not 'overdue'
         feeStructureIds: [ids.structure],
       })
       .expect(201);
@@ -234,7 +234,7 @@ describe('Fees (e2e)', () => {
       .send({
         studentIds: [ids.childA],
         month: '2026-09',
-        dueDate: '2026-09-25',
+        dueDate: '2099-09-25', // far future: the status check below expects 'unpaid', not 'overdue'
         feeStructureIds: [ids.structure],
       })
       .expect(400);

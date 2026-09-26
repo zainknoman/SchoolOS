@@ -43,6 +43,9 @@ Menu groups: Overview · People · Operations · Communication · Org Structure.
 ## 5a. Teaching history
 A teacher's staff profile (**People → Staff → the teacher → Teaching History**) lists every class and subject they were assigned, with dates. It is kept automatically when you change a section's class teacher or save a timetable; nothing is overwritten. Assignments that existed before this feature show "before <session start>".
 
+## 5b. Data export
+**Operations → Data Export** downloads your school's students, guardians, enrolments, attendance, results (marks) or fee vouchers as a CSV file that opens in Excel. Pick a session to narrow most exports, or a date range for attendance. The file covers your school only (your campus, if your account is campus-level), and every export is recorded in the audit log with your name and the number of rows. **Include sensitive fields** (B-Form, religion, medical information, CNIC) is available to the principal only — tick it only when the purpose needs them. Fee amounts are in paisa.
+
 ## 6. Principal views
 **School Overview** and **Academics & Staff** summarise the school. They are read-only dashboards.
 

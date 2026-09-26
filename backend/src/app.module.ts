@@ -16,6 +16,7 @@ import { FilesModule } from './files/files.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { TeachingAssignmentsModule } from './teaching-assignments/teaching-assignments.module';
 import { RetentionModule } from './retention/retention.module';
+import { DataExportModule } from './data-export/data-export.module';
 import { TeachersModule } from './teachers/teachers.module';
 import { DiaryModule } from './diary/diary.module';
 import { CircularsModule } from './circulars/circulars.module';
@@ -71,6 +72,7 @@ import {
     SubjectsModule,
     TeachingAssignmentsModule,
     RetentionModule,
+    DataExportModule,
     TeachersModule,
     DiaryModule,
     CircularsModule,

@@ -1,9 +1,9 @@
 BL-39 ✅ |BL-53 ✅ |BL-32 ✅ |BL-25 ✅ |BL-61, BL-05 ✅ |BL-04, BL-23 ✅ |BL-03 ✅ |BL-02 ✅ |BL-01 ✅ |BL-20 ✅ |BL-60 ✅ |# Pilot-Readiness Execution Plan (Waves 0–7)
 
-> **Status:** CURRENT — **Waves 0–3 done, Wave 4 in progress** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-07/BL-63) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
+> **Status:** CURRENT — **Waves 0–4 done, Wave 5 next** (see §0) · **Progress verified:** 2026-09-26 against `wave-0/foundations` (BL-41) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
 > Companion to the gap analysis: this file fixes the **order of execution**, the **schema/migration dependencies that must precede application code**, the affected layers, the docs to regenerate, and rollback rules. Findings F1–F10 (2026-09-20) are folded in. Item detail and acceptance criteria live in the BACKLOG.
 
-## 0. Progress and handoff (updated 2026-09-27)
+## 0. Progress and handoff (updated 2026-09-26, after BL-41)
 
 All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` = github.com/zainknoman/SchoolOS), one commit per item, each pushed after its checks passed. Item detail and "Done" notes: [BACKLOG](../product/requirements/BACKLOG.md); migrations and rehearsals: [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md); deploy steps: [RUNBOOKS](../operations/RUNBOOKS.md).
 
@@ -14,13 +14,13 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 2 | BL-10 · BL-11 · BL-39 · BL-40 | ✅ (BL-13 = Ops, open) | `fd7e7f2` · `608ab16` · `c04c789` · `ca4d24e` |
 | 3 | BL-20 (M2) · BL-01 (M3) · BL-02 (M4) · BL-03 (M5) · BL-33 · BL-32 (M11) · BL-53 (M12) · BL-34 | ✅ | `a2a7bf7` · `2339247` · `566f183` · `9f9f138` · `f49631f` · `896aef2` · `3384a60` · `b4f7f60` |
 | 4 | BL-23 + BL-04 (M6) | ✅ | `5e4a352` |
-| 4 | BL-61 (M7) · BL-05 · BL-25 (M8) · BL-07 + BL-63 (M9, + M8 fixes, KG-25) | ✅ | `79aabed` · `bb6e744` · `5225c4c` · (this commit) |
-| 4 | BL-41 | ⏭ **next** | — |
-| 5 | BL-26 · BL-27 · BL-06 · BL-28 · BL-29 (M1b) | ⏳ | — |
+| 4 | BL-61 (M7) · BL-05 · BL-25 (M8) · BL-07 + BL-63 (M9, + M8 fixes, KG-25) | ✅ | `79aabed` · `bb6e744` · `5225c4c` · `8889b12` |
+| 4 | BL-41 (audited CSV export) | ✅ | (this commit) |
+| 5 | BL-26 · BL-27 · BL-06 · BL-28 · BL-29 (M1b) | ⏭ **next** (BL-26 first) | — |
 | 6 | BL-08 · BL-30 · BL-35 · BL-43 · BL-54 · BL-14 | ⏳ | — |
 | 7 | BL-15 · BL-55 · BL-36 · BL-37 part 2 · BL-56 · BL-57 · BL-58 | ⏳ | — |
 
-Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a3cb1` (KG-24 — bulk import could write into another school).
+Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a3cb1` (KG-24 — bulk import could write into another school); with BL-41, `fees.e2e-spec.ts` stopped using a due date (2026-09-25) that had passed, which made its voucher read "overdue".
 
 **Migrations are expand-only so far.** Contract steps (NOT NULL on the new `schoolId` columns, dropping legacy fallbacks such as school-less sessions/subjects/fee structures, the legacy `StudentParent.relationship`/`isPrimary`) come in a later release. Deploy order per migration: `migrate deploy` → `npm run backfill:mN` (M1–M8) → resolve `MigrationReviewItem` rows (RUNBOOKS SQL). Before M12: `npm run migration:dry-run` must show no `M12_*` rows. The dev DB has 12 active sessions, so M3's backfill refuses on it until they are reduced to one per school.
 
@@ -29,10 +29,10 @@ Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a
 - Data-changing migration: expand SQL + `migration-harness/backfills/mN-*.mjs` + `backfill-mN-cli.mjs` + `npm run backfill:mN` + scenario `migration-harness/scenarios/mN-*.mjs` (idempotency is checked automatically) + `prisma migrate diff` shows no drift + record the rehearsal in MIGRATION-STRATEGY.
 - Two-school e2e fixture: `backend/test/pending/two-school-fixture.ts` (`createTwoSchools(prefix)`); the BL-18 scaffold is fully graduated.
 - **Do not** run `prettier --write` on `staff-console/**` or `backend/migration-harness/**` (it reformats whole files); backend `src/`/`test/` are fine. **Do not** commit `docs/UI-Screenshots/sample4` CSVs. Write multi-line edit scripts with a file (Git Bash heredocs mangle backslashes).
-- Last verified counts (2026-09-27): backend unit 732, e2e 306 (41 suites), harness 10 scenarios + 13 tests, console 544, parent app 110.
+- Last verified counts (2026-09-26, BL-41): backend unit 743, e2e 314 (42 suites), harness 10 scenarios + 13 tests (unchanged), console 549, parent app 110 (unchanged).
 - Full e2e on a scratch DB: create `schoolos_scratch_e2e` (drop first), `DATABASE_URL=<…/schoolos_scratch_e2e> npx prisma migrate deploy`, then the same `DATABASE_URL` for `npm run test:e2e`. Suites that call validated endpoints must install the global `ValidationPipe` (production does it in `main.ts`, `AppModule` does not).
 
-**Next step:** BL-41 — controlled, audited export for school admins (students, guardians, enrolments, attendance, results, fees), limited to the caller's school, sensitive fields (`common/sensitive-fields.ts`) excluded unless explicitly requested and permitted. Then Wave 5 (BL-26 · BL-27 · BL-06 · BL-28 · BL-29/M1b).
+**Next step:** Wave 5 — BL-26 (syllabus), then BL-27 (grading scales), BL-06 (report-card generation), BL-28 (risk settings), BL-29 (leave workflow, migration M1b). The M10 additive schema changes for BL-26/27/06/28 land with their items.
 
 ## 1. Findings folded in (F1–F10)
 | # | Finding | Where handled |

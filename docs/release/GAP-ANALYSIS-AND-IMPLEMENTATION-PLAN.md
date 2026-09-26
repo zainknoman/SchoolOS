@@ -55,13 +55,13 @@ Legend: ✅ exists · ⚠ partial · ❌ missing · 🔁 conflicts with the deci
 | Licence, security contact, domains (Q20, Q21, RD-1, RD-2) | ⚠ placeholders (`[LEGAL_ENTITY_NAME]`, `[SECURITY_EMAIL]`, `[PRODUCTION_DOMAIN]`, `[SUPPORT_EMAIL]`, `[EMAIL_FROM]`) | supply values; config-driven | §5 |
 
 
-**Progress (updated 2026-09-27 after BL-07/BL-63, branch `wave-0/foundations`)** — delivered since this table was written (✅ = done, commit in EXECUTION-PLAN §0):
+**Progress (updated 2026-09-26 after BL-41, branch `wave-0/foundations`)** — delivered since this table was written (✅ = done, commit in EXECUTION-PLAN §0):
 - ✅ Wave 0: BL-65 harness, BL-62 strategy (approved), BL-18 scaffold, BL-66 generators, BL-37 part 1.
 - ✅ Wave 1: BL-51 config safety, BL-12 headers/audit, BL-21 account controls, BL-64 parent reset without e-mail, BL-22 bootstrap super admin, BL-52 upload checks, BL-60 attendance without class teacher (M1).
 - ✅ Wave 2: BL-10 object storage, BL-11 health/logs/Sentry, BL-39 job lock, BL-40 pagination (BL-13 is Ops, open).
 - ✅ Wave 3: BL-20 circular/holiday anchors (M2), BL-01 school sessions (M3), BL-02 school subjects (M4), BL-03 fee structures (M5), BL-33 copy structure, BL-32 accounts grants, BL-53 DB invariants (M12), BL-34 rebrand/neutral demo data.
-- ✅ Wave 4 so far: BL-23 + BL-04 guardians (M6), BL-61 lifecycle terms (M7), BL-05 promotion indicators/confirmation, BL-25 teaching-assignment history (M8), BL-07 archive/erasure + BL-63 retention settings (M9; also closed KG-25, record-scoped student/staff/teacher routes). Next: BL-41, then Waves 5–7.
-So in the table: Q4, Q5, Q15, Q19, Q17/Q23 (code part), Q30, Q40, Q29 (app part), Q44 pagination part, Q46 part 1, the tenant-isolation/unsafe-default row, RD-4 × Q41, RD-6 (retention settings; enforcement post-pilot), Q7 (archive instead of delete), RD-10 and RD-11 are now ✅; Q28/Q25/Q26 infrastructure, Q32/Q35, and the rest remain as listed.
+- ✅ Wave 4: BL-23 + BL-04 guardians (M6), BL-61 lifecycle terms (M7), BL-05 promotion indicators/confirmation, BL-25 teaching-assignment history (M8), BL-07 archive/erasure + BL-63 retention settings (M9; also closed KG-25, record-scoped student/staff/teacher routes), BL-41 audited one-school CSV export (sensitive fields for the principal/SUPER_ADMIN only). Next: Wave 5 (BL-26 first), then Waves 6–7.
+So in the table: Q4, Q5, Q15, Q19, Q17/Q23 (code part), Q30, Q40, Q29 (app part), Q44 pagination part, Q46 part 1, the tenant-isolation/unsafe-default row, RD-4 × Q41, RD-6 (retention settings; enforcement post-pilot), Q7 (archive instead of delete, controlled export), Q22 (export part), RD-10 and RD-11 are now ✅; Q28/Q25/Q26 infrastructure, Q32/Q35, and the rest remain as listed.
 
 ## 3. Phased implementation plan (dependency order)
 The wave-by-wave execution plan, migration list (M1–M13), regeneration matrix and rollback rules are in [EXECUTION-PLAN](EXECUTION-PLAN.md); Wave 0 (BL-62, BL-65, BL-66, BL-37 part 1, BL-18 scaffold) precedes Phase A here.

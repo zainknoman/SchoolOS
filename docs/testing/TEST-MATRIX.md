@@ -52,9 +52,9 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 
 | Suite | Files | Test blocks |
 |---|---|---|
-| Backend unit (`backend/src/**/*.spec.ts`) | 94 | 684 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 41 | 303 |
-| Staff console (`staff-console/src/**/*.spec.ts`) | 76 | 520 |
+| Backend unit (`backend/src/**/*.spec.ts`) | 96 | 695 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 42 | 311 |
+| Staff console (`staff-console/src/**/*.spec.ts`) | 77 | 525 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 30 | — |
 
 | Backend e2e spec | Test blocks |
@@ -72,6 +72,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `copy-structure.e2e-spec.ts` | 3 |
 | `cors.e2e-spec.ts` | 2 |
 | `cross-tenant-boundary.e2e-spec.ts` | 6 |
+| `data-export.e2e-spec.ts` | 8 |
 | `db-invariants.e2e-spec.ts` | 3 |
 | `diary-circulars.e2e-spec.ts` | 13 |
 | `fee-structures.e2e-spec.ts` | 5 |
