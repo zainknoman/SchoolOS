@@ -142,6 +142,8 @@
 
 **M10 part 1 (BL-26, `20260928090000_m10_syllabus`, 2026-09-26):** additive only (two new tables, no existing row touched), so no backfill or harness scenario; applied to the scratch database with `migrate deploy`, `prisma migrate diff` shows no drift, and the full e2e suite (including school deletion cascades) passes on it.
 
+**M10 part 2 (BL-27, `20260928100000_m10_grading`, 2026-09-26):** additive only (three new tables incl. the partial unique index "one default scale per school"); applied to the scratch database, no drift, full e2e green on it.
+
 **Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

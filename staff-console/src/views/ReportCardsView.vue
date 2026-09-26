@@ -155,7 +155,9 @@ function downloadUrl(id: string): string {
           <tr>
             <th>Subject</th>
             <th>Categories</th>
+            <th class="col-final">Marks</th>
             <th class="col-final">Final %</th>
+            <th class="col-final">Grade</th>
           </tr>
         </thead>
         <tbody>
@@ -166,10 +168,18 @@ function downloadUrl(id: string): string {
                 {{ cat.name }}: {{ cat.weightPercent }}% wt, {{ cat.obtainedPercent }}% obtained
               </span>
             </td>
+            <td class="mono">{{ grade.obtainedMarks ?? '' }}<template v-if="grade.maxMarks"> / {{ grade.maxMarks }}</template></td>
             <td class="mono final-percent">{{ grade.finalPercent }}%</td>
+            <td :data-testid="`grade-letter-${grade.subjectId}`">
+              <strong>{{ grade.letter ?? '—' }}</strong>
+              <span v-if="grade.remark" class="grade-remark"> {{ grade.remark }}</span>
+            </td>
           </tr>
         </tbody>
       </table>
+      <p v-if="grades[0] && grades[0].published === false" class="grade-note" data-testid="grades-unpublished">
+        Not published yet — parents do not see these results until the class's results for the term are published.
+      </p>
     </div>
 
     <template v-else-if="selectedStudentId">
@@ -187,6 +197,16 @@ function downloadUrl(id: string): string {
 </template>
 
 <style scoped>
+.grade-remark {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+}
+.grade-note {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+}
 .error {
   color: var(--color-destructive);
 }

@@ -207,6 +207,8 @@ model User {
   migrationReviewsResolved   MigrationReviewItem[]
   promotionPoliciesUpdated   PromotionPolicy[]     @relation("PromotionPolicyUpdatedBy")
   syllabiUpdated             Syllabus[]            @relation("SyllabusUpdatedBy")
+  gradingScalesUpdated       GradingScale[]        @relation("GradingScaleUpdatedBy")
+  resultsPublished           ResultPublication[]   @relation("ResultPublishedBy")
 
   @@index([role])
   @@index([schoolId])
@@ -258,6 +260,7 @@ model School {
   subjects            Subject[]
   feeStructures       FeeStructure[]
   promotionPolicy     PromotionPolicy?
+  gradingScales       GradingScale[]
   teachingAssignments TeachingAssignment[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -338,6 +341,7 @@ model Class {
   applications         Application[]
   teachingAssignments  TeachingAssignment[]
   syllabi              Syllabus[]
+  resultPublications   ResultPublication[]
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
@@ -1248,6 +1252,58 @@ model SyllabusUnit {
   @@index([termId])
 }
 
+// BL-27 (Q6): a school's grading scale — percentage bands mapped to a letter grade, a remark and an
+// optional grade point (GPA). At most one scale per school is the default (partial unique index).
+model GradingScale {
+  id          String      @id @default(uuid())
+  schoolId    String
+  school      School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String
+  isDefault   Boolean     @default(false)
+  bands       GradeBand[]
+  updatedById String?
+  updatedBy   User?       @relation("GradingScaleUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([schoolId, name])
+  @@unique([schoolId], map: "GradingScale_one_default_per_school", where: raw("\"isDefault\""))
+}
+
+// BL-27: a percentage at or above `minPercent` (and below the next band) gets this letter.
+model GradeBand {
+  id             String       @id @default(uuid())
+  gradingScaleId String
+  gradingScale   GradingScale @relation(fields: [gradingScaleId], references: [id], onDelete: Cascade)
+  minPercent     Float
+  letter         String
+  remark         String?
+  gradePoint     Float?
+
+  @@unique([gradingScaleId, minPercent])
+}
+
+// BL-27 (KI-16): the results of a class for a term are published only when the category weights
+// total 100 %. The bands in force are copied into `bands` so later scale edits never change
+// published letters. While a row exists the class/term's categories cannot change.
+model ResultPublication {
+  id             String   @id @default(uuid())
+  classId        String
+  class          Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  termId         String
+  term           Term     @relation(fields: [termId], references: [id], onDelete: Cascade)
+  gradingScaleId String
+  scaleName      String
+  // [{ minPercent, letter, remark, gradePoint }] sorted by minPercent descending
+  bands          Json
+  publishedById  String?
+  publishedBy    User?    @relation("ResultPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  publishedAt    DateTime @default(now())
+
+  @@unique([classId, termId])
+  @@index([termId])
+}
+
 model Term {
   id                   String               @id @default(uuid())
   academicSessionId    String
@@ -1258,6 +1314,7 @@ model Term {
   endDate              DateTime
   assessmentCategories AssessmentCategory[]
   syllabusUnits        SyllabusUnit[]
+  resultPublications   ResultPublication[]
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 

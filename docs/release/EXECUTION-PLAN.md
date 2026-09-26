@@ -1,9 +1,9 @@
 BL-39 ✅ |BL-53 ✅ |BL-32 ✅ |BL-25 ✅ |BL-61, BL-05 ✅ |BL-04, BL-23 ✅ |BL-03 ✅ |BL-02 ✅ |BL-01 ✅ |BL-20 ✅ |BL-60 ✅ |# Pilot-Readiness Execution Plan (Waves 0–7)
 
-> **Status:** CURRENT — **Waves 0–4 done, Wave 5 in progress** (see §0) · **Progress verified:** 2026-09-26 against `wave-0/foundations` (BL-26) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
+> **Status:** CURRENT — **Waves 0–4 done, Wave 5 in progress** (see §0) · **Progress verified:** 2026-09-26 against `wave-0/foundations` (BL-27) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
 > Companion to the gap analysis: this file fixes the **order of execution**, the **schema/migration dependencies that must precede application code**, the affected layers, the docs to regenerate, and rollback rules. Findings F1–F10 (2026-09-20) are folded in. Item detail and acceptance criteria live in the BACKLOG.
 
-## 0. Progress and handoff (updated 2026-09-26, after BL-26)
+## 0. Progress and handoff (updated 2026-09-26, after BL-27)
 
 All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` = github.com/zainknoman/SchoolOS), one commit per item, each pushed after its checks passed. Item detail and "Done" notes: [BACKLOG](../product/requirements/BACKLOG.md); migrations and rehearsals: [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md); deploy steps: [RUNBOOKS](../operations/RUNBOOKS.md).
 
@@ -16,8 +16,9 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 4 | BL-23 + BL-04 (M6) | ✅ | `5e4a352` |
 | 4 | BL-61 (M7) · BL-05 · BL-25 (M8) · BL-07 + BL-63 (M9, + M8 fixes, KG-25) | ✅ | `79aabed` · `bb6e744` · `5225c4c` · `8889b12` |
 | 4 | BL-41 (audited CSV export) | ✅ | `94f5c5f` |
-| 5 | BL-26 syllabus (M10 part) | ✅ | (this commit) |
-| 5 | BL-27 · BL-06 · BL-28 · BL-29 (M1b) | ⏭ **next** (BL-27 first) | — |
+| 5 | BL-26 syllabus (M10 part) | ✅ | `0b1175d` |
+| 5 | BL-27 grading scales + result publication (M10 part, KI-16, KG-26) | ✅ | (this commit) |
+| 5 | BL-06 · BL-28 · BL-29 (M1b) | ⏭ **next** (BL-06 first) | — |
 | 6 | BL-08 · BL-30 · BL-35 · BL-43 · BL-54 · BL-14 | ⏳ | — |
 | 7 | BL-15 · BL-55 · BL-36 · BL-37 part 2 · BL-56 · BL-57 · BL-58 | ⏳ | — |
 
@@ -30,10 +31,10 @@ Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a
 - Data-changing migration: expand SQL + `migration-harness/backfills/mN-*.mjs` + `backfill-mN-cli.mjs` + `npm run backfill:mN` + scenario `migration-harness/scenarios/mN-*.mjs` (idempotency is checked automatically) + `prisma migrate diff` shows no drift + record the rehearsal in MIGRATION-STRATEGY.
 - Two-school e2e fixture: `backend/test/pending/two-school-fixture.ts` (`createTwoSchools(prefix)`); the BL-18 scaffold is fully graduated.
 - **Do not** run `prettier --write` on `staff-console/**` or `backend/migration-harness/**` (it reformats whole files); backend `src/`/`test/` are fine. **Do not** commit `docs/UI-Screenshots/sample4` CSVs. Write multi-line edit scripts with a file (Git Bash heredocs mangle backslashes).
-- Last verified counts (2026-09-26, BL-26): backend unit 746, e2e 321 (43 suites), harness 10 scenarios + 13 tests (unchanged; M10 is additive), console 555, parent app 110 (unchanged).
+- Last verified counts (2026-09-26, BL-27): backend unit 750, e2e 329 (44 suites), harness 10 scenarios + 13 tests (unchanged; M10 is additive), console 562, parent app 110 (unchanged).
 - Full e2e on a scratch DB: create `schoolos_scratch_e2e` (drop first), `DATABASE_URL=<…/schoolos_scratch_e2e> npx prisma migrate deploy`, then the same `DATABASE_URL` for `npm run test:e2e`. Suites that call validated endpoints must install the global `ValidationPipe` (production does it in `main.ts`, `AppModule` does not).
 
-**Next step:** BL-27 (per-school grading scales; category weights must total 100 % to publish results, KI-16), then BL-06 (report-card generation), BL-28 (risk settings), BL-29 (leave workflow, migration M1b). The remaining M10 additive schema changes land with their items.
+**Next step:** BL-06 (report cards generated from the gradebook — built on BL-27's published results and scale snapshot; issued cards immutable, regeneration versioned, PDF, parent read-only), then BL-28 (risk settings), BL-29 (leave workflow, migration M1b). The remaining M10 additive schema changes land with their items.
 
 ## 1. Findings folded in (F1–F10)
 | # | Finding | Where handled |
@@ -68,7 +69,7 @@ Every data-changing migration uses **expand → backfill → contract** (contrac
 | M7 | Add `StudentStatus.TRANSFERRED`; rename `PromotionDecision.TRANSFERRED_OUT`→`TRANSFERRED`; add `PROMOTED_WITH_CONDITIONS` | BL-61, BL-05 ✅ | **`LEFT` + matching `TRANSFERRED_OUT` promotion → `TRANSFERRED`; all other `LEFT` → manual review; never renamed blindly**; `LEFT` removed only when zero rows remain; `EnrollmentStatus` unchanged |
 | M8 | `TeachingAssignmentHistory` | BL-25 ✅ | from current section/timetable, start date flagged unknown |
 | M9 | `archivedAt`; `RetentionPolicy` (periods null) | BL-07, BL-63 ✅ | none |
-| M10 | Complaint fields + `ComplaintNote`, `ComplaintAttachment`; syllabus; grading scale; report-card source/snapshot/version; risk settings; promotion config | BL-30/26/27/06/28/05 (BL-05 part ✅: `PromotionPolicy`; BL-26 part ✅: `Syllabus`/`SyllabusUnit`, `20260928090000_m10_syllabus`) | additive |
+| M10 | Complaint fields + `ComplaintNote`, `ComplaintAttachment`; syllabus; grading scale; report-card source/snapshot/version; risk settings; promotion config | BL-30/26/27/06/28/05 (BL-05 part ✅: `PromotionPolicy`; BL-26 part ✅: `Syllabus`/`SyllabusUnit`, `20260928090000_m10_syllabus`; BL-27 part ✅: `GradingScale`/`GradeBand`/`ResultPublication`, `20260928100000_m10_grading`) | additive |
 | M11 | `UserPermission` grants | BL-32 ✅ | preserve current ACCOUNTS behaviour, then restrict |
 | M12 | one ACTIVE enrolment per student; one voucher per student/session/month | BL-53 ✅ | pre-check duplicates; raw-SQL partial unique index |
 | M13 | job lock (or advisory locks) | BL-39 ✅ | — |

@@ -25,6 +25,9 @@
         "Term",
         "Syllabus",
         "SyllabusUnit",
+        "GradingScale",
+        "GradeBand",
+        "ResultPublication",
         "Holiday"
       ]
     },

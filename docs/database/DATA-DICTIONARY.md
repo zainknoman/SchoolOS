@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **63 models, 19 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **66 models, 19 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -79,6 +79,8 @@
 | migrationReviewsResolved | MigrationReviewItem[] (relation) |  |
 | promotionPoliciesUpdated | PromotionPolicy[] (relation) | @relation("PromotionPolicyUpdatedBy") |
 | syllabiUpdated | Syllabus[] (relation) | @relation("SyllabusUpdatedBy") |
+| gradingScalesUpdated | GradingScale[] (relation) | @relation("GradingScaleUpdatedBy") |
+| resultsPublished | ResultPublication[] (relation) | @relation("ResultPublishedBy") |
 
 Block attributes: `@@index([role])` · `@@index([schoolId])` · `@@index([campusId])`
 
@@ -206,6 +208,7 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | subjects | Subject[] (relation) |  |
 | feeStructures | FeeStructure[] (relation) |  |
 | promotionPolicy | PromotionPolicy? (relation) |  |
+| gradingScales | GradingScale[] (relation) |  |
 | teachingAssignments | TeachingAssignment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
@@ -289,6 +292,7 @@ Block attributes: `@@index([schoolId])`
 | applications | Application[] (relation) |  |
 | teachingAssignments | TeachingAssignment[] (relation) |  |
 | syllabi | Syllabus[] (relation) |  |
+| resultPublications | ResultPublication[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -347,6 +351,7 @@ Block attributes: `@@unique([schoolId, name])` · `@@index([schoolId])`
 | endDate | DateTime |  |
 | assessmentCategories | AssessmentCategory[] (relation) |  |
 | syllabusUnits | SyllabusUnit[] (relation) |  |
+| resultPublications | ResultPublication[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -386,6 +391,55 @@ Block attributes: `@@unique([classId, subjectId])` · `@@index([subjectId])`
 | plannedEnd | DateTime? |  |
 
 Block attributes: `@@unique([syllabusId, order])` · `@@index([termId])`
+
+### GradingScale
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| schoolId | String |  |
+| school | School (relation) | @relation(fields: [schoolId], references: [id], onDelete: Cascade) |
+| name | String |  |
+| isDefault | Boolean | @default(false) |
+| bands | GradeBand[] (relation) |  |
+| updatedById | String? |  |
+| updatedBy | User? (relation) | @relation("GradingScaleUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull) |
+| createdAt | DateTime | @default(now()) |
+| updatedAt | DateTime | @updatedAt |
+
+Block attributes: `@@unique([schoolId, name])` · `@@unique([schoolId], map: "GradingScale_one_default_per_school", where: raw("\"isDefault\""))`
+
+### GradeBand
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| gradingScaleId | String |  |
+| gradingScale | GradingScale (relation) | @relation(fields: [gradingScaleId], references: [id], onDelete: Cascade) |
+| minPercent | Float |  |
+| letter | String |  |
+| remark | String? |  |
+| gradePoint | Float? |  |
+
+Block attributes: `@@unique([gradingScaleId, minPercent])`
+
+### ResultPublication
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| classId | String |  |
+| class | Class (relation) | @relation(fields: [classId], references: [id], onDelete: Cascade) |
+| termId | String |  |
+| term | Term (relation) | @relation(fields: [termId], references: [id], onDelete: Cascade) |
+| gradingScaleId | String |  |
+| scaleName | String |  |
+| bands | Json |  |
+| publishedById | String? |  |
+| publishedBy | User? (relation) | @relation("ResultPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull) |
+| publishedAt | DateTime | @default(now()) |
+
+Block attributes: `@@unique([classId, termId])` · `@@index([termId])`
 
 ### Holiday
 

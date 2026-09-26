@@ -593,6 +593,9 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
               to="/admin/assessment-categories"
               ><Icon name="grid" />{{ t('nav.assessmentCategories') }}</RouterLink
             >
+            <RouterLink v-if="canManageGradebook" data-testid="nav-grading-scales" to="/admin/grading-scales"
+              ><Icon name="grid" />{{ t('nav.gradingScales') }}</RouterLink
+            >
             <RouterLink v-if="canManageGradebook" data-testid="nav-syllabus" to="/admin/syllabus"
               ><Icon name="notebook" />{{ t('nav.syllabus') }}</RouterLink
             >

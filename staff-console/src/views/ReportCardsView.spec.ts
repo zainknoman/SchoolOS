@@ -134,6 +134,40 @@ describe('ReportCardsView', () => {
     expect(wrapper.text()).toContain('27%');
   });
 
+  it('shows marks, the letter grade and remark, and flags unpublished results (BL-27)', async () => {
+    vi.mocked(api.listReportCards).mockResolvedValue([]);
+    vi.mocked(api.listTerms).mockResolvedValue([
+      { id: 'term-1', academicSessionId: 'sess-1', label: 'Term 1', order: 1, startDate: '2026-08-01', endDate: '2026-12-15' },
+    ]);
+    vi.mocked(api.getStudentGrades).mockResolvedValue([
+      {
+        subjectId: 'sub-1',
+        subjectName: 'Math',
+        categories: [{ name: 'Quizzes', weightPercent: 100, obtainedPercent: 86 }],
+        finalPercent: 86,
+        obtainedMarks: 43,
+        maxMarks: 50,
+        letter: 'A',
+        remark: 'Very good',
+        gradePoint: 4,
+        published: false,
+      },
+    ]);
+
+    const wrapper = mount(ReportCardsView);
+    await flushPromises();
+    await wrapper.find('[data-testid="select-student"]').setValue('s1');
+    await wrapper.find('[data-testid="select-session"]').setValue('sess-1');
+    await flushPromises();
+    await wrapper.find('[data-testid="select-term"]').setValue('term-1');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="grade-letter-sub-1"]').text()).toContain('A');
+    expect(wrapper.find('[data-testid="grade-letter-sub-1"]').text()).toContain('Very good');
+    expect(wrapper.text()).toContain('43 / 50');
+    expect(wrapper.find('[data-testid="grades-unpublished"]').exists()).toBe(true);
+  });
+
   it('falls back to the PDF list when no structured grades exist for this term', async () => {
     vi.mocked(api.listReportCards).mockResolvedValue([
       { id: 'rc1', studentId: 's1', academicSessionId: 'sess-1', fileId: 'f1', createdAt: '2026-06-01T00:00:00.000Z' },

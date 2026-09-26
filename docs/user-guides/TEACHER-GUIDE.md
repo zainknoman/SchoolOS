@@ -17,6 +17,6 @@
 | Read the syllabus | **Syllabus** | choose a class you teach, then a subject: the yearly plan with units, terms and planned dates. Read-only; the administrator writes it |
 
 ## Good to know
-- A student's *final grade* is the weighted percentage across categories (weights set by the administrator); there are no letter grades.
+- A student's *final grade* is the weighted percentage across their class's categories (weights set by the administrator), with the letter grade and remark from the school's grading scale. Parents see a term's results only after the administrator publishes them; while published, categories and assessments are locked but you can still enter or correct marks.
 - Attendance risk flags (students with ≥ 25 % absence over 30 days) appear on dashboards after the nightly run.
 - You cannot approve leave (school admins do), edit the timetable, or see other teachers' sections.

@@ -284,6 +284,13 @@ const router = createRouter({
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Assessment Categories', group: 'Operations' },
     },
     {
+      // BL-27: per-school grading scales (letters, remarks, grade points).
+      path: '/admin/grading-scales',
+      name: 'admin-grading-scales',
+      component: () => import('../views/GradingScalesPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Grading Scales', group: 'Operations' },
+    },
+    {
       // BL-26: syllabus per class + subject — admins edit, teachers of the class read.
       path: '/admin/syllabus',
       name: 'admin-syllabus',

@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { api, type AssessmentCategorySummary, type ClassSummary, type TermSummary } from '../lib/api';
+import {
+  api,
+  type AssessmentCategorySummary,
+  type ClassSummary,
+  type ResultPublicationStatus,
+  type TermSummary,
+} from '../lib/api';
 import EntityTable from '../components/EntityTable.vue';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
@@ -21,6 +27,9 @@ const selectedTermId = ref('');
 const categories = ref<AssessmentCategorySummary[]>([]);
 const errorMessage = ref<string | null>(null);
 const weightWarning = ref<string | null>(null);
+// BL-27: publication status of the selected class/term (weights must total 100 % to publish).
+const publication = ref<ResultPublicationStatus | null>(null);
+const isPublishing = ref(false);
 
 const showAddForm = ref(false);
 const newName = ref('');
@@ -59,13 +68,40 @@ async function loadCategories() {
   if (!auth.accessToken || !selectedClassId.value || !selectedTermId.value) return;
   try {
     categories.value = await api.listAssessmentCategories(auth.accessToken, selectedClassId.value, selectedTermId.value);
+    publication.value = await api.getResultPublication(auth.accessToken, selectedClassId.value, selectedTermId.value);
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load assessment categories.';
   }
 }
 
+async function onTogglePublication() {
+  if (!auth.accessToken || !publication.value) return;
+  const publishing = !publication.value.published;
+  if (
+    !publishing &&
+    !(await confirm({
+      title: 'Unpublish these results?',
+      message: 'Parents will no longer see them until they are published again.',
+    }))
+  )
+    return;
+  errorMessage.value = null;
+  isPublishing.value = true;
+  try {
+    publication.value = publishing
+      ? await api.publishResults(auth.accessToken, selectedClassId.value, selectedTermId.value)
+      : await api.unpublishResults(auth.accessToken, selectedClassId.value, selectedTermId.value);
+    toast.success(publishing ? 'Results published.' : 'Results unpublished.');
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not change the publication.';
+  } finally {
+    isPublishing.value = false;
+  }
+}
+
 watch(selectedClassId, () => {
   selectedTermId.value = '';
+  publication.value = null;
   loadTermsForSelectedClass();
 });
 watch(selectedTermId, () => {
@@ -177,6 +213,30 @@ async function onDelete(id: string) {
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
     <p v-if="weightWarning" class="warning" role="alert">{{ weightWarning }}</p>
 
+    <div v-if="publication" class="publication" data-testid="publication-panel">
+      <div>
+        <strong v-if="publication.published" data-testid="publication-state">
+          Published<template v-if="publication.scaleName"> · {{ publication.scaleName }}</template>
+        </strong>
+        <strong v-else data-testid="publication-state">Not published</strong>
+        <span class="muted"> · weights total {{ publication.weightTotal }}%</span>
+        <ul v-if="publication.blockers.length" class="blockers" data-testid="publication-blockers">
+          <li v-for="b in publication.blockers" :key="b">{{ b }}</li>
+        </ul>
+        <p v-if="publication.published" class="muted">
+          Categories and assessments are locked while published; marks can still be entered.
+        </p>
+      </div>
+      <Button
+        data-testid="publication-toggle"
+        :variant="publication.published ? 'secondary' : 'primary'"
+        :disabled="isPublishing || (!publication.published && publication.blockers.length > 0)"
+        @click="onTogglePublication"
+      >
+        {{ publication.published ? 'Unpublish results' : 'Publish results' }}
+      </Button>
+    </div>
+
     <EntityTable
       :items="categories"
       :columns="[
@@ -229,6 +289,29 @@ async function onDelete(id: string) {
   font-size: var(--font-size-sm);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
+}
+.publication {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+.publication p,
+.blockers {
+  margin: var(--space-1) 0 0;
+}
+.blockers {
+  padding-left: var(--space-4);
+  color: var(--color-late);
+  font-size: var(--font-size-sm);
+}
+.muted {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
 }
 .inline-form {
   display: flex;

@@ -24,6 +24,6 @@ export class GradesController {
     @Req() req: AuthenticatedRequest,
   ) {
     await this.studentAccess.assertCanAccessStudent(req.user, studentId);
-    return this.gradesService.forStudent(studentId, termId);
+    return this.gradesService.forStudent(studentId, termId, req.user);
   }
 }

@@ -9,6 +9,12 @@ import { GradesService } from './grades.service';
 import { GradesController } from './grades.controller';
 import { StudentAccessService } from '../common/student-access.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
+import { GradingScalesService } from './grading-scales.service';
+import { ResultPublicationsService } from './result-publications.service';
+import {
+  GradingScalesController,
+  ResultPublicationsController,
+} from './grading.controller';
 
 @Module({
   providers: [
@@ -18,12 +24,16 @@ import { EnrollmentService } from '../enrollment/enrollment.service';
     GradesService,
     StudentAccessService,
     EnrollmentService,
+    GradingScalesService,
+    ResultPublicationsService,
   ],
   controllers: [
     TermsController,
     AssessmentCategoriesController,
     AssessmentsController,
     GradesController,
+    GradingScalesController,
+    ResultPublicationsController,
   ],
 })
 export class GradebookModule {}

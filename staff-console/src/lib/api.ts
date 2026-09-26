@@ -425,6 +425,42 @@ export interface SubjectGrade {
   subjectName: string;
   categories: { name: string; weightPercent: number; obtainedPercent: number }[];
   finalPercent: number;
+  /** BL-27 */
+  obtainedMarks?: number;
+  maxMarks?: number;
+  letter?: string | null;
+  remark?: string | null;
+  gradePoint?: number | null;
+  published?: boolean;
+}
+
+/** BL-27: a band of a school's grading scale. */
+export interface GradeBand {
+  minPercent: number;
+  letter: string;
+  remark: string | null;
+  gradePoint: number | null;
+}
+
+export interface GradingScale {
+  id: string;
+  schoolId: string;
+  name: string;
+  isDefault: boolean;
+  /** highest band first */
+  bands: GradeBand[];
+  updatedAt: string;
+}
+
+export interface ResultPublicationStatus {
+  classId: string;
+  termId: string;
+  published: boolean;
+  publishedAt: string | null;
+  scaleName: string | null;
+  categoryCount: number;
+  weightTotal: number;
+  blockers: string[];
 }
 
 export interface AttendanceRiskSummary {
@@ -2898,6 +2934,71 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+  },
+
+  // BL-27: grading scales and result publication.
+  async listGradingScales(accessToken: string): Promise<GradingScale[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/grading-scales`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async createGradingScale(
+    accessToken: string,
+    input: { schoolId?: string; name: string; isDefault?: boolean; bands: GradeBand[] },
+  ): Promise<GradingScale> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/grading-scales`, {
+      method: 'POST',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    return asJson(res);
+  },
+
+  async updateGradingScale(
+    accessToken: string,
+    id: string,
+    input: { name?: string; isDefault?: boolean; bands?: GradeBand[] },
+  ): Promise<GradingScale> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/grading-scales/${id}`, {
+      method: 'PUT',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    return asJson(res);
+  },
+
+  async deleteGradingScale(accessToken: string, id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/grading-scales/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async getResultPublication(accessToken: string, classId: string, termId: string): Promise<ResultPublicationStatus> {
+    const q = `classId=${encodeURIComponent(classId)}&termId=${encodeURIComponent(termId)}`;
+    const res = await fetch(`${API_BASE_URL}/api/v1/result-publications?${q}`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async publishResults(accessToken: string, classId: string, termId: string): Promise<ResultPublicationStatus> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/result-publications`, {
+      method: 'POST',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ classId, termId }),
+    });
+    return asJson(res);
+  },
+
+  async unpublishResults(accessToken: string, classId: string, termId: string): Promise<ResultPublicationStatus> {
+    const q = `classId=${encodeURIComponent(classId)}&termId=${encodeURIComponent(termId)}`;
+    const res = await fetch(`${API_BASE_URL}/api/v1/result-publications?${q}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
   },
 
   async deleteAssessmentCategory(accessToken: string, id: string): Promise<void> {

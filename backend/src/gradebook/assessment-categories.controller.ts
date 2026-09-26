@@ -33,7 +33,11 @@ export class AssessmentCategoriesController {
   ) {}
 
   @Post()
-  create(@Body() dto: CreateAssessmentCategoryDto) {
+  async create(
+    @Body() dto: CreateAssessmentCategoryDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    await this.studentAccess.assertCanAccessClass(req.user, dto.classId);
     return this.service.create(dto);
   }
 
@@ -51,12 +55,20 @@ export class AssessmentCategoriesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateAssessmentCategoryDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAssessmentCategoryDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const classId = await this.service.classIdOf(id);
+    await this.studentAccess.assertCanAccessClass(req.user, classId);
     return this.service.update(id, dto);
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string) {
+  async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const classId = await this.service.classIdOf(id);
+    await this.studentAccess.assertCanAccessClass(req.user, classId);
     await this.service.delete(id);
   }
 }

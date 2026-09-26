@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertDeletable } from '../common/prisma-delete-guard';
+import { assertResultsNotPublished } from './result-publications.service';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { UpdateAssessmentDto } from './dto/update-assessment.dto';
 import { BulkMarksDto } from './dto/bulk-marks.dto';
@@ -61,7 +62,22 @@ export class AssessmentsService {
     return assessment.assessmentCategory.classId;
   }
 
+  private async assertCategoryOpen(assessmentCategoryId: string) {
+    const category = await this.prisma.assessmentCategory.findUnique({
+      where: { id: assessmentCategoryId },
+      select: { classId: true, termId: true },
+    });
+    if (category) {
+      await assertResultsNotPublished(
+        this.prisma,
+        category.classId,
+        category.termId,
+      );
+    }
+  }
+
   async create(dto: CreateAssessmentDto): Promise<AssessmentSummary> {
+    await this.assertCategoryOpen(dto.assessmentCategoryId);
     await assertSubjectUsable(this.prisma, dto.subjectId, {
       classId: await this.classIdForCategory(dto.assessmentCategoryId),
     });
@@ -92,6 +108,9 @@ export class AssessmentsService {
     if (!existing) {
       throw new NotFoundException('Assessment not found');
     }
+    if (dto.maxMarks !== undefined && dto.maxMarks !== existing.maxMarks) {
+      await this.assertCategoryOpen(existing.assessmentCategoryId);
+    }
     const record = await this.prisma.assessment.update({
       where: { id },
       data: {
@@ -107,6 +126,7 @@ export class AssessmentsService {
     if (!existing) {
       throw new NotFoundException('Assessment not found');
     }
+    await this.assertCategoryOpen(existing.assessmentCategoryId);
     try {
       await this.prisma.assessment.delete({ where: { id } });
     } catch (error) {

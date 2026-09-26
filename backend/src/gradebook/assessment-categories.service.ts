@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { AssessmentCategory } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertCreatable } from '../common/prisma-create-guard';
 import { assertDeletable } from '../common/prisma-delete-guard';
 import { CreateAssessmentCategoryDto } from './dto/create-assessment-category.dto';
 import { UpdateAssessmentCategoryDto } from './dto/update-assessment-category.dto';
+import { assertResultsNotPublished } from './result-publications.service';
 
 export interface AssessmentCategorySummary {
   id: string;
@@ -49,12 +54,37 @@ export class AssessmentCategoriesService {
     const total = siblings.reduce((sum, s) => sum + s.weightPercent, 0);
     return total === 100
       ? null
-      : `Category weights for this class/term total ${total}%, not 100% — grades will be understated or overstated until this is corrected.`;
+      : `Category weights for this class/term total ${total}%, not 100% — results cannot be published until they total 100%.`;
+  }
+
+  /** The owning class — the controller checks the caller's access to it. */
+  async classIdOf(id: string): Promise<string> {
+    const category = await this.prisma.assessmentCategory.findUnique({
+      where: { id },
+      select: { classId: true },
+    });
+    if (!category) throw new NotFoundException('Assessment category not found');
+    return category.classId;
   }
 
   async create(
     dto: CreateAssessmentCategoryDto,
   ): Promise<AssessmentCategoryWithWarning> {
+    const [klass, term] = await Promise.all([
+      this.prisma.class.findUnique({
+        where: { id: dto.classId },
+        select: { academicSessionId: true },
+      }),
+      this.prisma.term.findUnique({
+        where: { id: dto.termId },
+        select: { academicSessionId: true },
+      }),
+    ]);
+    if (!klass) throw new NotFoundException('Class not found');
+    if (!term || term.academicSessionId !== klass.academicSessionId) {
+      throw new BadRequestException("The term is not in this class's session");
+    }
+    await assertResultsNotPublished(this.prisma, dto.classId, dto.termId);
     let record: AssessmentCategory;
     try {
       record = await this.prisma.assessmentCategory.create({
@@ -99,6 +129,11 @@ export class AssessmentCategoriesService {
     if (!existing) {
       throw new NotFoundException('Assessment category not found');
     }
+    await assertResultsNotPublished(
+      this.prisma,
+      existing.classId,
+      existing.termId,
+    );
     const record = await this.prisma.assessmentCategory.update({
       where: { id },
       data: {
@@ -122,6 +157,11 @@ export class AssessmentCategoriesService {
     if (!existing) {
       throw new NotFoundException('Assessment category not found');
     }
+    await assertResultsNotPublished(
+      this.prisma,
+      existing.classId,
+      existing.termId,
+    );
     try {
       await this.prisma.assessmentCategory.delete({ where: { id } });
     } catch (error) {

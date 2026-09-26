@@ -39,6 +39,12 @@ flowchart LR
   Syllabus -->|SetNull, optional| User
   SyllabusUnit -->|Cascade| Syllabus
   SyllabusUnit -->|SetNull, optional| Term
+  GradingScale -->|Cascade| School
+  GradingScale -->|SetNull, optional| User
+  GradeBand -->|Cascade| GradingScale
+  ResultPublication -->|Cascade| Class
+  ResultPublication -->|Cascade| Term
+  ResultPublication -->|SetNull, optional| User
   Term -->|Cascade| AcademicSession
 ```
 
