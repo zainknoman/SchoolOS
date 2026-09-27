@@ -213,6 +213,11 @@ model User {
   feePaymentsRecorded        FeePayment[]           @relation("FeePaymentRecordedBy")
   feeConcessionsCreated      StudentFeeConcession[] @relation("FeeConcessionCreatedBy")
   feeConcessionsEnded        StudentFeeConcession[] @relation("FeeConcessionEndedBy")
+  complaintsAssigned         Complaint[]            @relation("ComplaintAssignee")
+  complaintsResolved         Complaint[]            @relation("ComplaintResolvedBy")
+  complaintNotes             ComplaintNote[]
+  complaintAttachments       ComplaintAttachment[]
+  filesUploaded              File[]                 @relation("FileUploadedBy")
   syllabiUpdated             Syllabus[]             @relation("SyllabusUpdatedBy")
   gradingScalesUpdated       GradingScale[]         @relation("GradingScaleUpdatedBy")
   resultsPublished           ResultPublication[]    @relation("ResultPublishedBy")
@@ -268,6 +273,7 @@ model School {
   subjects             Subject[]
   feeStructures        FeeStructure[]
   feePolicy            FeePolicy?
+  complaints           Complaint[]
   feeConcessions       StudentFeeConcession[]
   promotionPolicy      PromotionPolicy?
   gradingScales        GradingScale[]
@@ -1221,8 +1227,8 @@ model LeaveRequest {
 }
 
 model File {
-  id                     String               @id @default(uuid())
-  storageKey             String               @unique // randomized name in the S3-compatible bucket, not the original filename
+  id                     String                @id @default(uuid())
+  storageKey             String                @unique // randomized name in the S3-compatible bucket, not the original filename
   originalName           String
   mimeType               String
   sizeBytes              Int
@@ -1236,7 +1242,11 @@ model File {
   hiringCandidateResumes HiringCandidate[]
   schoolLogos            School[]
   campusLogos            Campus[]
-  createdAt              DateTime             @default(now())
+  complaintAttachments   ComplaintAttachment[]
+  // BL-30 / KG-30: who uploaded it (null on files from before this column).
+  uploadedById           String?
+  uploadedBy             User?                 @relation("FileUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt              DateTime              @default(now())
 }
 
 model AuditLog {
@@ -1272,18 +1282,73 @@ model Holiday {
 }
 
 model Complaint {
-  id          String   @id @default(uuid())
-  studentId   String
-  student     Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  raisedById  String
-  raisedBy    User     @relation(fields: [raisedById], references: [id])
-  subject     String
-  description String
-  status      String   @default("open") // "open" | "in_progress" | "resolved"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String                @id @default(uuid())
+  studentId    String
+  student      Student               @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  raisedById   String
+  raisedBy     User                  @relation(fields: [raisedById], references: [id])
+  // BL-30 (Q10, RD-9): the school whose queue it is in (the student's at creation; null on older rows).
+  schoolId     String?
+  school       School?               @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  category     ComplaintCategory     @default(OTHER)
+  subject      String // the title
+  description  String
+  status       String                @default("open") // "open" | "in_progress" | "resolved"
+  assignedToId String?
+  assignedTo   User?                 @relation("ComplaintAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  // Shown to the parent; required to resolve.
+  resolution   String?
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?                 @relation("ComplaintResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  notes        ComplaintNote[]
+  attachments  ComplaintAttachment[]
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
 
   @@index([studentId])
+  @@index([schoolId, status])
+  @@index([assignedToId])
+}
+
+enum ComplaintCategory {
+  ACADEMIC
+  BEHAVIOUR
+  TRANSPORT
+  FEES
+  FACILITIES
+  STAFF
+  OTHER
+}
+
+/// BL-30: a staff internal note (never shown to parents) or a reply visible to the parent; a
+/// parent's comment is always visible (internal = false).
+model ComplaintNote {
+  id          String    @id @default(uuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  authorId    String?
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body        String
+  internal    Boolean
+  createdAt   DateTime  @default(now())
+
+  @@index([complaintId])
+}
+
+/// BL-30: a file attached to a complaint, stored through the storage service (BL-10).
+model ComplaintAttachment {
+  id           String    @id @default(uuid())
+  complaintId  String
+  complaint    Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  fileId       String
+  file         File      @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  uploadedById String?
+  uploadedBy   User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+
+  @@unique([complaintId, fileId])
+  @@index([fileId])
 }
 
 model PasswordResetToken {

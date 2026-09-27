@@ -26,7 +26,7 @@ In the pilot **online payment is off** (RD-14): parents see "please pay at the s
 You can add **applicants** and applications and approve/reject them, like a school admin (see [SCHOOL-ADMIN-GUIDE](SCHOOL-ADMIN-GUIDE.md) §3).
 
 ## Messages and complaints (only with the matching grant)
-With the **Messages** grant, parents writing to "Accounts" reach you and you reply to them; without any granted accounts user, the parent app says no Accounts account exists. With the **Complaints** grant you view and update complaints.
+With the **Messages** grant, parents writing to "Accounts" reach you and you reply to them; without any granted accounts user, the parent app says no Accounts account exists. With the **Complaints** grant you work your school's complaint queue like a school admin (owner, internal notes, replies, resolution — see [SCHOOL-ADMIN-GUIDE](SCHOOL-ADMIN-GUIDE.md)) and can be made a complaint's owner.
 
 ## Not available
 Refunds and instalment plans are not supported (a reduction can never leave a voucher in credit); fee structures are locked once invoiced (archive and create a new one to change a price). There is no accounting export beyond the fee-voucher CSV in Data Export.

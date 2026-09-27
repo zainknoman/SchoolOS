@@ -13,7 +13,7 @@
 | Create an assessment | **Gradebook** | name, subject, maximum marks under a category defined by the administrator |
 | Report card | **Report Cards** | see a student's grades and the report cards the school generated (all versions, with PDF); you can still attach an uploaded report-card document per student and session. Generating cards is done by the administrator after publishing results |
 | Handle a parent's message | **Messages** | reply to conversations addressed to you as class teacher |
-| Log a complaint | **Complaints** | for students in your sections |
+| Complaints | **Complaints** | complaints **assigned to you**: reply to the parent, keep internal notes, attach files, resolve with a written resolution; **+ Record complaint** for students in your sections (BL-30) |
 | Recommend on leave | **Leave** | pending requests of students in your sections: **Recommend approval** or **Recommend rejection**, with an optional note for the admin. It does not decide the request — the school admin does |
 | Read the syllabus | **Syllabus** | choose a class you teach, then a subject: the yearly plan with units, terms and planned dates. Read-only; the administrator writes it |
 

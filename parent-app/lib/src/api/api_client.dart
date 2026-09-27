@@ -407,6 +407,64 @@ class ApiClient {
     return list.map((e) => Complaint.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  Future<Complaint> complaint(String accessToken, String id) async {
+    final json = await _get('/api/v1/complaints/$id', accessToken) as Map<String, dynamic>;
+    return Complaint.fromJson(json);
+  }
+
+  /// BL-30: a parent raises a complaint about their own child.
+  Future<Complaint> createComplaint(
+    String accessToken, {
+    required String studentId,
+    required String category,
+    required String subject,
+    required String description,
+  }) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/complaints'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({
+        'studentId': studentId,
+        'category': category,
+        'subject': subject,
+        'description': description,
+      }),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+    return Complaint.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  Future<Complaint> addComplaintComment(String accessToken, String id, String body) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/complaints/$id/notes'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({'body': body}),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+    return Complaint.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  /// Uploads through the storage service; the server checks the file's type and size.
+  Future<Complaint> addComplaintAttachment(
+    String accessToken,
+    String id, {
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/v1/complaints/$id/attachments'))
+      ..headers['Authorization'] = 'Bearer $accessToken'
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+    final res = await http.Response.fromStream(await _client.send(request));
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+    return Complaint.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
   Future<List<ReportCard>> reportCards(String accessToken, String studentId) async {
     final list =
         await _get('/api/v1/report-cards?studentId=${Uri.encodeQueryComponent(studentId)}', accessToken)

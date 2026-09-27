@@ -596,6 +596,46 @@ class Holiday {
   }
 }
 
+/// BL-30: complaint categories, in the order the form offers them.
+const complaintCategories = <String, String>{
+  'ACADEMIC': 'Academic',
+  'BEHAVIOUR': 'Behaviour',
+  'TRANSPORT': 'Transport',
+  'FEES': 'Fees',
+  'FACILITIES': 'Facilities',
+  'STAFF': 'Staff',
+  'OTHER': 'Other',
+};
+
+/// A reply from the school, or the parent's own comment. Internal staff notes never reach the app.
+class ComplaintResponse {
+  const ComplaintResponse({required this.id, required this.body, required this.fromSchool, required this.createdAt});
+  final String id;
+  final String body;
+  final bool fromSchool;
+  final String createdAt;
+
+  factory ComplaintResponse.fromJson(Map<String, dynamic> json) => ComplaintResponse(
+    id: json['id'] as String,
+    body: json['body'] as String,
+    fromSchool: json['fromSchool'] as bool? ?? true,
+    createdAt: json['createdAt'] as String,
+  );
+}
+
+class ComplaintAttachment {
+  const ComplaintAttachment({required this.id, required this.fileId, required this.originalName});
+  final String id;
+  final String fileId;
+  final String originalName;
+
+  factory ComplaintAttachment.fromJson(Map<String, dynamic> json) => ComplaintAttachment(
+    id: json['id'] as String,
+    fileId: json['fileId'] as String,
+    originalName: json['originalName'] as String,
+  );
+}
+
 class Complaint {
   const Complaint({
     required this.id,
@@ -604,6 +644,11 @@ class Complaint {
     required this.description,
     required this.status,
     required this.createdAt,
+    this.category = 'OTHER',
+    this.resolution,
+    this.raisedByMe = false,
+    this.responses = const [],
+    this.attachments = const [],
   });
 
   final String id;
@@ -612,6 +657,13 @@ class Complaint {
   final String description;
   final String status;
   final String createdAt;
+  final String category;
+
+  /// The school's written outcome, set when the complaint is resolved.
+  final String? resolution;
+  final bool raisedByMe;
+  final List<ComplaintResponse> responses;
+  final List<ComplaintAttachment> attachments;
 
   factory Complaint.fromJson(Map<String, dynamic> json) => Complaint(
     id: json['id'] as String,
@@ -620,6 +672,15 @@ class Complaint {
     description: json['description'] as String,
     status: json['status'] as String,
     createdAt: json['createdAt'] as String,
+    category: json['category'] as String? ?? 'OTHER',
+    resolution: json['resolution'] as String?,
+    raisedByMe: json['raisedByMe'] as bool? ?? false,
+    responses: (json['responses'] as List<dynamic>? ?? const [])
+        .map((e) => ComplaintResponse.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    attachments: (json['attachments'] as List<dynamic>? ?? const [])
+        .map((e) => ComplaintAttachment.fromJson(e as Map<String, dynamic>))
+        .toList(),
   );
 }
 

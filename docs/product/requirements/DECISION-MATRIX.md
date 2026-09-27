@@ -24,7 +24,7 @@
 | Pilot fees: manual payments, vouchers/receipts, partial, outstanding, defaulters, basic carry-forward, discounts/scholarships, late fees, immutable history (Q9, RD-14) | BR-FEE-01..10 | ✅ BL-08 (2026-09-27) | — | BL-08 | F | CORE |
 | Fee extras: refunds, installments, accounting exports (Q9; discounts/scholarships/waivers/late fees moved to BL-08) | Q9 | none | ledger extensions | BL-24 | — | POST |
 | Payment gateways OFF in the pilot; behind flags (RD-14, Q34) | BR-FEE-04 | adapters unverified | verification post-pilot | BL-14 | F/— | POST |
-| Parent complaints — pilot workflow (Q10, RD-9) | Q10 | staff-only create | parent submit, assign, internal notes, resolution | BL-30 | G | CORE |
+| Parent complaints — pilot workflow (Q10, RD-9) | Q10 | ✅ BL-30 (2026-09-27) | — | BL-30 | G | CORE |
 | Complaints — escalation/SLA/routing/analytics (RD-9) | Q10 | none | advanced | BL-31 | — | POST |
 | Teacher/staff assignment history (Q15) | BR-D-15 | none | model + hooks | BL-25 | C | CORE |
 | ACCOUNTS finance-only + grants (Q18) | BR-D-18 | also admissions/complaints/messages | permission model | BL-32 | B | CORE |

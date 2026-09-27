@@ -9,7 +9,7 @@ import {
 } from './channel-registry';
 
 export type NotificationType =
-  'diary' | 'circular' | 'message' | 'attendance-risk';
+  'diary' | 'circular' | 'message' | 'attendance-risk' | 'complaint';
 
 export interface NotifyInput {
   userId: string;

@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **70 models, 22 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **72 models, 23 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -26,6 +26,7 @@
 - **FeeItemKind**: CHARGE, DISCOUNT, SCHOLARSHIP, WAIVER, LATE_FEE, OPENING_BALANCE, CARRIED_FORWARD
 - **FeeVoucherKind**: REGULAR, OPENING_BALANCE
 - **FeeConcessionKind**: DISCOUNT, SCHOLARSHIP
+- **ComplaintCategory**: ACADEMIC, BEHAVIOUR, TRANSPORT, FEES, FACILITIES, STAFF, OTHER
 - **RetentionCategory**: STUDENT, GUARDIAN, STAFF, ATTENDANCE, ACADEMIC_RESULTS, FEES_FINANCIAL, COMPLAINTS, AUDIT_LOGS, AUTH_SECURITY_LOGS, UPLOADED_DOCUMENTS, BACKUPS
 
 ## Identity
@@ -88,6 +89,11 @@
 | feePaymentsRecorded | FeePayment[] (relation) | @relation("FeePaymentRecordedBy") |
 | feeConcessionsCreated | StudentFeeConcession[] (relation) | @relation("FeeConcessionCreatedBy") |
 | feeConcessionsEnded | StudentFeeConcession[] (relation) | @relation("FeeConcessionEndedBy") |
+| complaintsAssigned | Complaint[] (relation) | @relation("ComplaintAssignee") |
+| complaintsResolved | Complaint[] (relation) | @relation("ComplaintResolvedBy") |
+| complaintNotes | ComplaintNote[] (relation) |  |
+| complaintAttachments | ComplaintAttachment[] (relation) |  |
+| filesUploaded | File[] (relation) | @relation("FileUploadedBy") |
 | syllabiUpdated | Syllabus[] (relation) | @relation("SyllabusUpdatedBy") |
 | gradingScalesUpdated | GradingScale[] (relation) | @relation("GradingScaleUpdatedBy") |
 | resultsPublished | ResultPublication[] (relation) | @relation("ResultPublishedBy") |
@@ -219,6 +225,7 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | subjects | Subject[] (relation) |  |
 | feeStructures | FeeStructure[] (relation) |  |
 | feePolicy | FeePolicy? (relation) |  |
+| complaints | Complaint[] (relation) |  |
 | feeConcessions | StudentFeeConcession[] (relation) |  |
 | promotionPolicy | PromotionPolicy? (relation) |  |
 | gradingScales | GradingScale[] (relation) |  |
@@ -1205,13 +1212,54 @@ Block attributes: `@@unique([studentId, termId, version])` · `@@index([classId,
 | student | Student (relation) | @relation(fields: [studentId], references: [id], onDelete: Restrict) |
 | raisedById | String |  |
 | raisedBy | User (relation) | @relation(fields: [raisedById], references: [id]) |
+| schoolId | String? |  |
+| school | School? (relation) | @relation(fields: [schoolId], references: [id], onDelete: SetNull) |
+| category | ComplaintCategory (enum) | @default(OTHER) |
 | subject | String |  |
 | description | String |  |
 | status | String | @default("open") |
+| assignedToId | String? |  |
+| assignedTo | User? (relation) | @relation("ComplaintAssignee", fields: [assignedToId], references: [id], onDelete: SetNull) |
+| resolution | String? |  |
+| resolvedAt | DateTime? |  |
+| resolvedById | String? |  |
+| resolvedBy | User? (relation) | @relation("ComplaintResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull) |
+| notes | ComplaintNote[] (relation) |  |
+| attachments | ComplaintAttachment[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([studentId])`
+Block attributes: `@@index([studentId])` · `@@index([schoolId, status])` · `@@index([assignedToId])`
+
+### ComplaintNote
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| complaintId | String |  |
+| complaint | Complaint (relation) | @relation(fields: [complaintId], references: [id], onDelete: Cascade) |
+| authorId | String? |  |
+| author | User? (relation) | @relation(fields: [authorId], references: [id], onDelete: SetNull) |
+| body | String |  |
+| internal | Boolean |  |
+| createdAt | DateTime | @default(now()) |
+
+Block attributes: `@@index([complaintId])`
+
+### ComplaintAttachment
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| complaintId | String |  |
+| complaint | Complaint (relation) | @relation(fields: [complaintId], references: [id], onDelete: Cascade) |
+| fileId | String |  |
+| file | File (relation) | @relation(fields: [fileId], references: [id], onDelete: Restrict) |
+| uploadedById | String? |  |
+| uploadedBy | User? (relation) | @relation(fields: [uploadedById], references: [id], onDelete: SetNull) |
+| createdAt | DateTime | @default(now()) |
+
+Block attributes: `@@unique([complaintId, fileId])` · `@@index([fileId])`
 
 ## Communication
 
@@ -1494,4 +1542,7 @@ Block attributes: `@@unique([feePaymentId, feeVoucherId])` · `@@index([feeVouch
 | hiringCandidateResumes | HiringCandidate[] (relation) |  |
 | schoolLogos | School[] (relation) |  |
 | campusLogos | Campus[] (relation) |  |
+| complaintAttachments | ComplaintAttachment[] (relation) |  |
+| uploadedById | String? |  |
+| uploadedBy | User? (relation) | @relation("FileUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull) |
 | createdAt | DateTime | @default(now()) |

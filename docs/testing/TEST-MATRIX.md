@@ -52,10 +52,10 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 
 | Suite | Files | Test blocks |
 |---|---|---|
-| Backend unit (`backend/src/**/*.spec.ts`) | 99 | 726 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 48 | 356 |
-| Staff console (`staff-console/src/**/*.spec.ts`) | 81 | 556 |
-| Parent app (`parent-app/test/**/*_test.dart`) | 30 | — |
+| Backend unit (`backend/src/**/*.spec.ts`) | 99 | 730 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 49 | 365 |
+| Staff console (`staff-console/src/**/*.spec.ts`) | 81 | 558 |
+| Parent app (`parent-app/test/**/*_test.dart`) | 31 | — |
 
 | Backend e2e spec | Test blocks |
 |---|---|
@@ -70,6 +70,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `bulk-import-scope.e2e-spec.ts` | 3 |
 | `bulk-import.e2e-spec.ts` | 14 |
 | `cascade-delete-restrictions.e2e-spec.ts` | 4 |
+| `complaints-workflow.e2e-spec.ts` | 9 |
 | `copy-structure.e2e-spec.ts` | 3 |
 | `cors.e2e-spec.ts` | 2 |
 | `cross-tenant-boundary.e2e-spec.ts` | 6 |

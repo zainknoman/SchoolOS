@@ -335,13 +335,49 @@ export interface HolidaySummary {
   schoolId?: string | null;
 }
 
+/** BL-30: complaint categories (Q10). */
+export type ComplaintCategory = 'ACADEMIC' | 'BEHAVIOUR' | 'TRANSPORT' | 'FEES' | 'FACILITIES' | 'STAFF' | 'OTHER';
+export type ComplaintStatus = 'open' | 'in_progress' | 'resolved';
+
+export interface ComplaintPerson {
+  id: string;
+  role: string;
+  name: string;
+}
+
+export interface ComplaintNote {
+  id: string;
+  body: string;
+  internal: boolean;
+  author: ComplaintPerson | null;
+  createdAt: string;
+}
+
+export interface ComplaintAttachment {
+  id: string;
+  fileId: string;
+  originalName: string;
+  createdAt: string;
+}
+
+/** The staff view of a complaint (the parent view never carries notes or the assignee). */
 export interface ComplaintSummary {
   id: string;
   studentId: string;
+  studentName?: string;
+  grNumber?: string;
   raisedById: string;
+  raisedBy?: ComplaintPerson | null;
+  category?: ComplaintCategory;
   subject: string;
   description: string;
   status: string;
+  assignedTo?: ComplaintPerson | null;
+  resolution?: string | null;
+  resolvedAt?: string | null;
+  resolvedBy?: ComplaintPerson | null;
+  notes?: ComplaintNote[];
+  attachments?: ComplaintAttachment[];
   createdAt: string;
   updatedAt: string;
 }
@@ -2972,7 +3008,7 @@ export const api = {
 
   async createComplaint(
     accessToken: string,
-    payload: { studentId: string; subject: string; description: string },
+    payload: { studentId: string; subject: string; description: string; category?: ComplaintCategory },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/complaints`, {
       method: 'POST',
@@ -2982,6 +3018,65 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+  },
+
+  // --- BL-30: complaint queue and workflow ---
+  async complaintQueue(
+    accessToken: string,
+    filter: { status?: string; category?: string; assigned?: 'me' | 'none'; schoolId?: string } = {},
+  ): Promise<ComplaintSummary[]> {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filter)) if (v) params.set(k, v);
+    const q = params.toString() ? `?${params}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/complaints/queue${q}`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async getComplaint(accessToken: string, id: string): Promise<ComplaintSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/complaints/${id}`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async complaintAssignees(accessToken: string, id: string): Promise<ComplaintPerson[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/complaints/${id}/assignees`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async updateComplaint(
+    accessToken: string,
+    id: string,
+    payload: { status?: ComplaintStatus; assignedToId?: string | null; resolution?: string },
+  ): Promise<ComplaintSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/complaints/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async addComplaintNote(
+    accessToken: string,
+    id: string,
+    payload: { body: string; internal: boolean },
+  ): Promise<ComplaintSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/complaints/${id}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async addComplaintAttachment(accessToken: string, id: string, file: File): Promise<ComplaintSummary> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE_URL}/api/v1/complaints/${id}/attachments`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+      body: formData,
+    });
+    return asJson(res);
   },
 
   async updateComplaintStatus(accessToken: string, id: string, status: string): Promise<void> {

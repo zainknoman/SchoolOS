@@ -303,14 +303,14 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
         .expect(403);
     });
 
-    it('a PARENT cannot create or update a complaint — read-only for parents', async () => {
+    it('a PARENT may raise a complaint about their child (BL-30) but cannot update one', async () => {
       const parentToken = await loginAs('hcr-parent-a@schoolos.edu.pk');
 
       await request(app.getHttpServer())
         .post('/api/v1/complaints')
         .set('Authorization', `Bearer ${parentToken}`)
         .send({ studentId: ids.childA, subject: 'X', description: 'Y' })
-        .expect(403);
+        .expect(201);
 
       await request(app.getHttpServer())
         .patch(`/api/v1/complaints/${ids.complaint}`)
@@ -325,7 +325,7 @@ describe('Holidays + Complaints + Report Cards (e2e)', () => {
       const res = await request(app.getHttpServer())
         .patch(`/api/v1/complaints/${ids.complaint}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ status: 'resolved' })
+        .send({ status: 'resolved', resolution: 'Discussed with the family' }) // BL-30: required
         .expect(200);
 
       expect(res.body.status).toBe('resolved');

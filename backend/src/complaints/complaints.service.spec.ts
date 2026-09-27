@@ -1,106 +1,171 @@
-import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ComplaintsService } from './complaints.service';
-import { PrismaService } from '../prisma/prisma.service';
+import type { PrismaService } from '../prisma/prisma.service';
+import type { StudentAccessService } from '../common/student-access.service';
+import type { OrgScopeService } from '../common/org-scope.service';
+import type { NotificationsService } from '../notifications/notifications.service';
+import type { FilesService } from '../files/files.service';
 
+/** BL-30: the complaint workflow rules (visibility, resolution, assignment, notes). */
 describe('ComplaintsService', () => {
+  let prisma: Record<string, any>;
+  let notifications: { notify: jest.Mock };
+  let access: { assertCanAccessStudent: jest.Mock };
   let service: ComplaintsService;
-  let prisma: {
-    complaint: {
-      create: jest.Mock;
-      findMany: jest.Mock;
-      findUnique: jest.Mock;
-      update: jest.Mock;
-    };
-  };
 
-  const record = {
+  const person = (id: string, role: string, name = id) => ({
+    id,
+    role,
+    identifier: id,
+    teacher: role === 'TEACHER' ? { name } : null,
+    staff: null,
+    parentProfile: role === 'PARENT' ? { name } : null,
+  });
+  const detail = (over: object = {}) => ({
     id: 'c1',
     studentId: 's1',
-    raisedById: 'teacher-1',
-    subject: 'Bullying concern',
-    description: 'Details here',
+    schoolId: 'school-1',
+    raisedById: 'parent-1',
+    raisedBy: person('parent-1', 'PARENT', 'Parent One'),
+    category: 'TRANSPORT',
+    subject: 'Van late',
+    description: 'Every day',
     status: 'open',
-    createdAt: new Date('2026-09-01T00:00:00.000Z'),
-    updatedAt: new Date('2026-09-01T00:00:00.000Z'),
-  };
+    assignedToId: null,
+    assignedTo: null,
+    resolution: null,
+    resolvedAt: null,
+    resolvedById: null,
+    resolvedBy: null,
+    student: { name: 'Student', grNumber: 'GR-1' },
+    notes: [
+      {
+        id: 'n1',
+        body: 'internal',
+        internal: true,
+        author: person('t1', 'TEACHER'),
+        createdAt: new Date('2026-09-02'),
+      },
+      {
+        id: 'n2',
+        body: 'reply',
+        internal: false,
+        author: person('a1', 'SCHOOL_ADMIN'),
+        createdAt: new Date('2026-09-03'),
+      },
+    ],
+    attachments: [],
+    createdAt: new Date('2026-09-01'),
+    updatedAt: new Date('2026-09-01'),
+    ...over,
+  });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     prisma = {
       complaint: {
-        create: jest.fn(),
-        findMany: jest.fn(),
-        findUnique: jest.fn(),
+        create: jest.fn().mockResolvedValue({ id: 'c1', category: 'OTHER' }),
+        findUnique: jest.fn().mockResolvedValue(detail()),
+        findMany: jest.fn().mockResolvedValue([]),
         update: jest.fn(),
       },
+      complaintNote: { create: jest.fn().mockResolvedValue({ id: 'n3' }) },
+      enrollment: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ campus: { schoolId: 'school-1' } }),
+      },
+      user: {
+        findMany: jest.fn().mockResolvedValue([person('t1', 'TEACHER')]),
+      },
+      auditLog: { create: jest.fn() },
     };
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        ComplaintsService,
-        { provide: PrismaService, useValue: prisma },
-      ],
-    }).compile();
-    service = moduleRef.get(ComplaintsService);
+    notifications = { notify: jest.fn() };
+    access = { assertCanAccessStudent: jest.fn() };
+    service = new ComplaintsService(
+      prisma as unknown as PrismaService,
+      access as unknown as StudentAccessService,
+      {} as OrgScopeService,
+      notifications as unknown as NotificationsService,
+      {} as FilesService,
+    );
   });
 
-  it('creates a complaint with status "open", attributed to the raising staff member', async () => {
-    prisma.complaint.create.mockResolvedValue(record);
+  it('the parent view never carries internal notes, the owner or staff names', () => {
+    const view = service.toParentView(detail() as never, 'parent-1');
+    expect(view.responses).toEqual([
+      expect.objectContaining({ body: 'reply', fromSchool: true }),
+    ]);
+    expect(JSON.stringify(view)).not.toContain('internal');
+    expect(view).not.toHaveProperty('assignedTo');
+    expect(view.raisedByMe).toBe(true);
+  });
 
-    const result = await service.create(
-      {
-        studentId: 's1',
-        subject: 'Bullying concern',
-        description: 'Details here',
-      },
-      'teacher-1',
+  it("a guardian cannot open another guardian's complaint", async () => {
+    await expect(
+      service.getForUser('c1', { id: 'parent-2', role: 'PARENT' }),
+    ).rejects.toThrow(ForbiddenException);
+    await expect(
+      service.getForUser('c1', { id: 'parent-1', role: 'PARENT' }),
+    ).resolves.toBeTruthy();
+  });
+
+  it('creates in the school of the student and audits', async () => {
+    await service.create(
+      { studentId: 's1', subject: 'x', description: 'y' },
+      { id: 'parent-1', role: 'PARENT' },
     );
-
     expect(prisma.complaint.create).toHaveBeenCalledWith({
-      data: {
-        studentId: 's1',
-        raisedById: 'teacher-1',
-        subject: 'Bullying concern',
-        description: 'Details here',
+      data: expect.objectContaining({
+        schoolId: 'school-1',
+        category: 'OTHER',
         status: 'open',
-      },
+      }),
     });
-    expect(result.status).toBe('open');
-    expect(result.createdAt).toBe('2026-09-01T00:00:00.000Z');
+    expect(prisma.auditLog.create).toHaveBeenCalled();
   });
 
-  it('findForStudent orders complaints newest-first', async () => {
-    prisma.complaint.findMany.mockResolvedValue([record]);
-
-    await service.findForStudent('s1');
-
-    expect(prisma.complaint.findMany).toHaveBeenCalledWith({
-      where: { studentId: 's1' },
-      orderBy: { createdAt: 'desc' },
-    });
-  });
-
-  it('updateStatus throws NotFoundException for an unknown complaint', async () => {
-    prisma.complaint.findUnique.mockResolvedValue(null);
-
-    await expect(service.updateStatus('missing', 'resolved')).rejects.toThrow(
-      NotFoundException,
+  it('resolving needs a resolution; the parent is notified', async () => {
+    const admin = { id: 'a1', role: 'SCHOOL_ADMIN' };
+    await expect(
+      service.update(detail() as never, { status: 'resolved' }, admin),
+    ).rejects.toThrow(BadRequestException);
+    await service.update(
+      detail() as never,
+      { status: 'resolved', resolution: 'Fixed' },
+      admin,
     );
-    expect(prisma.complaint.update).not.toHaveBeenCalled();
-  });
-
-  it("updateStatus updates an existing complaint's status", async () => {
-    prisma.complaint.findUnique.mockResolvedValue(record);
-    prisma.complaint.update.mockResolvedValue({
-      ...record,
-      status: 'resolved',
-    });
-
-    const result = await service.updateStatus('c1', 'resolved');
-
     expect(prisma.complaint.update).toHaveBeenCalledWith({
       where: { id: 'c1' },
-      data: { status: 'resolved' },
+      data: expect.objectContaining({
+        status: 'resolved',
+        resolution: 'Fixed',
+        resolvedById: 'a1',
+      }),
     });
-    expect(result.status).toBe('resolved');
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'parent-1', type: 'complaint' }),
+    );
+  });
+
+  it("the owner must be staff of the student's school", async () => {
+    const admin = { id: 'a1', role: 'SCHOOL_ADMIN' };
+    await expect(
+      service.update(detail() as never, { assignedToId: 'stranger' }, admin),
+    ).rejects.toThrow(BadRequestException);
+    await service.update(detail() as never, { assignedToId: 't1' }, admin);
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 't1', entityRef: 'c1' }),
+    );
+  });
+
+  it("a parent's note is never internal", async () => {
+    await service.addNote(
+      detail() as never,
+      { body: 'thanks', internal: true },
+      { id: 'parent-1', role: 'PARENT' },
+    );
+    expect(prisma.complaintNote.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ internal: false }),
+    });
   });
 });

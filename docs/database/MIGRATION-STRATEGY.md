@@ -152,6 +152,8 @@
 
 **M14 (BL-08, `20260929090000_bl08_fee_ledger`, 2026-09-27):** additive — three enums, new columns on `FeeItem`/`FeePayment`/`FeeVoucher` (existing lines default to `CHARGE`, vouchers to `REGULAR`), tables `StudentFeeConcession` and `FeePolicy`, and four `BEFORE UPDATE` triggers that refuse edits of voucher lines, settled payments, their allocations and receipts. The `FeeItem` trigger still lets the M5 backfill link a legacy line (null → structure), so `npm run backfill:m5` stays safe after this migration. No backfill. Applied to the scratch database, no drift, full e2e green. Rollback: restore the backup (the triggers and columns are ignored by the previous build).
 
+**M10 — complaints (BL-30, `20260929100000_m10_complaints`, 2026-09-27):** additive — enum `ComplaintCategory`, nullable `Complaint.schoolId`/`assignedToId`/`resolution`/`resolvedAt`/`resolvedById` (existing rows get category `OTHER`), tables `ComplaintNote` and `ComplaintAttachment`, nullable `File.uploadedById`. No backfill: a complaint without `schoolId` is placed in a queue through its student's enrolments, and a file without an uploader is reachable through its owning record. Applied to the scratch database, no drift, full e2e green.
+
 **Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

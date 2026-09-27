@@ -1,7 +1,7 @@
 # Parent Guide (Parent App)
 
 > **Status:** PARTIAL (see [verification level](README.md)) · **Verified:** 2026-09-20 · Role: `PARENT`. You see only your own children. The app is available in **English and Urdu** (Language under **More**). Your school creates your account; there is no self-registration.
-> **Decided, not yet implemented (owner, 2026-09-20):** parents will be able to raise complaints (BL-30) and use one account across schools (BL-23). This guide describes current behaviour.
+> **Decided, not yet implemented (owner, 2026-09-20):** parents will be able to use one account across schools (BL-23). *Complaints: implemented 2026-09-27 (BL-30).* This guide describes current behaviour.
 
 ## Sign in
 Open the app → enter the email/identifier your school gave you and your password → **Log in**. If you forget it, use **Forgot password** (works only if the school has email configured) — or ask the school office: they can give you a **one-time password**; sign in with it and the app asks you to choose your own password before anything else. After 5 wrong attempts the account is locked for 15 minutes. If you have several children, choose one at the top of **Home**.
@@ -18,7 +18,7 @@ Open the app → enter the email/identifier your school gave you and your passwo
 
 ## More menu
 - **Leave Applications:** apply for leave for a child (dates; the start must not be after the end). The school approves or rejects it once; if it leaves a note, you see it under the request ("School: …").
-- **Complaints:** you can **view** complaints the school has logged about your child; you cannot raise one.
+- **Complaints:** tap **New complaint**, choose a category, write a title and what happened, and optionally attach a photo or file → **Send complaint**. The list shows your complaints and any the school recorded about your child, with their status. Open one to see the school's replies and, once resolved, the outcome; you can add a comment to your own complaint. The school's internal notes are never shown to you.
 - **Report Cards:** the **Report cards** section lists the cards the school issued for each term (overall grade and %), with a download button for the PDF; if the school corrects results you see the latest version. Uploaded report-card PDFs are listed below it.
 - **Student information:** view your child's record and edit limited contact details.
 - **Notification channel:** choose push, WhatsApp or SMS ⚠ (delivery only works if the school has configured it); enable a daily digest.

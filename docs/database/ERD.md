@@ -141,6 +141,14 @@ flowchart LR
   LeaveRequest -->|SetNull, optional| User
   Complaint -->|Restrict| Student
   Complaint -->|default| User
+  Complaint -->|SetNull, optional| School
+  Complaint -->|SetNull, optional| User
+  Complaint -->|SetNull, optional| User
+  ComplaintNote -->|Cascade| Complaint
+  ComplaintNote -->|SetNull, optional| User
+  ComplaintAttachment -->|Cascade| Complaint
+  ComplaintAttachment -->|Restrict| File
+  ComplaintAttachment -->|SetNull, optional| User
   ReportCard -->|Restrict| Student
   ReportCard -->|Restrict| AcademicSession
   ReportCard -->|Restrict| File
@@ -201,4 +209,5 @@ flowchart LR
   FeePaymentAllocation -->|Restrict| FeePayment
   FeePaymentAllocation -->|Restrict| FeeVoucher
   Receipt -->|Restrict| FeePayment
+  File -->|SetNull, optional| User
 ```

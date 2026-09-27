@@ -71,6 +71,7 @@ describe('FilesService', () => {
         originalName: 'sheet.pdf',
         mimeType: 'application/pdf',
         sizeBytes: 10,
+        uploadedById: 'user-1',
       },
     });
     expect(result).toEqual({

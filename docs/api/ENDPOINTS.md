@@ -2,7 +2,7 @@
 
 > **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from every `backend/src/**/*.controller.ts` — **do not edit by hand**; regenerate with `node scripts/docs/generate.mjs` (CI runs `--check`) · **Sources:** `@Controller` + `@Get/@Post/@Put/@Patch/@Delete` + `@Roles/@Public/@Throttle`; method-level `@Roles`/`@Public` override class-level ones · **Owner:** Engineering Lead
 > All paths are prefixed with `/api/v1`. **Roles** = the `@Roles(...)` decorator (`RolesGuard` does an exact `includes(user.role)` check — SUPER_ADMIN has **no implicit override**). "any authenticated (service-scoped)" = no decorator: every logged-in role passes the guard and the **service** decides by scope (see [AUTHORIZATION](AUTHORIZATION.md)). `T` = route-level throttle decorator (auth routes, 5/min); all routes also fall under the global 100/min limit.
-> Total: **237** route handlers in 50 controllers.
+> Total: **242** route handlers in 50 controllers.
 
 ## (root)
 
@@ -243,9 +243,14 @@
 
 | Method | Path | Roles | T | Controller |
 |---|---|---|---|---|
-| POST | `/complaints` | TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
+| POST | `/complaints` | PARENT, TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
 | GET | `/complaints` | any authenticated (service-scoped) · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
+| GET | `/complaints/queue` | TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
+| GET | `/complaints/:id` | any authenticated (service-scoped) · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
+| GET | `/complaints/:id/assignees` | TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
 | PATCH | `/complaints/:id` | TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
+| POST | `/complaints/:id/notes` | PARENT, TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
+| POST | `/complaints/:id/attachments` | PARENT, TEACHER, SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN · ACCOUNTS only with grant `COMPLAINTS` |  | `complaints/complaints.controller.ts` |
 
 ## conversations
 

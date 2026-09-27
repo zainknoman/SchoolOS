@@ -83,6 +83,7 @@ export class FilesService {
           originalName: file.originalname,
           mimeType: inspection.mimeType,
           sizeBytes: file.size,
+          uploadedById: uploadingUserId, // BL-30 / KG-30: the uploader may always read it
         },
       });
 

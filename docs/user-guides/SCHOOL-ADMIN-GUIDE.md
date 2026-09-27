@@ -13,7 +13,7 @@ Menu groups: Overview · People · Operations · Communication · Org Structure.
 | Approve or reject leave | **Operations → Leave Applications** | each request shows the teacher's recommendation, if any; add an optional note (the parent sees it) → approve or reject (once). No class teacher or recommendation is needed |
 | Publish a notice | **Communication → Circulars** | choose whole school or one section, write, publish; see read counts. (since BL-20 a school-wide circular reaches only your school's parents — a campus principal's, only their campus) ⚠ old note: school-wide circulars previously reach parents of *all* schools (KG-1) |
 | Reply to parents | **Communication → Messages** | open a conversation and answer |
-| Complaints | **Communication → Complaints** | log and update status (open → resolved) per student |
+| Complaints | **Communication → Complaints** | the school's complaint queue (filter by status, category, owner). **Open** one to assign an owner, add an **internal note** (staff only) or a **reply** the parent sees, attach files and change the status; **Resolved** needs a written resolution, which the parent sees. **+ Record complaint** logs one about a student (e.g. behaviour). Everything is recorded in the audit log (BL-30) |
 
 ## 2. People
 - **Students → add student:** requires an active academic session and a section. Link either an existing parent or create a new parent login (exactly one). GR number must be unique. Open **Student Profile** to add address, previous school, medical info, emergency contacts and documents (mark documents verified).
