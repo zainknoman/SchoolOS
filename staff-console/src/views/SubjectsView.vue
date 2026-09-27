@@ -139,7 +139,7 @@ async function onDelete(id: string) {
       @empty-cta="showAddForm = true"
     >
       <template #cell-name="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" aria-label="Subject" />
         <span v-else>{{ item.name }}</span>
       </template>
       <template #cell-status="{ item }">

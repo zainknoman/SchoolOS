@@ -110,7 +110,7 @@ async function onSubmit() {
 }
 input {
   padding: 0.6rem 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-sm);
   font: inherit;
   font-size: var(--font-size-base);
@@ -118,8 +118,8 @@ input {
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
 }
+/* BL-55: keep the global focus outline; the 15% glow alone is not a visible indicator. */
 input:focus-visible {
-  outline: none;
   border-color: var(--color-ring);
   box-shadow: 0 0 0 3px var(--color-ring-glow);
 }

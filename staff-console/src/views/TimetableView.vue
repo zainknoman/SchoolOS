@@ -585,11 +585,13 @@ async function onSaveBulk() {
                       type="time"
                       v-model="periodTime(col.period).startTime"
                       :data-testid="`bulk-start-${col.period}`"
+                      :aria-label="`Period ${col.period} start time`"
                     />
                     <input
                       type="time"
                       v-model="periodTime(col.period).endTime"
                       :data-testid="`bulk-end-${col.period}`"
+                      :aria-label="`Period ${col.period} end time`"
                     />
                   </div>
                 </th>
@@ -619,16 +621,19 @@ async function onSaveBulk() {
                         type="time"
                         v-model="dayPeriodTime(col.period, d.value).startTime"
                         :data-testid="`bulk-day-start-${col.period}-${d.value}`"
+                        :aria-label="`${d.label} period ${col.period} start time`"
                       />
                       <input
                         type="time"
                         v-model="dayPeriodTime(col.period, d.value).endTime"
                         :data-testid="`bulk-day-end-${col.period}-${d.value}`"
+                        :aria-label="`${d.label} period ${col.period} end time`"
                       />
                     </div>
                     <select
                       v-model="cell(col.period, d.value).subjectId"
                       :data-testid="`bulk-subject-${col.period}-${d.value}`"
+                      :aria-label="`${d.label} period ${col.period} subject`"
                     >
                       <option value="">—</option>
                       <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
@@ -636,6 +641,7 @@ async function onSaveBulk() {
                     <select
                       v-model="cell(col.period, d.value).teacherId"
                       :data-testid="`bulk-teacher-${col.period}-${d.value}`"
+                      :aria-label="`${d.label} period ${col.period} teacher`"
                     >
                       <option value="">(no teacher)</option>
                       <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
@@ -710,7 +716,11 @@ async function onSaveBulk() {
             <template v-if="editingId === entry.id">
               <td colspan="7">
                 <div class="edit-row">
-                  <select v-model.number="editForm.dayOfWeek" :data-testid="`edit-day-${entry.id}`">
+                  <select
+                    v-model.number="editForm.dayOfWeek"
+                    :data-testid="`edit-day-${entry.id}`"
+                    aria-label="Day"
+                  >
                     <option v-for="d in DAY_OPTIONS" :key="d.value" :value="d.value">{{ d.label }}</option>
                   </select>
                   <input
@@ -719,18 +729,34 @@ async function onSaveBulk() {
                     v-model.number="editForm.period"
                     :data-testid="`edit-period-${entry.id}`"
                     placeholder="Period"
+                    aria-label="Period"
                   />
-                  <input type="time" v-model="editForm.startTime" :data-testid="`edit-start-${entry.id}`" />
-                  <input type="time" v-model="editForm.endTime" :data-testid="`edit-end-${entry.id}`" />
-                  <select v-model="editForm.subjectId" :data-testid="`edit-subject-${entry.id}`">
+                  <input
+                    type="time"
+                    v-model="editForm.startTime"
+                    :data-testid="`edit-start-${entry.id}`"
+                    aria-label="Start time"
+                  />
+                  <input
+                    type="time"
+                    v-model="editForm.endTime"
+                    :data-testid="`edit-end-${entry.id}`"
+                    aria-label="End time"
+                  />
+                  <select v-model="editForm.subjectId" :data-testid="`edit-subject-${entry.id}`" aria-label="Subject">
                     <option value="" disabled>Subject</option>
                     <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
                   </select>
-                  <select v-model="editForm.teacherId" :data-testid="`edit-teacher-${entry.id}`">
+                  <select v-model="editForm.teacherId" :data-testid="`edit-teacher-${entry.id}`" aria-label="Teacher">
                     <option value="">(no teacher)</option>
                     <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
                   </select>
-                  <input v-model="editForm.room" :data-testid="`edit-room-${entry.id}`" placeholder="Room" />
+                  <input
+                    v-model="editForm.room"
+                    :data-testid="`edit-room-${entry.id}`"
+                    placeholder="Room"
+                    aria-label="Room"
+                  />
                   <button
                     type="button"
                     :disabled="isSaving || !isFormValid(editForm)"
@@ -766,21 +792,21 @@ async function onSaveBulk() {
 
       <AppModal v-model="showAddForm" title="Add a period">
         <div class="add-row">
-          <select v-model.number="addForm.dayOfWeek" data-testid="add-day">
+          <select v-model.number="addForm.dayOfWeek" data-testid="add-day" aria-label="Day">
             <option v-for="d in DAY_OPTIONS" :key="d.value" :value="d.value">{{ d.label }}</option>
           </select>
-          <input type="number" min="1" v-model.number="addForm.period" data-testid="add-period" placeholder="Period" />
-          <input type="time" v-model="addForm.startTime" data-testid="add-start" />
-          <input type="time" v-model="addForm.endTime" data-testid="add-end" />
-          <select v-model="addForm.subjectId" data-testid="add-subject">
+          <input type="number" min="1" v-model.number="addForm.period" data-testid="add-period" placeholder="Period" aria-label="Period" />
+          <input type="time" v-model="addForm.startTime" data-testid="add-start" aria-label="Start time" />
+          <input type="time" v-model="addForm.endTime" data-testid="add-end" aria-label="End time" />
+          <select v-model="addForm.subjectId" data-testid="add-subject" aria-label="Subject">
             <option value="" disabled>Subject</option>
             <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
-          <select v-model="addForm.teacherId" data-testid="add-teacher">
+          <select v-model="addForm.teacherId" data-testid="add-teacher" aria-label="Teacher">
             <option value="">(no teacher)</option>
             <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
           </select>
-          <input v-model="addForm.room" data-testid="add-room" placeholder="Room" />
+          <input v-model="addForm.room" data-testid="add-room" placeholder="Room" aria-label="Room" />
           <button
             type="button"
             data-testid="add-submit"
@@ -866,7 +892,7 @@ async function onSaveBulk() {
 select,
 input {
   padding: 0.5rem 0.7rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);

@@ -21,10 +21,11 @@ apps, dashboards, documentation sites, professional tools", WCAG AAA, Complexity
 | `--color-background` | `#F8FAFC` | Page background |
 | `--color-surface` | `#FFFFFF` | Cards, topbar, sidebar, form panels |
 | `--color-text` | `#1E293B` | Body text (softer than pure `--color-primary`) |
-| `--color-muted` | `#64748B` | Secondary/help text |
+| `--color-muted` | `#5B6B80` | Secondary/help text |
 | `--color-muted-bg` | `#E8ECF1` | Hover backgrounds, subtle fills |
-| `--color-border` | `#E2E8F0` | Dividers, input borders |
-| `--color-destructive` | `#DC2626` | Error text, destructive actions |
+| `--color-border` | `#E2E8F0` | Dividers (decorative only) |
+| `--color-control-border` | `#8391A5` | Input/select/textarea outlines (≥ 3:1, WCAG 1.4.11; dark `#566991`) |
+| `--color-destructive` | `#C81E1E` | Error text, destructive actions |
 | `--color-ring` | `#0369A1` | Focus outline (matches accent, not primary — reads more clearly as "focus") |
 
 Source: "Professional navy + blue CTA" palette (color domain, enterprise/b2b query). Avoid:

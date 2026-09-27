@@ -216,6 +216,7 @@ async function onSave() {
         <input
           v-if="selectedAssessmentId"
           :data-testid="`marks-input-${student.id}`"
+          :aria-label="`Marks for ${student.name}`"
           class="mono"
           type="number"
           min="0"
@@ -261,7 +262,7 @@ async function onSave() {
 select,
 input {
   padding: 0.5rem 0.6rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);

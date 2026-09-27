@@ -203,7 +203,7 @@ async function onCreateApplication() {
 }
 .resume-input {
   padding: 0.4rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   font-size: var(--font-size-sm);

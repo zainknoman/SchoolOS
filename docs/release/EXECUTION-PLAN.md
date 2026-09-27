@@ -1,9 +1,9 @@
 # Pilot-Readiness Execution Plan (Waves 0–7)
 
-> **Status:** CURRENT — **Waves 0–6 done (owner-gated BL-43/BL-54/BL-14 carried forward), Wave 7 is the current wave** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-37 part 2) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
+> **Status:** CURRENT — **Waves 0–6 done (owner-gated BL-43/BL-54/BL-14 carried forward), Wave 7 is the current wave** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-55) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
 > Companion to the gap analysis: this file fixes the **order of execution**, the **schema/migration dependencies that must precede application code**, the affected layers, the docs to regenerate, and rollback rules. Findings F1–F10 (2026-09-20) are folded in. Item detail and acceptance criteria live in the BACKLOG.
 
-## 0. Progress and handoff (updated 2026-09-27 — Wave 6 closed, Wave 7 next)
+## 0. Progress and handoff (updated 2026-09-27 — Wave 7 in progress: BL-37 part 2, BL-55 done)
 
 All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` = github.com/zainknoman/SchoolOS), one commit per item, each pushed after its checks passed. Item detail and "Done" notes: [BACKLOG](../product/requirements/BACKLOG.md); migrations and rehearsals: [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md); deploy steps: [RUNBOOKS](../operations/RUNBOOKS.md).
 
@@ -27,8 +27,9 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 6 | **Wave 6 closed 2026-09-27** — all engineering items done | ✅ | — |
 | — | Carried forward from Wave 6 (owner-gated, not built): BL-43 (Play Console, Firebase projects, signing keys) · BL-54 (real-device matrix) · BL-14 FCM part (`[FIREBASE_PROJECT_ID]`, SMTP provider) | ⏸ **owner input**; still required before pilot go-live | — |
 | 7 | BL-37 part 2 (CI: backend lint 0 warnings, format, type-check, build, unit, e2e blocking; KI-21) | ✅ | `c776294` |
-| 7 | **Next:** BL-55 accessibility (axe in console tests + keyboard/screen-reader audit) | ⏳ next | — |
-| 7 | BL-36 token-storage decision · BL-15 load-test script and report (report needs staging) · BL-56 privacy operations docs · BL-57 pilot exit checklist | ⏳ | — |
+| 7 | BL-55 accessibility: axe on every console spec + token contrast in CI, keyboard pass, 9 fixes ([ACCESSIBILITY-AUDIT](ACCESSIBILITY-AUDIT.md)); screen-reader pass needs a person | ✅ (SR pass ⏳ human) | `BL55-COMMIT` |
+| 7 | **Next:** BL-36 token-storage decision | ⏳ next | — |
+| 7 | BL-15 load-test script and report (report needs staging) · BL-56 privacy operations docs · BL-57 pilot exit checklist | ⏳ | — |
 | 7 | BL-58 repository hygiene | ⏸ written authorisation required (RD-15) | — |
 
 Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a3cb1` (KG-24 — bulk import could write into another school); with BL-41, `fees.e2e-spec.ts` stopped using a due date (2026-09-25) that had passed, which made its voucher read "overdue".
@@ -46,7 +47,8 @@ Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a
 - Multi-line edits: write a Node script to the scratchpad and run it (normalise CRLF first); never put `﻿` in written content (it becomes a literal BOM).
 - Full e2e on a scratch DB: create `schoolos_scratch_e2e` (drop first), `DATABASE_URL=<…/schoolos_scratch_e2e> npx prisma migrate deploy`, then the same `DATABASE_URL` for `npm run test:e2e`. Suites that call validated endpoints must install the global `ValidationPipe` (production does it in `main.ts`, `AppModule` does not).
 
-**Next step: Wave 7.** Order: BL-55 (axe in console tests + keyboard/screen-reader audit) → BL-36 (token-storage decision) → BL-15 (load-test script; the report needs staging) → BL-56/BL-57 (documents with placeholders). BL-37 part 2 is done; BL-58 waits for written authorisation. Wave 6 is closed; its owner-gated items (BL-43 Play Console/Firebase/signing keys, BL-14 FCM `[FIREBASE_PROJECT_ID]` + SMTP, BL-54 real-device matrix) are carried forward and still gate pilot go-live — pick them up as soon as the owner provides the inputs.
+**Next step: Wave 7.** Order: BL-36 (token-storage decision) → BL-15 (load-test script; the report needs staging) → BL-56/BL-57 (documents with placeholders). BL-37 part 2 and BL-55 are done (BL-55's screen-reader pass needs a person with NVDA/VoiceOver — checklist in [ACCESSIBILITY-AUDIT §5](ACCESSIBILITY-AUDIT.md)); BL-58 waits for written authorisation. Wave 6 is closed; its owner-gated items (BL-43 Play Console/Firebase/signing keys, BL-14 FCM `[FIREBASE_PROJECT_ID]` + SMTP, BL-54 real-device matrix) are carried forward and still gate pilot go-live — pick them up as soon as the owner provides the inputs.
+- Console accessibility gate (BL-55): every console spec runs axe on its final state (`src/test-setup.ts`), so a new unlabelled control fails `npm test`; name controls with a `<label>`, `FormField`, or `aria-label`. Form-control borders use `--color-control-border`, not `--color-border`. Triage with `A11Y_REPORT=<file> npx vitest run`.
 - Backend CI gates (BL-37): `npm run lint` fails on any warning; also run `npm run format:check` and `npm run typecheck` before committing.
 - The parent app now depends on `file_picker` (complaint attachments); include it in the BL-54 device matrix.
 - The two-school e2e fixture now removes its students' fee ledger itself (payments, reversals, carry-forward lines, vouchers) — suites no longer need their own fee cleanup.

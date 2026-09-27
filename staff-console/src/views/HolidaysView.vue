@@ -144,15 +144,15 @@ async function onDelete(id: string) {
       :editing-id="editingId"
     >
       <template #cell-title="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-title-${item.id}`" v-model="editTitle" type="text" />
+        <input v-if="editing" :data-testid="`edit-title-${item.id}`" v-model="editTitle" type="text" aria-label="Title" />
         <span v-else>{{ item.title }}</span>
       </template>
       <template #cell-startDate="{ item, editing }">
-        <input v-if="editing" v-model="editStartDate" type="date" />
+        <input v-if="editing" v-model="editStartDate" type="date" aria-label="Start" />
         <span v-else>{{ item.startDate }}</span>
       </template>
       <template #cell-endDate="{ item, editing }">
-        <input v-if="editing" v-model="editEndDate" type="date" />
+        <input v-if="editing" v-model="editEndDate" type="date" aria-label="End" />
         <span v-else>{{ item.endDate }}</span>
       </template>
       <template #cell-campusId="{ item }">

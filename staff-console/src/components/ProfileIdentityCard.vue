@@ -59,6 +59,7 @@ function onFileChange(event: Event) {
         type="button"
         class="identity-avatar"
         data-testid="profile-photo-trigger"
+        :aria-label="photoLabel"
         :disabled="isSavingPhoto"
         @click="triggerPhotoInput"
       >

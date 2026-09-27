@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import AppIcon, { type IconName } from './AppIcon.vue';
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean;
   title: string;
   icon?: IconName;
@@ -10,12 +11,64 @@ defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
+// BL-55 (WCAG 2.4.3): focus moves into the dialog when it opens, Tab cycles inside it, and focus
+// returns to whatever opened it when it closes.
+const dialogRef = ref<HTMLElement | null>(null);
+let previouslyFocused: HTMLElement | null = null;
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function focusables(): HTMLElement[] {
+  return dialogRef.value ? Array.from(dialogRef.value.querySelectorAll<HTMLElement>(FOCUSABLE)) : [];
+}
+
+watch(
+  () => props.modelValue,
+  async (open) => {
+    if (open) {
+      previouslyFocused = document.activeElement as HTMLElement | null;
+      await nextTick();
+      // First field of the form, not the close button, so keyboard users can start typing.
+      const items = focusables();
+      (items.find((el) => !el.classList.contains('modal-close')) ?? items[0] ?? dialogRef.value)?.focus();
+    } else {
+      restoreFocus();
+    }
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(restoreFocus);
+
+function restoreFocus() {
+  if (previouslyFocused?.isConnected) previouslyFocused.focus();
+  previouslyFocused = null;
+}
+
 function close() {
   emit('update:modelValue', false);
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') close();
+  if (event.key === 'Escape') {
+    close();
+    return;
+  }
+  if (event.key !== 'Tab') return;
+  const items = focusables();
+  if (items.length === 0) {
+    event.preventDefault();
+    return;
+  }
+  const first = items[0]!;
+  const last = items[items.length - 1]!;
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
 }
 </script>
 
@@ -27,7 +80,7 @@ function onKeydown(event: KeyboardEvent) {
     @click.self="close"
     @keydown="onKeydown"
   >
-    <div class="modal-dialog" role="dialog" aria-modal="true" :aria-label="title">
+    <div ref="dialogRef" class="modal-dialog" role="dialog" aria-modal="true" :aria-label="title" tabindex="-1">
       <div class="modal-header">
         <span v-if="icon" class="modal-icon"><AppIcon :name="icon" :size="19" /></span>
         <div class="modal-heading">

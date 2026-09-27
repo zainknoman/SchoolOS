@@ -118,7 +118,7 @@ async function onDelete(id: string) {
       :editing-id="editingId"
     >
       <template #cell-name="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" aria-label="Name" />
         <span v-else>{{ item.name }}</span>
       </template>
       <template #actions="{ item, editing }">

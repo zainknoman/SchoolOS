@@ -8,6 +8,7 @@ const { queue, resolveActive } = useConfirmQueue();
 const active = computed(() => queue.value[0] ?? null);
 
 const cancelRef = ref<HTMLButtonElement | null>(null);
+const acceptRef = ref<HTMLButtonElement | null>(null);
 let previouslyFocused: HTMLElement | null = null;
 
 watch(
@@ -32,7 +33,22 @@ function onCancel() {
   resolveActive(false);
 }
 function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') onCancel();
+  if (event.key === 'Escape') {
+    onCancel();
+    return;
+  }
+  // BL-55 (WCAG 2.4.3): Tab cycles between the two buttons instead of leaving the dialog.
+  if (event.key === 'Tab') {
+    const first = cancelRef.value;
+    const last = acceptRef.value;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  }
 }
 </script>
 
@@ -52,6 +68,7 @@ function onKeydown(event: KeyboardEvent) {
           {{ t('confirm.cancel') }}
         </button>
         <button
+          ref="acceptRef"
           type="button"
           class="accept"
           :class="{ danger: active.danger }"

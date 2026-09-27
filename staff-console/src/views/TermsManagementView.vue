@@ -158,19 +158,19 @@ async function onDelete(id: string) {
       :editing-id="editingId"
     >
       <template #cell-label="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-label-${item.id}`" v-model="editLabel" type="text" />
+        <input v-if="editing" :data-testid="`edit-label-${item.id}`" v-model="editLabel" type="text" aria-label="Label" />
         <span v-else>{{ item.label }}</span>
       </template>
       <template #cell-order="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-order-${item.id}`" v-model="editOrder" type="text" />
+        <input v-if="editing" :data-testid="`edit-order-${item.id}`" v-model="editOrder" type="text" aria-label="Order" />
         <span v-else>{{ item.order }}</span>
       </template>
       <template #cell-startDate="{ item, editing }">
-        <input v-if="editing" v-model="editStartDate" type="date" />
+        <input v-if="editing" v-model="editStartDate" type="date" aria-label="Start" />
         <span v-else>{{ item.startDate }}</span>
       </template>
       <template #cell-endDate="{ item, editing }">
-        <input v-if="editing" v-model="editEndDate" type="date" />
+        <input v-if="editing" v-model="editEndDate" type="date" aria-label="End" />
         <span v-else>{{ item.endDate }}</span>
       </template>
       <template #actions="{ item, editing }">

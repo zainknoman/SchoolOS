@@ -71,6 +71,7 @@ jobs:
       # BL-12: fail on any High/Critical advisory in production dependencies
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
+      # BL-55: also the accessibility gate — axe (WCAG 2.1 AA) on every spec + token contrast
       - run: npm test
       - run: npm run build
 

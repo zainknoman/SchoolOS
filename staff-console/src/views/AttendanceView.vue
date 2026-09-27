@@ -294,7 +294,7 @@ async function onSave() {
 }
 select {
   padding: 0.55rem 0.8rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);

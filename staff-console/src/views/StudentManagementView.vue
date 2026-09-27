@@ -240,11 +240,11 @@ async function onRestore(id: string) {
       @empty-cta="showAddForm = true"
     >
       <template #cell-grNumber="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-gr-${item.id}`" v-model="editGrNumber" type="text" />
+        <input v-if="editing" :data-testid="`edit-gr-${item.id}`" v-model="editGrNumber" type="text" aria-label="GR Number" />
         <span v-else>{{ item.grNumber }}</span>
       </template>
       <template #cell-name="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" aria-label="Name" />
         <span v-else>{{ item.name }}</span>
       </template>
       <template #cell-sectionName="{ item }">

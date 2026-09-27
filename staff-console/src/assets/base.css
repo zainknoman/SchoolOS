@@ -7,10 +7,13 @@
   --color-background: #f8fafc;
   --color-surface: #ffffff;
   --color-text: #1e293b;
-  --color-muted: #64748b;
+  --color-muted: #5b6b80;
   --color-muted-bg: #e8ecf1;
   --color-border: #e2e8f0;
-  --color-destructive: #dc2626;
+  /* BL-55: form-control outlines need 3:1 against the surface (WCAG 1.4.11); --color-border is
+     for decorative dividers only. */
+  --color-control-border: #8391a5;
+  --color-destructive: #c81e1e;
   --color-present: #15803d;
   --color-late: #b45309;
   --color-ring: #0369a1;
@@ -19,9 +22,9 @@
   /* Semantic status colors — deliberately separate from --color-accent. Used only by StatusPill
      and anywhere a status (not a brand action) needs color-coding. */
   --color-status-success: var(--color-present);
-  --color-status-success-tint: #e4f5ea;
+  --color-status-success-tint: #ecf8f0;
   --color-status-warning: var(--color-late);
-  --color-status-warning-tint: #fbf0de;
+  --color-status-warning-tint: #fcf4e6;
   --color-status-critical: var(--color-destructive);
   --color-status-critical-tint: #fce8e7;
   --color-status-info: var(--color-accent);
@@ -89,6 +92,7 @@
     --color-muted: #8c9ab3;
     --color-muted-bg: #1c2a42;
     --color-border: #233150;
+    --color-control-border: #566991;
     --color-destructive: #f87171;
     --color-present: #4ade80;
     --color-late: #fbbf24;
@@ -118,6 +122,7 @@
   --color-muted: #8c9ab3;
   --color-muted-bg: #1c2a42;
   --color-border: #233150;
+  --color-control-border: #566991;
   --color-destructive: #f87171;
   --color-present: #4ade80;
   --color-late: #fbbf24;

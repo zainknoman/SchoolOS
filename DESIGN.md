@@ -139,10 +139,11 @@ same naming convention and get both a light and a dark value.
   --color-background: #f8fafc;
   --color-surface: #ffffff;
   --color-text: #1e293b;
-  --color-muted: #64748b;
+  --color-muted: #5b6b80;
   --color-muted-bg: #e8ecf1;
-  --color-border: #e2e8f0;
-  --color-destructive: #dc2626;
+  --color-border: #e2e8f0;          /* decorative dividers only */
+  --color-control-border: #8391a5;  /* input/select/textarea outlines, >= 3:1 (WCAG 1.4.11) */
+  --color-destructive: #c81e1e;
   --color-present: #15803d;
   --color-late: #b45309;
   --color-ring: #0369a1;
@@ -150,9 +151,9 @@ same naming convention and get both a light and a dark value.
 
   /* Semantic status (deliberately separate from --color-accent) */
   --color-status-success: var(--color-present);
-  --color-status-success-tint: #e4f5ea;
+  --color-status-success-tint: #ecf8f0;
   --color-status-warning: var(--color-late);
-  --color-status-warning-tint: #fbf0de;
+  --color-status-warning-tint: #fcf4e6;
   --color-status-critical: var(--color-destructive);
   --color-status-critical-tint: #fce8e7;
   --color-status-info: var(--color-accent);

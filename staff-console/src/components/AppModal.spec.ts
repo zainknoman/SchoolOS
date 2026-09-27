@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import AppModal from './AppModal.vue';
 
@@ -42,5 +43,34 @@ describe('AppModal', () => {
     });
     await wrapper.find('[data-testid="inner-btn"]').trigger('click');
     expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+  });
+
+  // BL-55: keyboard focus management (WCAG 2.4.3).
+  it('moves focus to the first field on open, traps Tab and returns focus on close', async () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+    const wrapper = mount(AppModal, {
+      props: { modelValue: false, title: 'Add School' },
+      slots: { default: '<input data-testid="first" aria-label="Name" /><button data-testid="last">Save</button>' },
+      attachTo: document.body,
+    });
+    await wrapper.setProps({ modelValue: true });
+    await nextTick();
+    const first = wrapper.find('[data-testid="first"]').element as HTMLElement;
+    const last = wrapper.find('[data-testid="last"]').element as HTMLElement;
+    const close = wrapper.find('[data-testid="modal-close"]').element as HTMLElement;
+    expect(document.activeElement).toBe(first);
+
+    last.focus();
+    await wrapper.find('[role="dialog"]').trigger('keydown', { key: 'Tab' });
+    expect(document.activeElement).toBe(close);
+    await wrapper.find('[role="dialog"]').trigger('keydown', { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(last);
+
+    await wrapper.setProps({ modelValue: false });
+    expect(document.activeElement).toBe(trigger);
+    wrapper.unmount();
+    trigger.remove();
   });
 });

@@ -214,11 +214,11 @@ async function onDelete(id: string) {
       @empty-cta="showAddForm = true"
     >
       <template #cell-name="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" aria-label="Name" />
         <span v-else>{{ item.name }}</span>
       </template>
       <template #cell-phone="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-phone-${item.id}`" v-model="editPhone" type="text" />
+        <input v-if="editing" :data-testid="`edit-phone-${item.id}`" v-model="editPhone" type="text" aria-label="Phone" />
         <span v-else>{{ item.phone ?? '—' }}</span>
       </template>
       <template #actions="{ item, editing }">
@@ -228,6 +228,7 @@ async function onDelete(id: string) {
             v-model="editPassword"
             type="password"
             placeholder="New password"
+            aria-label="New password"
           />
           <Button :data-testid="`save-${item.id}`" @click="onSaveEdit(item.id)">Save</Button>
           <Button variant="secondary" @click="cancelEdit">Cancel</Button>

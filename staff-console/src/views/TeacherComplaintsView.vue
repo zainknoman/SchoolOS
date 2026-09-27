@@ -145,6 +145,7 @@ async function onUpdateStatus(id: string, status: string) {
       <template #actions="{ item }">
         <select
           :data-testid="`status-${item.id}`"
+          :aria-label="`Status of ${item.subject}`"
           :value="item.status"
           :disabled="busyId === item.id"
           @change="onUpdateStatus(item.id, ($event.target as HTMLSelectElement).value)"
@@ -184,7 +185,7 @@ async function onUpdateStatus(id: string, status: string) {
 }
 select {
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);

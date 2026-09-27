@@ -14,7 +14,7 @@ async function mountAt(query: string) {
     setup() {
       const inputRef = ref<HTMLElement | null>(null);
       useFocusTarget({ 'gr-number': inputRef });
-      return () => h('input', { ref: inputRef, 'data-testid': 'gr-input' });
+      return () => h('input', { ref: inputRef, 'data-testid': 'gr-input', 'aria-label': 'GR number' });
     },
   });
 

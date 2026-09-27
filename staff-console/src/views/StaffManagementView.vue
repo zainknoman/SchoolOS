@@ -213,11 +213,11 @@ async function onAdd() {
       @empty-cta="openAddForm"
     >
       <template #cell-name="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" aria-label="Name" />
         <span v-else>{{ item.name }}</span>
       </template>
       <template #cell-employmentStatus="{ item, editing }">
-        <select v-if="editing" :data-testid="`edit-status-${item.id}`" v-model="editStatus">
+        <select v-if="editing" :data-testid="`edit-status-${item.id}`" v-model="editStatus" aria-label="Status">
           <option v-for="opt in EMPLOYMENT_STATUS_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
         </select>
         <span v-else>{{ item.employmentStatus }}</span>

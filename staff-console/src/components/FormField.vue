@@ -122,7 +122,7 @@ defineExpose({ focus: () => inputRef.value?.focus() });
 .form-field textarea {
   width: 100%;
   padding: 0.5rem 0.6rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-sm);
   font: inherit;
 }

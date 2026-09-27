@@ -185,19 +185,19 @@ async function onDelete(id: string) {
         <span>{{ schoolName(item.schoolId) }}</span>
       </template>
       <template #cell-label="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-label-${item.id}`" v-model="editLabel" type="text" />
+        <input v-if="editing" :data-testid="`edit-label-${item.id}`" v-model="editLabel" type="text" aria-label="Label" />
         <span v-else>{{ item.label }}</span>
       </template>
       <template #cell-startDate="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-start-${item.id}`" v-model="editStart" type="date" />
+        <input v-if="editing" :data-testid="`edit-start-${item.id}`" v-model="editStart" type="date" aria-label="Start" />
         <span v-else>{{ item.startDate }}</span>
       </template>
       <template #cell-endDate="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-end-${item.id}`" v-model="editEnd" type="date" />
+        <input v-if="editing" :data-testid="`edit-end-${item.id}`" v-model="editEnd" type="date" aria-label="End" />
         <span v-else>{{ item.endDate }}</span>
       </template>
       <template #cell-isActive="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-active-${item.id}`" v-model="editActive" type="checkbox" />
+        <input v-if="editing" :data-testid="`edit-active-${item.id}`" v-model="editActive" type="checkbox" aria-label="Active" />
         <StatusPill v-else :tone="item.isActive ? 'success' : 'neutral'" :label="item.isActive ? 'Active' : 'Inactive'" />
       </template>
       <template #actions="{ item, editing }">

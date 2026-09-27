@@ -85,6 +85,7 @@ async function onSendReply() {
           <Icon name="search" :size="14" />
           <input
             data-testid="conversation-search"
+            aria-label="Search conversations"
             class="conversation-search"
             type="search"
             v-model="search"
@@ -131,6 +132,7 @@ async function onSendReply() {
         <div class="reply-bar">
           <textarea
             data-testid="reply-text"
+            aria-label="Reply"
             v-model="replyText"
             rows="2"
             :disabled="isSending"
@@ -200,9 +202,14 @@ async function onSendReply() {
   gap: var(--space-2);
   margin: var(--space-3);
   padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-sm);
   color: var(--color-muted);
+}
+/* BL-55: the input itself has no outline, so the wrapper shows keyboard focus. */
+.conversation-search-wrap:focus-within {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
 }
 .conversation-search {
   flex-grow: 1;
@@ -351,7 +358,7 @@ async function onSendReply() {
 textarea {
   flex-grow: 1;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-sm);
   font: inherit;
   background: var(--color-surface);

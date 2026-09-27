@@ -48,6 +48,17 @@ const filteredItems = computed<PaletteItem[]>(() => {
   return allItems.value.filter((i) => i.label.toLowerCase().includes(q));
 });
 
+// BL-55: a listbox may only own options or groups, so each heading labels a role="group".
+const groupedItems = computed(() => {
+  const groups: { name: PaletteItem['group']; entries: { item: PaletteItem; index: number }[] }[] = [];
+  filteredItems.value.forEach((item, index) => {
+    const last = groups[groups.length - 1];
+    if (last && last.name === item.group) last.entries.push({ item, index });
+    else groups.push({ name: item.group, entries: [{ item, index }] });
+  });
+  return groups;
+});
+
 watch(query, () => {
   selectedIndex.value = 0;
 });
@@ -152,40 +163,51 @@ function onKeydown(event: KeyboardEvent) {
           autocomplete="off"
           role="combobox"
           aria-expanded="true"
+          aria-autocomplete="list"
+          aria-controls="cmdk-listbox"
+          :aria-label="t('shell.search')"
           :aria-activedescendant="
             filteredItems[selectedIndex] ? `cmdk-option-${filteredItems[selectedIndex]!.testid}` : undefined
           "
         />
         <kbd>Esc</kbd>
       </div>
-      <div class="cmdk-list" data-testid="cmdk-list" role="listbox">
-        <template v-if="filteredItems.length">
-          <template v-for="(item, index) in filteredItems" :key="item.testid">
-            <div
-              v-if="index === 0 || filteredItems[index - 1]?.group !== item.group"
-              class="cmdk-group-label"
-            >
-              {{ item.group }}
-            </div>
-            <button
-              :id="`cmdk-option-${item.testid}`"
-              type="button"
-              role="option"
-              :aria-selected="index === selectedIndex"
-              class="cmdk-item"
-              :class="{ selected: index === selectedIndex }"
-              :data-testid="item.testid"
-              @click="activate(item)"
-              @mouseenter="selectedIndex = index"
-            >
-              <Icon :name="item.icon" :size="16" />
-              <span>{{ item.label }}</span>
-              <span class="cmdk-go">{{ item.group === 'Actions' ? 'Open' : 'Jump ↵' }}</span>
-            </button>
-          </template>
-        </template>
-        <div v-else class="cmdk-empty" data-testid="cmdk-empty">No results</div>
+      <div
+        id="cmdk-listbox"
+        class="cmdk-list"
+        data-testid="cmdk-list"
+        role="listbox"
+        :aria-label="t('shell.commandPalette')"
+      >
+        <div
+          v-for="group in groupedItems"
+          :key="group.name"
+          role="group"
+          :aria-labelledby="`cmdk-group-${group.name === 'Actions' ? 'actions' : 'goto'}`"
+        >
+          <div :id="`cmdk-group-${group.name === 'Actions' ? 'actions' : 'goto'}`" class="cmdk-group-label">
+            {{ group.name }}
+          </div>
+          <button
+            v-for="{ item, index } in group.entries"
+            :id="`cmdk-option-${item.testid}`"
+            :key="item.testid"
+            type="button"
+            role="option"
+            :aria-selected="index === selectedIndex"
+            class="cmdk-item"
+            :class="{ selected: index === selectedIndex }"
+            :data-testid="item.testid"
+            @click="activate(item)"
+            @mouseenter="selectedIndex = index"
+          >
+            <Icon :name="item.icon" :size="16" />
+            <span>{{ item.label }}</span>
+            <span class="cmdk-go">{{ item.group === 'Actions' ? 'Open' : 'Jump ↵' }}</span>
+          </button>
+        </div>
       </div>
+      <div v-if="!filteredItems.length" class="cmdk-empty" data-testid="cmdk-empty" role="status">No results</div>
     </div>
   </div>
 </template>

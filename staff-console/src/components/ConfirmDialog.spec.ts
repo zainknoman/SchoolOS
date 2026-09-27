@@ -101,6 +101,26 @@ describe('ConfirmDialog', () => {
     document.body.innerHTML = '';
   });
 
+  it('keeps Tab and Shift+Tab inside the dialog (BL-55)', async () => {
+    const wrapper = mount(ConfirmDialog, { attachTo: document.body });
+    const { confirm } = useConfirm();
+    const promise = confirm({ title: 'Delete this school?', message: 'm' });
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+    const cancel = wrapper.find('[data-testid="confirm-cancel"]').element as HTMLElement;
+    const accept = wrapper.find('[data-testid="confirm-accept"]').element as HTMLElement;
+
+    await wrapper.find('[role="dialog"]').trigger('keydown', { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(accept);
+    await wrapper.find('[role="dialog"]').trigger('keydown', { key: 'Tab' });
+    expect(document.activeElement).toBe(cancel);
+
+    await wrapper.find('[data-testid="confirm-cancel"]').trigger('click');
+    await promise;
+    wrapper.unmount();
+    document.body.innerHTML = '';
+  });
+
   it('queues a second pending confirm behind the first', async () => {
     const wrapper = mount(ConfirmDialog, { attachTo: document.body });
     const { confirm } = useConfirm();

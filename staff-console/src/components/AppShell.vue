@@ -678,7 +678,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
 }
 .language-switcher {
   padding: 0.3rem 0.5rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);

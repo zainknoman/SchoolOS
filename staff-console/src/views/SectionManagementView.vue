@@ -161,11 +161,22 @@ async function onDelete(id: string) {
       :editing-id="editingId"
     >
       <template #cell-name="{ item, editing }">
-        <input v-if="editing" :data-testid="`edit-name-${item.id}`" v-model="editName" type="text" />
+        <input
+          v-if="editing"
+          :data-testid="`edit-name-${item.id}`"
+          v-model="editName"
+          type="text"
+          aria-label="Section name"
+        />
         <span v-else>{{ item.name }}</span>
       </template>
       <template #cell-classTeacherName="{ item, editing }">
-        <select v-if="editing" :data-testid="`edit-teacher-${item.id}`" v-model="editTeacherId">
+        <select
+          v-if="editing"
+          :data-testid="`edit-teacher-${item.id}`"
+          v-model="editTeacherId"
+          aria-label="Class teacher"
+        >
           <option value="">— None —</option>
           <option v-for="t in editTeachers" :key="t.id" :value="t.id">{{ t.name }}</option>
         </select>

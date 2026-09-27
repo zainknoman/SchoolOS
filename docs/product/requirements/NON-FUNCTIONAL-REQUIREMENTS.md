@@ -16,8 +16,8 @@
 | NFR-SEC-09 | Security | Tenant isolation on all endpoints (school-scoped data is the default) | PARTIAL | 4 unscoped lists (BR-ORG-03); BL-01..03, BL-20 |
 | NFR-AUD-01 | Auditability | State-changing operations write an `AuditLog` row | OBSERVED (partial) | Many services (`grep AuditLog`); completeness unproven |
 | NFR-I18N-01 | Localisation | English and Urdu with RTL | OBSERVED | `staff-console/src/locales`, `parent-app/lib/l10n` |
-| NFR-A11Y-01 | Accessibility | Accessibility audit tooling in staff console (axe-core) and accessibility sprints | OBSERVED | `staff-console/package.json`; conformance level: UNKNOWN |
-| NFR-A11Y-02 | Accessibility | **Target WCAG 2.1 AA** for web apps: keyboard navigation, semantic controls, visible focus, contrast, accessible form errors, labels, responsive layout; parent app follows Android accessibility guidelines | DECIDED 2026-09-20 (not verified) | BL-55 |
+| NFR-A11Y-01 | Accessibility | axe-core (WCAG 2.1 A/AA) runs on every staff-console spec and design-token contrast is checked in light and dark; both block CI | OBSERVED 2026-09-27 (BL-55) | `staff-console/src/test-setup.ts`, `src/a11y/`; [ACCESSIBILITY-AUDIT](../../release/ACCESSIBILITY-AUDIT.md) |
+| NFR-A11Y-02 | Accessibility | **Target WCAG 2.1 AA** for web apps: keyboard navigation, semantic controls, visible focus, contrast, accessible form errors, labels, responsive layout; parent app follows Android accessibility guidelines | DECIDED 2026-09-20; staff console verified on automated + keyboard criteria 2026-09-27, screen-reader pass open | BL-55 |
 | NFR-OFF-01 | Resilience | Parent app degrades to cached data | OBSERVED | `parent-app/lib/src/cache/` |
 | NFR-DEV-01 | Compatibility | **Android 9+**, low-memory devices, slow/intermittent networks, small screens, common Android makers; not only high-end devices | DECIDED 2026-09-20 (no device matrix yet) | BL-54 |
 | NFR-PERF-01 | Performance | Pilot targets: API p95 < 500 ms (normal CRUD), auth p95 < 1 s, >= 100 concurrent active users; to be load-tested before expansion | DECIDED 2026-09-20 (not measured) | BL-15, BL-40 |

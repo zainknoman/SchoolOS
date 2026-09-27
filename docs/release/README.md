@@ -10,6 +10,7 @@
 | [RELEASE-CHECKLIST](RELEASE-CHECKLIST.md) | steps for cutting and deploying a release |
 | [MIGRATION-CHECKLIST](MIGRATION-CHECKLIST.md) | database change safety |
 | [ROLLBACK](ROLLBACK.md) | how to revert |
+| [ACCESSIBILITY-AUDIT](ACCESSIBILITY-AUDIT.md) | staff console WCAG 2.1 AA audit: automated gates, fixes, open screen-reader pass (BL-55) |
 | [KNOWN-ISSUES](KNOWN-ISSUES.md) | engineering defects and gaps (security items: [KNOWN-GAPS](../security/KNOWN-GAPS.md)) |
 | [`../testing/RELEASE-VALIDATION.md`](../testing/RELEASE-VALIDATION.md) | validation gates and the **production smoke-test** procedure (kept there to avoid duplication) |
 | [`../../CHANGELOG.md`](../../CHANGELOG.md) | reconstructed history; no releases exist (first release will be 1.0.0) |
