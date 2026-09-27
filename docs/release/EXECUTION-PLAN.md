@@ -28,7 +28,7 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | — | Carried forward from Wave 6 (owner-gated, not built): BL-43 (Play Console, Firebase projects, signing keys) · BL-54 (real-device matrix) · BL-14 FCM part (`[FIREBASE_PROJECT_ID]`, SMTP provider) | ⏸ **owner input**; still required before pilot go-live | — |
 | 7 | BL-37 part 2 (CI: backend lint 0 warnings, format, type-check, build, unit, e2e blocking; KI-21) | ✅ | `c776294` |
 | 7 | BL-55 accessibility: axe on every console spec + token contrast in CI, keyboard pass, 9 fixes ([ACCESSIBILITY-AUDIT](ACCESSIBILITY-AUDIT.md)); screen-reader pass needs a person | ✅ (SR pass ⏳ human) | `0b8aac7` |
-| 7 | BL-36 token storage: decision written ([TOKEN-STORAGE-DECISION](../security/TOKEN-STORAGE-DECISION.md), recommends option B — refresh token in an HttpOnly cookie); KG-15 closed (no query-string tokens; path-bound download links) | ✅ (storage option ⏸ owner choice) | `BL36-COMMIT` |
+| 7 | BL-36 token storage: decision written ([TOKEN-STORAGE-DECISION](../security/TOKEN-STORAGE-DECISION.md), recommends option B — refresh token in an HttpOnly cookie); KG-15 closed (no query-string tokens; path-bound download links) | ✅ (storage option ⏸ owner choice) | `0fb1940` |
 | 7 | BL-15 load-test script and report (report needs staging) · BL-56 privacy operations docs · BL-57 pilot exit checklist | ⏳ | — |
 | 7 | BL-58 repository hygiene | ⏸ written authorisation required (RD-15) | — |
 
