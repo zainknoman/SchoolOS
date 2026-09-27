@@ -105,6 +105,9 @@ void main() {
               request.url.path == '/api/v1/students/child-1/fees/payments') {
             return http.Response(jsonEncode(<dynamic>[]), 200);
           }
+          if (request.method == 'GET' && request.url.path == '/api/v1/fees/payment-options') {
+            return http.Response(jsonEncode({'methods': ['jazzcash']}), 200);
+          }
           if (request.method == 'POST' && request.url.path == '/api/v1/fee-vouchers/v1/pay') {
             return http.Response(
               jsonEncode({'redirectUrl': '/pay/stub-checkout?ref=x', 'paymentId': 'p1'}),
@@ -195,6 +198,87 @@ void main() {
       expect(find.text('2026-09'), findsOneWidget);
       expect(find.textContaining('Last updated'), findsOneWidget);
       expect(find.textContaining('offline'), findsOneWidget);
+    },
+  );
+  testWidgets(
+    'BL-08 pilot: no gateway enabled -> pay at the office; ledger lines, opening balance and '
+    'corrections are labelled',
+    (tester) async {
+      final api = ApiClient(
+        baseUrl: 'http://test',
+        client: MockClient((request) async {
+          if (request.url.path == '/api/v1/students/child-1/fees') {
+            return http.Response(
+              jsonEncode([
+                {
+                  'id': 'v2',
+                  'studentId': 'child-1',
+                  'month': 'OPENING',
+                  'kind': 'OPENING_BALANCE',
+                  'dueDate': '2026-10-10',
+                  'items': [
+                    {'label': 'Balance from 2025 2025-12', 'amount': 30000, 'kind': 'OPENING_BALANCE'},
+                  ],
+                  'totalAmount': 30000,
+                  'amountPaid': 0,
+                  'amountDue': 30000,
+                  'status': 'unpaid',
+                },
+                {
+                  'id': 'v1',
+                  'studentId': 'child-1',
+                  'month': '2026-09',
+                  'dueDate': '2026-09-10',
+                  'items': [
+                    {'label': 'Tuition Fee', 'amount': 100000, 'kind': 'CHARGE'},
+                    {'label': 'Merit scholarship', 'amount': -10000, 'kind': 'SCHOLARSHIP', 'reason': 'Board result'},
+                  ],
+                  'totalAmount': 90000,
+                  'amountPaid': 0,
+                  'amountDue': 90000,
+                  'status': 'carried_forward',
+                },
+              ]),
+              200,
+            );
+          }
+          if (request.url.path == '/api/v1/students/child-1/fees/payments') {
+            return http.Response(
+              jsonEncode([
+                {
+                  'id': 'p2',
+                  'amount': -40000,
+                  'method': 'cash',
+                  'status': 'completed',
+                  'voucherIds': ['v1'],
+                  'receiptId': null,
+                  'reversesPaymentId': 'p1',
+                },
+              ]),
+              200,
+            );
+          }
+          if (request.url.path == '/api/v1/fees/payment-options') {
+            return http.Response(jsonEncode({'methods': <String>[]}), 200);
+          }
+          return http.Response('not found', 404);
+        }),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: FeesTab(studentId: 'child-1', accessToken: 'tok', api: api)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Opening balance'), findsOneWidget);
+      expect(find.text('carried forward'), findsOneWidget);
+      expect(find.text('correction'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('voucher_v1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Board result'), findsOneWidget);
+      expect(find.byKey(const Key('payNowButton')), findsNothing);
+      expect(find.byKey(const Key('payAtOffice')), findsOneWidget);
     },
   );
 }

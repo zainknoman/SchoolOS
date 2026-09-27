@@ -13,7 +13,7 @@ Open the app → enter the email/identifier your school gave you and your passwo
 | **Calendar** | pick a date/month to see **Attendance**, **Diary** (homework/activities) and **Timetable**; holidays show here |
 | **Circulars** | read school notices (opening one marks it read) |
 | **Messages** | start a conversation with the class teacher, school admin or accounts, and read replies |
-| **Fees** | see vouchers and what is due, download the voucher PDF, **pay online** (⚠ only when the school has enabled it), and download receipts |
+| **Fees** | see vouchers and what is due — each line, including discounts, scholarships, late fees and an **Opening balance** brought from last session — download the voucher PDF and receipts. **Pay online** appears only when the school has enabled it; otherwise the voucher says to pay at the school office. A payment corrected by the school shows as a *correction* |
 | **More** | Leave Applications · Complaints · Report Cards · child information · Appearance · Language · Notification channel |
 
 ## More menu

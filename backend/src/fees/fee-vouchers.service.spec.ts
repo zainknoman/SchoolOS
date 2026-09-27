@@ -21,6 +21,7 @@ describe('FeeVouchersService', () => {
       findUnique: jest.Mock;
     };
     auditLog: { create: jest.Mock };
+    studentFeeConcession: { findMany: jest.Mock };
     $transaction: jest.Mock;
   };
 
@@ -37,6 +38,8 @@ describe('FeeVouchersService', () => {
         findUnique: jest.fn(),
       },
       auditLog: { create: jest.fn() },
+      // BL-08: no standing discounts/scholarships unless a test sets some.
+      studentFeeConcession: { findMany: jest.fn().mockResolvedValue([]) },
       $transaction: jest.fn(),
     };
     // BL-53: vouchers are created inside one transaction (the tx client is this same mock).
@@ -137,6 +140,64 @@ describe('FeeVouchersService', () => {
     expect(result).toHaveLength(2);
     expect(prisma.feeVoucher.create).toHaveBeenCalledTimes(2);
     expect(prisma.auditLog.create).toHaveBeenCalled();
+  });
+
+  it('BL-08: applies active concessions as negative lines, never more than the charges', async () => {
+    prisma.academicSession.findFirst.mockResolvedValue({ id: 'session-1' });
+    prisma.feeStructure.findMany.mockResolvedValue([
+      {
+        id: 'fs-1',
+        name: 'Tuition',
+        amount: 10000,
+        status: 'ACTIVE',
+        schoolId: 'school-1',
+      },
+    ]);
+    prisma.feeVoucher.findMany.mockResolvedValue([]);
+    prisma.studentFeeConcession.findMany.mockResolvedValue([
+      {
+        id: 'c1',
+        studentId: 's1',
+        kind: 'SCHOLARSHIP',
+        label: 'Merit',
+        percent: 60,
+        amount: null,
+        reason: 'r',
+      },
+      {
+        id: 'c2',
+        studentId: 's1',
+        kind: 'DISCOUNT',
+        label: 'Sibling',
+        percent: null,
+        amount: 7000,
+        reason: 'r',
+      },
+    ]);
+    prisma.feeVoucher.create.mockImplementation(({ data }) =>
+      Promise.resolve({
+        id: 'v1',
+        studentId: data.studentId,
+        month: data.month,
+        dueDate: data.dueDate,
+        items: data.items.create,
+      }),
+    );
+    const [v] = await service.issue(
+      {
+        studentIds: ['s1'],
+        month: '2026-09',
+        dueDate: '2026-09-10',
+        feeStructureIds: ['fs-1'],
+      },
+      'admin-1',
+    );
+    expect(v.items.map((i) => [i.kind, i.amount])).toEqual([
+      ['CHARGE', 10000],
+      ['SCHOLARSHIP', -6000],
+      ['DISCOUNT', -4000],
+    ]);
+    expect(v.totalAmount).toBe(0);
   });
 
   it('BL-53: a voucher issued concurrently (unique index hit) becomes a 409 and nothing is audited', async () => {

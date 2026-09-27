@@ -31,6 +31,12 @@ vi.mock('../lib/api', () => ({
     reconcileVoucher: vi.fn(),
     updateFeeStructure: vi.fn(),
     listSchools: vi.fn(),
+    listFeeConcessions: vi.fn(),
+    createFeeConcession: vi.fn(),
+    endFeeConcession: vi.fn(),
+    adjustVoucher: vi.fn(),
+    reverseFeeItem: vi.fn(),
+    reverseFeePayment: vi.fn(),
   },
 }));
 
@@ -294,5 +300,123 @@ describe('FeeManagementView', () => {
     await wrapper.find('[data-testid="activate-fs-2"]').trigger('click');
     await flushPromises();
     expect(api.updateFeeStructure).toHaveBeenCalledWith('token-1', 'fs-2', { status: 'ACTIVE' });
+  });
+  describe('BL-08 ledger actions', () => {
+    const voucher = {
+      id: 'v1',
+      studentId: 's1',
+      month: '2026-09',
+      dueDate: '2026-09-10',
+      items: [
+        { id: 'i1', label: 'Tuition Fee', amount: 500000, kind: 'CHARGE' as const },
+        { id: 'i2', label: 'Discount', amount: -50000, kind: 'DISCOUNT' as const, reason: 'Hardship' },
+      ],
+      totalAmount: 450000,
+      amountPaid: 100000,
+      amountDue: 350000,
+      status: 'partial' as const,
+    };
+    const payment = {
+      id: 'p1',
+      amount: 100000,
+      method: 'cash',
+      status: 'completed',
+      voucherIds: ['v1'],
+      receiptId: 'r1',
+      createdAt: '2026-09-02T00:00:00.000Z',
+    };
+
+    async function openLedger() {
+      vi.mocked(api.studentFees).mockResolvedValue([voucher]);
+      vi.mocked(api.studentFeePayments).mockResolvedValue([payment]);
+      vi.mocked(api.listFeeConcessions).mockResolvedValue([]);
+      const wrapper = await mountView();
+      await flushPromises();
+      await wrapper.find('[data-testid="ledger-section"]').setValue('sec-1');
+      await flushPromises();
+      await wrapper.find('[data-testid="ledger-student"]').setValue('s1');
+      await flushPromises();
+      return wrapper;
+    }
+
+    it('shows voucher lines, adds a waiver with a reason, and reverses a discount', async () => {
+      vi.mocked(api.adjustVoucher).mockResolvedValue(voucher);
+      vi.mocked(api.reverseFeeItem).mockResolvedValue(voucher);
+      const wrapper = await openLedger();
+
+      await wrapper.find('[data-testid="voucher-lines-v1"]').trigger('click');
+      expect(wrapper.find('[data-testid="voucher-lines"]').text()).toContain('Hardship');
+      expect(wrapper.find('[data-testid="reverse-line-i1"]').exists()).toBe(false); // a charge is waived, not reversed
+
+      await wrapper.find('[data-testid="adjust-kind"]').setValue('WAIVER');
+      await wrapper.find('[data-testid="adjust-amount"]').setValue('100');
+      await wrapper.find('[data-testid="adjust-reason"]').setValue('Board waiver');
+      await wrapper.find('[data-testid="adjust-submit"]').trigger('click');
+      await flushPromises();
+      expect(api.adjustVoucher).toHaveBeenCalledWith('token-1', 'v1', {
+        kind: 'WAIVER',
+        amount: 10000,
+        reason: 'Board waiver',
+      });
+
+      await wrapper.find('[data-testid="reverse-line-i2"]').trigger('click');
+      await wrapper.find('[data-testid="reverse-reason"]').setValue('Entered twice');
+      await wrapper.find('[data-testid="reverse-confirm"]').trigger('click');
+      await flushPromises();
+      expect(api.reverseFeeItem).toHaveBeenCalledWith('token-1', 'i2', 'Entered twice');
+    });
+
+    it('a reversal needs a reason; a manual payment can be reversed', async () => {
+      vi.mocked(api.reverseFeePayment).mockResolvedValue({ ...payment, id: 'p2', amount: -100000 });
+      const wrapper = await openLedger();
+
+      await wrapper.find('[data-testid="reverse-payment-p1"]').trigger('click');
+      await wrapper.find('[data-testid="reverse-confirm"]').trigger('click');
+      await flushPromises();
+      expect(api.reverseFeePayment).not.toHaveBeenCalled();
+      expect(wrapper.find('[data-testid="ledger-action-error"]').text()).toContain('reason');
+
+      await wrapper.find('[data-testid="reverse-reason"]').setValue('Wrong student');
+      await wrapper.find('[data-testid="reverse-confirm"]').trigger('click');
+      await flushPromises();
+      expect(api.reverseFeePayment).toHaveBeenCalledWith('token-1', 'p1', 'Wrong student');
+    });
+
+    it('adds a percentage scholarship and ends a concession', async () => {
+      const wrapper = await openLedger();
+      vi.mocked(api.createFeeConcession).mockResolvedValue({} as never);
+      vi.mocked(api.listFeeConcessions).mockResolvedValue([
+        {
+          id: 'c1',
+          studentId: 's1',
+          schoolId: 'sch',
+          kind: 'SCHOLARSHIP',
+          label: 'Merit',
+          percent: 25,
+          amount: null,
+          reason: 'Result',
+          isActive: true,
+          endedAt: null,
+          createdAt: '2026-09-01T00:00:00.000Z',
+        },
+      ]);
+      await wrapper.find('[data-testid="concession-label"]').setValue('Merit');
+      await wrapper.find('[data-testid="concession-value"]').setValue('25');
+      await wrapper.find('[data-testid="concession-reason"]').setValue('Result');
+      await wrapper.find('[data-testid="concession-submit"]').trigger('click');
+      await flushPromises();
+      expect(api.createFeeConcession).toHaveBeenCalledWith('token-1', 's1', {
+        kind: 'SCHOLARSHIP',
+        label: 'Merit',
+        reason: 'Result',
+        percent: 25,
+      });
+      expect(wrapper.find('[data-testid="concession-c1"]').text()).toContain('25%');
+
+      vi.mocked(api.endFeeConcession).mockResolvedValue({} as never);
+      await wrapper.find('[data-testid="end-concession-c1"]').trigger('click');
+      await flushPromises();
+      expect(api.endFeeConcession).toHaveBeenCalledWith('token-1', 'c1');
+    });
   });
 });

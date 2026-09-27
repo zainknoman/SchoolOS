@@ -40,7 +40,7 @@
 ## Generated model index (BL-66)
 
 <!-- GENERATED:BEGIN model-index -->
-Generated model index (68 models, 19 enums):
+Generated model index (70 models, 22 enums):
 
 - **Identity** (7): User, RefreshToken, PasswordResetToken, DeviceToken, AuditLog, MigrationReviewItem, RetentionPolicy
 - **Organization** (13): School, Campus, AcademicSession, Class, Section, Subject, Term, Syllabus, SyllabusUnit, GradingScale, GradeBand, ResultPublication, Holiday
@@ -48,5 +48,5 @@ Generated model index (68 models, 19 enums):
 - **Enrollment & admissions & hiring** (7): Enrollment, StudentPromotion, PromotionPolicy, Applicant, Application, HiringCandidate, HiringApplication
 - **Academics** (13): Timetable, Attendance, AttendanceRiskFlag, AttendanceRiskPolicy, DiaryEntry, DiaryAttachment, AssessmentCategory, Assessment, Mark, ReportCard, GeneratedReportCard, LeaveRequest, Complaint
 - **Communication** (7): Circular, CircularRecipient, CircularAttachment, Conversation, Message, Notification, DraftSuggestion
-- **Finance & files** (7): FeeStructure, FeeVoucher, FeeItem, FeePayment, FeePaymentAllocation, Receipt, File
+- **Finance & files** (9): FeeStructure, FeeVoucher, FeeItem, StudentFeeConcession, FeePolicy, FeePayment, FeePaymentAllocation, Receipt, File
 <!-- GENERATED:END model-index -->

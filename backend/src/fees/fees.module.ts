@@ -4,6 +4,8 @@ import { FeeVouchersService } from './fee-vouchers.service';
 import { FeePaymentsService } from './fee-payments.service';
 import { FeesPdfService } from './fees-pdf.service';
 import { FeesController } from './fees.controller';
+import { FeeLedgerController } from './fee-ledger.controller';
+import { FeeLedgerService } from './fee-ledger.service';
 import { PaymentsWebhookController } from './payments-webhook.controller';
 import { StudentAccessService } from '../common/student-access.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
@@ -17,6 +19,7 @@ import {
     FeeStructuresService,
     FeeVouchersService,
     FeePaymentsService,
+    FeeLedgerService,
     FeesPdfService,
     StudentAccessService,
     EnrollmentService,
@@ -25,6 +28,6 @@ import {
       useClass: PaymentGatewayAdapterFactoryImpl,
     },
   ],
-  controllers: [FeesController, PaymentsWebhookController],
+  controllers: [FeesController, FeeLedgerController, PaymentsWebhookController],
 })
 export class FeesModule {}

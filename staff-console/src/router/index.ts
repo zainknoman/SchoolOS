@@ -291,6 +291,13 @@ const router = createRouter({
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Assessment Categories', group: 'Operations' },
     },
     {
+      // BL-08: outstanding balances / defaulters, late-fee rule, carry-forward.
+      path: '/admin/fee-balances',
+      name: 'admin-fee-balances',
+      component: () => import('../views/FeeBalancesPageView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'], title: 'Fee Balances', group: 'Operations' },
+    },
+    {
       // BL-28: attendance-risk settings and the flagged-student list.
       path: '/admin/attendance-risk',
       name: 'admin-attendance-risk',

@@ -209,6 +209,10 @@ model User {
   riskPoliciesUpdated        AttendanceRiskPolicy[] @relation("AttendanceRiskPolicyUpdatedBy")
   leaveRecommended           LeaveRequest[]         @relation("LeaveRecommendedBy")
   leaveDecided               LeaveRequest[]         @relation("LeaveDecidedBy")
+  feeItemsCreated            FeeItem[]              @relation("FeeItemCreatedBy")
+  feePaymentsRecorded        FeePayment[]           @relation("FeePaymentRecordedBy")
+  feeConcessionsCreated      StudentFeeConcession[] @relation("FeeConcessionCreatedBy")
+  feeConcessionsEnded        StudentFeeConcession[] @relation("FeeConcessionEndedBy")
   syllabiUpdated             Syllabus[]             @relation("SyllabusUpdatedBy")
   gradingScalesUpdated       GradingScale[]         @relation("GradingScaleUpdatedBy")
   resultsPublished           ResultPublication[]    @relation("ResultPublishedBy")
@@ -234,25 +238,25 @@ model RefreshToken {
 // --- School structure -----------------------------------------------------
 
 model School {
-  id                   String                @id @default(uuid())
+  id                   String                 @id @default(uuid())
   name                 String
-  code                 String?               @unique
+  code                 String?                @unique
   registrationNumber   String?
   website              String?
   logoFileId           String?
-  logo                 File?                 @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
+  logo                 File?                  @relation(fields: [logoFileId], references: [id], onDelete: SetNull)
   principalName        String?
   principalPhone       String?
   principalEmail       String?
   establishedDate      DateTime?
   schoolType           String?
   educationBoard       String?
-  status               OrgStatus             @default(ACTIVE)
-  timezone             String?               @default("Asia/Karachi")
-  currency             String?               @default("PKR")
+  status               OrgStatus              @default(ACTIVE)
+  timezone             String?                @default("Asia/Karachi")
+  currency             String?                @default("PKR")
   alternatePhone       String?
   addressId            String?
-  structuredAddress    Address?              @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  structuredAddress    Address?               @relation(fields: [addressId], references: [id], onDelete: SetNull)
   address              String?
   phone                String?
   email                String?
@@ -263,12 +267,14 @@ model School {
   academicSessions     AcademicSession[]
   subjects             Subject[]
   feeStructures        FeeStructure[]
+  feePolicy            FeePolicy?
+  feeConcessions       StudentFeeConcession[]
   promotionPolicy      PromotionPolicy?
   gradingScales        GradingScale[]
   attendanceRiskPolicy AttendanceRiskPolicy?
   teachingAssignments  TeachingAssignment[]
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
 }
 
 model Campus {
@@ -589,6 +595,7 @@ model Student {
   enrollments          Enrollment[]
   attendance           Attendance[]
   feeVouchers          FeeVoucher[]
+  feeConcessions       StudentFeeConcession[]
   leaveRequests        LeaveRequest[]
   conversations        Conversation[]
   complaints           Complaint[]
@@ -1043,10 +1050,13 @@ model FeeVoucher {
   student           Student                @relation(fields: [studentId], references: [id], onDelete: Restrict)
   academicSessionId String
   academicSession   AcademicSession        @relation(fields: [academicSessionId], references: [id])
-  month             String // "2026-09"
+  month             String // "2026-09"; "OPENING" for an opening-balance voucher (BL-08)
+  // BL-08: REGULAR = issued from fee structures; OPENING_BALANCE = arrears carried forward into this session.
+  kind              FeeVoucherKind         @default(REGULAR)
   issueDate         DateTime
   dueDate           DateTime
   items             FeeItem[]
+  carryItems        FeeItem[]              @relation("FeeItemCarry")
   allocations       FeePaymentAllocation[]
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
@@ -1057,27 +1067,113 @@ model FeeVoucher {
 }
 
 model FeeItem {
-  id             String        @id @default(uuid())
+  id             String                @id @default(uuid())
   feeVoucherId   String
-  feeVoucher     FeeVoucher    @relation(fields: [feeVoucherId], references: [id], onDelete: Cascade)
+  feeVoucher     FeeVoucher            @relation(fields: [feeVoucherId], references: [id], onDelete: Cascade)
   // BL-03 (F5): the structure this line was issued from (null on legacy lines not matched by label).
   feeStructureId String?
-  feeStructure   FeeStructure? @relation(fields: [feeStructureId], references: [id], onDelete: Restrict)
+  feeStructure   FeeStructure?         @relation(fields: [feeStructureId], references: [id], onDelete: Restrict)
   label          String
-  amount         Int // paisa
+  amount         Int // paisa; negative for reductions (discount, scholarship, waiver, carried forward)
+  // BL-08: every change to what a voucher asks for is its own line — never an edit (DB trigger).
+  kind           FeeItemKind           @default(CHARGE)
+  reason         String?
+  createdById    String?
+  createdBy      User?                 @relation("FeeItemCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime              @default(now())
+  // A reversal line cancels exactly one earlier adjustment line (amount = -original).
+  reversesItemId String?               @unique
+  reversesItem   FeeItem?              @relation("FeeItemReversal", fields: [reversesItemId], references: [id], onDelete: NoAction)
+  reversedBy     FeeItem?              @relation("FeeItemReversal")
+  // Carry-forward pair: the old voucher's CARRIED_FORWARD line and the new OPENING_BALANCE line point at each other's voucher.
+  carryVoucherId String?
+  carryVoucher   FeeVoucher?           @relation("FeeItemCarry", fields: [carryVoucherId], references: [id], onDelete: NoAction)
+  // The concession a DISCOUNT/SCHOLARSHIP line was applied from at issue time.
+  concessionId   String?
+  concession     StudentFeeConcession? @relation(fields: [concessionId], references: [id], onDelete: NoAction)
 
   @@index([feeStructureId])
+  @@index([feeVoucherId])
+  @@index([carryVoucherId])
+}
+
+/// BL-08: kinds of voucher line. CHARGE comes from a fee structure; the rest are ledger adjustments.
+enum FeeItemKind {
+  CHARGE
+  DISCOUNT
+  SCHOLARSHIP
+  WAIVER
+  LATE_FEE
+  OPENING_BALANCE
+  CARRIED_FORWARD
+}
+
+enum FeeVoucherKind {
+  REGULAR
+  OPENING_BALANCE
+}
+
+enum FeeConcessionKind {
+  DISCOUNT
+  SCHOLARSHIP
+}
+
+/// BL-08: a standing discount or scholarship for one student, applied as a line on every voucher
+/// issued while it is active (percent of the charges, or a fixed amount per voucher). Ending it
+/// never changes vouchers already issued.
+model StudentFeeConcession {
+  id          String            @id @default(uuid())
+  studentId   String
+  student     Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolId    String
+  school      School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  kind        FeeConcessionKind
+  label       String
+  percent     Int? // 1-100; exactly one of percent / amount
+  amount      Int? // paisa per voucher
+  reason      String
+  isActive    Boolean           @default(true)
+  createdById String?
+  createdBy   User?             @relation("FeeConcessionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  endedById   String?
+  endedBy     User?             @relation("FeeConcessionEndedBy", fields: [endedById], references: [id], onDelete: SetNull)
+  endedAt     DateTime?
+  items       FeeItem[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([studentId])
+  @@index([schoolId])
+}
+
+/// BL-08: a school's late-fee rule. No row (or amount 0) = no late fees.
+model FeePolicy {
+  id               String   @id @default(uuid())
+  schoolId         String   @unique
+  school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  lateFeeAmount    Int      @default(0) // paisa, once per overdue voucher
+  lateFeeGraceDays Int      @default(0)
+  updatedById      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 model FeePayment {
-  id          String                 @id @default(uuid())
-  amount      Int // paisa
-  method      String // "jazzcash" | "easypaisa" | "manual"
-  status      String // "pending" | "completed" | "failed"
-  reference   String?                @unique // gateway transaction id — lets a retried webhook be a no-op instead of a duplicate payment
-  allocations FeePaymentAllocation[]
-  receipt     Receipt?
-  createdAt   DateTime               @default(now())
+  id                String                 @id @default(uuid())
+  amount            Int // paisa
+  method            String // "jazzcash" | "easypaisa" | "manual"
+  status            String // "pending" | "completed" | "failed"
+  reference         String?                @unique // gateway transaction id — lets a retried webhook be a no-op instead of a duplicate payment
+  // BL-08: a manual payment recorded by mistake is corrected by a reversing payment (negative amount), never edited.
+  reversesPaymentId String?                @unique
+  reversesPayment   FeePayment?            @relation("FeePaymentReversal", fields: [reversesPaymentId], references: [id], onDelete: NoAction)
+  reversedBy        FeePayment?            @relation("FeePaymentReversal")
+  note              String?
+  recordedById      String?
+  recordedBy        User?                  @relation("FeePaymentRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  allocations       FeePaymentAllocation[]
+  receipt           Receipt?
+  createdAt         DateTime               @default(now())
 }
 
 model FeePaymentAllocation {

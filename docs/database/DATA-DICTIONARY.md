@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **68 models, 19 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **70 models, 22 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -23,6 +23,9 @@
 - **DocumentType**: BIRTH_CERTIFICATE, B_FORM, LEAVING_CERTIFICATE, TRANSFER_CERTIFICATE, PREVIOUS_REPORT_CARD, PHOTOGRAPH, MEDICAL_CERTIFICATE, CNIC, DEGREE_CERTIFICATE, CV, OTHER
 - **DocumentVerificationStatus**: PENDING, VERIFIED, REJECTED
 - **FeeStructureStatus**: DRAFT, ACTIVE, LOCKED, ARCHIVED
+- **FeeItemKind**: CHARGE, DISCOUNT, SCHOLARSHIP, WAIVER, LATE_FEE, OPENING_BALANCE, CARRIED_FORWARD
+- **FeeVoucherKind**: REGULAR, OPENING_BALANCE
+- **FeeConcessionKind**: DISCOUNT, SCHOLARSHIP
 - **RetentionCategory**: STUDENT, GUARDIAN, STAFF, ATTENDANCE, ACADEMIC_RESULTS, FEES_FINANCIAL, COMPLAINTS, AUDIT_LOGS, AUTH_SECURITY_LOGS, UPLOADED_DOCUMENTS, BACKUPS
 
 ## Identity
@@ -81,6 +84,10 @@
 | riskPoliciesUpdated | AttendanceRiskPolicy[] (relation) | @relation("AttendanceRiskPolicyUpdatedBy") |
 | leaveRecommended | LeaveRequest[] (relation) | @relation("LeaveRecommendedBy") |
 | leaveDecided | LeaveRequest[] (relation) | @relation("LeaveDecidedBy") |
+| feeItemsCreated | FeeItem[] (relation) | @relation("FeeItemCreatedBy") |
+| feePaymentsRecorded | FeePayment[] (relation) | @relation("FeePaymentRecordedBy") |
+| feeConcessionsCreated | StudentFeeConcession[] (relation) | @relation("FeeConcessionCreatedBy") |
+| feeConcessionsEnded | StudentFeeConcession[] (relation) | @relation("FeeConcessionEndedBy") |
 | syllabiUpdated | Syllabus[] (relation) | @relation("SyllabusUpdatedBy") |
 | gradingScalesUpdated | GradingScale[] (relation) | @relation("GradingScaleUpdatedBy") |
 | resultsPublished | ResultPublication[] (relation) | @relation("ResultPublishedBy") |
@@ -211,6 +218,8 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | academicSessions | AcademicSession[] (relation) |  |
 | subjects | Subject[] (relation) |  |
 | feeStructures | FeeStructure[] (relation) |  |
+| feePolicy | FeePolicy? (relation) |  |
+| feeConcessions | StudentFeeConcession[] (relation) |  |
 | promotionPolicy | PromotionPolicy? (relation) |  |
 | gradingScales | GradingScale[] (relation) |  |
 | attendanceRiskPolicy | AttendanceRiskPolicy? (relation) |  |
@@ -503,6 +512,7 @@ Block attributes: `@@index([campusId])` · `@@index([schoolId])` · `@@index([st
 | enrollments | Enrollment[] (relation) |  |
 | attendance | Attendance[] (relation) |  |
 | feeVouchers | FeeVoucher[] (relation) |  |
+| feeConcessions | StudentFeeConcession[] (relation) |  |
 | leaveRequests | LeaveRequest[] (relation) |  |
 | conversations | Conversation[] (relation) |  |
 | complaints | Complaint[] (relation) |  |
@@ -1346,9 +1356,11 @@ Block attributes: `@@index([schoolId])`
 | academicSessionId | String |  |
 | academicSession | AcademicSession (relation) | @relation(fields: [academicSessionId], references: [id]) |
 | month | String |  |
+| kind | FeeVoucherKind (enum) | @default(REGULAR) |
 | issueDate | DateTime |  |
 | dueDate | DateTime |  |
 | items | FeeItem[] (relation) |  |
+| carryItems | FeeItem[] (relation) | @relation("FeeItemCarry") |
 | allocations | FeePaymentAllocation[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
@@ -1366,8 +1378,59 @@ Block attributes: `@@unique([studentId, academicSessionId, month])` · `@@index(
 | feeStructure | FeeStructure? (relation) | @relation(fields: [feeStructureId], references: [id], onDelete: Restrict) |
 | label | String |  |
 | amount | Int |  |
+| kind | FeeItemKind (enum) | @default(CHARGE) |
+| reason | String? |  |
+| createdById | String? |  |
+| createdBy | User? (relation) | @relation("FeeItemCreatedBy", fields: [createdById], references: [id], onDelete: SetNull) |
+| createdAt | DateTime | @default(now()) |
+| reversesItemId | String? | @unique |
+| reversesItem | FeeItem? (relation) | @relation("FeeItemReversal", fields: [reversesItemId], references: [id], onDelete: NoAction) |
+| reversedBy | FeeItem? (relation) | @relation("FeeItemReversal") |
+| carryVoucherId | String? |  |
+| carryVoucher | FeeVoucher? (relation) | @relation("FeeItemCarry", fields: [carryVoucherId], references: [id], onDelete: NoAction) |
+| concessionId | String? |  |
+| concession | StudentFeeConcession? (relation) | @relation(fields: [concessionId], references: [id], onDelete: NoAction) |
 
-Block attributes: `@@index([feeStructureId])`
+Block attributes: `@@index([feeStructureId])` · `@@index([feeVoucherId])` · `@@index([carryVoucherId])`
+
+### StudentFeeConcession
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| studentId | String |  |
+| student | Student (relation) | @relation(fields: [studentId], references: [id], onDelete: Cascade) |
+| schoolId | String |  |
+| school | School (relation) | @relation(fields: [schoolId], references: [id], onDelete: Cascade) |
+| kind | FeeConcessionKind (enum) |  |
+| label | String |  |
+| percent | Int? |  |
+| amount | Int? |  |
+| reason | String |  |
+| isActive | Boolean | @default(true) |
+| createdById | String? |  |
+| createdBy | User? (relation) | @relation("FeeConcessionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull) |
+| endedById | String? |  |
+| endedBy | User? (relation) | @relation("FeeConcessionEndedBy", fields: [endedById], references: [id], onDelete: SetNull) |
+| endedAt | DateTime? |  |
+| items | FeeItem[] (relation) |  |
+| createdAt | DateTime | @default(now()) |
+| updatedAt | DateTime | @updatedAt |
+
+Block attributes: `@@index([studentId])` · `@@index([schoolId])`
+
+### FeePolicy
+
+| Field | Type | Attributes |
+|---|---|---|
+| id | String | @id @default(uuid()) |
+| schoolId | String | @unique |
+| school | School (relation) | @relation(fields: [schoolId], references: [id], onDelete: Cascade) |
+| lateFeeAmount | Int | @default(0) |
+| lateFeeGraceDays | Int | @default(0) |
+| updatedById | String? |  |
+| createdAt | DateTime | @default(now()) |
+| updatedAt | DateTime | @updatedAt |
 
 ### FeePayment
 
@@ -1378,6 +1441,12 @@ Block attributes: `@@index([feeStructureId])`
 | method | String |  |
 | status | String |  |
 | reference | String? | @unique |
+| reversesPaymentId | String? | @unique |
+| reversesPayment | FeePayment? (relation) | @relation("FeePaymentReversal", fields: [reversesPaymentId], references: [id], onDelete: NoAction) |
+| reversedBy | FeePayment? (relation) | @relation("FeePaymentReversal") |
+| note | String? |  |
+| recordedById | String? |  |
+| recordedBy | User? (relation) | @relation("FeePaymentRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull) |
 | allocations | FeePaymentAllocation[] (relation) |  |
 | receipt | Receipt? (relation) |  |
 | createdAt | DateTime | @default(now()) |

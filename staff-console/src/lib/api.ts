@@ -676,16 +676,39 @@ export interface FeeStructureSummary {
   schoolId?: string | null;
 }
 
+/** BL-08: kinds of voucher line; everything but CHARGE is a ledger adjustment. */
+export type FeeItemKind =
+  | 'CHARGE'
+  | 'DISCOUNT'
+  | 'SCHOLARSHIP'
+  | 'WAIVER'
+  | 'LATE_FEE'
+  | 'OPENING_BALANCE'
+  | 'CARRIED_FORWARD';
+export type FeeAdjustmentKind = 'DISCOUNT' | 'SCHOLARSHIP' | 'WAIVER' | 'LATE_FEE';
+
+export interface FeeVoucherLine {
+  id?: string;
+  label: string;
+  amount: number;
+  kind?: FeeItemKind;
+  reason?: string | null;
+  reversesItemId?: string | null;
+  reversed?: boolean;
+  createdAt?: string | null;
+}
+
 export interface FeeVoucherSummary {
   id: string;
   studentId: string;
   month: string;
+  kind?: 'REGULAR' | 'OPENING_BALANCE';
   dueDate: string;
-  items: Array<{ label: string; amount: number }>;
+  items: FeeVoucherLine[];
   totalAmount: number;
   amountPaid: number;
   amountDue: number;
-  status: 'unpaid' | 'partial' | 'paid' | 'overdue';
+  status: 'unpaid' | 'partial' | 'paid' | 'overdue' | 'carried_forward';
 }
 
 export interface FeePaymentSummary {
@@ -695,7 +718,53 @@ export interface FeePaymentSummary {
   status: string;
   voucherIds: string[];
   receiptId: string | null;
+  reversesPaymentId?: string | null;
+  reversed?: boolean;
+  note?: string | null;
   createdAt: string;
+}
+
+export interface FeeConcession {
+  id: string;
+  studentId: string;
+  schoolId: string;
+  kind: 'DISCOUNT' | 'SCHOLARSHIP';
+  label: string;
+  percent: number | null;
+  amount: number | null;
+  reason: string;
+  isActive: boolean;
+  endedAt: string | null;
+  createdAt: string;
+}
+
+export interface FeePolicy {
+  schoolId: string;
+  lateFeeAmount: number;
+  lateFeeGraceDays: number;
+}
+
+export interface OutstandingRow {
+  studentId: string;
+  grNumber: string;
+  name: string;
+  campusId: string | null;
+  campusName: string | null;
+  classId: string | null;
+  className: string | null;
+  sectionId: string | null;
+  sectionName: string | null;
+  vouchers: number;
+  overdueVouchers: number;
+  outstanding: number;
+  overdueAmount: number;
+  oldestDueDate: string | null;
+}
+
+export interface OutstandingReport {
+  schoolId: string;
+  totals: { students: number; defaulters: number; outstanding: number; overdue: number };
+  rows: OutstandingRow[];
 }
 
 export interface TeacherAdminSummary {
@@ -2121,6 +2190,120 @@ export const api = {
     if (!res.ok) {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
+  },
+
+  // --- BL-08: fee ledger ---
+  async adjustVoucher(
+    accessToken: string,
+    voucherId: string,
+    payload: { kind: FeeAdjustmentKind; amount: number; reason: string },
+  ): Promise<FeeVoucherSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-vouchers/${voucherId}/adjustments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async reverseFeeItem(accessToken: string, itemId: string, reason: string): Promise<FeeVoucherSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-items/${itemId}/reverse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify({ reason }),
+    });
+    return asJson(res);
+  },
+
+  async reverseFeePayment(accessToken: string, paymentId: string, reason: string): Promise<FeePaymentSummary> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-payments/${paymentId}/reverse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify({ reason }),
+    });
+    return asJson(res);
+  },
+
+  async listFeeConcessions(accessToken: string, studentId: string): Promise<FeeConcession[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/students/${studentId}/fee-concessions`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async createFeeConcession(
+    accessToken: string,
+    studentId: string,
+    payload: { kind: 'DISCOUNT' | 'SCHOLARSHIP'; label: string; percent?: number; amount?: number; reason: string },
+  ): Promise<FeeConcession> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/students/${studentId}/fee-concessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    return asJson(res);
+  },
+
+  async endFeeConcession(accessToken: string, concessionId: string): Promise<FeeConcession> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-concessions/${concessionId}/end`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async getFeePolicy(accessToken: string, schoolId?: string): Promise<FeePolicy> {
+    const q = schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-policy${q}`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async updateFeePolicy(
+    accessToken: string,
+    input: { schoolId?: string; lateFeeAmount: number; lateFeeGraceDays: number },
+  ): Promise<FeePolicy> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-policy`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(input),
+    });
+    return asJson(res);
+  },
+
+  async applyLateFees(accessToken: string, schoolId?: string): Promise<{ applied: number; voucherIds: string[] }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-vouchers/apply-late-fees`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(schoolId ? { schoolId } : {}),
+    });
+    return asJson(res);
+  },
+
+  async carryForwardFees(
+    accessToken: string,
+    input: { dueDate: string; schoolId?: string },
+  ): Promise<{ students: number; vouchers: number; amount: number }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-vouchers/carry-forward`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(input),
+    });
+    return asJson(res);
+  },
+
+  async outstandingFees(
+    accessToken: string,
+    filter: { schoolId?: string; sectionId?: string; defaultersOnly?: boolean } = {},
+  ): Promise<OutstandingReport> {
+    const params = new URLSearchParams();
+    if (filter.schoolId) params.set('schoolId', filter.schoolId);
+    if (filter.sectionId) params.set('sectionId', filter.sectionId);
+    if (filter.defaultersOnly) params.set('defaultersOnly', 'true');
+    const q = params.toString() ? `?${params}` : '';
+    const res = await fetch(`${API_BASE_URL}/api/v1/fee-reports/outstanding${q}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
   },
 
   // Direct authenticated download links (the backend's JwtStrategy accepts ?access_token= as a

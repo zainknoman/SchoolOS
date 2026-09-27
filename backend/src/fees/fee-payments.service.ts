@@ -7,6 +7,8 @@ import {
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PAYMENT_GATEWAY_ADAPTER_FACTORY } from './payment-gateway-adapter-factory';
+import { lockVoucher, voucherTotals } from './voucher-ledger';
+import { rethrowUniqueAsConflict } from '../common/prisma-create-guard';
 import type {
   PaymentGatewayAdapterFactory,
   PaymentMethod,
@@ -19,6 +21,10 @@ export interface PaymentSummary {
   status: string;
   voucherIds: string[];
   receiptId: string | null;
+  /** BL-08: set on a reversal (negative amount) — the payment it cancels. */
+  reversesPaymentId: string | null;
+  reversed: boolean;
+  note: string | null;
   createdAt: string;
 }
 
@@ -175,38 +181,38 @@ export class FeePaymentsService {
     dto: { amount: number; method: 'cash' | 'bank_transfer'; note?: string },
     actingUserId: string,
   ): Promise<PaymentSummary> {
-    const voucher = await this.prisma.feeVoucher.findUnique({
-      where: { id: voucherId },
-      include: { items: true, allocations: true },
-    });
-    if (!voucher) {
-      throw new NotFoundException('Fee voucher not found');
-    }
-    const totalAmount = voucher.items.reduce((sum, i) => sum + i.amount, 0);
-    const alreadyAllocated = voucher.allocations.reduce(
-      (sum, a) => sum + a.amount,
-      0,
-    );
-    const amountDue = totalAmount - alreadyAllocated;
-    if (dto.amount > amountDue) {
-      throw new BadRequestException(
-        `Amount exceeds this voucher's remaining balance of ${amountDue}`,
-      );
-    }
-
     const receiptNumber = `RCPT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomUUID().slice(0, 6)}`;
-    const payment = await this.prisma.feePayment.create({
-      data: {
-        amount: dto.amount,
-        method: dto.method,
-        status: 'completed',
-        reference: `manual_${randomUUID()}`,
-        allocations: {
-          create: [{ feeVoucherId: voucherId, amount: dto.amount }],
+    // BL-08: the voucher row is locked so two payments recorded at once cannot overpay it.
+    const payment = await this.prisma.$transaction(async (tx) => {
+      await lockVoucher(tx, voucherId);
+      const voucher = await tx.feeVoucher.findUnique({
+        where: { id: voucherId },
+        include: { items: true, allocations: true },
+      });
+      if (!voucher) {
+        throw new NotFoundException('Fee voucher not found');
+      }
+      const { amountDue } = voucherTotals(voucher);
+      if (dto.amount > amountDue) {
+        throw new BadRequestException(
+          `Amount exceeds this voucher's remaining balance of ${amountDue}`,
+        );
+      }
+      return tx.feePayment.create({
+        data: {
+          amount: dto.amount,
+          method: dto.method,
+          status: 'completed',
+          reference: `manual_${randomUUID()}`,
+          note: dto.note,
+          recordedById: actingUserId,
+          allocations: {
+            create: [{ feeVoucherId: voucherId, amount: dto.amount }],
+          },
+          receipt: { create: { receiptNumber } },
         },
-        receipt: { create: { receiptNumber } },
-      },
-      include: { allocations: true, receipt: true },
+        include: { allocations: true, receipt: true },
+      });
     });
 
     await this.prisma.auditLog.create({
@@ -227,10 +233,86 @@ export class FeePaymentsService {
     return this.toSummary(payment);
   }
 
+  /**
+   * BL-08: a completed manual payment recorded by mistake is cancelled by a reversing payment
+   * (negative amount, same voucher allocation, audited) — the original and its receipt stay.
+   * Gateway payments are refunded through the gateway (BL-24), not here.
+   */
+  async reverse(
+    paymentId: string,
+    reason: string,
+    actingUserId: string,
+  ): Promise<PaymentSummary> {
+    const reversal = await this.prisma
+      .$transaction(async (tx) => {
+        const original = await tx.feePayment.findUnique({
+          where: { id: paymentId },
+          include: { allocations: true, reversedBy: true },
+        });
+        if (!original) {
+          throw new NotFoundException('Payment not found');
+        }
+        if (original.reversesPaymentId) {
+          throw new BadRequestException('A reversal cannot itself be reversed');
+        }
+        if (original.reversedBy) {
+          throw new BadRequestException(
+            'This payment has already been reversed',
+          );
+        }
+        if (
+          original.status !== 'completed' ||
+          !['cash', 'bank_transfer'].includes(original.method)
+        ) {
+          throw new BadRequestException(
+            'Only a completed cash or bank-transfer payment can be reversed',
+          );
+        }
+        for (const a of original.allocations) {
+          await lockVoucher(tx, a.feeVoucherId);
+        }
+        return tx.feePayment.create({
+          data: {
+            amount: -original.amount,
+            method: original.method,
+            status: 'completed',
+            reference: `reversal_${randomUUID()}`,
+            reversesPaymentId: original.id,
+            note: reason,
+            recordedById: actingUserId,
+            allocations: {
+              create: original.allocations.map((a) => ({
+                feeVoucherId: a.feeVoucherId,
+                amount: -a.amount,
+              })),
+            },
+          },
+          include: { allocations: true, receipt: true, reversedBy: true },
+        });
+      })
+      .catch((error: unknown) =>
+        rethrowUniqueAsConflict(
+          error,
+          'This payment has already been reversed',
+        ),
+      );
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actingUserId,
+        action: 'fee-payment.reverse',
+        entity: 'FeePayment',
+        entityId: paymentId,
+        metadata: JSON.stringify({ reversalId: reversal.id, reason }),
+      },
+    });
+    return this.toSummary(reversal);
+  }
+
   async getForStudent(studentId: string): Promise<PaymentSummary[]> {
     const payments = await this.prisma.feePayment.findMany({
       where: { allocations: { some: { feeVoucher: { studentId } } } },
-      include: { allocations: true, receipt: true },
+      include: { allocations: true, receipt: true, reversedBy: true },
       orderBy: { createdAt: 'desc' },
     });
     return payments.map((p) => this.toSummary(p));
@@ -259,6 +341,9 @@ export class FeePaymentsService {
     status: string;
     allocations: Array<{ feeVoucherId: string }>;
     receipt: { id: string } | null;
+    reversesPaymentId?: string | null;
+    reversedBy?: unknown;
+    note?: string | null;
     createdAt: Date;
   }): PaymentSummary {
     return {
@@ -268,6 +353,9 @@ export class FeePaymentsService {
       status: payment.status,
       voucherIds: payment.allocations.map((a) => a.feeVoucherId),
       receiptId: payment.receipt?.id ?? null,
+      reversesPaymentId: payment.reversesPaymentId ?? null,
+      reversed: !!payment.reversedBy,
+      note: payment.note ?? null,
       createdAt: payment.createdAt.toISOString(),
     };
   }

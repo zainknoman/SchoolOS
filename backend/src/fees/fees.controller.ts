@@ -77,10 +77,18 @@ export class FeesController {
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
   @Post('fee-vouchers')
-  issueVouchers(
+  async issueVouchers(
     @Body() dto: IssueVouchersDto,
     @Req() req: AuthenticatedRequest,
   ) {
+    // BL-08: the caller must be allowed to act on every student issued to (was unchecked — a
+    // school admin could issue vouchers to another school's section or students).
+    if (dto.sectionId) {
+      await this.studentAccess.assertCanAccessSection(req.user, dto.sectionId);
+    }
+    for (const studentId of dto.studentIds ?? []) {
+      await this.studentAccess.assertCanAccessStudent(req.user, studentId);
+    }
     return this.feeVouchers.issue(dto, req.user.id);
   }
 
@@ -132,11 +140,17 @@ export class FeesController {
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
   @Post('fee-vouchers/:id/reconcile')
-  reconcile(
+  async reconcile(
     @Param('id') id: string,
     @Body() dto: ReconcilePaymentDto,
     @Req() req: AuthenticatedRequest,
   ) {
+    // BL-08: was unchecked — staff of one school could record a payment on another's voucher.
+    const voucher = await this.feeVouchers.getById(id);
+    await this.studentAccess.assertCanAccessStudent(
+      req.user,
+      voucher.studentId,
+    );
     return this.feePayments.reconcile(id, dto, req.user.id);
   }
 

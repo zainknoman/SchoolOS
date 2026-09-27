@@ -117,12 +117,15 @@ class _FeesTabState extends State<FeesTab> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(v.month, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                            Text(v.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
                             Text('Due ${v.dueDate}', style: TextStyle(fontSize: 12, color: tones.muted)),
                           ],
                         ),
                       ),
-                      StatusPill(label: v.status, color: StatusPill.colorFor(context, v.status)),
+                      StatusPill(
+                        label: v.status.replaceAll('_', ' '),
+                        color: StatusPill.colorFor(context, v.status),
+                      ),
                     ],
                   ),
                 ),
@@ -156,7 +159,10 @@ class _FeesTabState extends State<FeesTab> {
                                 fontFamily: 'monospace',
                               ),
                             ),
-                            Text(p.status, style: TextStyle(fontSize: 12, color: tones.muted)),
+                            Text(
+                              p.reversesPaymentId != null ? 'correction' : p.status,
+                              style: TextStyle(fontSize: 12, color: tones.muted),
+                            ),
                           ],
                         ),
                       ),

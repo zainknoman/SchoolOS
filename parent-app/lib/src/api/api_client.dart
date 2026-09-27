@@ -265,6 +265,13 @@ class ApiClient {
     return list.map((e) => FeePaymentSummary.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  /// Online payment methods this deployment has enabled — empty in the pilot (RD-14, BL-08),
+  /// where fees are paid at the school office.
+  Future<List<String>> paymentMethods(String accessToken) async {
+    final json = await _get('/api/v1/fees/payment-options', accessToken) as Map<String, dynamic>;
+    return (json['methods'] as List<dynamic>).cast<String>();
+  }
+
   Future<PaymentInitiation> payVoucher(String accessToken, String voucherId, String method) async {
     final res = await _client.post(
       Uri.parse('$baseUrl/api/v1/fee-vouchers/$voucherId/pay'),

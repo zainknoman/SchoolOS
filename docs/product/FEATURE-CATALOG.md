@@ -69,7 +69,9 @@ Endpoint paths omit the `/api/v1` prefix. UI: `S:` staff-console route, `P:` par
 | F-FEE-01 | Fee structures | SCHOOL_ADMIN, ACCOUNTS, SUPER_ADMIN | `/fee-structures` (create, list) | S:`/admin/fees` | FeeStructure | Q3 | fees | FEAT-012 | IMPLEMENTED (no update/delete; list unscoped) |
 | F-FEE-02 | Fee vouchers (student list or whole section; per month) + PDF | same | `/fee-vouchers`, `/fee-vouchers/:id/pdf`, `/students/:id/fees` | S:`/admin/fees` · P:fees | FeeVoucher, FeeItem | BR-FEE-01..02 | fees | FEAT-012 | IMPLEMENTED |
 | F-FEE-03 | Online payment (gateway) + webhook + receipt PDF | PARENT | `/fee-vouchers/:id/pay`, `/payments/webhook/:gateway`, `/fee-payments/:id[/receipt.pdf]` | P:voucher detail, stub checkout | FeePayment, FeePaymentAllocation, Receipt | BR-FEE-03..04 | fees | Sprint E | IMPLEMENTED; gateways CONFIGURATION REQUIRED, unverified |
-| F-FEE-04 | Manual reconcile | ACCOUNTS, SCHOOL_ADMIN, SUPER_ADMIN | `/fee-vouchers/:id/reconcile` | S:`/admin/fees` | FeePayment | BR-FEE-03 | fees | Sprint E | IMPLEMENTED |
+| F-FEE-04 | Manual reconcile (+ reversal, BL-08) | ACCOUNTS, SCHOOL_ADMIN, SUPER_ADMIN | `/fee-vouchers/:id/reconcile`, `/fee-payments/:id/reverse` | S:`/admin/fees` | FeePayment | BR-FEE-03, BR-FEE-08 | fees, fees-ledger | Sprint E, BL-08 | IMPLEMENTED |
+| F-FEE-05 | Fee ledger: discounts/scholarships (standing and one-off), waivers, late fees, reversals | ACCOUNTS, SCHOOL_ADMIN, SUPER_ADMIN | `/students/:id/fee-concessions`, `/fee-concessions/:id/end`, `/fee-vouchers/:id/adjustments`, `/fee-items/:id/reverse`, `/fee-policy`, `/fee-vouchers/apply-late-fees` | S:`/admin/fees`, `/admin/fee-balances` · P:voucher lines | FeeItem, StudentFeeConcession, FeePolicy | BR-FEE-06..09 | fees-ledger | BL-08 | IMPLEMENTED |
+| F-FEE-06 | Outstanding balances / defaulters; carry-forward | ACCOUNTS, SCHOOL_ADMIN, SUPER_ADMIN | `/fee-reports/outstanding`, `/fee-vouchers/carry-forward` | S:`/admin/fee-balances` · P:opening balance | FeeVoucher, FeeItem | BR-FEE-09..10 | fees-ledger | BL-08 | IMPLEMENTED |
 
 ## Communication
 

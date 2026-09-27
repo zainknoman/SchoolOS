@@ -98,6 +98,8 @@
         "FeeStructure",
         "FeeVoucher",
         "FeeItem",
+        "StudentFeeConcession",
+        "FeePolicy",
         "FeePayment",
         "FeePaymentAllocation",
         "Receipt",

@@ -212,6 +212,32 @@ async function cleanup(prisma: PrismaService, prefix: string) {
   });
   await prisma.circular.deleteMany({ where: { author: users } });
   await prisma.holiday.deleteMany({ where: { title: { startsWith: P } } });
+  // BL-08: fee ledger rows of these students (payments, reversals, lines, vouchers) first.
+  const allocations = await prisma.feePaymentAllocation.findMany({
+    where: { feeVoucher: { student: students } },
+    select: { feePaymentId: true },
+  });
+  const paymentIds = [...new Set(allocations.map((a) => a.feePaymentId))];
+  await prisma.feePaymentAllocation.deleteMany({
+    where: { feePaymentId: { in: paymentIds } },
+  });
+  await prisma.receipt.deleteMany({
+    where: { feePaymentId: { in: paymentIds } },
+  });
+  await prisma.feePayment.deleteMany({
+    where: { id: { in: paymentIds }, reversesPaymentId: { not: null } },
+  });
+  await prisma.feePayment.deleteMany({ where: { id: { in: paymentIds } } });
+  await prisma.feeItem.deleteMany({
+    where: {
+      feeVoucher: { student: students },
+      OR: [
+        { reversesItemId: { not: null } },
+        { carryVoucherId: { not: null } },
+      ],
+    },
+  });
+  await prisma.feeVoucher.deleteMany({ where: { student: students } });
   await prisma.user.deleteMany({ where: users });
   await prisma.student.deleteMany({ where: students });
   await prisma.school.deleteMany({ where: { name: { startsWith: `${P} ` } } });

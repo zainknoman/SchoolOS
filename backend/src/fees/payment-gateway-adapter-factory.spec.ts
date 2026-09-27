@@ -9,6 +9,13 @@ function fakeConfig(values: Record<string, string>): ConfigService {
 }
 
 describe('PaymentGatewayAdapterFactoryImpl', () => {
+  it('BL-08: outside dev/test an unconfigured gateway is off (pilot, RD-14)', () => {
+    const factory = new PaymentGatewayAdapterFactoryImpl(
+      fakeConfig({ NODE_ENV: 'production' }),
+    );
+    expect(factory.enabledMethods()).toEqual([]);
+    expect(() => factory.getAdapter('jazzcash')).toThrow(/not enabled/);
+  });
   it('falls back to the stub adapter for jazzcash when unconfigured', () => {
     const factory = new PaymentGatewayAdapterFactoryImpl(
       fakeConfig({ NODE_ENV: 'test' }),

@@ -2,7 +2,7 @@
 
 > **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from every `backend/src/**/*.controller.ts` — **do not edit by hand**; regenerate with `node scripts/docs/generate.mjs` (CI runs `--check`) · **Sources:** `@Controller` + `@Get/@Post/@Put/@Patch/@Delete` + `@Roles/@Public/@Throttle`; method-level `@Roles`/`@Public` override class-level ones · **Owner:** Engineering Lead
 > All paths are prefixed with `/api/v1`. **Roles** = the `@Roles(...)` decorator (`RolesGuard` does an exact `includes(user.role)` check — SUPER_ADMIN has **no implicit override**). "any authenticated (service-scoped)" = no decorator: every logged-in role passes the guard and the **service** decides by scope (see [AUTHORIZATION](AUTHORIZATION.md)). `T` = route-level throttle decorator (auth routes, 5/min); all routes also fall under the global 100/min limit.
-> Total: **225** route handlers in 49 controllers.
+> Total: **237** route handlers in 50 controllers.
 
 ## (root)
 
@@ -264,12 +264,38 @@
 | POST | `/diary` | TEACHER, SCHOOL_ADMIN, SUPER_ADMIN |  | `diary/diary.controller.ts` |
 | POST | `/diary/draft-suggestion` | TEACHER, SCHOOL_ADMIN, SUPER_ADMIN |  | `diary/diary.controller.ts` |
 
+## fee-concessions
+
+| Method | Path | Roles | T | Controller |
+|---|---|---|---|---|
+| POST | `/fee-concessions/:id/end` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
+
+## fee-items
+
+| Method | Path | Roles | T | Controller |
+|---|---|---|---|---|
+| POST | `/fee-items/:id/reverse` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
+
 ## fee-payments
 
 | Method | Path | Roles | T | Controller |
 |---|---|---|---|---|
+| POST | `/fee-payments/:id/reverse` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
 | GET | `/fee-payments/:id` | any authenticated (service-scoped) |  | `fees/fees.controller.ts` |
 | GET | `/fee-payments/:id/receipt.pdf` | any authenticated (service-scoped) |  | `fees/fees.controller.ts` |
+
+## fee-policy
+
+| Method | Path | Roles | T | Controller |
+|---|---|---|---|---|
+| GET | `/fee-policy` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
+| PUT | `/fee-policy` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
+
+## fee-reports
+
+| Method | Path | Roles | T | Controller |
+|---|---|---|---|---|
+| GET | `/fee-reports/outstanding` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
 
 ## fee-structures
 
@@ -283,10 +309,19 @@
 
 | Method | Path | Roles | T | Controller |
 |---|---|---|---|---|
+| POST | `/fee-vouchers/:id/adjustments` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
+| POST | `/fee-vouchers/apply-late-fees` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
+| POST | `/fee-vouchers/carry-forward` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
 | POST | `/fee-vouchers` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fees.controller.ts` |
 | GET | `/fee-vouchers/:id/pdf` | any authenticated (service-scoped) |  | `fees/fees.controller.ts` |
 | POST | `/fee-vouchers/:id/reconcile` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fees.controller.ts` |
 | POST | `/fee-vouchers/:id/pay` | PARENT |  | `fees/fees.controller.ts` |
+
+## fees
+
+| Method | Path | Roles | T | Controller |
+|---|---|---|---|---|
+| GET | `/fees/payment-options` | any authenticated (service-scoped) |  | `fees/fee-ledger.controller.ts` |
 
 ## files
 
@@ -419,6 +454,8 @@
 | GET | `/students/:id/attendance` | any authenticated (service-scoped) |  | `attendance/attendance.controller.ts` |
 | GET | `/students/:id/attendance-risk` | any authenticated (service-scoped) |  | `attendance-risk/attendance-risk.controller.ts` |
 | GET | `/students/:id/diary` | any authenticated (service-scoped) |  | `diary/diary.controller.ts` |
+| GET | `/students/:id/fee-concessions` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
+| POST | `/students/:id/fee-concessions` | SCHOOL_ADMIN, SUPER_ADMIN, ACCOUNTS |  | `fees/fee-ledger.controller.ts` |
 | GET | `/students/:id/fees` | any authenticated (service-scoped) |  | `fees/fees.controller.ts` |
 | GET | `/students/:id/fees/payments` | any authenticated (service-scoped) |  | `fees/fees.controller.ts` |
 | GET | `/students/:id/grades` | any authenticated (service-scoped) |  | `gradebook/grades.controller.ts` |

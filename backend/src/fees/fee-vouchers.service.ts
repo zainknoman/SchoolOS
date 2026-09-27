@@ -7,17 +7,32 @@ import {
 import { rethrowUniqueAsConflict } from '../common/prisma-create-guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { IssueVouchersDto } from './dto/issue-vouchers.dto';
+import { voucherTotals } from './voucher-ledger';
+
+export interface VoucherLine {
+  id?: string;
+  label: string;
+  amount: number;
+  kind: string;
+  reason: string | null;
+  reversesItemId: string | null;
+  reversed: boolean;
+  createdAt: string | null;
+}
 
 export interface VoucherSummary {
   id: string;
   studentId: string;
   month: string;
+  /** BL-08: REGULAR, or OPENING_BALANCE (arrears carried forward from an earlier session). */
+  kind: string;
   dueDate: string;
-  items: Array<{ label: string; amount: number }>;
+  items: VoucherLine[];
   totalAmount: number;
   amountPaid: number;
   amountDue: number;
-  status: 'unpaid' | 'partial' | 'paid' | 'overdue';
+  // BL-08: carried_forward = nothing left because the balance moved to an opening-balance voucher.
+  status: 'unpaid' | 'partial' | 'paid' | 'overdue' | 'carried_forward';
 }
 
 @Injectable()
@@ -116,6 +131,47 @@ export class FeeVouchersService {
       );
     }
 
+    // BL-08: each active discount/scholarship of the student becomes its own (negative) line,
+    // never more than the charges of this voucher.
+    const concessions = await this.prisma.studentFeeConcession.findMany({
+      where: {
+        studentId: { in: studentIds },
+        schoolId: schoolIds[0],
+        isActive: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    const charges = structures.reduce((sum, st) => sum + st.amount, 0);
+    const concessionLines = (studentId: string) => {
+      let left = charges;
+      const lines: Array<{
+        label: string;
+        amount: number;
+        kind: 'DISCOUNT' | 'SCHOLARSHIP';
+        reason: string;
+        concessionId: string;
+        createdById: string;
+      }> = [];
+      for (const c of concessions.filter((x) => x.studentId === studentId)) {
+        const wanted =
+          c.percent != null
+            ? Math.round((charges * c.percent) / 100)
+            : (c.amount ?? 0);
+        const off = Math.min(wanted, left);
+        if (off <= 0) continue;
+        left -= off;
+        lines.push({
+          label: c.label,
+          amount: -off,
+          kind: c.kind,
+          reason: c.reason,
+          concessionId: c.id,
+          createdById: actingUserId,
+        });
+      }
+      return lines;
+    };
+
     const dueDate = new Date(dto.dueDate);
     // BL-53: all-or-nothing, and a voucher issued concurrently for the same student/month hits the
     // unique index (M12) -> 409 instead of a duplicate.
@@ -131,11 +187,14 @@ export class FeeVouchersService {
               issueDate: new Date(),
               dueDate,
               items: {
-                create: structures.map((s) => ({
-                  feeStructureId: s.id,
-                  label: s.name,
-                  amount: s.amount,
-                })),
+                create: [
+                  ...structures.map((s) => ({
+                    feeStructureId: s.id,
+                    label: s.name,
+                    amount: s.amount,
+                  })),
+                  ...concessionLines(studentId),
+                ],
               },
             },
             include: { items: true },
@@ -176,15 +235,28 @@ export class FeeVouchersService {
   async getForStudent(studentId: string): Promise<VoucherSummary[]> {
     const vouchers = await this.prisma.feeVoucher.findMany({
       where: { studentId },
-      include: { items: true, allocations: true },
+      include: {
+        items: { orderBy: { createdAt: 'asc' }, include: { reversedBy: true } },
+        allocations: true,
+      },
       orderBy: { issueDate: 'desc' },
     });
-    return vouchers.map((v) =>
-      this.toSummary(
-        v,
-        v.allocations.reduce((sum, a) => sum + a.amount, 0),
-      ),
-    );
+    return vouchers.map((v) => this.toSummary(v, voucherTotals(v).amountPaid));
+  }
+
+  /** BL-08: one voucher as the ledger screens show it. */
+  async getSummary(id: string): Promise<VoucherSummary> {
+    const v = await this.prisma.feeVoucher.findUnique({
+      where: { id },
+      include: {
+        items: { orderBy: { createdAt: 'asc' }, include: { reversedBy: true } },
+        allocations: true,
+      },
+    });
+    if (!v) {
+      throw new NotFoundException('Fee voucher not found');
+    }
+    return this.toSummary(v, voucherTotals(v).amountPaid);
   }
 
   async getById(id: string) {
@@ -198,13 +270,23 @@ export class FeeVouchersService {
     return voucher;
   }
 
-  private toSummary(
+  toSummary(
     voucher: {
       id: string;
       studentId: string;
       month: string;
+      kind?: string;
       dueDate: Date;
-      items: Array<{ label: string; amount: number }>;
+      items: Array<{
+        id?: string;
+        label: string;
+        amount: number;
+        kind?: string;
+        reason?: string | null;
+        reversesItemId?: string | null;
+        reversedBy?: unknown;
+        createdAt?: Date;
+      }>;
     },
     amountPaid: number,
   ): VoucherSummary {
@@ -213,7 +295,10 @@ export class FeeVouchersService {
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);
     let status: VoucherSummary['status'];
-    if (amountDue <= 0) status = 'paid';
+    if (amountDue <= 0)
+      status = voucher.items.some((i) => i.kind === 'CARRIED_FORWARD')
+        ? 'carried_forward'
+        : 'paid';
     else if (amountPaid > 0) status = 'partial';
     else if (voucher.dueDate < startOfToday) status = 'overdue';
     else status = 'unpaid';
@@ -221,8 +306,18 @@ export class FeeVouchersService {
       id: voucher.id,
       studentId: voucher.studentId,
       month: voucher.month,
+      kind: voucher.kind ?? 'REGULAR',
       dueDate: voucher.dueDate.toISOString().slice(0, 10),
-      items: voucher.items.map((i) => ({ label: i.label, amount: i.amount })),
+      items: voucher.items.map((i) => ({
+        id: i.id,
+        label: i.label,
+        amount: i.amount,
+        kind: i.kind ?? 'CHARGE',
+        reason: i.reason ?? null,
+        reversesItemId: i.reversesItemId ?? null,
+        reversed: !!i.reversedBy,
+        createdAt: i.createdAt ? i.createdAt.toISOString() : null,
+      })),
       totalAmount,
       amountPaid,
       amountDue,

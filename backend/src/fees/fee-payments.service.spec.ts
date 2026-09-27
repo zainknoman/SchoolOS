@@ -17,6 +17,7 @@ describe('FeePaymentsService', () => {
     feePaymentAllocation: { deleteMany: jest.Mock; updateMany: jest.Mock };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
+    $queryRaw: jest.Mock;
   };
   let gatewayFactory: { getAdapter: jest.Mock };
   let adapter: { initiate: jest.Mock };
@@ -33,6 +34,7 @@ describe('FeePaymentsService', () => {
       feePaymentAllocation: { deleteMany: jest.fn(), updateMany: jest.fn() },
       auditLog: { create: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
+      $queryRaw: jest.fn(), // BL-08: voucher row lock
     };
     adapter = { initiate: jest.fn() };
     gatewayFactory = { getAdapter: jest.fn().mockReturnValue(adapter) };
@@ -289,5 +291,65 @@ describe('FeePaymentsService', () => {
     await expect(
       service.reconcile('missing', { amount: 100, method: 'cash' }, 'admin-1'),
     ).rejects.toThrow(NotFoundException);
+  });
+  describe('reverse() (BL-08)', () => {
+    it('cancels a completed manual payment with a negative payment on the same voucher', async () => {
+      prisma.feePayment.findUnique.mockResolvedValue({
+        id: 'p1',
+        amount: 400,
+        method: 'cash',
+        status: 'completed',
+        reversesPaymentId: null,
+        reversedBy: null,
+        allocations: [{ feeVoucherId: 'v1', amount: 400 }],
+      });
+      prisma.feePayment.create.mockResolvedValue({
+        id: 'p2',
+        amount: -400,
+        method: 'cash',
+        status: 'completed',
+        reversesPaymentId: 'p1',
+        note: 'wrong student',
+        allocations: [{ feeVoucherId: 'v1' }],
+        receipt: null,
+        createdAt: new Date(),
+      });
+      const out = await service.reverse('p1', 'wrong student', 'admin-1');
+      expect(prisma.feePayment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            amount: -400,
+            reversesPaymentId: 'p1',
+            allocations: { create: [{ feeVoucherId: 'v1', amount: -400 }] },
+          }),
+        }),
+      );
+      expect(out).toMatchObject({ amount: -400, reversesPaymentId: 'p1' });
+      expect(prisma.auditLog.create).toHaveBeenCalled();
+    });
+
+    it('refuses gateway payments, reversals and payments already reversed', async () => {
+      const base = {
+        id: 'p1',
+        amount: 400,
+        method: 'cash',
+        status: 'completed',
+        reversesPaymentId: null,
+        reversedBy: null,
+        allocations: [],
+      };
+      for (const bad of [
+        { method: 'jazzcash' },
+        { status: 'pending' },
+        { reversesPaymentId: 'p0' },
+        { reversedBy: { id: 'p9' } },
+      ]) {
+        prisma.feePayment.findUnique.mockResolvedValueOnce({ ...base, ...bad });
+        await expect(service.reverse('p1', 'x', 'admin-1')).rejects.toThrow(
+          BadRequestException,
+        );
+      }
+      expect(prisma.feePayment.create).not.toHaveBeenCalled();
+    });
   });
 });

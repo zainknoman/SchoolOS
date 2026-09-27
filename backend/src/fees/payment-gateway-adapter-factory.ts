@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PaymentGatewayAdapter } from './payment-gateway-adapter';
 import { StubPaymentGatewayAdapter } from './stub-payment-gateway.adapter';
@@ -17,6 +17,7 @@ import {
   resolveEasyPaisaConfig,
   resolveStubWebhookSecret,
 } from './gateways/gateway-config';
+import { isDevOrTestEnv } from '../config/env.validation';
 
 export const PAYMENT_GATEWAY_ADAPTER_FACTORY =
   'PAYMENT_GATEWAY_ADAPTER_FACTORY';
@@ -42,7 +43,27 @@ export class PaymentGatewayAdapterFactoryImpl
 {
   constructor(private readonly config: ConfigService) {}
 
+  /**
+   * BL-08 (RD-14): outside dev/test only a fully configured provider is offered — the pilot runs
+   * with every gateway off, so parents see no online payment and staff record payments manually.
+   * Dev/test keep the stub adapter for both methods.
+   */
+  enabledMethods(): PaymentMethod[] {
+    if (isDevOrTestEnv(this.config.get<string>('NODE_ENV'))) {
+      return ['jazzcash', 'easypaisa'];
+    }
+    const out: PaymentMethod[] = [];
+    if (resolveJazzCashConfig(this.config)) out.push('jazzcash');
+    if (resolveEasyPaisaConfig(this.config)) out.push('easypaisa');
+    return out;
+  }
+
   getAdapter(method: PaymentMethod): PaymentGatewayAdapter {
+    if (!this.enabledMethods().includes(method)) {
+      throw new BadRequestException(
+        'Online payment is not enabled; please pay at the school office',
+      );
+    }
     if (method === 'jazzcash') {
       const jazzCashConfig = resolveJazzCashConfig(this.config);
       return jazzCashConfig

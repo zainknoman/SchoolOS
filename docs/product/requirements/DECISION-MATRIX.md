@@ -21,8 +21,8 @@
 | Daily attendance now; per-period later (Q11) | BR-ATT-01 | daily | none now | BL-45 | — | POST |
 | Attendance marking without class teacher; real marker recorded (RD-8) | BR-ATT-03 | `markedById` required Teacher FK; admin → class teacher or refused | schema M1 (`markedByUserId`, nullable `markedById`) + code | BL-60 | W1 | CORE |
 | Leave: recommend + admin approve, no class teacher, separate attribution (Q12) | BR-LV-02 | requires class teacher; stamps it; no recommender/decider columns | schema M1b + workflow | BL-29 | E | CORE |
-| Pilot fees: manual payments, vouchers/receipts, partial, outstanding, defaulters, basic carry-forward, immutable history (Q9, RD-14) | BR-FEE-01..03 | vouchers/payments/reconcile | partial/outstanding/defaulter/carry-forward | BL-08 | F | CORE |
-| Fee extras: discounts, scholarships, waivers, late fees, refunds, installments (Q9) | Q9 | none | ledger extensions | BL-24 | — | POST |
+| Pilot fees: manual payments, vouchers/receipts, partial, outstanding, defaulters, basic carry-forward, discounts/scholarships, late fees, immutable history (Q9, RD-14) | BR-FEE-01..10 | ✅ BL-08 (2026-09-27) | — | BL-08 | F | CORE |
+| Fee extras: refunds, installments, accounting exports (Q9; discounts/scholarships/waivers/late fees moved to BL-08) | Q9 | none | ledger extensions | BL-24 | — | POST |
 | Payment gateways OFF in the pilot; behind flags (RD-14, Q34) | BR-FEE-04 | adapters unverified | verification post-pilot | BL-14 | F/— | POST |
 | Parent complaints — pilot workflow (Q10, RD-9) | Q10 | staff-only create | parent submit, assign, internal notes, resolution | BL-30 | G | CORE |
 | Complaints — escalation/SLA/routing/analytics (RD-9) | Q10 | none | advanced | BL-31 | — | POST |

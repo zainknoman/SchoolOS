@@ -1,9 +1,9 @@
-BL-39 ✅ |BL-53 ✅ |BL-32 ✅ |BL-25 ✅ |BL-61, BL-05 ✅ |BL-04, BL-23 ✅ |BL-03 ✅ |BL-02 ✅ |BL-01 ✅ |BL-20 ✅ |BL-60 ✅ |# Pilot-Readiness Execution Plan (Waves 0–7)
+# Pilot-Readiness Execution Plan (Waves 0–7)
 
-> **Status:** CURRENT — **Waves 0–5 done, Wave 6 next** (see §0) · **Progress verified:** 2026-09-26 against `wave-0/foundations` (BL-29) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
+> **Status:** CURRENT — **Waves 0–5 done, Wave 6 in progress** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-08) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
 > Companion to the gap analysis: this file fixes the **order of execution**, the **schema/migration dependencies that must precede application code**, the affected layers, the docs to regenerate, and rollback rules. Findings F1–F10 (2026-09-20) are folded in. Item detail and acceptance criteria live in the BACKLOG.
 
-## 0. Progress and handoff (updated 2026-09-26, after BL-29)
+## 0. Progress and handoff (updated 2026-09-27, after BL-08)
 
 All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` = github.com/zainknoman/SchoolOS), one commit per item, each pushed after its checks passed. Item detail and "Done" notes: [BACKLOG](../product/requirements/BACKLOG.md); migrations and rehearsals: [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md); deploy steps: [RUNBOOKS](../operations/RUNBOOKS.md).
 
@@ -21,7 +21,8 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 5 | BL-06 generated report cards (M10 part) | ✅ | `5df46a8` |
 | 5 | BL-28 attendance-risk settings (M10 part) | ✅ | `384f885` |
 | 5 | BL-29 leave workflow (M1b, KG-27) | ✅ | `9c6ec52` |
-| 6 | BL-08 · BL-30 · BL-35 · BL-43 · BL-54 · BL-14 | ⏭ **next** (BL-08 first) | — |
+| 6 | BL-08 fee ledger (discounts/scholarships, late fees, outstanding/defaulters, carry-forward; KG-28) | ✅ | `BL08-COMMIT` |
+| 6 | BL-30 · BL-35 · BL-43 · BL-54 · BL-14 | ⏭ **next** (BL-30 first) | — |
 | 7 | BL-15 · BL-55 · BL-36 · BL-37 part 2 · BL-56 · BL-57 · BL-58 | ⏳ | — |
 
 Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a3cb1` (KG-24 — bulk import could write into another school); with BL-41, `fees.e2e-spec.ts` stopped using a due date (2026-09-25) that had passed, which made its voucher read "overdue".
@@ -33,13 +34,14 @@ Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a
 - Data-changing migration: expand SQL + `migration-harness/backfills/mN-*.mjs` + `backfill-mN-cli.mjs` + `npm run backfill:mN` + scenario `migration-harness/scenarios/mN-*.mjs` (idempotency is checked automatically) + `prisma migrate diff` shows no drift + record the rehearsal in MIGRATION-STRATEGY.
 - Two-school e2e fixture: `backend/test/pending/two-school-fixture.ts` (`createTwoSchools(prefix)`); the BL-18 scaffold is fully graduated.
 - **Do not** run `prettier --write` on `staff-console/**` or `backend/migration-harness/**` (it reformats whole files); backend `src/`/`test/` are fine. **Do not** commit `docs/UI-Screenshots/sample4` CSVs. Write multi-line edit scripts with a file (Git Bash heredocs mangle backslashes).
-- Last verified counts (2026-09-26, BL-29): backend unit 759, e2e 343 (47 suites), harness 10 scenarios + 13 tests (unchanged; M1b and M10 are additive), console 573, parent app 113.
+- Last verified counts (2026-09-27, BL-08): backend unit 774, e2e 359 (48 suites), harness 10 scenarios + 13 tests (unchanged; the BL-08 migration is additive), console 580, parent app 114.
 - Additive migration SQL: `DATABASE_URL=<scratch> npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script -o prisma/migrations/<ts>_<name>/migration.sql`, then `migrate deploy` and the same diff with `--exit-code` (0 = no drift). `psql` is not installed; the scratch DB `schoolos_scratch_e2e` already exists and is reused.
 - An e2e `afterAll` that throws before `f.close()` leaves the app open and Jest hangs (looks like a timeout) — keep cleanup queries valid. FKs from new history tables to Class/Term/Subject use `NoAction` so school-deletion cascades still work.
 - Multi-line edits: write a Node script to the scratchpad and run it (normalise CRLF first); never put `﻿` in written content (it becomes a literal BOM).
 - Full e2e on a scratch DB: create `schoolos_scratch_e2e` (drop first), `DATABASE_URL=<…/schoolos_scratch_e2e> npx prisma migrate deploy`, then the same `DATABASE_URL` for `npm run test:e2e`. Suites that call validated endpoints must install the global `ValidationPipe` (production does it in `main.ts`, `AppModule` does not).
 
-**Next step:** Wave 6 — BL-08 (fees: pilot subset — discounts/scholarships, late fees, outstanding/defaulters, basic carry-forward, school-scoped), then BL-30 (complaints workflow; the complaint part of M10), BL-35, BL-43, BL-54, BL-14 (FCM; needs the Firebase project).
+**Next step:** Wave 6 — BL-30 (complaints workflow; the complaint part of M10), then BL-35, BL-43, BL-54, BL-14 (FCM; needs the Firebase project). Record BL-08's commit hash (placeholder `BL08-COMMIT`) with the next item.
+- The two-school e2e fixture now removes its students' fee ledger itself (payments, reversals, carry-forward lines, vouchers) — suites no longer need their own fee cleanup.
 
 ## 1. Findings folded in (F1–F10)
 | # | Finding | Where handled |
@@ -78,6 +80,7 @@ Every data-changing migration uses **expand → backfill → contract** (contrac
 | M11 | `UserPermission` grants | BL-32 ✅ | preserve current ACCOUNTS behaviour, then restrict |
 | M12 | one ACTIVE enrolment per student; one voucher per student/session/month | BL-53 ✅ | pre-check duplicates; raw-SQL partial unique index |
 | M13 | job lock (or advisory locks) | BL-39 ✅ | — |
+| M14 | fee ledger: `FeeItem` kind/reason/actor/reversal/carry links, `FeeVoucher.kind`, `FeePayment` reversal/note/recorder, `StudentFeeConcession`, `FeePolicy`; triggers refusing edits of voucher lines, settled payments/allocations and receipts (`20260929090000_bl08_fee_ledger`) | BL-08 ✅ | none (additive; existing lines become `CHARGE`) |
 
 ## 4. Layers touched per wave
 | Wave | Backend / schema | Staff console | Parent app | Tests (new or replaced) |

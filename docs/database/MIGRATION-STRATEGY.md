@@ -150,6 +150,8 @@
 
 **M1b (BL-29, `20260928130000_m1b_leave_workflow`, 2026-09-26):** additive (seven nullable columns, two FKs to `User`); no backfill — already-decided legacy requests keep a null decider, the audit log names who decided them; applied to the scratch database, no drift, full e2e green.
 
+**M14 (BL-08, `20260929090000_bl08_fee_ledger`, 2026-09-27):** additive — three enums, new columns on `FeeItem`/`FeePayment`/`FeeVoucher` (existing lines default to `CHARGE`, vouchers to `REGULAR`), tables `StudentFeeConcession` and `FeePolicy`, and four `BEFORE UPDATE` triggers that refuse edits of voucher lines, settled payments, their allocations and receipts. The `FeeItem` trigger still lets the M5 backfill link a legacy line (null → structure), so `npm run backfill:m5` stays safe after this migration. No backfill. Applied to the scratch database, no drift, full e2e green. Rollback: restore the backup (the triggers and columns are ignored by the previous build).
+
 **Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

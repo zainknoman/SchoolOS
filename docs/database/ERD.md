@@ -187,6 +187,17 @@ flowchart LR
   FeeVoucher -->|default| AcademicSession
   FeeItem -->|Cascade| FeeVoucher
   FeeItem -->|Restrict, optional| FeeStructure
+  FeeItem -->|SetNull, optional| User
+  FeeItem -->|NoAction, optional| FeeItem
+  FeeItem -->|NoAction, optional| FeeVoucher
+  FeeItem -->|NoAction, optional| StudentFeeConcession
+  StudentFeeConcession -->|Cascade| Student
+  StudentFeeConcession -->|Cascade| School
+  StudentFeeConcession -->|SetNull, optional| User
+  StudentFeeConcession -->|SetNull, optional| User
+  FeePolicy -->|Cascade| School
+  FeePayment -->|NoAction, optional| FeePayment
+  FeePayment -->|SetNull, optional| User
   FeePaymentAllocation -->|Restrict| FeePayment
   FeePaymentAllocation -->|Restrict| FeeVoucher
   Receipt -->|Restrict| FeePayment

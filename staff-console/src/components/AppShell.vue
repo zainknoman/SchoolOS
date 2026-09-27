@@ -280,6 +280,7 @@ const goToItems = computed<CmdkGoTo[]>(() => {
     items.push({ testid: 'cmdk-timetable', label: 'Timetable', icon: 'clock', to: '/admin/timetable' });
   }
   items.push({ testid: 'cmdk-fees', label: 'Fees', icon: 'receipt', to: '/admin/fees' });
+  items.push({ testid: 'cmdk-fee-balances', label: 'Fee Balances', icon: 'receipt', to: '/admin/fee-balances' });
   if (canManageLeave.value) {
     items.push({ testid: 'cmdk-leave', label: 'Leave', icon: 'calendar', to: '/admin/leave' });
   }
@@ -567,6 +568,9 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
               ><Icon name="grid" />Data Export</RouterLink
             >
             <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />{{ t('nav.fees') }}</RouterLink>
+            <RouterLink data-testid="nav-fee-balances" to="/admin/fee-balances"
+              ><Icon name="receipt" />{{ t('nav.feeBalances') }}</RouterLink
+            >
             <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"
               ><Icon name="calendar" />{{ t('nav.leave') }}</RouterLink
             >

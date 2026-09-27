@@ -409,16 +409,22 @@ class NotificationSummary {
 }
 
 class FeeVoucherItem {
-  const FeeVoucherItem({required this.label, required this.amount});
+  const FeeVoucherItem({required this.label, required this.amount, this.kind = 'CHARGE', this.reason});
   final String label;
+
+  /// Negative for a discount, scholarship, waiver or a balance carried forward (BL-08).
   final int amount;
+  final String kind;
+  final String? reason;
 
   factory FeeVoucherItem.fromJson(Map<String, dynamic> json) => FeeVoucherItem(
     label: json['label'] as String,
     amount: json['amount'] as int,
+    kind: json['kind'] as String? ?? 'CHARGE',
+    reason: json['reason'] as String?,
   );
 
-  Map<String, dynamic> toJson() => {'label': label, 'amount': amount};
+  Map<String, dynamic> toJson() => {'label': label, 'amount': amount, 'kind': kind, 'reason': reason};
 }
 
 class FeeVoucherSummary {
@@ -432,11 +438,17 @@ class FeeVoucherSummary {
     required this.amountPaid,
     required this.amountDue,
     required this.status,
+    this.kind = 'REGULAR',
   });
 
   final String id;
   final String studentId;
   final String month;
+
+  /// REGULAR, or OPENING_BALANCE (arrears carried forward from an earlier session, BL-08).
+  final String kind;
+
+  String get title => kind == 'OPENING_BALANCE' ? 'Opening balance' : month;
   final String dueDate;
   final List<FeeVoucherItem> items;
   final int totalAmount;
@@ -457,12 +469,14 @@ class FeeVoucherSummary {
         amountPaid: json['amountPaid'] as int,
         amountDue: json['amountDue'] as int,
         status: json['status'] as String,
+        kind: json['kind'] as String? ?? 'REGULAR',
       );
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'studentId': studentId,
     'month': month,
+    'kind': kind,
     'dueDate': dueDate,
     'items': items.map((i) => i.toJson()).toList(),
     'totalAmount': totalAmount,
@@ -480,6 +494,7 @@ class FeePaymentSummary {
     required this.status,
     required this.voucherIds,
     required this.receiptId,
+    this.reversesPaymentId,
   });
 
   final String id;
@@ -489,6 +504,9 @@ class FeePaymentSummary {
   final List<String> voucherIds;
   final String? receiptId;
 
+  /// Set on a correction (negative amount) that cancels a payment recorded by mistake (BL-08).
+  final String? reversesPaymentId;
+
   factory FeePaymentSummary.fromJson(Map<String, dynamic> json) =>
       FeePaymentSummary(
         id: json['id'] as String,
@@ -497,6 +515,7 @@ class FeePaymentSummary {
         status: json['status'] as String,
         voucherIds: (json['voucherIds'] as List<dynamic>).cast<String>(),
         receiptId: json['receiptId'] as String?,
+        reversesPaymentId: json['reversesPaymentId'] as String?,
       );
 }
 

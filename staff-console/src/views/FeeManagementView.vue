@@ -10,6 +10,9 @@ import {
   type SchoolSummary,
   type FeeVoucherSummary,
   type FeePaymentSummary,
+  type FeeAdjustmentKind,
+  type FeeConcession,
+  type FeeVoucherLine,
 } from '../lib/api';
 import { formatPkrFull } from '../lib/format';
 import { useFocusTarget } from '../lib/useFocusTarget';
@@ -217,11 +220,151 @@ async function onLoadLedger() {
   try {
     ledgerVouchers.value = await api.studentFees(auth.accessToken, ledgerStudentId.value);
     ledgerPayments.value = await api.studentFeePayments(auth.accessToken, ledgerStudentId.value);
+    await loadConcessions();
   } catch (err) {
     ledgerError.value = err instanceof Error ? err.message : "Could not load this student's fee ledger.";
   } finally {
     isLoadingLedger.value = false;
   }
+}
+
+// --- BL-08: voucher lines, adjustments, reversals and standing concessions ---
+const ADJUSTABLE: FeeAdjustmentKind[] = ['DISCOUNT', 'SCHOLARSHIP', 'WAIVER', 'LATE_FEE'];
+const KIND_LABEL: Record<string, string> = {
+  CHARGE: 'Charge',
+  DISCOUNT: 'Discount',
+  SCHOLARSHIP: 'Scholarship',
+  WAIVER: 'Waiver',
+  LATE_FEE: 'Late fee',
+  OPENING_BALANCE: 'Opening balance',
+  CARRIED_FORWARD: 'Carried forward',
+};
+const openVoucherId = ref<string | null>(null);
+const openVoucher = computed(() => ledgerVouchers.value.find((v) => v.id === openVoucherId.value) ?? null);
+const adjustKind = ref<FeeAdjustmentKind>('DISCOUNT');
+const adjustAmount = ref('');
+const adjustReason = ref('');
+const ledgerActionError = ref<string | null>(null);
+// One pending reversal at a time: a voucher line or a payment, confirmed with a reason.
+const reversing = ref<{ type: 'item' | 'payment'; id: string; label: string } | null>(null);
+const reverseReason = ref('');
+
+function canReverseLine(line: FeeVoucherLine): boolean {
+  return (
+    !!line.id &&
+    !line.reversed &&
+    !line.reversesItemId &&
+    ADJUSTABLE.includes(line.kind as FeeAdjustmentKind) &&
+    openVoucher.value?.status !== 'carried_forward'
+  );
+}
+
+function canReversePayment(p: FeePaymentSummary): boolean {
+  return (
+    p.status === 'completed' &&
+    p.amount > 0 &&
+    !p.reversed &&
+    !p.reversesPaymentId &&
+    (p.method === 'cash' || p.method === 'bank_transfer')
+  );
+}
+
+async function onAdjust() {
+  if (!auth.accessToken || !openVoucherId.value) return;
+  const amount = Math.round(Number(adjustAmount.value) * 100);
+  if (!(amount > 0) || !adjustReason.value.trim()) {
+    ledgerActionError.value = 'Enter an amount and a reason.';
+    return;
+  }
+  ledgerActionError.value = null;
+  try {
+    await api.adjustVoucher(auth.accessToken, openVoucherId.value, {
+      kind: adjustKind.value,
+      amount,
+      reason: adjustReason.value.trim(),
+    });
+    adjustAmount.value = '';
+    adjustReason.value = '';
+    await onLoadLedger();
+    toast.success(`${KIND_LABEL[adjustKind.value]} added.`);
+  } catch (err) {
+    ledgerActionError.value = err instanceof Error ? err.message : 'Could not add this line.';
+  }
+}
+
+async function onConfirmReverse() {
+  if (!auth.accessToken || !reversing.value) return;
+  if (!reverseReason.value.trim()) {
+    ledgerActionError.value = 'Give a reason for the reversal.';
+    return;
+  }
+  ledgerActionError.value = null;
+  try {
+    if (reversing.value.type === 'item') {
+      await api.reverseFeeItem(auth.accessToken, reversing.value.id, reverseReason.value.trim());
+    } else {
+      await api.reverseFeePayment(auth.accessToken, reversing.value.id, reverseReason.value.trim());
+    }
+    reversing.value = null;
+    reverseReason.value = '';
+    await onLoadLedger();
+    toast.success('Reversal recorded.');
+  } catch (err) {
+    ledgerActionError.value = err instanceof Error ? err.message : 'Could not record the reversal.';
+  }
+}
+
+const concessions = ref<FeeConcession[]>([]);
+const concessionKind = ref<'DISCOUNT' | 'SCHOLARSHIP'>('SCHOLARSHIP');
+const concessionLabel = ref('');
+const concessionBasis = ref<'percent' | 'amount'>('percent');
+const concessionValue = ref('');
+const concessionReason = ref('');
+
+async function loadConcessions() {
+  if (!auth.accessToken || !ledgerStudentId.value) return;
+  concessions.value = await api.listFeeConcessions(auth.accessToken, ledgerStudentId.value);
+}
+
+async function onCreateConcession() {
+  if (!auth.accessToken || !ledgerStudentId.value) return;
+  const value = Number(concessionValue.value);
+  if (!concessionLabel.value.trim() || !concessionReason.value.trim() || !(value > 0)) {
+    ledgerActionError.value = 'Enter a name, a value and a reason for the concession.';
+    return;
+  }
+  ledgerActionError.value = null;
+  try {
+    await api.createFeeConcession(auth.accessToken, ledgerStudentId.value, {
+      kind: concessionKind.value,
+      label: concessionLabel.value.trim(),
+      reason: concessionReason.value.trim(),
+      ...(concessionBasis.value === 'percent' ? { percent: Math.round(value) } : { amount: Math.round(value * 100) }),
+    });
+    concessionLabel.value = '';
+    concessionValue.value = '';
+    concessionReason.value = '';
+    await loadConcessions();
+    toast.success('Concession saved. It applies to vouchers issued from now on.');
+  } catch (err) {
+    ledgerActionError.value = err instanceof Error ? err.message : 'Could not save the concession.';
+  }
+}
+
+async function onEndConcession(c: FeeConcession) {
+  if (!auth.accessToken) return;
+  ledgerActionError.value = null;
+  try {
+    await api.endFeeConcession(auth.accessToken, c.id);
+    await loadConcessions();
+    toast.success(`${c.label} ended.`);
+  } catch (err) {
+    ledgerActionError.value = err instanceof Error ? err.message : 'Could not end the concession.';
+  }
+}
+
+function concessionValueLabel(c: FeeConcession): string {
+  return c.percent != null ? `${c.percent}%` : `PKR ${formatPkrFull((c.amount ?? 0) / 100)} per voucher`;
 }
 
 function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neutral' {
@@ -387,7 +530,17 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
         <template #cell-status="{ item }">
           <StatusPill :tone="voucherTone(item.status)" :label="item.status" />
         </template>
+        <template #cell-month="{ item }">
+          {{ item.kind === 'OPENING_BALANCE' ? 'Opening balance' : item.month }}
+        </template>
         <template #actions="{ item }">
+          <Button
+            variant="secondary"
+            :data-testid="`voucher-lines-${item.id}`"
+            @click="openVoucherId = openVoucherId === item.id ? null : item.id"
+          >
+            {{ openVoucherId === item.id ? 'Hide lines' : 'Lines' }}
+          </Button>
           <Button
             v-if="item.amountDue > 0"
             :data-testid="`record-payment-${item.id}`"
@@ -397,6 +550,61 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
           </Button>
         </template>
       </EntityTable>
+
+      <p v-if="ledgerActionError" class="error" role="alert" data-testid="ledger-action-error">{{ ledgerActionError }}</p>
+
+      <div v-if="openVoucher" class="reconcile-panel" data-testid="voucher-lines">
+        <h3>Voucher lines — {{ openVoucher.kind === 'OPENING_BALANCE' ? 'Opening balance' : openVoucher.month }}</h3>
+        <div v-for="(line, i) in openVoucher.items" :key="line.id ?? i" class="payment-row">
+          <span>
+            {{ line.label }}
+            <span class="muted">· {{ KIND_LABEL[line.kind ?? 'CHARGE'] }}</span>
+            <span v-if="line.reason" class="muted"> · {{ line.reason }}</span>
+            <span v-if="line.reversed" class="muted" :data-testid="`line-reversed-${line.id}`"> · reversed</span>
+          </span>
+          <span class="line-actions">
+            <span class="mono">PKR {{ formatPkrFull(line.amount / 100) }}</span>
+            <Button
+              v-if="canReverseLine(line)"
+              variant="secondary"
+              :data-testid="`reverse-line-${line.id}`"
+              @click="reversing = { type: 'item', id: line.id!, label: line.label }"
+            >
+              Reverse
+            </Button>
+          </span>
+        </div>
+        <div v-if="openVoucher.status !== 'carried_forward'" class="inline-fields adjust-form">
+          <label class="field">
+            <span>Add</span>
+            <select data-testid="adjust-kind" v-model="adjustKind">
+              <option v-for="k in ADJUSTABLE" :key="k" :value="k">{{ KIND_LABEL[k] }}</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Amount (PKR)</span>
+            <input data-testid="adjust-amount" v-model="adjustAmount" type="number" />
+          </label>
+          <label class="field">
+            <span>Reason</span>
+            <input data-testid="adjust-reason" v-model="adjustReason" type="text" />
+          </label>
+          <Button data-testid="adjust-submit" @click="onAdjust">Add line</Button>
+        </div>
+      </div>
+
+      <div v-if="reversing" class="reconcile-panel" data-testid="reverse-panel">
+        <h3>Reverse {{ reversing.type === 'item' ? 'line' : 'payment' }}: {{ reversing.label }}</h3>
+        <p class="muted">The original stays on record; a reversing entry cancels it.</p>
+        <label class="field">
+          <span>Reason</span>
+          <input data-testid="reverse-reason" v-model="reverseReason" type="text" />
+        </label>
+        <div class="reconcile-actions">
+          <Button data-testid="reverse-confirm" @click="onConfirmReverse">Record reversal</Button>
+          <Button variant="secondary" data-testid="reverse-cancel" @click="reversing = null">Cancel</Button>
+        </div>
+      </div>
 
       <div v-if="reconcilingVoucherId" class="reconcile-panel">
         <h3>Record cash / bank-transfer payment</h3>
@@ -426,7 +634,19 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
 
       <div v-if="ledgerPayments.length" class="payments-list">
         <div v-for="p in ledgerPayments" :key="p.id" class="payment-row">
-          <span>PKR {{ formatPkrFull(p.amount / 100) }} — {{ p.status }}</span>
+          <span>
+            PKR {{ formatPkrFull(p.amount / 100) }} — {{ p.reversesPaymentId ? 'reversal' : p.status }}
+            <span v-if="p.reversed" class="muted"> · reversed</span>
+            <span v-if="p.note" class="muted"> · {{ p.note }}</span>
+          </span>
+          <Button
+            v-if="canReversePayment(p)"
+            variant="secondary"
+            :data-testid="`reverse-payment-${p.id}`"
+            @click="reversing = { type: 'payment', id: p.id, label: `PKR ${formatPkrFull(p.amount / 100)}` }"
+          >
+            Reverse
+          </Button>
           <a
             v-if="p.receiptId && auth.accessToken"
             :href="api.receiptPdfUrl(auth.accessToken, p.id)"
@@ -436,6 +656,54 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
           >
             Receipt
           </a>
+        </div>
+      </div>
+
+      <div v-if="ledgerStudentId" class="concessions" data-testid="concessions">
+        <h3>Discounts &amp; scholarships</h3>
+        <p class="muted">Applied as a line on every voucher issued while active. Ending one does not change issued vouchers.</p>
+        <div v-for="c in concessions" :key="c.id" class="payment-row" :data-testid="`concession-${c.id}`">
+          <span>
+            {{ c.label }} <span class="muted">· {{ KIND_LABEL[c.kind] }} · {{ concessionValueLabel(c) }} · {{ c.reason }}</span>
+            <span v-if="!c.isActive" class="muted"> · ended</span>
+          </span>
+          <Button
+            v-if="c.isActive"
+            variant="secondary"
+            :data-testid="`end-concession-${c.id}`"
+            @click="onEndConcession(c)"
+          >
+            End
+          </Button>
+        </div>
+        <div class="inline-fields">
+          <label class="field">
+            <span>Type</span>
+            <select data-testid="concession-kind" v-model="concessionKind">
+              <option value="SCHOLARSHIP">Scholarship</option>
+              <option value="DISCOUNT">Discount</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Name</span>
+            <input data-testid="concession-label" v-model="concessionLabel" type="text" placeholder="Sibling discount" />
+          </label>
+          <label class="field">
+            <span>Basis</span>
+            <select data-testid="concession-basis" v-model="concessionBasis">
+              <option value="percent">% of charges</option>
+              <option value="amount">PKR per voucher</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Value</span>
+            <input data-testid="concession-value" v-model="concessionValue" type="number" />
+          </label>
+          <label class="field">
+            <span>Reason</span>
+            <input data-testid="concession-reason" v-model="concessionReason" type="text" />
+          </label>
+          <Button data-testid="concession-submit" @click="onCreateConcession">Add</Button>
         </div>
       </div>
     </section>
@@ -566,5 +834,20 @@ input {
 .num-cell {
   display: block;
   text-align: right;
+}
+.muted {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+.line-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.adjust-form {
+  margin-top: var(--space-3);
+}
+.concessions {
+  margin-top: var(--space-4);
 }
 </style>
