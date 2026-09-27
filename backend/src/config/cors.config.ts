@@ -1,4 +1,6 @@
+import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { isDevOrTestEnv } from './env.validation';
+import { PAGINATION_HEADERS } from '../common/pagination';
 
 // staff-console's Vite dev server default — the only origin that should reach this API without
 // explicit operator configuration. Anything beyond dev (staging/prod) must set CORS_ORIGINS.
@@ -59,5 +61,29 @@ export function buildCorsOriginOption(
       return;
     }
     callback(null, false);
+  };
+}
+
+/** The one allow rule behind CORS and the cookie-session Origin check (BL-36). */
+export function isAllowedOrigin(
+  origin: string,
+  raw: string | undefined,
+  nodeEnv: string | undefined,
+): boolean {
+  if (parseCorsOrigins(raw).includes(origin)) return true;
+  return isDevOrTestEnv(nodeEnv) && LOCALHOST_ORIGIN_PATTERN.test(origin);
+}
+
+/** `app.enableCors()` options, shared by main.ts and the e2e suites. */
+export function buildCorsOptions(
+  env: NodeJS.ProcessEnv = process.env,
+): CorsOptions {
+  return {
+    origin: buildCorsOriginOption(env.CORS_ORIGINS, env.NODE_ENV),
+    // BL-36: the console's refresh token is an HttpOnly cookie on /api/v1/auth. Safe because
+    // `origin` is an exact allow-list (never `*`).
+    credentials: true,
+    // BL-40/BL-11: let the browser console read pagination headers and the request id.
+    exposedHeaders: PAGINATION_HEADERS,
   };
 }

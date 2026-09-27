@@ -40,7 +40,7 @@ describe('installFetchInterceptor', () => {
 
   it('on a 401, refreshes once and retries with the new token', async () => {
     const authStore = useAuthStore();
-    authStore.refreshToken = 'refresh-1';
+    authStore.accessToken = 'expired-token';
     vi.spyOn(authStore, 'refreshSession').mockResolvedValue('new-access-token');
 
     const mockFetch = vi

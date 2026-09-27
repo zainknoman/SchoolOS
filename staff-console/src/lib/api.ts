@@ -26,7 +26,8 @@ async function parseErrorMessage(res: Response): Promise<string> {
 
 export interface LoginResponse {
   accessToken: string;
-  refreshToken: string;
+  /** Never sent to the console since BL-36: it is an HttpOnly cookie (cookie session). */
+  refreshToken?: string;
   role: string;
   isPrincipal: boolean;
   mustChangePassword: boolean;
@@ -1297,6 +1298,12 @@ export interface BulkImportPreviewResult {
 
 export type BulkImportEntity = 'students' | 'parents' | 'teachers' | 'staff';
 
+/**
+ * BL-36: asks the auth routes for the cookie session. A non-simple header, so a cross-site page
+ * cannot send it without a CORS preflight — part of the API's CSRF defence.
+ */
+const COOKIE_SESSION_HEADERS = { 'X-SchoolOS-Session': 'cookie' };
+
 function authHeaders(accessToken: string) {
   return { Authorization: `Bearer ${accessToken}` };
 }
@@ -1350,29 +1357,38 @@ async function parseProvisioned(res: Response): Promise<{ provisionedLogin?: Pro
 }
 
 export const api = {
+  // BL-36 option B: login, refresh, logout and change-password run in cookie mode — the server
+  // keeps the refresh token in an HttpOnly cookie on /api/v1/auth and leaves it out of the body.
   async login(identifier: string, password: string): Promise<LoginResponse> {
     const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...COOKIE_SESSION_HEADERS },
+      credentials: 'include',
       body: JSON.stringify({ identifier, password }),
     });
     return asJson<LoginResponse>(res);
   },
 
-  // Revokes this session's refresh token on the server (BL-21). Always 204; never throws on 4xx.
-  async logout(refreshToken: string): Promise<void> {
+  // Revokes the cookie session on the server (BL-21) and clears the cookie. Never throws on 4xx.
+  async logout(): Promise<void> {
     await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      headers: { 'Content-Type': 'application/json', ...COOKIE_SESSION_HEADERS },
+      credentials: 'include',
+      body: '{}',
     });
   },
 
-  async refresh(refreshToken: string): Promise<LoginResponse> {
+  /**
+   * A new access token from the cookie session. `legacyRefreshToken` is sent once, by a console
+   * upgraded from before BL-36, to move its stored session into the cookie.
+   */
+  async refresh(legacyRefreshToken?: string): Promise<LoginResponse> {
     const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      headers: { 'Content-Type': 'application/json', ...COOKIE_SESSION_HEADERS },
+      credentials: 'include',
+      body: JSON.stringify(legacyRefreshToken ? { refreshToken: legacyRefreshToken } : {}),
     });
     return asJson<LoginResponse>(res);
   },
@@ -1383,7 +1399,8 @@ export const api = {
   ): Promise<LoginResponse> {
     const res = await fetch(`${API_BASE_URL}/api/v1/auth/change-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      headers: { 'Content-Type': 'application/json', ...COOKIE_SESSION_HEADERS, ...authHeaders(accessToken) },
+      credentials: 'include',
       body: JSON.stringify(payload),
     });
     return asJson<LoginResponse>(res);

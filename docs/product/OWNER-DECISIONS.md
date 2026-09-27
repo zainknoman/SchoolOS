@@ -71,7 +71,7 @@
 ## F. Quality and process
 | # | Decision | Current code / work item |
 |---|---|---|
-| 42 | Do not treat `localStorage` tokens as the final production design without review; evaluate HttpOnly secure cookies, SameSite, refresh rotation, CSRF; **do not break current auth**; a separate hardening phase if migration is needed | Tokens in `localStorage` (KG-9) → BL-36 |
+| 42 | Do not treat `localStorage` tokens as the final production design without review; evaluate HttpOnly secure cookies, SameSite, refresh rotation, CSRF; **do not break current auth**; a separate hardening phase if migration is needed | Tokens in `localStorage` (KG-9) → BL-36 — **2026-09-28: option B chosen** (HttpOnly refresh cookie, access token in memory) and built ([TOKEN-STORAGE-DECISION](../security/TOKEN-STORAGE-DECISION.md)) |
 | 43 | Target **WCAG 2.1 AA** for web apps (keyboard, semantics, focus, contrast, accessible errors, labels, responsive); Parent app follows Android accessibility guidelines | Conformance unknown (NFR-A11Y-01) |
 | 44 | Pilot targets: API p95 < 500 ms (normal CRUD), auth p95 < 1 s, ≥ 100 concurrent active users, **99.5 % monthly availability**, horizontally scalable design; to be load-tested | No targets/tests existed → BL-15, BL-40 |
 | 45 | Android 9+, low-memory devices, slow/intermittent networks, small screens, common Android makers; not high-end only | No device matrix |

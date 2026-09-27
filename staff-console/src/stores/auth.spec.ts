@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useAuthStore } from './auth';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, type LoginResponse } from '../lib/api';
 
 vi.mock('../lib/api', () => ({
   api: { login: vi.fn(), refresh: vi.fn(), logout: vi.fn() },
@@ -15,12 +15,40 @@ vi.mock('../lib/api', () => ({
   },
 }));
 
+// BL-36 option B: the refresh token is an HttpOnly cookie the console never sees; the access
+// token lives only in memory. Nothing secret is written to localStorage.
+function session(overrides: Partial<LoginResponse> = {}): LoginResponse {
+  return {
+    accessToken: 'token-abc',
+    role: 'TEACHER',
+    isPrincipal: false,
+    mustChangePassword: false,
+    campusId: null,
+    schoolId: null,
+    ...overrides,
+  };
+}
+
+function storedText(): string {
+  let all = '';
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)!;
+    all += `${key}=${localStorage.getItem(key)};`;
+  }
+  return all;
+}
+
 describe('auth store', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     localStorage.clear();
     vi.mocked(api.login).mockReset();
     vi.mocked(api.refresh).mockReset();
+    vi.mocked(api.logout).mockReset().mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('starts logged out with no token', () => {
@@ -29,43 +57,71 @@ describe('auth store', () => {
     expect(store.role).toBeNull();
   });
 
-  it('logs in, stores the token + role, and marks the session authenticated', async () => {
-    vi.mocked(api.login).mockResolvedValue({
-      accessToken: 'token-abc',
-      refreshToken: 'refresh-abc',
-      role: 'TEACHER',
-      isPrincipal: false,
-      mustChangePassword: false,
-      campusId: null, schoolId: null,
-    });
+  it('logs in and keeps the access token in memory only — no token in localStorage', async () => {
+    vi.mocked(api.login).mockResolvedValue(session({ accessToken: 'token-secret-1' }));
 
     const store = useAuthStore();
     await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
 
     expect(store.isAuthenticated).toBe(true);
     expect(store.role).toBe('TEACHER');
-    expect(store.accessToken).toBe('token-abc');
+    expect(store.accessToken).toBe('token-secret-1');
+    expect(storedText()).not.toContain('token-secret-1');
+    expect(localStorage.getItem('schoolos.auth')).toBeNull();
   });
 
-  it('persists the session across a page reload (new store instance) via localStorage', async () => {
-    vi.mocked(api.login).mockResolvedValue({
-      accessToken: 'token-abc',
-      refreshToken: 'refresh-abc',
-      role: 'SCHOOL_ADMIN',
-      isPrincipal: false,
-      mustChangePassword: false,
-      campusId: null, schoolId: null,
-    });
+  it('restores the session after a page reload from the cookie (refresh), not from storage', async () => {
+    vi.mocked(api.login).mockResolvedValue(session({ role: 'SCHOOL_ADMIN' }));
+    await useAuthStore().login('admin@schoolos.edu.pk', 'ChangeMe123!');
+
+    // A fresh page load: new Pinia, nothing in memory.
+    setActivePinia(createPinia());
+    const reloaded = useAuthStore();
+    expect(reloaded.isAuthenticated).toBe(false);
+
+    vi.mocked(api.refresh).mockResolvedValue(session({ accessToken: 'token-2', role: 'SCHOOL_ADMIN' }));
+    await reloaded.restoreSession();
+
+    expect(api.refresh).toHaveBeenCalledWith(undefined);
+    expect(reloaded.isAuthenticated).toBe(true);
+    expect(reloaded.role).toBe('SCHOOL_ADMIN');
+    expect(reloaded.accessToken).toBe('token-2');
+  });
+
+  it('restoreSession does not call the API when this browser never signed in', async () => {
+    await useAuthStore().restoreSession();
+    expect(api.refresh).not.toHaveBeenCalled();
+    expect(useAuthStore().isAuthenticated).toBe(false);
+  });
+
+  it('restoreSession stays logged out when the cookie session has ended', async () => {
+    vi.mocked(api.login).mockResolvedValue(session());
+    await useAuthStore().login('t@schoolos.edu.pk', 'x');
+    setActivePinia(createPinia());
+    vi.mocked(api.refresh).mockRejectedValue(new ApiError('Invalid credentials', 401));
 
     const store = useAuthStore();
-    await store.login('admin@schoolos.edu.pk', 'ChangeMe123!');
+    await store.restoreSession();
 
-    // Simulate a fresh page load: new Pinia instance, store re-reads from localStorage.
-    setActivePinia(createPinia());
-    const reloadedStore = useAuthStore();
+    expect(store.isAuthenticated).toBe(false);
+    await store.restoreSession();
+    expect(api.refresh).toHaveBeenCalledTimes(1);
+  });
 
-    expect(reloadedStore.isAuthenticated).toBe(true);
-    expect(reloadedStore.role).toBe('SCHOOL_ADMIN');
+  it('moves a pre-BL-36 localStorage session into the cookie and deletes the stored tokens', async () => {
+    localStorage.setItem(
+      'schoolos.auth',
+      JSON.stringify({ accessToken: 'old-access', refreshToken: 'old-refresh', role: 'TEACHER' }),
+    );
+    vi.mocked(api.refresh).mockResolvedValue(session({ accessToken: 'token-new' }));
+
+    const store = useAuthStore();
+    await store.restoreSession();
+
+    expect(api.refresh).toHaveBeenCalledWith('old-refresh');
+    expect(localStorage.getItem('schoolos.auth')).toBeNull();
+    expect(store.accessToken).toBe('token-new');
+    expect(storedText()).not.toContain('old-refresh');
   });
 
   it('surfaces the generic auth error from the API without modification', async () => {
@@ -76,134 +132,69 @@ describe('auth store', () => {
     expect(store.isAuthenticated).toBe(false);
   });
 
-  it('clears the stored session on logout', async () => {
-    vi.mocked(api.login).mockResolvedValue({
-      accessToken: 'token-abc',
-      refreshToken: 'refresh-abc',
-      role: 'TEACHER',
-      isPrincipal: false,
-      mustChangePassword: false,
-      campusId: null, schoolId: null,
-    });
-
+  it('logout clears the session and revokes the cookie session on the server', async () => {
+    vi.mocked(api.login).mockResolvedValue(session());
     const store = useAuthStore();
     await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
     store.logout();
 
     expect(store.isAuthenticated).toBe(false);
     expect(store.role).toBeNull();
-    expect(localStorage.getItem('schoolos.auth')).toBeNull();
-    // BL-21: the refresh token is revoked on the server, not just forgotten locally.
     await Promise.resolve();
-    expect(api.logout).toHaveBeenCalledWith('refresh-abc');
+    expect(api.logout).toHaveBeenCalledTimes(1);
+
+    // The next page load does not try to restore it.
+    setActivePinia(createPinia());
+    await useAuthStore().restoreSession();
+    expect(api.refresh).not.toHaveBeenCalled();
   });
 
   it('logout still clears the local session when the server call fails', async () => {
     vi.mocked(api.logout).mockRejectedValue(new Error('offline'));
     const store = useAuthStore();
-    store.applySession({
-      accessToken: 't',
-      refreshToken: 'r',
-      role: 'TEACHER',
-      isPrincipal: false,
-      mustChangePassword: false,
-      campusId: null,
-      schoolId: null,
-    });
+    store.applySession(session());
     expect(() => store.logout()).not.toThrow();
     expect(store.isAuthenticated).toBe(false);
   });
 
-  it('markPasswordChangeRequired sets and persists the flag', () => {
+  it('markPasswordChangeRequired sets the flag', () => {
     const store = useAuthStore();
-    store.applySession({
-      accessToken: 't',
-      refreshToken: 'r',
-      role: 'TEACHER',
-      isPrincipal: false,
-      mustChangePassword: false,
-      campusId: null,
-      schoolId: null,
-    });
+    store.applySession(session());
     store.markPasswordChangeRequired();
     expect(store.mustChangePassword).toBe(true);
-    expect(JSON.parse(localStorage.getItem('schoolos.auth') as string).mustChangePassword).toBe(true);
   });
 
-  it('refreshSession() exchanges the stored refresh token for a new session and persists it', async () => {
-    vi.mocked(api.login).mockResolvedValue({
-      accessToken: 'token-old',
-      refreshToken: 'refresh-old',
-      role: 'TEACHER',
-      isPrincipal: false,
-      mustChangePassword: false,
-      campusId: null, schoolId: null,
-    });
-    vi.mocked(api.refresh).mockResolvedValue({
-      accessToken: 'token-new',
-      refreshToken: 'refresh-new',
-      role: 'TEACHER',
-      isPrincipal: false,
-      mustChangePassword: false,
-      campusId: null, schoolId: null,
-    });
+  it('refreshSession() gets a new access token from the cookie session', async () => {
+    vi.mocked(api.login).mockResolvedValue(session({ accessToken: 'token-old' }));
+    vi.mocked(api.refresh).mockResolvedValue(session({ accessToken: 'token-new' }));
 
     const store = useAuthStore();
     await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
 
-    const newAccessToken = await store.refreshSession();
-
-    expect(newAccessToken).toBe('token-new');
+    expect(await store.refreshSession()).toBe('token-new');
     expect(store.accessToken).toBe('token-new');
-    expect(store.refreshToken).toBe('refresh-new');
-    expect(JSON.parse(localStorage.getItem('schoolos.auth')!).accessToken).toBe('token-new');
+    expect(api.refresh).toHaveBeenCalledWith();
   });
 
   it('refreshSession() logs out and returns null when the refresh call itself fails', async () => {
-    vi.mocked(api.login).mockResolvedValue({
-      accessToken: 'token-old',
-      refreshToken: 'refresh-old',
-      role: 'TEACHER',
-      isPrincipal: false,
-      mustChangePassword: false,
-      campusId: null, schoolId: null,
-    });
+    vi.mocked(api.login).mockResolvedValue(session());
     vi.mocked(api.refresh).mockRejectedValue(new ApiError('Invalid credentials', 401));
 
     const store = useAuthStore();
     await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
 
-    const result = await store.refreshSession();
-
-    expect(result).toBeNull();
+    expect(await store.refreshSession()).toBeNull();
     expect(store.isAuthenticated).toBe(false);
-    expect(localStorage.getItem('schoolos.auth')).toBeNull();
   });
 
-  it('refreshSession() returns null immediately when there is no refresh token to use', async () => {
-    const store = useAuthStore();
-    const result = await store.refreshSession();
-    expect(result).toBeNull();
-    expect(vi.mocked(api.refresh)).not.toHaveBeenCalled();
+  it('refreshSession() returns null immediately when signed out', async () => {
+    expect(await useAuthStore().refreshSession()).toBeNull();
+    expect(api.refresh).not.toHaveBeenCalled();
   });
 
   it('refreshSession() de-duplicates concurrent calls into a single API request', async () => {
-    vi.mocked(api.login).mockResolvedValue({
-      accessToken: 'token-old',
-      refreshToken: 'refresh-old',
-      role: 'TEACHER',
-      isPrincipal: false,
-      mustChangePassword: false,
-      campusId: null, schoolId: null,
-    });
-    let resolveRefresh!: (value: {
-      accessToken: string;
-      refreshToken: string;
-      role: string;
-      isPrincipal: boolean;
-      mustChangePassword: boolean;
-      campusId: string | null; schoolId: string | null;
-    }) => void;
+    vi.mocked(api.login).mockResolvedValue(session());
+    let resolveRefresh!: (value: LoginResponse) => void;
     vi.mocked(api.refresh).mockReturnValue(
       new Promise((resolve) => {
         resolveRefresh = resolve;
@@ -215,48 +206,40 @@ describe('auth store', () => {
 
     const call1 = store.refreshSession();
     const call2 = store.refreshSession();
-    resolveRefresh({ accessToken: 'token-new', refreshToken: 'refresh-new', role: 'TEACHER', isPrincipal: false, mustChangePassword: false, campusId: null, schoolId: null });
+    resolveRefresh(session({ accessToken: 'token-new' }));
 
-    const [result1, result2] = await Promise.all([call1, call2]);
-
-    expect(result1).toBe('token-new');
-    expect(result2).toBe('token-new');
-    expect(vi.mocked(api.refresh)).toHaveBeenCalledTimes(1);
+    expect(await Promise.all([call1, call2])).toEqual(['token-new', 'token-new']);
+    expect(api.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('stores and persists mustChangePassword and campusId from login, and applySession clears the flag', async () => {
-    vi.mocked(api.login).mockResolvedValue({
-      accessToken: 'a1',
-      refreshToken: 'r1',
-      role: 'SCHOOL_ADMIN',
-      isPrincipal: true,
-      mustChangePassword: true,
-      campusId: 'campus-1', schoolId: null,
-    });
+  it('refreshSession() runs under a cross-tab lock, so two tabs never present the same rotated cookie', async () => {
+    const request = vi.fn((_name: string, cb: () => Promise<unknown>) => cb());
+    vi.stubGlobal('navigator', { ...navigator, locks: { request } });
+    vi.mocked(api.login).mockResolvedValue(session());
+    vi.mocked(api.refresh).mockResolvedValue(session({ accessToken: 'token-new' }));
+
+    const store = useAuthStore();
+    await store.login('teacher@schoolos.edu.pk', 'ChangeMe123!');
+    await store.refreshSession();
+
+    expect(request).toHaveBeenCalledWith('schoolos.refresh', expect.any(Function));
+  });
+
+  it('keeps mustChangePassword and campusId from login in memory; applySession clears the flag', async () => {
+    vi.mocked(api.login).mockResolvedValue(
+      session({ role: 'SCHOOL_ADMIN', isPrincipal: true, mustChangePassword: true, campusId: 'campus-1' }),
+    );
     const store = useAuthStore();
     await store.login('p@schoolos.edu.pk', 'Temp1234!x');
     expect(store.mustChangePassword).toBe(true);
     expect(store.campusId).toBe('campus-1');
-    expect(JSON.parse(localStorage.getItem('schoolos.auth')!).mustChangePassword).toBe(true);
 
-    setActivePinia(createPinia());
-    expect(useAuthStore().mustChangePassword).toBe(true);
+    store.applySession(session({ accessToken: 'a2', role: 'SCHOOL_ADMIN', campusId: 'campus-1' }));
+    expect(store.mustChangePassword).toBe(false);
+    expect(store.accessToken).toBe('a2');
 
-    const reloaded = useAuthStore();
-    reloaded.applySession({
-      accessToken: 'a2',
-      refreshToken: 'r2',
-      role: 'SCHOOL_ADMIN',
-      isPrincipal: true,
-      mustChangePassword: false,
-      campusId: 'campus-1', schoolId: null,
-    });
-    expect(reloaded.mustChangePassword).toBe(false);
-    expect(reloaded.accessToken).toBe('a2');
-    expect(JSON.parse(localStorage.getItem('schoolos.auth')!).mustChangePassword).toBe(false);
-
-    reloaded.logout();
-    expect(reloaded.mustChangePassword).toBe(false);
-    expect(reloaded.campusId).toBeNull();
+    store.logout();
+    expect(store.mustChangePassword).toBe(false);
+    expect(store.campusId).toBeNull();
   });
 });

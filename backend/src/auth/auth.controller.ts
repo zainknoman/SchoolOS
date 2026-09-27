@@ -1,5 +1,15 @@
-import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
+import type { Request, Response } from 'express';
+import { AuthService, type SessionResult } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -13,7 +23,38 @@ import {
   AUTH_LOGIN_THROTTLE_LIMIT,
   THROTTLE_TTL_MS,
 } from '../config/throttler.config';
-import { FORGOT_PASSWORD_GENERIC_MESSAGE } from './auth.constants';
+import {
+  FORGOT_PASSWORD_GENERIC_MESSAGE,
+  GENERIC_AUTH_ERROR,
+} from './auth.constants';
+import {
+  assertAllowedOrigin,
+  clearSessionCookie,
+  readSessionCookie,
+  setSessionCookie,
+  wantsCookieSession,
+} from './session-cookie';
+
+/** The session as the client receives it: without the refresh token in cookie mode. */
+type DeliveredSession = Omit<SessionResult, 'refreshToken'> & {
+  refreshToken?: string;
+};
+
+/**
+ * BL-36 option B: in cookie mode the refresh token goes into the HttpOnly cookie and is left out
+ * of the body; otherwise (the parent app) the body carries it as before.
+ */
+function deliverSession(
+  req: Request,
+  res: Response,
+  session: SessionResult,
+): DeliveredSession {
+  if (!wantsCookieSession(req)) return session;
+  setSessionCookie(res, session.refreshToken);
+  const body: DeliveredSession = { ...session };
+  delete body.refreshToken;
+  return body;
+}
 
 @Controller('api/v1/auth')
 export class AuthController {
@@ -27,14 +68,40 @@ export class AuthController {
     },
   })
   @Post('login')
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto.identifier, dto.password);
+  async login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (wantsCookieSession(req)) assertAllowedOrigin(req);
+    const session = await this.authService.login(dto.identifier, dto.password);
+    return deliverSession(req, res, session);
   }
 
+  // Body token (parent app), or — in cookie mode — the HttpOnly cookie. A cookie-mode call may
+  // also send a body token once: that moves a pre-BL-36 console session into the cookie.
   @Public()
   @Post('refresh')
-  async refresh(@Body() dto: RefreshDto) {
-    return this.authService.refresh(dto.refreshToken);
+  async refresh(
+    @Body() dto: RefreshDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const cookieMode = wantsCookieSession(req);
+    if (cookieMode) assertAllowedOrigin(req);
+    const token =
+      dto.refreshToken ?? (cookieMode ? readSessionCookie(req) : null);
+    if (!token) {
+      if (cookieMode) throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+      throw new BadRequestException('refreshToken is required.');
+    }
+    try {
+      return deliverSession(req, res, await this.authService.refresh(token));
+    } catch (err) {
+      // A dead cookie is removed so the console stops presenting it.
+      if (cookieMode) clearSessionCookie(res);
+      throw err;
+    }
   }
 
   // Ends this session (BL-21). Public so a client whose access token already expired can still
@@ -42,8 +109,20 @@ export class AuthController {
   @Public()
   @HttpCode(204)
   @Post('logout')
-  async logout(@Body() dto: RefreshDto): Promise<void> {
-    await this.authService.logout(dto.refreshToken);
+  async logout(
+    @Body() dto: RefreshDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    const cookieMode = wantsCookieSession(req);
+    if (cookieMode) assertAllowedOrigin(req);
+    const token =
+      dto.refreshToken ?? (cookieMode ? readSessionCookie(req) : null);
+    if (!token && !cookieMode) {
+      throw new BadRequestException('refreshToken is required.');
+    }
+    if (token) await this.authService.logout(token);
+    if (cookieMode) clearSessionCookie(res);
   }
 
   // Ends every session of the caller on every device, including live access tokens (BL-21).
@@ -129,13 +208,16 @@ export class AuthController {
   @AllowPendingPasswordChange()
   @Post('change-password')
   async changePassword(
-    @Req() req: { user: { id: string } },
+    @Req() req: Request & { user: { id: string } },
     @Body() dto: ChangePasswordDto,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.changePassword(
+    if (wantsCookieSession(req)) assertAllowedOrigin(req);
+    const session = await this.authService.changePassword(
       req.user.id,
       dto.currentPassword,
       dto.newPassword,
     );
+    return deliverSession(req, res, session);
   }
 }

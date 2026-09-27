@@ -8,7 +8,7 @@
 |---|---|---|
 | Entry | `src/main.ts`, `App.vue` | installs Pinia, router, i18n and the fetch interceptor |
 | Routing / guards | `src/router/index.ts` | `meta.requiresRole`, `requiresPrincipal`, title/group for nav; routes under `/teacher`, `/admin`, `/principal`; login/forgot/reset are public |
-| Session | `src/stores/auth.ts` | Pinia store; **persists the whole session (access and refresh token, role, ids) in `localStorage`** (`auth.ts:77`) |
+| Session | `src/stores/auth.ts` | Pinia store; access token **in memory only**; the refresh token is an HttpOnly cookie the console never sees (BL-36 option B). `restoreSession()` runs before the router starts; refreshes are single-flight per tab and serialised across tabs with a Web Lock. `localStorage` holds only the non-secret `schoolos.hasSession` hint |
 | API client | `src/lib/api.ts` | one file of typed `fetch` wrappers; base URL `VITE_API_BASE_URL` (default `http://localhost:3000`) |
 | 401 handling | `src/lib/fetchInterceptor.ts` | wraps global `fetch`; on a 401 from the own API it refreshes once and retries |
 | Shell | `components/AppShell.vue`, `CommandPalette.vue` | role-based nav (items absent from the DOM per role), command palette |

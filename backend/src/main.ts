@@ -2,8 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { buildCorsOriginOption } from './config/cors.config';
-import { PAGINATION_HEADERS } from './common/pagination';
+import { buildCorsOptions } from './config/cors.config';
 import { applyHttpSecurity } from './config/app-security';
 import { JsonLogger } from './observability/json-logger';
 import { applyRequestObservability } from './observability/http-observability';
@@ -34,14 +33,7 @@ async function bootstrap() {
   // previewed parent-app (`flutter run -d chrome`). Scoped to a known allow-list in
   // staging/production (env-driven via CORS_ORIGINS, per Sprint B hardening) — see
   // buildCorsOriginOption for the dev/test-only localhost carve-out.
-  app.enableCors({
-    origin: buildCorsOriginOption(
-      process.env.CORS_ORIGINS,
-      process.env.NODE_ENV,
-    ),
-    // BL-40/BL-11: let the browser console read pagination headers and the request id.
-    exposedHeaders: PAGINATION_HEADERS,
-  });
+  app.enableCors(buildCorsOptions(process.env));
 
   // Enforces every DTO's class-validator decorators (e.g. LoginDto) on every request; without this
   // the decorators are inert and bad input reaches the service layer unchecked.

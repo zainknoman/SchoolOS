@@ -1,6 +1,6 @@
 # Staff-console token storage — decision record (BL-36)
 
-> **Status:** PROPOSED — the storage option (§5) **awaits an owner choice**; the query-string part (KG-15, §6) is **implemented** · **Date:** 2026-09-28 · **Owner:** Security Owner (Engineering Lead until assigned)
+> **Status:** DECIDED — the owner chose **option B** on 2026-09-28; implemented (§7). The query-string part (KG-15, §6) is implemented too · **Date:** 2026-09-28 · **Owner:** Security Owner (Engineering Lead until assigned)
 > Covers Q42 ([OWNER-DECISIONS](../product/OWNER-DECISIONS.md)), KG-9 and KG-15 ([KNOWN-GAPS](KNOWN-GAPS.md)), backlog item BL-36.
 
 ## 1. Question
@@ -65,21 +65,21 @@ The deciding question is **how much a single XSS bug should cost**: today it cos
 | Parent app change | none | none | none |
 | Effort | S | M | L |
 
-## 5. Recommendation
+## 5. Recommendation (owner decision 2026-09-28: **B**)
 
 1. **Adopt B (hybrid)**, gated on the owner's domain decision (RD-2): the console and the API must be served under one registrable domain. If the pilot cannot guarantee that, run **A** for the pilot and schedule B for when the domains are fixed.
 2. **Do A's reuse detection and console CSP in either case** — both help under B too.
 3. **Do not choose C:** most of its cost buys little over B.
 
-### Owner-gated (not started until chosen)
+### Owner-gated items (status after the decision)
 
 | Decision | Why it is the owner's |
 |---|---|
-| A, B or C | Security/effort trade-off and whether it lands before the pilot (Q42 allows a separate hardening phase) |
-| Console and API domains (same registrable domain) | RD-2 is open; B and C do not work reliably cross-site |
+| A, B or C | **Decided 2026-09-28: B** (built, §7) |
+| Console and API domains (same registrable domain) | **Still open (RD-2)** and now a deployment requirement: B needs the console and the API under one registrable domain (e.g. `console.x.pk` + `api.x.pk`) — [DEPLOYMENT](../operations/DEPLOYMENT.md) |
 | Staff session lifetime (idle/absolute) | A policy choice for school office PCs |
 | Console CSP | Needs the chosen static host (DEPLOYMENT: host not selected) |
-| Forced re-login at rollout | B/C invalidate existing `localStorage` sessions once |
+| Forced re-login at rollout | **Not needed:** the console moves an existing `localStorage` session into the cookie on its first load (§7) |
 
 ## 6. Implemented now: no token in any query string (KG-15)
 
@@ -94,3 +94,13 @@ The deciding question is **how much a single XSS bug should cost**: today it cos
 - **Staff console:** puts **no credential in any URL**. Files and PDFs are fetched with the bearer header (so the 401-refresh interceptor applies — fixes the old "download link with an expired token" gap) and shown as blob URLs (logos, photos) or saved as `application/octet-stream` downloads (attachments, receipts, report cards), so an uploaded HTML file can never render on the console origin.
 - **Tests:** `backend/test/download-links.e2e-spec.ts` (written failing first: 11 of 12 failed before the change), updated `diary-circulars`, `fees`, `generated-report-cards`, `observability` e2e; unit `download-link.spec.ts`, `jwt.strategy.spec.ts`; console `lib/authedFile.spec.ts` and the affected view specs; parent app `test/api/api_client_download_link_test.dart`.
 - **Residual:** a `?dl=` URL in a parent's browser history opens one document for at most two minutes after it was minted.
+
+## 7. Implemented: option B (2026-09-28)
+
+- **Cookie mode** is opt-in per request with the header `X-SchoolOS-Session: cookie`. In cookie mode, login, refresh and change-password set the refresh token as `__Secure-schoolos-rt` — `HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`, 30 days — and leave it **out of the response body**; refresh and logout read it from the cookie. Without the header (the parent app) the body contract is unchanged. `backend/src/auth/session-cookie.ts`, `auth.controller.ts`.
+- **Rotation** is unchanged (every refresh revokes the presented token); a failed cookie refresh clears the cookie. Logout revokes the session and clears the cookie.
+- **CSRF defences** (the cookie is only ever read on `/auth/refresh` and `/auth/logout`): `SameSite=Strict`; the cookie is ignored unless the non-simple `X-SchoolOS-Session` header is present, which a cross-site page can only send after a CORS preflight the allow-list refuses; any `Origin` outside `CORS_ORIGINS` gets 403 (`isAllowedOrigin`, the same rule as CORS). CORS now sends `Access-Control-Allow-Credentials: true` — safe because the origin list is exact, never `*` (`buildCorsOptions`, shared by `main.ts` and the e2e suites).
+- **Console:** the access token lives only in the Pinia store's memory; **nothing secret is written to `localStorage`** (only a non-secret `schoolos.hasSession` hint, so visitors who never signed in do not trigger a refresh call). On start-up `restoreSession()` gets an access token from the cookie **before the router's first navigation**. Refreshes run under a Web Lock (`navigator.locks`, `schoolos.refresh`) so two tabs never present the same rotated cookie. A pre-BL-36 `schoolos.auth` entry is sent once to `/auth/refresh` in cookie mode, then deleted — no forced re-login.
+- **Tests:** `backend/test/cookie-session.e2e-spec.ts` (written failing first: 9 of 10 failed) — cookie attributes, no refresh token in the body, rotation, CSRF (missing header → cookie ignored, foreign Origin → 403 for refresh and logout), logout clears and revokes, legacy migration, change-password, credentialed CORS preflight, and the unchanged body flow; unit `session-cookie.spec.ts`; console `stores/auth.spec.ts` (tokens absent from `localStorage`, restore, migration, cross-tab lock) and `lib/api.session.spec.ts`.
+- **Not built (recommended follow-ups, §4A):** refresh-token reuse detection and a CSP on the console host. Both still help under B.
+- **Deployment requirement:** console and API on the same registrable domain, HTTPS, and `CORS_ORIGINS` listing the console's exact origin. Cross-site hosting (for example two different platform subdomains such as `*.onrender.com`, which are separate sites) breaks the cookie: users would be signed out on every reload.

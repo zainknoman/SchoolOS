@@ -25,7 +25,9 @@
 - [x] High dependency vulnerabilities remediated; `npm audit --audit-level=high` gate in CI (KG-5, BL-12) — Moderate `firebase-admin` chain still open
 - [ ] Tenant issues fixed or accepted: TENANT-1 (circulars), TENANT-2 (holidays), TENANT-3..5 (KG-1, KG-6, KG-7, KG-8)
 - [x] Session revocation (`tokenVersion` + per-request recheck) and server-side `mustChangePassword` (KG-10, KG-11 — BL-21)
-- [x] Token storage in the staff console reviewed (KG-9) — [TOKEN-STORAGE-DECISION](TOKEN-STORAGE-DECISION.md) (BL-36); the chosen option is owner-gated
+- [x] Token storage in the staff console reviewed and hardened (KG-9) — option B: HttpOnly refresh cookie, access token in memory ([TOKEN-STORAGE-DECISION](TOKEN-STORAGE-DECISION.md), BL-36)
+- [ ] Staff console and API served over HTTPS under **one registrable domain**, `CORS_ORIGINS` = the console's exact origin (the session cookie is `SameSite=Strict`; BL-36)
+- [ ] CSP on the staff-console host and refresh-token reuse detection (BL-36 follow-ups, not built)
 - [x] No access token in any query string (KG-15 — BL-36 download links)
 - [ ] Health/readiness endpoint and monitoring in place ([MONITORING-LOGGING](../operations/MONITORING-LOGGING.md))
 - [ ] Payment gateways verified in sandbox and production with signed test transactions (KG-18)
