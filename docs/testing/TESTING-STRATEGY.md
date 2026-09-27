@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | Backend unit/service | Jest + `@nestjs/testing`, **mocked `PrismaService`** | `backend/src/**/*.spec.ts` (78 files) | logic branches, adapters with fake senders, guards, config resolvers | none |
 | Backend e2e | Jest + Supertest, real Nest app | `backend/test/*.e2e-spec.ts` (22 files) | HTTP contracts, authz, tenant boundaries, rate limit, CORS, business flows against real PostgreSQL | PostgreSQL (`DATABASE_URL`) |
-| Staff console | Vitest + `@vue/test-utils` (jsdom), axe-core | `staff-console/src/**/*.spec.ts` (73 files) | component/view/store/router behaviour, accessibility checks | none (API mocked) |
+| Staff console | Vitest + `@vue/test-utils` (jsdom), axe-core | `staff-console/src/**/*.spec.ts` (73 files) | component/view/store/router behaviour; axe (WCAG 2.1 AA) on every spec's final state and design-token contrast, both blocking (BL-55, 2026-09-27) | none (API mocked) |
 | Parent app | `flutter test` | `parent-app/test/**` (29 files) | screens, auth, cache, API client, notifications | none |
 | Static | `eslint`, `vue-tsc`, `flutter analyze`, `nest build` | — | style/type correctness | — |
 
@@ -42,6 +42,6 @@ Not present: contract tests against a schema, browser end-to-end tests of the st
 | CI does not run staff-console type-check separately | `npm run build` runs `vue-tsc` (via `run-p type-check`) |
 
 ## Conventions
-E2E specs boot the real `AppModule`, create their own data and clean it up; there is no shared fixture database. Unit specs colocate with the file under test. Design-system a11y checks use `axe-core` in component specs.
+E2E specs boot the real `AppModule`, create their own data and clean it up; there is no shared fixture database. Unit specs colocate with the file under test. Accessibility (BL-55): `staff-console/src/test-setup.ts` runs axe-core on every mounted wrapper after each test, so any violation fails the spec (`A11Y_REPORT=<file> npx vitest run` reports instead of failing); `src/a11y/tokenContrast.spec.ts` checks colour-token contrast in both themes. Colour contrast and screen-reader behaviour in a real browser are covered by [ACCESSIBILITY-AUDIT](../release/ACCESSIBILITY-AUDIT.md).
 
 **Failing-first tests (BL-18).** `backend/test/pending/` holds e2e tests that state the *target* behaviour of an unimplemented backlog item. They are registered with `pending(...)` (= Jest `it.failing`), so CI passes while the defect exists and **fails as soon as the behaviour is fixed**; the implementer then moves the test into the regular suite as a plain `it`. `E2E_PENDING_STRICT=1 npm run test:e2e -- test/pending` runs them as ordinary tests to show each documented failure reason. Verified 2026-09-24: all 7 fail for their documented reason in strict mode; full e2e 23 suites / 203 tests pass in normal mode (scratch database).

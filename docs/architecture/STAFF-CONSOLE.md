@@ -2,7 +2,7 @@
 
 > **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `staff-console/src/**`, `staff-console/package.json`, `DESIGN.md` · **Owner:** Engineering Lead
 
-**Stack:** Vue 3.5 (Composition API, TypeScript), Vite, Pinia, Vue Router 5, vue-i18n, Vitest + `@vue/test-utils`, axe-core.
+**Stack:** Vue 3.5 (Composition API, TypeScript), Vite, Pinia, Vue Router 5, vue-i18n, Vitest + `@vue/test-utils`, axe-core (runs on every spec — see [ACCESSIBILITY-AUDIT](../release/ACCESSIBILITY-AUDIT.md)).
 
 | Layer | Location | Notes |
 |---|---|---|
