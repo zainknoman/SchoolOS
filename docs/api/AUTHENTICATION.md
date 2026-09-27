@@ -20,7 +20,8 @@
 | Refresh token | opaque random string; stored as SHA-256 hash in `RefreshToken`; **30 days**; revoked when used and a new one issued | `auth.service.ts:109-129,255-265` |
 | Reset token | random; hashed; valid 1 hour; single use | `auth.constants.ts:13` |
 | Secret handling | If `JWT_ACCESS_SECRET` is unset outside development/test the app refuses to boot; in development an insecure built-in fallback is used | `jwt-secret.ts:7-21` |
-| Token in query string | `?access_token=` is accepted **only** on four exact download routes (`/files/:id`, `/fee-vouchers/:id/pdf`, `/fee-payments/:id/receipt.pdf`, `/report-cards/:id/pdf`) | `jwt.strategy.ts:22-41` |
+| Token in query string | **Never** accepted (BL-36, KG-15): an access token is read only from `Authorization: Bearer` | `jwt.strategy.ts` |
+| Download link | `POST /auth/download-link {path}` (bearer) → `{url, expiresAt}`; `url` = path + `?dl=<token>`, valid 120 s for that one GET download route (`/files/:id`, `/fee-vouchers/:id/pdf`, `/fee-payments/:id/receipt.pdf`, `/report-cards/:id/pdf`, `/report-cards/generated/:id/pdf`), signed with a key derived from the access secret (not usable as an access token), carries `tokenVersion`. Used by the parent app to open files in the system browser; the staff console fetches files with the bearer header instead ([TOKEN-STORAGE-DECISION](../security/TOKEN-STORAGE-DECISION.md)) | `download-link.ts`, `auth.service.ts` |
 
 ## Behaviour
 - `identifier` is an email or a GR number; both are stored in `User.identifier` (normalised by `normalize-identifier.ts`). Failure text is the generic "Invalid credentials".

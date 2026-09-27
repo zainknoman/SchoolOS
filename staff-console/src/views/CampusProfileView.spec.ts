@@ -12,7 +12,7 @@ vi.mock('vue-router', async (importOriginal) => ({
   useRouter: () => ({ push: vi.fn() }),
   RouterLink: { props: ['to'], template: '<a><slot /></a>' },
 }));
-vi.mock('../lib/api', () => ({ api: { listCampuses: vi.fn(), listSchools: vi.fn(), filePreviewUrl: vi.fn(), createCampus: vi.fn() } }));
+vi.mock('../lib/api', () => ({ api: { listCampuses: vi.fn(), listSchools: vi.fn(), filePath: vi.fn((id: string) => `/api/v1/files/${id}`), fetchFile: vi.fn(), createCampus: vi.fn() } }));
 
 const CAMPUS = {
   id: 'c1', name: 'Gulistan', schoolId: 's1', schoolName: 'The School', code: 'G', campusType: null, logoFileId: null,

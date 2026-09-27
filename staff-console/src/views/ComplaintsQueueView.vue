@@ -16,12 +16,22 @@ import AppModal from '../components/AppModal.vue';
 import StatusPill from '../components/StatusPill.vue';
 import ListPageCard from '../components/ListPageCard.vue';
 import { useToast } from '../lib/useToast';
+import { downloadAuthedFile } from '../lib/authedFile';
 
 // BL-30 (Q10, RD-9): the school's complaint queue. Parents submit complaints from the app; staff
 // assign an owner, keep internal notes (never shown to parents), reply, and resolve with a written
 // resolution. Every change is audited by the API.
 const auth = useAuthStore();
 const toast = useToast();
+
+// BL-36: files are fetched with the bearer header and saved from a blob URL.
+async function download(path: string, filename: string) {
+  try {
+    await downloadAuthedFile(path, filename);
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Could not download this file.');
+  }
+}
 
 const CATEGORIES: Record<ComplaintCategory, string> = {
   ACADEMIC: 'Academic',
@@ -281,14 +291,13 @@ async function onAdd() {
         </p>
         <p>{{ open.description }}</p>
         <div v-if="open.attachments?.length" class="attachments">
-          <a
+          <button
             v-for="a in open.attachments"
             :key="a.id"
+            type="button"
             class="link"
-            :href="api.filePreviewUrl(auth.accessToken ?? '', a.fileId)"
-            target="_blank"
-            rel="noopener"
-          >{{ a.originalName }}</a>
+            @click="download(api.filePath(a.fileId), a.originalName)"
+          >{{ a.originalName }}</button>
         </div>
         <label class="attach">
           <span class="muted">Attach a file</span>
@@ -392,9 +401,15 @@ async function onAdd() {
   gap: var(--space-1);
 }
 .link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
   color: var(--color-accent);
   font-weight: 700;
   font-size: var(--font-size-sm);
+  text-align: start;
 }
 .note {
   border-left: 3px solid var(--color-accent);

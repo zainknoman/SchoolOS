@@ -4,6 +4,11 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
 import { resolveAccessTokenSecret } from '../jwt-secret';
+import {
+  DOWNLOAD_LINK_TOKEN_TYPE,
+  extractDownloadLinkToken,
+  resolveDownloadLinkSecret,
+} from '../download-link';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SESSION_ENDED_ERROR } from '../auth.constants';
 
@@ -12,6 +17,10 @@ export interface JwtPayload {
   role: string;
   /** User.tokenVersion at issue time; absent on tokens issued before BL-21 (treated as 0). */
   tv?: number;
+  /** BL-36: `dl` on a download-link token, absent on an access token. */
+  typ?: string;
+  /** BL-36: the one path a download-link token opens. */
+  path?: string;
 }
 
 /** What the strategy puts on `request.user`. */
@@ -23,35 +32,11 @@ export interface AuthenticatedUser {
   grants: string[];
 }
 
-// The ?access_token= fallback exists only so a plain download link — which can't set an
-// Authorization header — still authenticates. That applies to the generic file download route
-// (GET /api/v1/files/:id), the fee voucher and fee receipt PDF routes
-// (GET /api/v1/fee-vouchers/:id/pdf and GET /api/v1/fee-payments/:id/receipt.pdf), and the
-// report card PDF route (GET /api/v1/report-cards/:id/pdf), all of which are opened directly via
-// <a href> or a system browser/PDF viewer rather than through an API client that can set headers.
-//
-// Matched by exact route shape, not by resource-path prefix: /api/v1/fee-vouchers/ and
-// /api/v1/fee-payments/ also carry POST mutation endpoints (:id/pay, :id/confirm) that are
-// driven by normal API clients capable of setting an Authorization header, so a bearer token
-// must not be accepted via query string there — or on any other endpoint — since a query-string
-// token is leakable through server access logs, browser history, and Referer headers in a way a
-// header is not.
-const DOWNLOAD_ROUTE_PATTERNS = [
-  /^\/api\/v1\/files\/[^/]+$/,
-  /^\/api\/v1\/fee-vouchers\/[^/]+\/pdf$/,
-  /^\/api\/v1\/fee-payments\/[^/]+\/receipt\.pdf$/,
-  /^\/api\/v1\/report-cards\/[^/]+\/pdf$/,
-  // BL-06: a generated report card's PDF
-  /^\/api\/v1\/report-cards\/generated\/[^/]+\/pdf$/,
-];
+const fromBearerHeader = ExtractJwt.fromAuthHeaderAsBearerToken();
 
-export function extractAccessTokenForDownloadRoutes(
-  req: Request,
-): string | null {
-  if (!DOWNLOAD_ROUTE_PATTERNS.some((pattern) => pattern.test(req.path))) {
-    return null;
-  }
-  return ExtractJwt.fromUrlQueryParameter('access_token')(req);
+/** Where the token came from: the Authorization header wins over a download link. */
+function tokenSource(req: Request): 'header' | 'download-link' {
+  return fromBearerHeader(req) ? 'header' : 'download-link';
 }
 
 @Injectable()
@@ -60,13 +45,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
+    const accessSecret = resolveAccessTokenSecret(config);
+    const downloadLinkSecret = resolveDownloadLinkSecret(config);
+    // BL-36 / KG-15: an access token is accepted ONLY from the Authorization header — never from a
+    // query string. The one query parameter read is a download link's ?dl= token, verified with
+    // its own derived key, so neither kind of token verifies in the other's place.
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
-        extractAccessTokenForDownloadRoutes,
+        fromBearerHeader,
+        extractDownloadLinkToken,
       ]),
       ignoreExpiration: false,
-      secretOrKey: resolveAccessTokenSecret(config),
+      secretOrKeyProvider: (
+        req: Request,
+        _rawJwt: string,
+        done: (err: Error | null, secret?: string) => void,
+      ) =>
+        done(
+          null,
+          tokenSource(req) === 'header' ? accessSecret : downloadLinkSecret,
+        ),
+      passReqToCallback: true,
     });
   }
 
@@ -77,9 +76,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * the 15-minute token expires. The role comes from the database, so a role change is immediate.
    * The failed-login lockout (`lockedUntil`) deliberately does NOT end live sessions — otherwise
    * anyone could log a user out by guessing wrong passwords.
+   * A download link (BL-36) gets the same recheck, so revoking sessions also kills its links.
    * Whatever this returns becomes `request.user` — nothing sensitive.
    */
-  async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
+  async validate(
+    req: Request,
+    payload: JwtPayload,
+  ): Promise<AuthenticatedUser> {
+    const isLink = payload.typ === DOWNLOAD_LINK_TOKEN_TYPE;
+    // Belt and braces on top of the separate keys: a link token only via ?dl= and only for the
+    // path it was minted for; an access token only via the header.
+    if (
+      isLink !== (tokenSource(req) === 'download-link') ||
+      (isLink && payload.path !== req.path)
+    ) {
+      throw new UnauthorizedException(SESSION_ENDED_ERROR);
+    }
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {

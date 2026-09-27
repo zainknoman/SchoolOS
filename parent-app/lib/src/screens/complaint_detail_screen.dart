@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
 import '../theme/tones.dart';
 import '../widgets/parent_ui.dart';
+import '../widgets/open_download.dart';
 
 /// BL-30: one complaint as the parent sees it — status, the school's replies, the resolution and
 /// attached files (never the school's internal notes). A parent may add a comment to their own.
@@ -91,9 +91,9 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                   for (final a in c.attachments)
                     TextButton.icon(
                       key: Key('attachment_${a.id}'),
-                      onPressed: () => launchUrl(
+                      onPressed: () => openDownload(
+                        context,
                         widget.api.fileDownloadUrl(a.fileId, widget.accessToken),
-                        mode: LaunchMode.externalApplication,
                       ),
                       icon: const Icon(Icons.attach_file, size: 18),
                       label: Text(a.originalName),

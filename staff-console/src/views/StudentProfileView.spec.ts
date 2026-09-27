@@ -48,7 +48,8 @@ vi.mock('../lib/api', () => ({
     deleteStudentEmergencyContact: vi.fn(),
     upsertStudentMedicalInfo: vi.fn(),
     uploadFile: vi.fn(),
-    filePreviewUrl: vi.fn(),
+    filePath: vi.fn(),
+    fetchFile: vi.fn(),
     addStudentDocument: vi.fn(),
     verifyStudentDocument: vi.fn(),
     getPromotionHistory: vi.fn(),
@@ -160,15 +161,17 @@ describe('StudentProfileView', () => {
 
   it('shows the persisted photo in the top-right avatar on load (e.g. after a refresh)', async () => {
     vi.mocked(api.getStudentProfile).mockResolvedValue(baseProfile({ profilePhotoFileId: 'f1' }));
-    vi.mocked(api.filePreviewUrl).mockReturnValue('https://api.example.com/api/v1/files/f1?access_token=token-1');
+    vi.mocked(api.filePath).mockImplementation((id: string) => `/api/v1/files/${id}`);
+    vi.mocked(api.fetchFile).mockResolvedValue(new Blob(['png']));
 
     const wrapper = await mountView();
     await flushPromises();
 
-    expect(api.filePreviewUrl).toHaveBeenCalledWith('token-1', 'f1');
+    // BL-36: fetched with the bearer token and shown from a blob URL — no token in the src.
+    expect(api.fetchFile).toHaveBeenCalledWith('token-1', '/api/v1/files/f1');
     const img = wrapper.find('[data-testid="profile-photo-trigger"] img');
     expect(img.exists()).toBe(true);
-    expect(img.attributes('src')).toBe('https://api.example.com/api/v1/files/f1?access_token=token-1');
+    expect(img.attributes('src')).toBe('blob:preview');
   });
 
   it('uploads and saves a new photo chosen from the top-right avatar control', async () => {

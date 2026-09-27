@@ -43,7 +43,7 @@
 | E-mail/SMS providers TBD, may be disabled in the pilot (RD-4) | — | SMTP adapter; SMS placeholder URL | provider abstraction; SMS adapter | BL-14, BL-38 | — | POST |
 | Parent reset separate flow; fallback if no e-mail (Q41, RD-4) | KI-7, KI-35 | ✅ BL-64 (2026-09-25) + BL-35 (2026-09-27); e-mail delivery waits for an SMTP provider | — | BL-35, BL-64 | G | BLOCKER |
 | WhatsApp templates; AI drafting off by default (Q38, Q39) | — | free-text; optional stub | later | BL-48, BL-49 | — | POST |
-| Token-storage hardening review (Q42) | KG-9 | `localStorage` | decision + optional migration | BL-36 | A | CORE |
+| Token-storage hardening review (Q42) | KG-9 | ✅ BL-36 (2026-09-28): decision written ([TOKEN-STORAGE-DECISION](../security/TOKEN-STORAGE-DECISION.md); recommends option B), KG-15 closed; `localStorage` stays until the owner chooses | owner choice; optional cookie migration | BL-36 | A | CORE |
 | WCAG 2.1 AA (Q43) | NFR-A11Y-02 | ✅ BL-55 (2026-09-27): axe + token contrast blocking in console CI, keyboard pass, 9 fixes; screen-reader pass open ([ACCESSIBILITY-AUDIT](../../release/ACCESSIBILITY-AUDIT.md)) | human screen-reader pass | BL-55 | H | CORE |
 | p95 < 500 ms CRUD / < 1 s auth, 100 users, 99.5 % (Q44) | NFR-PERF-01, NFR-AVL-01 | unmeasured; no pagination | load test, pagination | BL-15, BL-40 | H | BLOCKER (exit) |
 | Android 9+ / low-end devices (Q45) | NFR-DEV-01 | no matrix | test matrix | BL-54 | G | CORE |

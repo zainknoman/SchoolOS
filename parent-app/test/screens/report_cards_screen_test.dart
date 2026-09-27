@@ -103,10 +103,6 @@ void main() {
     expect(find.byKey(const Key('generatedReportCardg1')), findsOneWidget);
     expect(find.text('Term 1 · 2026'), findsOneWidget);
     expect(find.text('A (86%)'), findsOneWidget);
-    expect(
-      api.generatedReportCardPdfUrl('g1', 'tok').toString(),
-      'http://test/api/v1/report-cards/generated/g1/pdf?access_token=tok',
-    );
   });
 
   testWidgets('a failing generated-card request never hides the uploaded PDFs (BL-06)', (tester) async {

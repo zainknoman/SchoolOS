@@ -20,7 +20,7 @@
 ## PII and secret scrubbing
 Everything that leaves the process for a log sink or error tracker passes through `observability/scrub.ts`:
 - **by key** (any depth): `password*`, `*secret*`, `*token*`, `authorization`, `cookie`, `apiKey`, `cnic`, `bForm*`, `medical*`, `allerg*`, `diagnos*`, `medication`, `blood*`, `disabilit*`, `temporaryPassword`, `signature` → `[redacted]`;
-- **by value** (inside free text): JWTs, CNIC numbers (`#####-#######-#`), 13-digit ID numbers (B-Form/CNIC without dashes), 64-hex reset/refresh tokens, `Bearer …`, `?access_token=`/`token=`/`refreshToken=` query values.
+- **by value** (inside free text): JWTs, CNIC numbers (`#####-#######-#`), 13-digit ID numbers (B-Form/CNIC without dashes), 64-hex reset/refresh tokens, `Bearer …`, `?access_token=`/`dl=`/`token=`/`refreshToken=` query values.
 Error events carry only an opaque user id — never identifier, e-mail or name. Request bodies are never logged or reported. The unit "scrub test" (`observability.spec.ts`) asserts this; the BL-51 e2e asserts reset links never reach any log.
 
 ## Configuration

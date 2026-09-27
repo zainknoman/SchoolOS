@@ -488,13 +488,20 @@ describe('Fees (e2e)', () => {
       .expect(403);
   });
 
-  it('a voucher PDF is downloadable by the owning parent via the ?access_token= fallback', async () => {
+  it('a voucher PDF is downloadable by the owning parent via a download link (BL-36)', async () => {
     const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
+    const path = `/api/v1/fee-vouchers/${ids.voucher}/pdf`;
 
+    await request(app.getHttpServer())
+      .get(`${path}?access_token=${parentAToken}`)
+      .expect(401);
+    const link = await request(app.getHttpServer())
+      .post('/api/v1/auth/download-link')
+      .set('Authorization', `Bearer ${parentAToken}`)
+      .send({ path })
+      .expect(201);
     const res = await request(app.getHttpServer())
-      .get(
-        `/api/v1/fee-vouchers/${ids.voucher}/pdf?access_token=${parentAToken}`,
-      )
+      .get(link.body.url as string)
       .expect(200);
     expect(res.headers['content-type']).toBe('application/pdf');
   });

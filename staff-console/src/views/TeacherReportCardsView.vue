@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { downloadAuthedFile } from '../lib/authedFile';
 import {
   api,
   type ReportCardSummary,
@@ -124,12 +125,21 @@ async function onUpload() {
   }
 }
 
-function generatedDownloadUrl(id: string): string {
-  return api.generatedReportCardPdfUrl(auth.accessToken ?? '', id);
+// BL-36: PDFs are fetched with the bearer header and saved from a blob URL.
+async function download(path: string, filename: string) {
+  try {
+    await downloadAuthedFile(path, filename);
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not download this report card.';
+  }
 }
 
-function downloadUrl(id: string): string {
-  return api.reportCardPdfUrl(auth.accessToken ?? '', id);
+function downloadGenerated(id: string) {
+  return download(api.generatedReportCardPdfPath(id), `report-card-${id}.pdf`);
+}
+
+function downloadUploaded(id: string) {
+  return download(api.reportCardPdfPath(id), `report-card-${id}.pdf`);
 }
 </script>
 
@@ -193,7 +203,7 @@ function downloadUrl(id: string): string {
           {{ card.term }} · {{ card.session }} — v{{ card.version }} · {{ card.overallLetter ?? '—' }} ({{ card.overallPercent }}%)
           <span v-if="!card.current" class="superseded">superseded</span>
         </span>
-        <a :href="generatedDownloadUrl(card.id)" target="_blank" rel="noopener" class="link">Download</a>
+        <button type="button" class="link" :data-testid="`download-generated-${card.id}`" @click="downloadGenerated(card.id)">Download</button>
       </div>
     </div>
 
@@ -235,9 +245,9 @@ function downloadUrl(id: string): string {
       <div v-else class="report-card-list">
         <div v-for="card in reportCards" :key="card.id" class="report-card-row">
           <span>{{ sessions.find((s) => s.id === card.academicSessionId)?.label ?? card.academicSessionId }}</span>
-          <a :data-testid="`download-${card.id}`" :href="downloadUrl(card.id)" target="_blank" rel="noopener" class="link">
+          <button type="button" :data-testid="`download-${card.id}`" class="link" @click="downloadUploaded(card.id)">
             Download
-          </a>
+          </button>
         </div>
       </div>
     </template>
@@ -362,6 +372,11 @@ function downloadUrl(id: string): string {
   border-bottom: none;
 }
 .link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
   color: var(--color-accent);
   font-weight: 700;
   font-size: var(--font-size-sm);

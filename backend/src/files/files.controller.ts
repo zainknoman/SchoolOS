@@ -89,7 +89,7 @@ export class FilesController {
     const { buffer, originalName, mimeType } = await this.filesService.read(id);
     // Serve as a forced download (not inline) so an attacker-controlled mimetype/filename
     // (e.g. a .html file declared as text/html) can never render as a page on this origin —
-    // which matters here because download links carry the caller's JWT via ?access_token=.
+    // which matters here because this origin also serves download links (?dl=, BL-36).
     // Strip quotes from the filename to prevent header injection via Content-Disposition.
     const safeName = originalName.replace(/"/g, '');
     res.set({

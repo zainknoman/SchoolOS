@@ -17,6 +17,7 @@ import AppModal from '../components/AppModal.vue';
 import ProfileIdentityCard from '../components/ProfileIdentityCard.vue';
 import ProfileSectionCard from '../components/ProfileSectionCard.vue';
 import { useToast } from '../lib/useToast';
+import { useAuthedImage } from '../lib/authedFile';
 
 const PROFILE_TABS = [
   { id: 'profile', label: 'Personal Info', icon: 'user-circle' as const },
@@ -238,10 +239,16 @@ const photoPreviewUrl = ref<string | null>(null);
 const photoErrorMessage = ref<string | null>(null);
 const isSavingPhoto = ref(false);
 
+// BL-36: the stored photo is fetched with the bearer header and shown from a blob URL.
+const storedPhotoUrl = useAuthedImage(
+  computed(() => {
+    const fileId = profile.value?.profilePhotoFileId;
+    return fileId ? api.filePath(fileId) : null;
+  }),
+);
 const displayPhotoUrl = computed(() => {
   if (photoPreviewUrl.value) return photoPreviewUrl.value;
-  const fileId = profile.value?.profilePhotoFileId;
-  return fileId && auth.accessToken ? api.filePreviewUrl(auth.accessToken, fileId) : null;
+  return storedPhotoUrl.value;
 });
 
 async function onPhotoFileSelected(event: Event) {

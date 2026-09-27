@@ -249,10 +249,24 @@ class ApiClient {
   }
 
 
-  /// A direct, headers-free download link — the backend's JwtStrategy accepts the token as
-  /// ?access_token= specifically so links like this (opened via url_launcher) can authenticate.
-  Uri fileDownloadUrl(String fileId, String accessToken) =>
-      Uri.parse('$baseUrl/api/v1/files/$fileId').replace(queryParameters: {'access_token': accessToken});
+  /// A short-lived, headers-free link to ONE download route (BL-36, KG-15), for opening in the
+  /// system browser via url_launcher. The backend no longer accepts the access token in a query
+  /// string; this asks it for a link whose `?dl=` token opens only [path] and expires in minutes.
+  Future<Uri> downloadLink(String accessToken, String path) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/auth/download-link'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({'path': path}),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    return Uri.parse('$baseUrl${json['url'] as String}');
+  }
+
+  Future<Uri> fileDownloadUrl(String fileId, String accessToken) =>
+      downloadLink(accessToken, '/api/v1/files/$fileId');
 
   Future<List<FeeVoucherSummary>> studentFees(String accessToken, String studentId) async {
     final list = await _get('/api/v1/students/$studentId/fees', accessToken) as List<dynamic>;
@@ -304,13 +318,11 @@ class ApiClient {
     return FeePaymentSummary.fromJson(json);
   }
 
-  Uri voucherPdfUrl(String voucherId, String accessToken) => Uri.parse(
-    '$baseUrl/api/v1/fee-vouchers/$voucherId/pdf',
-  ).replace(queryParameters: {'access_token': accessToken});
+  Future<Uri> voucherPdfUrl(String voucherId, String accessToken) =>
+      downloadLink(accessToken, '/api/v1/fee-vouchers/$voucherId/pdf');
 
-  Uri receiptPdfUrl(String paymentId, String accessToken) => Uri.parse(
-    '$baseUrl/api/v1/fee-payments/$paymentId/receipt.pdf',
-  ).replace(queryParameters: {'access_token': accessToken});
+  Future<Uri> receiptPdfUrl(String paymentId, String accessToken) =>
+      downloadLink(accessToken, '/api/v1/fee-payments/$paymentId/receipt.pdf');
 
   Future<List<LeaveRequestSummary>> leaveRequests(String accessToken, String studentId) async {
     final list =
@@ -473,9 +485,8 @@ class ApiClient {
     return list.map((e) => ReportCard.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Uri reportCardPdfUrl(String reportCardId, String accessToken) => Uri.parse(
-    '$baseUrl/api/v1/report-cards/$reportCardId/pdf',
-  ).replace(queryParameters: {'access_token': accessToken});
+  Future<Uri> reportCardPdfUrl(String reportCardId, String accessToken) =>
+      downloadLink(accessToken, '/api/v1/report-cards/$reportCardId/pdf');
 
   Future<List<GeneratedReportCard>> generatedReportCards(String accessToken, String studentId) async {
     final list = await _get(
@@ -485,9 +496,8 @@ class ApiClient {
     return list.map((e) => GeneratedReportCard.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Uri generatedReportCardPdfUrl(String id, String accessToken) => Uri.parse(
-    '$baseUrl/api/v1/report-cards/generated/$id/pdf',
-  ).replace(queryParameters: {'access_token': accessToken});
+  Future<Uri> generatedReportCardPdfUrl(String id, String accessToken) =>
+      downloadLink(accessToken, '/api/v1/report-cards/generated/$id/pdf');
 
   Future<List<SubjectGrade>> studentGrades(String accessToken, String studentId, String termId) async {
     final list = await _get(

@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
 import 'stub_checkout_screen.dart';
+import '../widgets/open_download.dart';
 
 class VoucherDetailScreen extends StatefulWidget {
   const VoucherDetailScreen({
@@ -104,8 +105,7 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
           const SizedBox(height: 16),
           OutlinedButton(
             key: const Key('downloadVoucherPdf'),
-            onPressed: () =>
-                launchUrl(api.voucherPdfUrl(voucher.id, accessToken), mode: LaunchMode.externalApplication),
+            onPressed: () => openDownload(context, api.voucherPdfUrl(voucher.id, accessToken)),
             child: const Text('Download PDF'),
           ),
           const SizedBox(height: 8),

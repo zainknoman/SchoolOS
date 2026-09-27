@@ -12,11 +12,12 @@ vi.mock('../lib/api', () => ({
     listAcademicSessions: vi.fn(),
     listReportCards: vi.fn(),
     uploadReportCard: vi.fn(),
-    reportCardPdfUrl: vi.fn(() => 'https://example.test/pdf'),
+    reportCardPdfPath: vi.fn((id: string) => `/api/v1/report-cards/${id}/pdf`),
+    fetchFile: vi.fn(),
     listTerms: vi.fn(),
     getStudentGrades: vi.fn(),
     listGeneratedReportCards: vi.fn().mockResolvedValue([]),
-    generatedReportCardPdfUrl: vi.fn((token: string, id: string) => `gen/${id}?t=${token}`),
+    generatedReportCardPdfPath: vi.fn((id: string) => `/api/v1/report-cards/generated/${id}/pdf`),
   },
 }));
 

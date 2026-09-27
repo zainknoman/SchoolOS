@@ -23,9 +23,19 @@ import ErrorRetry from '../components/ErrorRetry.vue';
 import Button from '../components/Button.vue';
 import ListPageCard from '../components/ListPageCard.vue';
 import { useToast } from '../lib/useToast';
+import { downloadAuthedFile } from '../lib/authedFile';
 
 const auth = useAuthStore();
 const toast = useToast();
+
+// BL-36: files are fetched with the bearer header and saved from a blob URL.
+async function download(path: string, filename: string) {
+  try {
+    await downloadAuthedFile(path, filename);
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Could not download this file.');
+  }
+}
 
 // --- Fee structures ---
 const structures = ref<FeeStructureSummary[]>([]);
@@ -647,15 +657,15 @@ function voucherTone(status: string): 'success' | 'warning' | 'critical' | 'neut
           >
             Reverse
           </Button>
-          <a
-            v-if="p.receiptId && auth.accessToken"
-            :href="api.receiptPdfUrl(auth.accessToken, p.id)"
-            target="_blank"
-            rel="noopener"
+          <button
+            v-if="p.receiptId"
+            type="button"
             class="link"
+            :data-testid="`receipt-${p.id}`"
+            @click="download(api.receiptPdfPath(p.id), `receipt-${p.id}.pdf`)"
           >
             Receipt
-          </a>
+          </button>
         </div>
       </div>
 
@@ -826,6 +836,11 @@ input {
   border-bottom: none;
 }
 .link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
   color: var(--color-accent);
   font-weight: 700;
   font-size: var(--font-size-sm);

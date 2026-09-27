@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
@@ -9,6 +8,7 @@ import '../cache/last_updated_banner.dart';
 import '../theme/text_direction.dart';
 import '../theme/tones.dart';
 import '../widgets/parent_ui.dart';
+import '../widgets/open_download.dart';
 
 /// Notifications tab content — school/section circulars for the signed-in parent (not per-child;
 /// a parent sees every circular they're a recipient of, regardless of which child tab is active).
@@ -131,9 +131,9 @@ class _CircularsTabState extends State<CircularsTab> {
                         visualDensity: VisualDensity.compact,
                         icon: Icon(Icons.attach_file, size: 17, color: Tones.of(context).muted),
                         tooltip: 'Download attachment',
-                        onPressed: () => launchUrl(
+                        onPressed: () => openDownload(
+                          context,
                           widget.api.fileDownloadUrl(c.attachments.first.id, widget.accessToken),
-                          mode: LaunchMode.externalApplication,
                         ),
                       ),
                   ],

@@ -7,8 +7,8 @@ import helmet from 'helmet';
  *
  * - helmet's standard security headers. Cross-Origin-Resource-Policy is `cross-origin` because the
  *   staff console (a different origin) embeds API-served files directly — school/campus logos and
- *   profile photos via `<img src=".../files/:id?access_token=...">` — and helmet's default
- *   `same-origin` would block them. Those files are still token-protected.
+ *   profile photos, fetched with the bearer header and shown as blob URLs (BL-36) — and helmet's
+ *   default `same-origin` would block a direct embed. Those files are still token-protected.
  * - Express `trust proxy`, from TRUST_PROXY. Unset means "trust no proxy", so a client cannot
  *   spoof `X-Forwarded-For` to dodge the rate limiter. Behind a load balancer set it to the
  *   number of proxy hops (usually `1`) so `req.ip` — the throttler's key — is the real client IP.

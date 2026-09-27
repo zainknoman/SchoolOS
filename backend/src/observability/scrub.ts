@@ -2,7 +2,7 @@
  * PII / secret scrubbing for logs and error reports (BL-11). Anything that leaves the process for
  * a log sink or an error tracker goes through here. Redacts by KEY (passwords, tokens, CNIC,
  * B-Form, medical fields…) and by VALUE shape (JWTs, CNIC numbers, 64-hex reset/refresh tokens,
- * bearer headers, access_token query parameters), so a secret embedded in a message string is
+ * bearer headers, access_token / dl query parameters), so a secret embedded in a message string is
  * caught too.
  */
 export const REDACTED = '[redacted]';
@@ -19,7 +19,7 @@ const VALUE_PATTERNS: [RegExp, string][] = [
   [/\b\d{13}\b/g, '[redacted-id-number]'],
   [/\b[0-9a-f]{64}\b/gi, '[redacted-token]'],
   [/(Bearer\s+)[A-Za-z0-9._~+/-]+=*/gi, `$1${REDACTED}`],
-  [/([?&](access_token|token|refreshToken)=)[^&\s"]+/gi, `$1${REDACTED}`],
+  [/([?&](access_token|dl|token|refreshToken)=)[^&\s"]+/gi, `$1${REDACTED}`],
 ];
 
 export function scrubString(value: string): string {
@@ -46,7 +46,7 @@ export function scrub<T>(value: T, depth = 0): T {
   return value;
 }
 
-/** Path without its query string — query strings carry download tokens (?access_token=). */
+/** Path without its query string — query strings carry download-link tokens (?dl=, BL-36). */
 export function pathOnly(url: string): string {
   const i = url.indexOf('?');
   return i === -1 ? url : url.slice(0, i);

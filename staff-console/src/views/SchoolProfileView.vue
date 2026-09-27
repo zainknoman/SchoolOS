@@ -14,6 +14,7 @@ import Button from '../components/Button.vue';
 import ProvisionLoginFields from '../components/ProvisionLoginFields.vue';
 import CredentialsPanel from '../components/CredentialsPanel.vue';
 import { useToast } from '../lib/useToast';
+import { useAuthedImage } from '../lib/authedFile';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -70,9 +71,11 @@ function fillForm(s: SchoolSummary | null) {
 const logoPreviewUrl = ref<string | null>(null);
 const isUploadingLogo = ref(false);
 const logoErrorMessage = ref<string | null>(null);
+// BL-36: the stored logo is fetched with the bearer header and shown from a blob URL.
+const formLogoUrl = useAuthedImage(computed(() => (form.logoFileId ? api.filePath(form.logoFileId) : null)));
 const displayLogoUrl = computed(() => {
   if (logoPreviewUrl.value) return logoPreviewUrl.value;
-  return form.logoFileId && auth.accessToken ? api.filePreviewUrl(auth.accessToken, form.logoFileId) : null;
+  return formLogoUrl.value;
 });
 
 async function onLogoFileSelected(event: Event) {
@@ -214,9 +217,12 @@ const stats = computed(() => [
   { label: 'Staff', value: school.value?.staffCount ?? 0 },
 ]);
 // Edit mode shows the just-picked preview; view mode shows the saved logo. No logo → initials.
+const savedLogoUrl = useAuthedImage(
+  computed(() => (school.value?.logoFileId ? api.filePath(school.value.logoFileId) : null)),
+);
 const headerLogoUrl = computed(() => {
   if (isEditing.value) return displayLogoUrl.value;
-  return school.value?.logoFileId && auth.accessToken ? api.filePreviewUrl(auth.accessToken, school.value.logoFileId) : null;
+  return savedLogoUrl.value;
 });
 const headerStatus = computed(() => (isEditing.value ? form.status : school.value?.status) ?? 'ACTIVE');
 </script>

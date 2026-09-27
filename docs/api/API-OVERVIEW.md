@@ -8,7 +8,7 @@
 | Base path | `/api/v1/...` written into each `@Controller(...)`; there is no global prefix. `GET /` is a static greeting | controllers; `main.ts` (no `setGlobalPrefix`) |
 | Versioning | Path segment `v1` only; no negotiation, no deprecation mechanism | controllers |
 | Transport | JSON over HTTP(S); TLS is not terminated by the app (deployment concern) | `main.ts` |
-| Auth | `Authorization: Bearer <access token>`; four download routes also accept `?access_token=` ([AUTHENTICATION](AUTHENTICATION.md)) | `jwt.strategy.ts` |
+| Auth | `Authorization: Bearer <access token>` only; a plain link to a download route uses a short-lived `?dl=` download link from `POST /auth/download-link` ([AUTHENTICATION](AUTHENTICATION.md)) | `jwt.strategy.ts`, `download-link.ts` |
 | Methods | `POST` create and most actions, `PATCH` partial update, `PUT` for replace-style (timetable bulk, previous-school, medical-info), `DELETE` hard delete | ENDPOINTS |
 | Validation | Global `ValidationPipe({ whitelist: true, transform: true })`: unknown body properties are **silently stripped** (`forbidNonWhitelisted` is not set); types transformed | `main.ts:16` |
 | Errors | Nest default shape `{ "statusCode": n, "message": string \| string[], "error": "…" }`; 400 validation/rule, 401 auth, 403 role/scope, 404, 409 conflict, 429 throttled. Since BL-11 a global exception filter adds `requestId` to every error body (matching the `X-Request-Id` response header) and turns unexpected failures into a generic `500 {"statusCode":500,"message":"Internal server error","requestId":…}`; health: `GET /health/live`, `GET /health/ready` (unauthenticated) | no `APP_FILTER`; `prisma-*-guard.ts` translate FK/unique errors |

@@ -16,7 +16,8 @@ vi.mock('../lib/api', () => ({
     addComplaintNote: vi.fn(),
     addComplaintAttachment: vi.fn(),
     createComplaint: vi.fn(),
-    filePreviewUrl: vi.fn(() => '#'),
+    filePath: vi.fn((id: string) => `/api/v1/files/${id}`),
+    fetchFile: vi.fn(),
   },
 }));
 

@@ -27,7 +27,8 @@ vi.mock('../lib/api', () => ({
     issueFeeVouchers: vi.fn(),
     studentFees: vi.fn(),
     studentFeePayments: vi.fn(),
-    receiptPdfUrl: vi.fn(),
+    receiptPdfPath: vi.fn(),
+    fetchFile: vi.fn(),
     reconcileVoucher: vi.fn(),
     updateFeeStructure: vi.fn(),
     listSchools: vi.fn(),
@@ -161,7 +162,9 @@ describe('FeeManagementView', () => {
         createdAt: '2026-09-05T00:00:00.000Z',
       },
     ]);
-    vi.mocked(api.receiptPdfUrl).mockReturnValue('https://api.example.com/fee-payments/p1/receipt.pdf?access_token=token-1');
+    vi.mocked(api.receiptPdfPath).mockImplementation((id: string) => `/api/v1/fee-payments/${id}/receipt.pdf`);
+    vi.mocked(api.fetchFile).mockResolvedValue(new Blob(['%PDF']));
+    vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:receipt'), revokeObjectURL: vi.fn() });
 
     const wrapper = await mountView();
     await flushPromises();
@@ -176,9 +179,12 @@ describe('FeeManagementView', () => {
     expect(wrapper.text()).not.toContain('500,000');
     expect(wrapper.text()).toContain('completed');
 
-    expect(api.receiptPdfUrl).toHaveBeenCalledWith('token-1', 'p1');
-    const receiptLink = wrapper.find('a[href="https://api.example.com/fee-payments/p1/receipt.pdf?access_token=token-1"]');
-    expect(receiptLink.exists()).toBe(true);
+    // BL-36: no token in any link — the receipt is fetched with the bearer token on click.
+    expect(wrapper.find('a[href*="access_token"]').exists()).toBe(false);
+    await wrapper.find('[data-testid="receipt-p1"]').trigger('click');
+    await flushPromises();
+    expect(api.fetchFile).toHaveBeenCalledWith('token-1', '/api/v1/fee-payments/p1/receipt.pdf');
+    vi.unstubAllGlobals();
   });
 
   it('picks a student by name from a section instead of a raw id, and loads that student\'s ledger', async () => {

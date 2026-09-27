@@ -1,101 +1,22 @@
 import type { Request } from 'express';
 import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  extractAccessTokenForDownloadRoutes,
-  JwtStrategy,
-} from './jwt.strategy';
+import { JwtStrategy } from './jwt.strategy';
 import { PrismaService } from '../../prisma/prisma.service';
 
-function makeRequest(path: string, accessToken?: string): Request {
-  const query = accessToken ? { access_token: accessToken } : {};
-  const url = new URL(
-    `http://localhost${path}${accessToken ? `?access_token=${accessToken}` : ''}`,
-  );
+const headerRequest = {
+  path: '/api/v1/me',
+  headers: { authorization: 'Bearer x' },
+} as unknown as Request;
+
+function linkRequest(path: string): Request {
   return {
     path,
-    query,
-    url: url.toString(),
-    originalUrl: url.toString(),
+    headers: {},
+    method: 'GET',
+    query: { dl: 'x' },
   } as unknown as Request;
 }
-
-describe('extractAccessTokenForDownloadRoutes', () => {
-  it('extracts ?access_token= on a files download route', () => {
-    expect(
-      extractAccessTokenForDownloadRoutes(
-        makeRequest('/api/v1/files/abc123', 'tok-1'),
-      ),
-    ).toBe('tok-1');
-  });
-
-  it('extracts ?access_token= on a fee voucher PDF download route', () => {
-    expect(
-      extractAccessTokenForDownloadRoutes(
-        makeRequest('/api/v1/fee-vouchers/abc123/pdf', 'tok-1'),
-      ),
-    ).toBe('tok-1');
-  });
-
-  it('extracts ?access_token= on a fee receipt PDF download route', () => {
-    expect(
-      extractAccessTokenForDownloadRoutes(
-        makeRequest('/api/v1/fee-payments/abc123/receipt.pdf', 'tok-1'),
-      ),
-    ).toBe('tok-1');
-  });
-
-  it('extracts ?access_token= on a report card PDF download route', () => {
-    expect(
-      extractAccessTokenForDownloadRoutes(
-        makeRequest('/api/v1/report-cards/abc123/pdf', 'tok-1'),
-      ),
-    ).toBe('tok-1');
-  });
-
-  it('extracts ?access_token= on a generated report card PDF route (BL-06), not on its JSON route', () => {
-    expect(
-      extractAccessTokenForDownloadRoutes(
-        makeRequest('/api/v1/report-cards/generated/abc123/pdf', 'tok-1'),
-      ),
-    ).toBe('tok-1');
-    expect(
-      extractAccessTokenForDownloadRoutes(
-        makeRequest('/api/v1/report-cards/generated/abc123', 'tok-1'),
-      ),
-    ).toBeNull();
-  });
-
-  it('returns null on a non-download route even when ?access_token= is present', () => {
-    expect(
-      extractAccessTokenForDownloadRoutes(
-        makeRequest('/api/v1/me/children', 'tok-1'),
-      ),
-    ).toBeNull();
-  });
-
-  it('returns null on the fee voucher payment mutation route even when ?access_token= is present', () => {
-    expect(
-      extractAccessTokenForDownloadRoutes(
-        makeRequest('/api/v1/fee-vouchers/voucher-1/pay', 'tok-1'),
-      ),
-    ).toBeNull();
-  });
-
-  it('returns null on the fee payment confirmation route even when ?access_token= is present', () => {
-    expect(
-      extractAccessTokenForDownloadRoutes(
-        makeRequest('/api/v1/fee-payments/payment-1/confirm', 'tok-1'),
-      ),
-    ).toBeNull();
-  });
-
-  it('returns null on a files route with no ?access_token= present', () => {
-    expect(
-      extractAccessTokenForDownloadRoutes(makeRequest('/api/v1/files/abc123')),
-    ).toBeNull();
-  });
-});
 
 describe('JwtStrategy.validate (BL-21: per-request account recheck)', () => {
   const account = {
@@ -119,7 +40,7 @@ describe('JwtStrategy.validate (BL-21: per-request account recheck)', () => {
       ...account,
       role: 'TEACHER',
       mustChangePassword: true,
-    }).validate({
+    }).validate(headerRequest, {
       sub: 'u1',
       role: 'SCHOOL_ADMIN',
       tv: 2,
@@ -138,13 +59,17 @@ describe('JwtStrategy.validate (BL-21: per-request account recheck)', () => {
     ['a pre-BL-21 token (no tv) after a revocation', account, undefined],
   ])('rejects %s', async (_label, row, tv) => {
     await expect(
-      make(row).validate({ sub: 'u1', role: 'SCHOOL_ADMIN', tv }),
+      make(row).validate(headerRequest, {
+        sub: 'u1',
+        role: 'SCHOOL_ADMIN',
+        tv,
+      }),
     ).rejects.toThrow(UnauthorizedException);
   });
 
   it('accepts a pre-BL-21 token (no tv) while the version is still 0', async () => {
     await expect(
-      make({ ...account, tokenVersion: 0 }).validate({
+      make({ ...account, tokenVersion: 0 }).validate(headerRequest, {
         sub: 'u1',
         role: 'SCHOOL_ADMIN',
       }),
@@ -153,12 +78,72 @@ describe('JwtStrategy.validate (BL-21: per-request account recheck)', () => {
 
   it('does not end sessions for a failed-login lockout (lockedUntil is not selected)', async () => {
     const strategy = make(account);
-    await strategy.validate({ sub: 'u1', role: 'SCHOOL_ADMIN', tv: 2 });
+    await strategy.validate(headerRequest, {
+      sub: 'u1',
+      role: 'SCHOOL_ADMIN',
+      tv: 2,
+    });
     const prisma = (
       strategy as unknown as { prisma: { user: { findUnique: jest.Mock } } }
     ).prisma;
     expect(prisma.user.findUnique.mock.calls[0][0].select).not.toHaveProperty(
       'lockedUntil',
     );
+  });
+});
+
+describe('JwtStrategy.validate (BL-36: download links)', () => {
+  const account = {
+    id: 'u1',
+    role: 'PARENT',
+    isLocked: false,
+    tokenVersion: 0,
+    mustChangePassword: false,
+    grants: [],
+  };
+  const strategy = () => {
+    const prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue(account) },
+    };
+    const config = {
+      get: (k: string) =>
+        k === 'JWT_ACCESS_SECRET' ? 'unit-test-secret' : 'test',
+    } as unknown as ConfigService;
+    return new JwtStrategy(config, prisma as unknown as PrismaService);
+  };
+  const link = {
+    sub: 'u1',
+    role: '',
+    tv: 0,
+    typ: 'dl',
+    path: '/api/v1/files/f1',
+  };
+
+  it('accepts a link token on the path it was minted for', async () => {
+    await expect(
+      strategy().validate(linkRequest('/api/v1/files/f1'), link),
+    ).resolves.toMatchObject({ id: 'u1' });
+  });
+
+  it('rejects a link token on another path', async () => {
+    await expect(
+      strategy().validate(linkRequest('/api/v1/files/f2'), link),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('rejects a link token presented as a bearer header', async () => {
+    await expect(strategy().validate(headerRequest, link)).rejects.toThrow(
+      UnauthorizedException,
+    );
+  });
+
+  it('rejects an access token presented as ?dl=', async () => {
+    await expect(
+      strategy().validate(linkRequest('/api/v1/files/f1'), {
+        sub: 'u1',
+        role: 'PARENT',
+        tv: 0,
+      }),
+    ).rejects.toThrow(UnauthorizedException);
   });
 });

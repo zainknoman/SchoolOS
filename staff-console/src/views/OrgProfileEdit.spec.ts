@@ -17,7 +17,8 @@ vi.mock('../lib/api', () => ({
   api: {
     listSchools: vi.fn(), listCampuses: vi.fn(), createSchool: vi.fn(), updateSchool: vi.fn(),
     createCampus: vi.fn(), updateCampus: vi.fn(), uploadFile: vi.fn(),
-    filePreviewUrl: vi.fn((_t: string, id: string) => `https://files.example/${id}`),
+    filePath: vi.fn((id: string) => `/api/v1/files/${id}`),
+    fetchFile: vi.fn(),
   },
 }));
 
@@ -42,7 +43,13 @@ beforeEach(() => {
   useAuthStore().accessToken = 'token-1';
   useAuthStore().role = 'SUPER_ADMIN';
   Object.values(api).forEach((fn) => vi.mocked(fn).mockReset());
-  vi.mocked(api.filePreviewUrl).mockImplementation((_t: string, id: string) => `https://files.example/${id}`);
+  vi.mocked(api.filePath).mockImplementation((id: string) => `/api/v1/files/${id}`);
+  // BL-36: logos are fetched with the bearer token; each blob URL names the path it came from.
+  vi.mocked(api.fetchFile).mockImplementation(async (_t: string, path: string) =>
+    Object.assign(new Blob(['png']), { path }),
+  );
+  URL.createObjectURL = vi.fn((b: Blob | MediaSource) => `blob:${(b as Blob & { path?: string }).path}`);
+  URL.revokeObjectURL = vi.fn();
   vi.mocked(api.listSchools).mockResolvedValue([SCHOOL]);
   vi.mocked(api.listCampuses).mockResolvedValue([CAMPUS]);
   push.mockReset();
@@ -202,7 +209,7 @@ describe('Profile header logo', () => {
     vi.mocked(api.listSchools).mockResolvedValue([{ ...SCHOOL, logoFileId: 'file-1' }]);
     let wrapper = mount(SchoolProfileView, mountOpts);
     await flushPromises();
-    expect(wrapper.find('[data-testid="org-logo"]').attributes('src')).toBe('https://files.example/file-1');
+    expect(wrapper.find('[data-testid="org-logo"]').attributes('src')).toBe('blob:/api/v1/files/file-1');
 
     vi.mocked(api.listSchools).mockResolvedValue([SCHOOL]);
     wrapper = mount(SchoolProfileView, mountOpts);
@@ -216,7 +223,7 @@ describe('Profile header logo', () => {
     vi.mocked(api.listCampuses).mockResolvedValue([{ ...CAMPUS, logoFileId: 'file-2' }]);
     let wrapper = mount(CampusProfileView, mountOpts);
     await flushPromises();
-    expect(wrapper.find('[data-testid="org-logo"]').attributes('src')).toBe('https://files.example/file-2');
+    expect(wrapper.find('[data-testid="org-logo"]').attributes('src')).toBe('blob:/api/v1/files/file-2');
 
     vi.mocked(api.listCampuses).mockResolvedValue([CAMPUS]);
     wrapper = mount(CampusProfileView, mountOpts);

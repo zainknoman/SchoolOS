@@ -530,12 +530,20 @@ describe('Diary + Circulars (e2e)', () => {
     expect(download.headers['content-disposition']).toMatch(/^attachment;/);
     expect(download.headers['x-content-type-options']).toBe('nosniff');
 
-    // Same download, authenticated via ?access_token= instead of a header — proves a plain
-    // download link (which can't set headers) still works.
-    const viaQuery = await request(app.getHttpServer())
+    // A plain link (which can't set headers) authenticates with a download link (BL-36); the
+    // access token itself is no longer accepted from a query string (KG-15).
+    await request(app.getHttpServer())
       .get(`/api/v1/files/${fileId}?access_token=${parentAToken}`)
+      .expect(401);
+    const link = await request(app.getHttpServer())
+      .post('/api/v1/auth/download-link')
+      .set('Authorization', `Bearer ${parentAToken}`)
+      .send({ path: `/api/v1/files/${fileId}` })
+      .expect(201);
+    const viaLink = await request(app.getHttpServer())
+      .get(link.body.url as string)
       .expect(200);
-    expect(viaQuery.text).toBe('worksheet contents');
+    expect(viaLink.text).toBe('worksheet contents');
 
     const parentBToken = await loginAs('dc-parent-b@schoolos.edu.pk');
     await request(app.getHttpServer())
@@ -565,7 +573,7 @@ describe('Diary + Circulars (e2e)', () => {
       .expect(400);
   });
 
-  it('the ?access_token= query fallback authenticates the files route but not other routes', async () => {
+  it('an access token in ?access_token= is not accepted on any other route either', async () => {
     const parentAToken = await loginAs('dc-parent-a@schoolos.edu.pk');
 
     await request(app.getHttpServer())

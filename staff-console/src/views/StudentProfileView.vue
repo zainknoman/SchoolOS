@@ -26,6 +26,7 @@ import ProfileSectionCard from '../components/ProfileSectionCard.vue';
 import { useConfirm } from '../lib/useConfirm';
 import { initialsFromName } from '../lib/format';
 import { useToast } from '../lib/useToast';
+import { useAuthedImage } from '../lib/authedFile';
 
 const PROFILE_TABS = [
   { id: 'profile', label: 'Personal Info', icon: 'user-circle' as const },
@@ -245,10 +246,16 @@ const isSavingPhoto = ref(false);
 // The locally-chosen file preview (set only while this session has picked a new file) takes
 // precedence; otherwise fall back to the persisted photo already on the profile, so it survives
 // a page refresh instead of only ever showing during an in-session upload.
+// BL-36: the stored photo is fetched with the bearer header and shown from a blob URL.
+const storedPhotoUrl = useAuthedImage(
+  computed(() => {
+    const fileId = profile.value?.profilePhotoFileId;
+    return fileId ? api.filePath(fileId) : null;
+  }),
+);
 const displayPhotoUrl = computed(() => {
   if (photoPreviewUrl.value) return photoPreviewUrl.value;
-  const fileId = profile.value?.profilePhotoFileId;
-  return fileId && auth.accessToken ? api.filePreviewUrl(auth.accessToken, fileId) : null;
+  return storedPhotoUrl.value;
 });
 
 async function onPhotoFileSelected(event: Event) {

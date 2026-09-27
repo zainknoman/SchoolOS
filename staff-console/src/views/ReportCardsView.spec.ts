@@ -12,11 +12,12 @@ vi.mock('../lib/api', () => ({
     listAcademicSessions: vi.fn(),
     listReportCards: vi.fn(),
     uploadReportCard: vi.fn(),
-    reportCardPdfUrl: vi.fn(() => 'https://example.test/pdf'),
+    reportCardPdfPath: vi.fn((id: string) => `/api/v1/report-cards/${id}/pdf`),
+    fetchFile: vi.fn(),
     listTerms: vi.fn(),
     getStudentGrades: vi.fn(),
     listGeneratedReportCards: vi.fn().mockResolvedValue([]),
-    generatedReportCardPdfUrl: vi.fn((token: string, id: string) => `gen/${id}?t=${token}`),
+    generatedReportCardPdfPath: vi.fn((id: string) => `/api/v1/report-cards/generated/${id}/pdf`),
   },
 }));
 
@@ -212,7 +213,13 @@ describe('ReportCardsView', () => {
     expect(current.text()).toContain('v2 · B (70%)');
     expect(current.text()).not.toContain('superseded');
     expect(wrapper.find('[data-testid="generated-g1"]').text()).toContain('superseded');
-    expect(current.find('a').attributes('href')).toBe('gen/g2?t=token-1');
+    // BL-36: the PDF is fetched with the bearer token on click, not linked with it.
+    vi.mocked(api.fetchFile).mockResolvedValue(new Blob(['%PDF']));
+    vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:pdf'), revokeObjectURL: vi.fn() });
+    await current.find('[data-testid="download-generated-g2"]').trigger('click');
+    await flushPromises();
+    expect(api.fetchFile).toHaveBeenCalledWith('token-1', '/api/v1/report-cards/generated/g2/pdf');
+    vi.unstubAllGlobals();
   });
 
   it('falls back to the PDF list when no structured grades exist for this term', async () => {

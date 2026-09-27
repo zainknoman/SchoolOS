@@ -19,8 +19,8 @@
 | 11 | Input validation | Implemented | global `ValidationPipe({whitelist, transform})` (unknown fields stripped, not rejected) |
 | 12 | SQL injection | Implemented (by construction) | Prisma only; no `$queryRaw`/`$executeRaw` in `src/` (grep) |
 | 13 | XSS (server) | Implemented | JSON API; downloads forced as attachments with `nosniff` (`files.controller.ts:90-101`) |
-| 14 | XSS (staff console) | Unknown | Vue escapes by default; `v-html` usage and CSP not reviewed. Tokens sit in `localStorage` so any XSS yields both tokens (AUTH-3) |
-| 15 | CSRF | Not applicable (bearer header) | No cookies used for auth; `?access_token=` on 4 download routes is a leakage risk, not CSRF |
+| 14 | XSS (staff console) | Partial (reviewed 2026-09-28, BL-36) | Vue escapes by default; no `v-html` in application code; uploaded files are saved as `application/octet-stream`, never rendered on the console origin. No CSP on the console host yet, and tokens sit in `localStorage` so any XSS yields both tokens (AUTH-3, KG-9) — options and recommendation in [TOKEN-STORAGE-DECISION](TOKEN-STORAGE-DECISION.md), owner choice pending |
+| 15 | CSRF | Not applicable (bearer header) | No cookies used for auth. Query-string access tokens removed (BL-36, KG-15); download links use a short-lived path-bound `?dl=` token. A cookie migration (BL-36 option B/C) would need CSRF protection — see [TOKEN-STORAGE-DECISION](TOKEN-STORAGE-DECISION.md) |
 | 16 | Security headers (HSTS, CSP, X-Frame-Options…) | Implemented (2026-09-24, BL-12) | `helmet` defaults on every response (`config/app-security.ts`); `Cross-Origin-Resource-Policy: cross-origin` so the console can embed token-protected files; `X-Powered-By` removed |
 | 17 | CORS | Implemented / Configuration required | allow-list from `CORS_ORIGINS`; dev/test allow any localhost (`cors.config.ts`) |
 | 18 | Rate limiting | Partial | global 100/min + auth 5/min; keyed by client IP; `TRUST_PROXY` (BL-12) makes that the real client IP behind a proxy, and when unset a client cannot spoof it with `X-Forwarded-For`. Correct in deployment only if the operator sets `TRUST_PROXY` |

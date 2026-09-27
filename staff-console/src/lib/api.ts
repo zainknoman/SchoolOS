@@ -2342,26 +2342,36 @@ export const api = {
     return asJson(res);
   },
 
-  // Direct authenticated download links (the backend's JwtStrategy accepts ?access_token= as a
-  // fallback specifically so links like this work) — not fetch calls, used directly as <a href>.
-  voucherPdfUrl(accessToken: string, voucherId: string): string {
-    return `${API_BASE_URL}/api/v1/fee-vouchers/${voucherId}/pdf?access_token=${encodeURIComponent(accessToken)}`;
+  // BL-36 / KG-15: download routes. The API no longer accepts a token in a query string, so these
+  // are fetched with the bearer header like any other call (fetchFile) — through the 401-refresh
+  // interceptor — and shown or saved from a blob URL (lib/authedFile.ts). No token is ever put in
+  // a URL.
+  voucherPdfPath(voucherId: string): string {
+    return `/api/v1/fee-vouchers/${voucherId}/pdf`;
   },
 
-  receiptPdfUrl(accessToken: string, paymentId: string): string {
-    return `${API_BASE_URL}/api/v1/fee-payments/${paymentId}/receipt.pdf?access_token=${encodeURIComponent(accessToken)}`;
+  receiptPdfPath(paymentId: string): string {
+    return `/api/v1/fee-payments/${paymentId}/receipt.pdf`;
   },
 
-  generatedReportCardPdfUrl(accessToken: string, id: string): string {
-    return `${API_BASE_URL}/api/v1/report-cards/generated/${id}/pdf?access_token=${encodeURIComponent(accessToken)}`;
+  generatedReportCardPdfPath(id: string): string {
+    return `/api/v1/report-cards/generated/${id}/pdf`;
   },
 
-  reportCardPdfUrl(accessToken: string, reportCardId: string): string {
-    return `${API_BASE_URL}/api/v1/report-cards/${reportCardId}/pdf?access_token=${encodeURIComponent(accessToken)}`;
+  reportCardPdfPath(reportCardId: string): string {
+    return `/api/v1/report-cards/${reportCardId}/pdf`;
   },
 
-  filePreviewUrl(accessToken: string, fileId: string): string {
-    return `${API_BASE_URL}/api/v1/files/${fileId}?access_token=${encodeURIComponent(accessToken)}`;
+  filePath(fileId: string): string {
+    return `/api/v1/files/${fileId}`;
+  },
+
+  async fetchFile(accessToken: string, path: string): Promise<Blob> {
+    const res = await fetch(`${API_BASE_URL}${path}`, { headers: authHeaders(accessToken) });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+    return res.blob();
   },
 
   async listAdminTeachers(accessToken: string): Promise<TeacherAdminSummary[]> {

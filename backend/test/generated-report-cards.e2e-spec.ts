@@ -216,10 +216,14 @@ describe('Generated report cards (e2e, BL-06)', () => {
     const cards = await list('parent-a').expect(200);
     expect(cards.body).toHaveLength(1);
     expect(cards.body[0]).toMatchObject({ version: 2, current: true });
+    // BL-36: the parent app opens the PDF through a download link, not ?access_token=.
+    const link = await http()
+      .post('/api/v1/auth/download-link')
+      .set(as('parent-a'))
+      .send({ path: `/api/v1/report-cards/generated/${cards.body[0].id}/pdf` })
+      .expect(201);
     const pdf = await http()
-      .get(
-        `/api/v1/report-cards/generated/${cards.body[0].id}/pdf?access_token=${tokens['parent-a']}`,
-      )
+      .get(link.body.url as string)
       .expect(200);
     expect(pdf.headers['content-type']).toContain('application/pdf');
     expect(pdf.body.subarray(0, 4).toString()).toBe('%PDF');

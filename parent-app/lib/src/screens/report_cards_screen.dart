@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
 import '../theme/tones.dart';
 import '../widgets/parent_ui.dart';
+import '../widgets/open_download.dart';
 
 /// Pushed from the "More" tab — lists report cards for the selected child; tapping one opens its
-/// PDF via url_launcher, the same pattern fees_tab/circulars_tab already use for receipts and
+/// PDF through a short-lived download link (BL-36, openDownload), the same as fees_tab/circulars_tab for receipts and
 /// circular attachments.
 class ReportCardsScreen extends StatefulWidget {
   const ReportCardsScreen({
@@ -178,9 +178,9 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
                           visualDensity: VisualDensity.compact,
                           icon: Icon(Icons.download_outlined, size: 18, color: tones.muted),
                           tooltip: 'Download report card',
-                          onPressed: () => launchUrl(
+                          onPressed: () => openDownload(
+                            context,
                             widget.api.generatedReportCardPdfUrl(card.id, widget.accessToken),
-                            mode: LaunchMode.externalApplication,
                           ),
                         ),
                       ],
@@ -219,9 +219,9 @@ class _ReportCardsScreenState extends State<ReportCardsScreen> {
                           visualDensity: VisualDensity.compact,
                           icon: Icon(Icons.download_outlined, size: 18, color: tones.muted),
                           tooltip: 'Download report card',
-                          onPressed: () => launchUrl(
+                          onPressed: () => openDownload(
+                            context,
                             widget.api.reportCardPdfUrl(card.id, widget.accessToken),
-                            mode: LaunchMode.externalApplication,
                           ),
                         ),
                       ],

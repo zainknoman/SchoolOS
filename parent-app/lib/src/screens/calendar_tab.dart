@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
@@ -10,6 +9,7 @@ import '../theme/text_direction.dart';
 import '../theme/tones.dart';
 import '../widgets/parent_header.dart';
 import 'home_tab.dart' show formatShortDate;
+import '../widgets/open_download.dart';
 
 const _dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const _fullDayNames = [
@@ -1180,10 +1180,7 @@ class _DiaryTabState extends State<_DiaryTab> {
     final theme = Theme.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(8),
-      onTap: () => launchUrl(
-        widget.api.fileDownloadUrl(a.id, widget.accessToken),
-        mode: LaunchMode.externalApplication,
-      ),
+      onTap: () => openDownload(context, widget.api.fileDownloadUrl(a.id, widget.accessToken)),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(

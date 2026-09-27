@@ -73,7 +73,7 @@ describe('Observability (e2e)', () => {
       });
     try {
       await request(app.getHttpServer())
-        .get('/api/v1/files/some-id?access_token=secret-value')
+        .get('/api/v1/files/some-id?dl=secret-value')
         .expect(401);
       await new Promise((r) => setTimeout(r, 20));
     } finally {

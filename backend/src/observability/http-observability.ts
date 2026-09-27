@@ -8,7 +8,7 @@ import { pathOnly } from './scrub';
  * Request id + access log (BL-11), shared by main.ts and the e2e suite. Every request runs inside
  * a request context (so logs and error responses carry its id), the id is echoed in
  * `X-Request-Id`, and one access-log line is written per request — path WITHOUT the query string,
- * because download links carry `?access_token=`.
+ * because download links carry a `?dl=` token (BL-36).
  */
 export function applyRequestObservability(app: INestApplication): void {
   const access = new Logger('HTTP');

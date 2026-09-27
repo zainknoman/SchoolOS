@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
 import '../cache/cached_load.dart';
@@ -8,6 +7,7 @@ import '../cache/last_updated_banner.dart';
 import '../theme/tones.dart';
 import '../widgets/parent_ui.dart';
 import 'voucher_detail_screen.dart';
+import '../widgets/open_download.dart';
 
 /// Fees bottom-nav tab (index 4): outstanding vouchers (tap for the itemized breakdown, PDF, and
 /// Pay Now) plus payment history with a receipt download for each completed payment. The voucher
@@ -171,9 +171,9 @@ class _FeesTabState extends State<FeesTab> {
                           visualDensity: VisualDensity.compact,
                           icon: Icon(Icons.receipt_long_outlined, size: 18, color: tones.muted),
                           tooltip: 'Download receipt',
-                          onPressed: () => launchUrl(
+                          onPressed: () => openDownload(
+                            context,
                             widget.api.receiptPdfUrl(p.id, widget.accessToken),
-                            mode: LaunchMode.externalApplication,
                           ),
                         ),
                     ],

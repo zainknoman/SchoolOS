@@ -25,6 +25,13 @@ import {
   DEFAULT_PARENT_RESET_URL,
   RESET_PASSWORD_GENERIC_ERROR,
 } from './auth.constants';
+import {
+  DOWNLOAD_LINK_QUERY_PARAM,
+  DOWNLOAD_LINK_TOKEN_TYPE,
+  DOWNLOAD_LINK_TTL_SECONDS,
+  isDownloadRoute,
+  resolveDownloadLinkSecret,
+} from './download-link';
 
 export type SessionResult = {
   accessToken: string;
@@ -183,6 +190,42 @@ export class AuthService {
         data: { revokedAt: new Date() },
       }),
     ]);
+  }
+
+  /**
+   * Mints a short-lived link to ONE download route (BL-36, KG-15) for a client that must open it
+   * without an Authorization header. See download-link.ts for what makes the `?dl=` token safe.
+   */
+  async createDownloadLink(
+    userId: string,
+    path: string,
+  ): Promise<{ url: string; expiresAt: string }> {
+    if (!isDownloadRoute(path)) {
+      throw new BadRequestException('Not a download path.');
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { tokenVersion: true },
+    });
+    if (!user) throw new UnauthorizedException(SESSION_ENDED_ERROR);
+    const token = this.jwt.sign(
+      {
+        sub: userId,
+        tv: user.tokenVersion,
+        typ: DOWNLOAD_LINK_TOKEN_TYPE,
+        path,
+      },
+      {
+        secret: resolveDownloadLinkSecret(this.config),
+        expiresIn: DOWNLOAD_LINK_TTL_SECONDS,
+      },
+    );
+    return {
+      url: `${path}?${DOWNLOAD_LINK_QUERY_PARAM}=${token}`,
+      expiresAt: new Date(
+        Date.now() + DOWNLOAD_LINK_TTL_SECONDS * 1000,
+      ).toISOString(),
+    };
   }
 
   async logoutAll(userId: string): Promise<void> {

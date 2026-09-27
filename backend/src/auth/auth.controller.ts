@@ -5,6 +5,7 @@ import { RefreshDto } from './dto/refresh.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { DownloadLinkDto } from './dto/download-link.dto';
 import { Public } from './decorators/public.decorator';
 import { AllowPendingPasswordChange } from './decorators/allow-pending-password-change.decorator';
 import { Throttle } from '@nestjs/throttler';
@@ -51,6 +52,16 @@ export class AuthController {
   @Post('logout-all')
   async logoutAll(@Req() req: { user: { id: string } }): Promise<void> {
     await this.authService.logoutAll(req.user.id);
+  }
+
+  // BL-36 / KG-15: a short-lived link to one download route, for a client that opens it without
+  // an Authorization header (the parent app's system browser). Bearer-authenticated.
+  @Post('download-link')
+  async downloadLink(
+    @Req() req: { user: { id: string } },
+    @Body() dto: DownloadLinkDto,
+  ) {
+    return this.authService.createDownloadLink(req.user.id, dto.path);
   }
 
   // Unauthenticated and enumerable, same as login — throttled at least as strictly.
