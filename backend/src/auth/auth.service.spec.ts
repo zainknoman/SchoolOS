@@ -33,6 +33,7 @@ describe('AuthService', () => {
       create: jest.Mock;
       findUnique: jest.Mock;
       update: jest.Mock;
+      updateMany: jest.Mock;
     };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
@@ -67,11 +68,17 @@ describe('AuthService', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        // BL-35: the token is claimed atomically inside the reset transaction.
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       auditLog: { create: jest.fn() },
       $transaction: jest
         .fn()
-        .mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops)),
+        .mockImplementation((arg: unknown) =>
+          typeof arg === 'function'
+            ? (arg as (tx: unknown) => unknown)(prisma)
+            : Promise.all(arg as Promise<unknown>[]),
+        ),
     };
     mailAdapter = { send: jest.fn() };
 
@@ -401,7 +408,10 @@ describe('AuthService', () => {
 
   describe('forgotPassword', () => {
     it('creates a reset token and emails a reset link for a known identifier', async () => {
-      prisma.user.findUnique.mockResolvedValue({ ...baseUser });
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        role: 'SCHOOL_ADMIN',
+      });
       prisma.passwordResetToken.create.mockResolvedValue({});
       mailAdapter.send.mockResolvedValue(undefined);
 
@@ -411,6 +421,7 @@ describe('AuthService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             userId: 'user-1',
+            audience: 'STAFF',
             tokenHash: expect.any(String),
             expiresAt: expect.any(Date),
           }),
@@ -435,7 +446,10 @@ describe('AuthService', () => {
     });
 
     it('swallows a mail-delivery failure — the caller must never see it (same generic response either way)', async () => {
-      prisma.user.findUnique.mockResolvedValue({ ...baseUser });
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        role: 'SCHOOL_ADMIN',
+      });
       prisma.passwordResetToken.create.mockResolvedValue({});
       mailAdapter.send.mockRejectedValue(new Error('smtp down'));
       const consoleError = jest
@@ -451,6 +465,95 @@ describe('AuthService', () => {
         'Error: smtp down',
       );
       consoleError.mockRestore();
+    });
+  });
+
+  describe('BL-35 parent reset flow', () => {
+    it('the staff flow sends nothing for a parent account', async () => {
+      prisma.user.findUnique.mockResolvedValue({ ...baseUser });
+      await service.forgotPassword('parent@schoolos.edu.pk');
+      expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
+      expect(mailAdapter.send).not.toHaveBeenCalled();
+    });
+
+    it("sends a 30-minute parent-app link to the parent's profile e-mail", async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        identifier: '03001234567',
+        parentProfile: { email: 'mother@example.com' },
+      });
+      prisma.passwordResetToken.create.mockResolvedValue({});
+      await service.forgotParentPassword('03001234567');
+      const data = prisma.passwordResetToken.create.mock.calls[0][0].data;
+      expect(data.audience).toBe('PARENT');
+      expect(data.expiresAt.getTime() - Date.now()).toBeLessThanOrEqual(
+        30 * 60_000,
+      );
+      expect(mailAdapter.send).toHaveBeenCalledWith(
+        'mother@example.com',
+        expect.any(String),
+        expect.stringMatching(
+          /schoolos:\/\/app\/reset-password\?token=[0-9a-f]{64}/,
+        ),
+      );
+    });
+
+    it('sends nothing when the parent has no e-mail address (the school resets it, BL-64)', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        identifier: '03001234567',
+        parentProfile: { email: null },
+      });
+      await service.forgotParentPassword('03001234567');
+      expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
+      expect(mailAdapter.send).not.toHaveBeenCalled();
+    });
+
+    it('the parent flow ignores staff accounts', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        role: 'SCHOOL_ADMIN',
+      });
+      await service.forgotParentPassword('parent@schoolos.edu.pk');
+      expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
+    });
+
+    it('a token works only on its own flow', async () => {
+      const stored = {
+        id: 'prt-9',
+        userId: 'user-1',
+        expiresAt: new Date(Date.now() + 60_000),
+        usedAt: null,
+      };
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        ...stored,
+        audience: 'PARENT',
+      });
+      await expect(service.resetPassword('raw', 'NewPass9!xx')).rejects.toThrow(
+        RESET_PASSWORD_GENERIC_ERROR,
+      );
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        ...stored,
+        audience: 'STAFF',
+      });
+      await expect(
+        service.resetParentPassword('raw', 'NewPass9!xx'),
+      ).rejects.toThrow(RESET_PASSWORD_GENERIC_ERROR);
+    });
+
+    it('a token claimed by a simultaneous request cannot be used again', async () => {
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 'prt-9',
+        userId: 'user-1',
+        audience: 'PARENT',
+        expiresAt: new Date(Date.now() + 60_000),
+        usedAt: null,
+      });
+      prisma.passwordResetToken.updateMany.mockResolvedValue({ count: 0 });
+      await expect(
+        service.resetParentPassword('raw', 'NewPass9!xx'),
+      ).rejects.toThrow(RESET_PASSWORD_GENERIC_ERROR);
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
   });
 
@@ -547,6 +650,7 @@ describe('AuthService', () => {
       id: 'prt-1',
       userId: 'user-1',
       tokenHash: expect.any(String),
+      audience: 'STAFF',
       expiresAt: new Date(Date.now() + 60 * 60_000),
       usedAt: null as Date | null,
     };
@@ -566,8 +670,12 @@ describe('AuthService', () => {
         passwordHash: expect.any(String),
         mustChangePassword: false,
       });
-      expect(prisma.passwordResetToken.update).toHaveBeenCalledWith({
-        where: { id: 'prt-1' },
+      expect(prisma.passwordResetToken.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'prt-1',
+          usedAt: null,
+          expiresAt: { gt: expect.any(Date) },
+        },
         data: { usedAt: expect.any(Date) },
       });
       expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({

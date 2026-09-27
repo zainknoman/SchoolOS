@@ -18,7 +18,8 @@
 | `CORS_ORIGINS` | Required outside dev/test | `http://localhost:5173` | No | comma-separated origins; dev/test additionally allow any localhost origin |
 | `JWT_ACCESS_SECRET` | **Required** outside dev/test | `dev-only-change-me-access` in dev/test | Yes | Boot error if unset outside dev/test; **any non-empty value is accepted, including `change-me`** (KG-2) |
 | `JWT_ACCESS_TTL` | No | `15m` | No | `ms`-style string; invalid value fails at JWT module registration |
-| `FRONTEND_URL` | Required for password-reset links | `http://localhost:5173` | No | Base URL placed in reset emails (`auth.service.ts:168`); a single URL — how parent-app users complete a reset from a link is **UNKNOWN** |
+| `FRONTEND_URL` | Required for password-reset links | `http://localhost:5173` | No | Base URL of the **staff** reset link (`/reset-password?token=…`) |
+| `PARENT_RESET_URL` | Optional | `schoolos://app/reset-password` | No | BL-35: base of the **parent** reset link (`?token=…` is appended) — the parent-app deep link by default, or a parent web page on `[PRODUCTION_DOMAIN]` |
 | `STORAGE_DRIVER` | **`s3` required outside development/test** (BL-10) | `local` | No | `local` writes to `UPLOADS_DIR` (development/test only; boot validation refuses it elsewhere); `s3` uses the S3-compatible bucket below |
 | `S3_BUCKET` / `S3_REGION` / `S3_ENDPOINT` / `S3_FORCE_PATH_STYLE` / `S3_KEY_PREFIX` | `S3_BUCKET` required with `STORAGE_DRIVER=s3` | region `us-east-1`; endpoint = AWS; path-style `false`; prefix none | No | Any S3-compatible provider (vendor TBD, RD-3): set `S3_ENDPOINT` and usually `S3_FORCE_PATH_STYLE=true` |
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | With `STORAGE_DRIVER=s3` unless the host provides credentials (instance role) | SDK default chain | **Yes** | Bucket-scoped credentials only |
@@ -40,7 +41,7 @@
 ## Decided environment policy (owner, 2026-09-20) — not all implemented
 - **Separate secrets per environment** (development, staging, production); nothing shared. `NODE_ENV` must be set explicitly (`staging`/`production` on servers) and placeholder secrets are rejected at startup — **implemented 2026-09-24 (BL-51)**.
 - Variables the decided design **adds** (names indicative, `NOT IMPLEMENTED`): object-storage endpoint/bucket/credentials (BL-10); Sentry DSN and scrubbing settings (BL-11); bootstrap SUPER_ADMIN credentials, consumed once (BL-22); separate parent reset base URL/deep-link scheme (BL-35); per-integration feature flags, default **off** for payment gateways, WhatsApp and AI drafting (Q34, Q38, Q39); SMS/e-mail provider selection variables (Q36, Q37).
-- `FRONTEND_URL` remains a single staff-console URL today; parents must not be sent to it (KI-7 -> BL-35).
+- `FRONTEND_URL` is the staff-console URL only; parents get `PARENT_RESET_URL` links (BL-35, closes KI-7).
 - Signing keys, keystores, Firebase service accounts and store credentials are **never committed** (Q32); the parent app's `firebase_options.dart` placeholder is replaced per environment (BL-34, BL-43).
 - Default database name is `schoolos` in `.env.example` and CI (BL-34, 2026-09-26). **Existing local databases keep working**: your own `backend/.env` is not touched, so a database still named `schoolportal` needs no rename — change `DATABASE_URL` only if you create a fresh one.
 

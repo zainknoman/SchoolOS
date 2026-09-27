@@ -41,7 +41,7 @@
 | Pilot scope + exit criteria (Q33) | — | — | BL-57 | H | — | BLOCKER |
 | Firebase project for FCM (Q35, RD-12) | — | placeholder options | project + verification | BL-14, BL-43 | G | BLOCKER |
 | E-mail/SMS providers TBD, may be disabled in the pilot (RD-4) | — | SMTP adapter; SMS placeholder URL | provider abstraction; SMS adapter | BL-14, BL-38 | — | POST |
-| Parent reset separate flow; fallback if no e-mail (Q41, RD-4) | KI-7, KI-35 | single URL; link logged | new flow + admin-assisted reset | BL-35, BL-64 | G | BLOCKER |
+| Parent reset separate flow; fallback if no e-mail (Q41, RD-4) | KI-7, KI-35 | ✅ BL-64 (2026-09-25) + BL-35 (2026-09-27); e-mail delivery waits for an SMTP provider | — | BL-35, BL-64 | G | BLOCKER |
 | WhatsApp templates; AI drafting off by default (Q38, Q39) | — | free-text; optional stub | later | BL-48, BL-49 | — | POST |
 | Token-storage hardening review (Q42) | KG-9 | `localStorage` | decision + optional migration | BL-36 | A | CORE |
 | WCAG 2.1 AA (Q43) | NFR-A11Y-02 | unknown | audit | BL-55 | H | CORE |

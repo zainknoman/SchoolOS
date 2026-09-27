@@ -1,6 +1,6 @@
 # Data Dictionary
 
-> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **72 models, 23 enums** — do not edit by hand · **Owner:** Engineering Lead
+> **Status:** CURRENT · **Generated** by `scripts/docs/generate.mjs` (BL-66) from `backend/prisma/schema.prisma`: **72 models, 24 enums** — do not edit by hand · **Owner:** Engineering Lead
 > Columns: field · type (`?` nullable, `[]` list) · attributes as written in the schema (relations show `fields`, `references`, `onDelete`). Fields whose type is another model are relation fields (no column).
 
 ## Enums
@@ -27,6 +27,7 @@
 - **FeeVoucherKind**: REGULAR, OPENING_BALANCE
 - **FeeConcessionKind**: DISCOUNT, SCHOLARSHIP
 - **ComplaintCategory**: ACADEMIC, BEHAVIOUR, TRANSPORT, FEES, FACILITIES, STAFF, OTHER
+- **PasswordResetAudience**: STAFF, PARENT
 - **RetentionCategory**: STUDENT, GUARDIAN, STAFF, ATTENDANCE, ACADEMIC_RESULTS, FEES_FINANCIAL, COMPLAINTS, AUDIT_LOGS, AUTH_SECURITY_LOGS, UPLOADED_DOCUMENTS, BACKUPS
 
 ## Identity
@@ -123,6 +124,7 @@ Block attributes: `@@index([userId])`
 | userId | String |  |
 | user | User (relation) | @relation(fields: [userId], references: [id], onDelete: Cascade) |
 | tokenHash | String | @unique |
+| audience | PasswordResetAudience (enum) | @default(STAFF) |
 | expiresAt | DateTime |  |
 | usedAt | DateTime? |  |
 | createdAt | DateTime | @default(now()) |

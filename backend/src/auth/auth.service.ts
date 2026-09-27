@@ -21,6 +21,8 @@ import {
   ACCOUNT_DISABLED_ERROR,
   SESSION_ENDED_ERROR,
   PASSWORD_RESET_TOKEN_TTL_HOURS,
+  PARENT_RESET_TOKEN_TTL_MINUTES,
+  DEFAULT_PARENT_RESET_URL,
   RESET_PASSWORD_GENERIC_ERROR,
 } from './auth.constants';
 
@@ -196,34 +198,97 @@ export class AuthService {
   }
 
   /**
-   * Always resolves normally, whether or not `identifier` matches a real account — the caller
-   * can't distinguish the two branches (standard user-enumeration defense).
+   * Staff console flow. Always resolves normally, whether or not `identifier` matches a real
+   * account — the caller can't distinguish the branches (user-enumeration defense). BL-35: parents
+   * use their own flow (`forgotParentPassword`), so a parent identifier sends nothing here.
    */
   async forgotPassword(identifier: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({ where: { identifier } });
-    if (!user) {
+    const user = await this.prisma.user.findUnique({
+      where: { identifier: normalizeIdentifier(identifier) },
+    });
+    if (!user || user.role === 'PARENT') {
       return;
     }
+    const token = await this.issueResetToken(
+      user.id,
+      'STAFF',
+      PASSWORD_RESET_TOKEN_TTL_HOURS * 60,
+    );
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    await this.sendResetMail(
+      user.identifier,
+      `${frontendUrl}/reset-password?token=${token}`,
+      PASSWORD_RESET_TOKEN_TTL_HOURS * 60,
+    );
+  }
 
+  /**
+   * BL-35: parent-app flow. The link is built from PARENT_RESET_URL (an app deep link or a web
+   * page on [PRODUCTION_DOMAIN]) and goes to the e-mail on the parent's profile, or to the
+   * identifier when that is an e-mail address. Without either (or without SMTP) nothing is sent —
+   * the school resets the password instead (BL-64). Same generic response in every case.
+   */
+  async forgotParentPassword(identifier: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { identifier: normalizeIdentifier(identifier) },
+      include: { parentProfile: { select: { email: true } } },
+    });
+    if (!user || user.role !== 'PARENT') {
+      return;
+    }
+    const address =
+      user.parentProfile?.email?.trim() ||
+      (user.identifier.includes('@') ? user.identifier : null);
+    if (!address) {
+      return;
+    }
+    const token = await this.issueResetToken(
+      user.id,
+      'PARENT',
+      PARENT_RESET_TOKEN_TTL_MINUTES,
+    );
+    const base =
+      this.config.get<string>('PARENT_RESET_URL') ?? DEFAULT_PARENT_RESET_URL;
+    const separator = base.includes('?') ? '&' : '?';
+    await this.sendResetMail(
+      address,
+      `${base}${separator}token=${token}`,
+      PARENT_RESET_TOKEN_TTL_MINUTES,
+    );
+  }
+
+  private async issueResetToken(
+    userId: string,
+    audience: 'STAFF' | 'PARENT',
+    ttlMinutes: number,
+  ): Promise<string> {
     const token = randomBytes(32).toString('hex');
     await this.prisma.passwordResetToken.create({
       data: {
-        userId: user.id,
+        userId,
+        audience,
         tokenHash: hashToken(token),
-        expiresAt: new Date(
-          Date.now() + PASSWORD_RESET_TOKEN_TTL_HOURS * 60 * 60_000,
-        ),
+        expiresAt: new Date(Date.now() + ttlMinutes * 60_000),
       },
     });
+    return token;
+  }
 
-    const frontendUrl =
-      this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
-    const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+  private async sendResetMail(
+    to: string,
+    resetLink: string,
+    ttlMinutes: number,
+  ): Promise<void> {
+    const expires =
+      ttlMinutes % 60 === 0
+        ? `${ttlMinutes / 60} hour${ttlMinutes === 60 ? '' : 's'}`
+        : `${ttlMinutes} minutes`;
     try {
       await this.mail.send(
-        user.identifier,
+        to,
         'Reset your SchoolOS password',
-        `Use this link to reset your password (expires in ${PASSWORD_RESET_TOKEN_TTL_HOURS} hour): ${resetLink}`,
+        `Use this link to reset your password (expires in ${expires}, works once): ${resetLink}`,
       );
     } catch (err) {
       // Best-effort, same as NotificationsService.notify() — a delivery failure must never leak
@@ -236,40 +301,61 @@ export class AuthService {
     }
   }
 
+  /** Staff console flow; a parent's token is refused here (BL-35). */
+  resetPassword(token: string, newPassword: string): Promise<void> {
+    return this.consumeResetToken(token, newPassword, 'STAFF');
+  }
+
+  /** BL-35: parent-app flow; a staff token is refused here. */
+  resetParentPassword(token: string, newPassword: string): Promise<void> {
+    return this.consumeResetToken(token, newPassword, 'PARENT');
+  }
+
   /**
    * A successful reset ends every existing session for this user (every RefreshToken row is
-   * revoked), not just the request that performed the reset.
+   * revoked), not just the request that performed the reset. The token is claimed atomically
+   * (BL-35): two simultaneous uses of one token cannot both succeed.
    */
-  async resetPassword(token: string, newPassword: string): Promise<void> {
+  private async consumeResetToken(
+    token: string,
+    newPassword: string,
+    audience: 'STAFF' | 'PARENT',
+  ): Promise<void> {
     const tokenHash = hashToken(token);
     const stored = await this.prisma.passwordResetToken.findUnique({
       where: { tokenHash },
     });
-
-    if (!stored || stored.usedAt || stored.expiresAt.getTime() < Date.now()) {
+    if (
+      !stored ||
+      stored.audience !== audience ||
+      stored.usedAt ||
+      stored.expiresAt.getTime() < Date.now()
+    ) {
       throw new BadRequestException(RESET_PASSWORD_GENERIC_ERROR);
     }
 
     const passwordHash = await argon2.hash(newPassword);
-
-    await this.prisma.$transaction([
-      this.prisma.user.update({
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.passwordResetToken.updateMany({
+        where: { id: stored.id, usedAt: null, expiresAt: { gt: new Date() } },
+        data: { usedAt: new Date() },
+      });
+      if (claimed.count !== 1) {
+        throw new BadRequestException(RESET_PASSWORD_GENERIC_ERROR);
+      }
+      await tx.user.update({
         where: { id: stored.userId },
         data: {
           passwordHash,
           mustChangePassword: false,
           tokenVersion: { increment: 1 },
         },
-      }),
-      this.prisma.passwordResetToken.update({
-        where: { id: stored.id },
-        data: { usedAt: new Date() },
-      }),
-      this.prisma.refreshToken.updateMany({
+      });
+      await tx.refreshToken.updateMany({
         where: { userId: stored.userId, revokedAt: null },
         data: { revokedAt: new Date() },
-      }),
-    ]);
+      });
+    });
   }
 
   /**

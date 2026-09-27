@@ -80,6 +80,33 @@ export class AuthController {
     return { message: 'Your password has been reset. Please log in again.' };
   }
 
+  // BL-35: the parent app's own reset flow (separate token audience and link).
+  @Public()
+  @Throttle({
+    default: {
+      limit: AUTH_LOGIN_THROTTLE_LIMIT,
+      ttl: THROTTLE_TTL_MS,
+    },
+  })
+  @Post('parent/forgot-password')
+  async forgotParentPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.forgotParentPassword(dto.identifier);
+    return { message: FORGOT_PASSWORD_GENERIC_MESSAGE };
+  }
+
+  @Public()
+  @Throttle({
+    default: {
+      limit: AUTH_LOGIN_THROTTLE_LIMIT,
+      ttl: THROTTLE_TTL_MS,
+    },
+  })
+  @Post('parent/reset-password')
+  async resetParentPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetParentPassword(dto.token, dto.newPassword);
+    return { message: 'Your password has been reset. Please log in again.' };
+  }
+
   // Authenticated (global JWT guard, no @Public). A wrong-current-password endpoint is an online
   // guessing surface for a stolen access token, so it gets the same throttle as login.
   @Throttle({

@@ -1,9 +1,9 @@
 # Pilot-Readiness Execution Plan (Waves 0–7)
 
-> **Status:** CURRENT — **Waves 0–5 done, Wave 6 in progress** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-30) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
+> **Status:** CURRENT — **Waves 0–5 done, Wave 6 in progress** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-35) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
 > Companion to the gap analysis: this file fixes the **order of execution**, the **schema/migration dependencies that must precede application code**, the affected layers, the docs to regenerate, and rollback rules. Findings F1–F10 (2026-09-20) are folded in. Item detail and acceptance criteria live in the BACKLOG.
 
-## 0. Progress and handoff (updated 2026-09-27, after BL-30)
+## 0. Progress and handoff (updated 2026-09-27, after BL-35)
 
 All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` = github.com/zainknoman/SchoolOS), one commit per item, each pushed after its checks passed. Item detail and "Done" notes: [BACKLOG](../product/requirements/BACKLOG.md); migrations and rehearsals: [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md); deploy steps: [RUNBOOKS](../operations/RUNBOOKS.md).
 
@@ -22,8 +22,9 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 5 | BL-28 attendance-risk settings (M10 part) | ✅ | `384f885` |
 | 5 | BL-29 leave workflow (M1b, KG-27) | ✅ | `9c6ec52` |
 | 6 | BL-08 fee ledger (discounts/scholarships, late fees, outstanding/defaulters, carry-forward; KG-28) | ✅ | `ec04451` |
-| 6 | BL-30 complaints workflow (M10 complaint part; KG-29, KG-30) | ✅ | `BL30-COMMIT` |
-| 6 | BL-35 · BL-43 · BL-54 · BL-14 | ⏭ **next** (BL-35 first) | — |
+| 6 | BL-30 complaints workflow (M10 complaint part; KG-29, KG-30) | ✅ | `5784b1d` |
+| 6 | BL-35 parent password reset (separate flow, deep link) | ✅ code (delivery needs an SMTP provider; until then BL-64) | `BL35-COMMIT` |
+| 6 | BL-43 · BL-54 · BL-14 | ⏸ **owner input** — Play Console, Firebase projects, signing keys, test devices | — |
 | 7 | BL-15 · BL-55 · BL-36 · BL-37 part 2 · BL-56 · BL-57 · BL-58 | ⏳ | — |
 
 Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a3cb1` (KG-24 — bulk import could write into another school); with BL-41, `fees.e2e-spec.ts` stopped using a due date (2026-09-25) that had passed, which made its voucher read "overdue".
@@ -35,13 +36,13 @@ Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a
 - Data-changing migration: expand SQL + `migration-harness/backfills/mN-*.mjs` + `backfill-mN-cli.mjs` + `npm run backfill:mN` + scenario `migration-harness/scenarios/mN-*.mjs` (idempotency is checked automatically) + `prisma migrate diff` shows no drift + record the rehearsal in MIGRATION-STRATEGY.
 - Two-school e2e fixture: `backend/test/pending/two-school-fixture.ts` (`createTwoSchools(prefix)`); the BL-18 scaffold is fully graduated.
 - **Do not** run `prettier --write` on `staff-console/**` or `backend/migration-harness/**` (it reformats whole files); backend `src/`/`test/` are fine. **Do not** commit `docs/UI-Screenshots/sample4` CSVs. Write multi-line edit scripts with a file (Git Bash heredocs mangle backslashes).
-- Last verified counts (2026-09-27, BL-30): backend unit 778, e2e 368 (49 suites), harness 10 scenarios + 13 tests (unchanged; M10 complaints is additive), console 582, parent app 116.
+- Last verified counts (2026-09-27, BL-35): backend unit 784, e2e 372 (50 suites), harness 10 scenarios + 13 tests (unchanged; additive migrations only), console 582, parent app 118.
 - Additive migration SQL: `DATABASE_URL=<scratch> npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script -o prisma/migrations/<ts>_<name>/migration.sql`, then `migrate deploy` and the same diff with `--exit-code` (0 = no drift). `psql` is not installed; the scratch DB `schoolos_scratch_e2e` already exists and is reused.
 - An e2e `afterAll` that throws before `f.close()` leaves the app open and Jest hangs (looks like a timeout) — keep cleanup queries valid. FKs from new history tables to Class/Term/Subject use `NoAction` so school-deletion cascades still work.
 - Multi-line edits: write a Node script to the scratchpad and run it (normalise CRLF first); never put `﻿` in written content (it becomes a literal BOM).
 - Full e2e on a scratch DB: create `schoolos_scratch_e2e` (drop first), `DATABASE_URL=<…/schoolos_scratch_e2e> npx prisma migrate deploy`, then the same `DATABASE_URL` for `npm run test:e2e`. Suites that call validated endpoints must install the global `ValidationPipe` (production does it in `main.ts`, `AppModule` does not).
 
-**Next step:** Wave 6 — BL-35 (parent password reset link; needs an e-mail provider, else BL-64 stays the pilot path), then BL-43, BL-54, BL-14 (FCM; needs the Firebase project). Record BL-30's commit hash (placeholder `BL30-COMMIT`) with the next item.
+**Next step:** the rest of Wave 6 needs the owner: BL-43 (Play Console account, Firebase staging/production projects, signing-key custody), BL-14 (FCM needs `[FIREBASE_PROJECT_ID]`; SMTP when a provider is chosen) and BL-54 (a device matrix run on real Android devices). Record BL-35's commit hash (placeholder `BL35-COMMIT`) with the next item. Wave 7 items that need no owner input can proceed meanwhile.
 - The parent app now depends on `file_picker` (complaint attachments); include it in the BL-54 device matrix.
 - The two-school e2e fixture now removes its students' fee ledger itself (payments, reversals, carry-forward lines, vouchers) — suites no longer need their own fee cleanup.
 

@@ -11,6 +11,9 @@ export const GENERIC_AUTH_ERROR = 'Invalid credentials';
 export const ACCOUNT_LOCKED_ERROR =
   'Account temporarily locked. Try again later.';
 export const PASSWORD_RESET_TOKEN_TTL_HOURS = 1;
+// BL-35: parent reset links are shorter-lived and open the parent app (or a parent web page).
+export const PARENT_RESET_TOKEN_TTL_MINUTES = 30;
+export const DEFAULT_PARENT_RESET_URL = 'schoolos://app/reset-password';
 // Returned by both forgot-password branches (identifier found or not) — never reveal account
 // existence.
 export const FORGOT_PASSWORD_GENERIC_MESSAGE =

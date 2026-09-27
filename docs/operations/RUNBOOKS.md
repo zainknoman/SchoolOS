@@ -37,7 +37,7 @@
 | A parent forgot their password and e-mail is not configured | Pilot has no SMTP (B-1) | School admin: parent profile → **Reset password** (`POST /api/v1/admin/parents/:id/reset-password`, BL-64). The one-time password is shown once, never logged; audited as `account.admin-password-reset` |
 | Every request answers 403 `PASSWORD_CHANGE_REQUIRED` | The account has `mustChangePassword` (provisioned login or admin reset) — enforced by the API since BL-21 | The user changes their password (`POST /auth/change-password`); the console redirects automatically |
 | Login works then everything returns 401 after ~15 min | access token expired and refresh failed (refresh token expired/revoked, or clock/secret change) | Re-login; if after a secret change, expected |
-| Password-reset emails never arrive | SMTP unset ⇒ link is only in the API log (KG-4); or wrong `FRONTEND_URL` | Set SMTP; check `[mail:not-configured]` log lines; verify `FRONTEND_URL` |
+| Password-reset emails never arrive | SMTP unset (nothing is delivered; the link is never logged since BL-51); wrong `FRONTEND_URL`/`PARENT_RESET_URL`; a parent without an e-mail on their profile | Set SMTP; check `[mail:not-configured]` log lines; verify both URLs; add the parent's e-mail, or reset their password from the console (BL-64) |
 | 429 Too Many Requests on login | 5/min auth throttle (per IP); behind a proxy many users may share an IP (KG-13) | Inspect proxy forwarding; wait 60 s |
 | CORS errors in the staff console | origin not in `CORS_ORIGINS` (`cors.config.ts`) | Add exact origin (scheme+host+port) |
 | Push notifications not arriving | FCM unset ⇒ logging no-op (`[push:noop]`), or device token not registered (`POST /me/device-tokens`) | Configure Firebase; check `DeviceToken` rows |

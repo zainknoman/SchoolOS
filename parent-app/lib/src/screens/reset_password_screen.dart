@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 
-/// Reachable by pasting the emailed reset token (the parent app has no in-app browser step for
-/// "click the emailed link" the way a web client does). A future Android deep link into this
-/// screen — reusing Sprint F's push-notification-tap URI scheme — is a documented follow-up, not
-/// implemented this sprint; pasting the token is the functional path shipped now.
+/// BL-35: opened by the e-mailed link (Android deep link schoolos://app/reset-password?token=…,
+/// routed by go_router with the token filled in) or, as a fallback, by pasting the code from the
+/// e-mail after "Forgot password". The token works once and expires after 30 minutes.
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key, required this.api, this.initialToken});
 

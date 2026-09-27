@@ -154,6 +154,8 @@
 
 **M10 — complaints (BL-30, `20260929100000_m10_complaints`, 2026-09-27):** additive — enum `ComplaintCategory`, nullable `Complaint.schoolId`/`assignedToId`/`resolution`/`resolvedAt`/`resolvedById` (existing rows get category `OTHER`), tables `ComplaintNote` and `ComplaintAttachment`, nullable `File.uploadedById`. No backfill: a complaint without `schoolId` is placed in a queue through its student's enrolments, and a file without an uploader is reachable through its owning record. Applied to the scratch database, no drift, full e2e green.
 
+**BL-35 (`20260929110000_bl35_reset_audience`, 2026-09-27):** additive — enum `PasswordResetAudience` and `PasswordResetToken.audience` (default `STAFF`, so outstanding tokens keep working on the staff flow). No backfill. Applied to the scratch database, no drift, full e2e green.
+
 **Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

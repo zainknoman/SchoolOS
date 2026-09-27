@@ -4,7 +4,7 @@
 > **Decided, not yet implemented (owner, 2026-09-20):** parents will be able to use one account across schools (BL-23). *Complaints: implemented 2026-09-27 (BL-30).* This guide describes current behaviour.
 
 ## Sign in
-Open the app → enter the email/identifier your school gave you and your password → **Log in**. If you forget it, use **Forgot password** (works only if the school has email configured) — or ask the school office: they can give you a **one-time password**; sign in with it and the app asks you to choose your own password before anything else. After 5 wrong attempts the account is locked for 15 minutes. If you have several children, choose one at the top of **Home**.
+Open the app → enter the email/identifier your school gave you and your password → **Log in**. If you forget it, use **Forgot password** (works when your school has e-mail set up and your profile has an e-mail address): open the link in the e-mail on your phone — the app opens the reset screen with the code filled in (the link works once, for 30 minutes), or paste the code from the e-mail — or ask the school office: they can give you a **one-time password**; sign in with it and the app asks you to choose your own password before anything else. After 5 wrong attempts the account is locked for 15 minutes. If you have several children, choose one at the top of **Home**.
 
 ## Bottom tabs
 | Tab | What you can do |

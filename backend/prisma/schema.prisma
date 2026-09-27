@@ -1352,15 +1352,22 @@ model ComplaintAttachment {
 }
 
 model PasswordResetToken {
-  id        String    @id @default(uuid())
+  id        String                @id @default(uuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String                @unique
+  // BL-35: a token works only on its own flow (staff console link vs parent-app link).
+  audience  PasswordResetAudience @default(STAFF)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  createdAt DateTime              @default(now())
 
   @@index([userId])
+}
+
+enum PasswordResetAudience {
+  STAFF
+  PARENT
 }
 
 model ReportCard {

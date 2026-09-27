@@ -366,9 +366,10 @@ class ApiClient {
     );
   }
 
+  /// BL-35: the parent reset flow (its own endpoint, token and app link — not the staff one).
   Future<void> forgotPassword(String identifier) async {
     final res = await _client.post(
-      Uri.parse('$baseUrl/api/v1/auth/forgot-password'),
+      Uri.parse('$baseUrl/api/v1/auth/parent/forgot-password'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'identifier': identifier}),
     );
@@ -379,7 +380,7 @@ class ApiClient {
 
   Future<void> resetPassword(String token, String newPassword) async {
     final res = await _client.post(
-      Uri.parse('$baseUrl/api/v1/auth/reset-password'),
+      Uri.parse('$baseUrl/api/v1/auth/parent/reset-password'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'token': token, 'newPassword': newPassword}),
     );

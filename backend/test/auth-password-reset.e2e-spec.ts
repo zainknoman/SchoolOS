@@ -27,7 +27,8 @@ describe('Forgot/Reset Password (e2e)', () => {
       .catch(() => undefined);
     const passwordHash = await argon2.hash(originalPassword);
     const user = await prisma.user.create({
-      data: { identifier: userIdentifier, passwordHash, role: 'PARENT' },
+      // BL-35: a staff account — parents use their own flow (parent-password-reset.e2e-spec.ts).
+      data: { identifier: userIdentifier, passwordHash, role: 'SCHOOL_ADMIN' },
     });
     userId = user.id;
   });

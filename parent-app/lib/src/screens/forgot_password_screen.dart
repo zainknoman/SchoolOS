@@ -58,8 +58,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     children: [
                       const Text(
                         key: Key('forgotPasswordMessage'),
-                        'If an account exists for that identifier, a password reset link has '
-                        'been sent.',
+                        'If your account has an e-mail address, we have sent it a reset link '
+                        '(valid for 30 minutes). Open it on this phone, or paste the code below. '
+                        'No e-mail on your account? Ask the school office to reset your password.',
                       ),
                       const SizedBox(height: 16),
                       OutlinedButton(
