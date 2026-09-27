@@ -41,7 +41,7 @@ Legend: 🎯 decided by the owner (2026-09-20) but **not built** — an engineer
 | | AI drafting | 🎯 🔑 | optional, feature-flagged, post-pilot (BL-49) |
 | **Testing** | Unit / e2e / UI / Flutter | ✅ | 579 / 196 / 512 / 100 green (2026-09-20) |
 | | Smoke, regression, security, load, migration | 🔧 | none automated |
-| | Backend lint | 🎯 ⚠ | 2,014 errors, non-blocking; decided to become blocking after cleanup (BL-37) |
+| | Backend lint | ✅ | 0 errors, 0 warnings; lint, format check and type-check block CI (BL-37, 2026-09-27) |
 | **Operations** | Runbooks / incident response / support | 🎯 📄 | runbooks drafted; pilot incident model (P1–P4, no SLA) decided, not operational; must exist before launch (BL-56) |
 | | Release process / versioning / rollback | 🎯 📄 | SemVer, tags, first release 1.0.0, PR flow decided and documented; no tags, no CI release job yet |
 | **Legal / Privacy** | License, privacy policy, disclosure contact | 🎯 ⚖ | proprietary decided (`LICENSE` placeholder notice); `SECURITY.md` placeholder; entity/domain RD-1/RD-2; privacy policy, consent and breach process owner-owned and undocumented (BL-56); no compliance claim until counsel review |

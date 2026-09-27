@@ -83,9 +83,8 @@ export class TermsService {
 
   async create(dto: CreateTermDto, actor: RequestUser): Promise<TermSummary> {
     await this.assertSessionInScope(dto.academicSessionId, actor, 'write');
-    let record;
-    try {
-      record = await this.prisma.term.create({
+    const record = await this.prisma.term
+      .create({
         data: {
           academicSessionId: dto.academicSessionId,
           label: dto.label,
@@ -93,13 +92,13 @@ export class TermsService {
           startDate: new Date(dto.startDate),
           endDate: new Date(dto.endDate),
         },
-      });
-    } catch (error) {
-      assertCreatable(
-        error,
-        'A term with this label already exists for this academic session.',
+      })
+      .catch((error: unknown) =>
+        assertCreatable(
+          error,
+          'A term with this label already exists for this academic session.',
+        ),
       );
-    }
     return this.toSummary(record);
   }
 

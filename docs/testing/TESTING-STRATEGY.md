@@ -24,7 +24,7 @@ Not present: contract tests against a schema, browser end-to-end tests of the st
 | Flutter static | `flutter analyze` | **No issues found** |
 | Staff console types | `npm run type-check` | passed |
 | Staff console lint | `npm run lint` | passed |
-| Backend lint | `npx eslint "{src,test}/**/*.ts"` | **2,034 problems (2,014 errors, 20 warnings)**, 1,965 of them `prettier/prettier` formatting (CRLF/format backlog), rest mostly `no-unsafe-*`; **non-blocking in CI** (`continue-on-error`). The CI comment cites "~672" — the backlog has grown |
+| Backend lint | `npm run lint` (`--max-warnings 0`), `npm run format:check`, `npm run typecheck` | 0 errors, 0 warnings; format and types clean — **blocking in CI** since BL-37 (2026-09-27). On 2026-09-20 it was 2,034 problems (mostly CRLF/format), non-blocking |
 | Backend build / staff-console build | not run in this pass | — |
 
 **Caveats:** e2e ran serially against a scratch database (CI runs them against a `postgres:16` service, not serially-verified here); the Windows timeout in the console run is environmental (three suites ran concurrently). Timings are single runs.

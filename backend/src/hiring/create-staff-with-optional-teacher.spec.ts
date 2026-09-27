@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { createStaffWithOptionalTeacher } from './create-staff-with-optional-teacher';
 
 describe('createStaffWithOptionalTeacher', () => {
@@ -8,11 +9,14 @@ describe('createStaffWithOptionalTeacher', () => {
       },
     } as any;
 
-    const result = await createStaffWithOptionalTeacher(tx, {
-      name: 'Nazir Ahmed',
-      employeeType: 'JANITORIAL',
-      campusId: 'cam1',
-    });
+    const result = await createStaffWithOptionalTeacher(
+      tx as Prisma.TransactionClient,
+      {
+        name: 'Nazir Ahmed',
+        employeeType: 'JANITORIAL',
+        campusId: 'cam1',
+      },
+    );
 
     expect(result).toEqual({ id: 'st1', name: 'Nazir Ahmed' });
     expect(tx.staff.create).toHaveBeenCalledWith(
@@ -45,7 +49,7 @@ describe('createStaffWithOptionalTeacher', () => {
       },
     } as any;
 
-    await createStaffWithOptionalTeacher(tx, {
+    await createStaffWithOptionalTeacher(tx as Prisma.TransactionClient, {
       name: 'Ayesha Khan',
       employeeType: 'TEACHER',
       campusId: 'cam1',

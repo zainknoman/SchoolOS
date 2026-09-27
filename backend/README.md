@@ -22,7 +22,9 @@ npm run start:dev            # http://localhost:3000 (PORT overrides)
 | `npm run build` / `start:prod` | Compile to `dist/` and run it |
 | `npm test` | Unit specs (Prisma mocked) |
 | `npm run test:e2e` | e2e specs in `test/` against a real PostgreSQL |
-| `npm run lint` | ESLint (non-blocking in CI: known formatting backlog) |
+| `npm run lint` | ESLint, zero warnings allowed (blocking in CI) |
+| `npm run format:check` | Prettier check of `src` and `test` (blocking in CI) |
+| `npm run typecheck` | `tsc --noEmit` over `src` and `test` (blocking in CI) |
 | `npm run prisma:seed` | Development seed (`prisma/seed.ts`) |
 
 ## Layout

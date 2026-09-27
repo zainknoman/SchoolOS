@@ -12,7 +12,7 @@
 | Backend e2e | `npm run test:e2e` (needs PostgreSQL) | all pass |
 | Console | `cd staff-console && npm ci && npm run lint && npm test && npm run build` | exit 0 |
 | Parent app | `cd parent-app && flutter analyze && flutter test` | no issues; all pass |
-| Backend lint | `npm run lint` | currently **fails** (2,014 errors; non-blocking in CI) |
+| Backend lint / format / types | `npm run lint && npm run format:check && npm run typecheck` | exit 0 (0 errors, 0 warnings; blocking in CI since BL-37) |
 
 ## 2. Manual/pre-release checks (gaps)
 | Check | Detail |
@@ -37,4 +37,4 @@
 10. Parent app (release build) connects to the production API URL, logs in, receives a push.
 
 ## 4. Acceptance to release
-All §1 gates green (or lint exception recorded), §2 items complete, smoke test §3 passes on staging, rollback path confirmed ([BACKUP-RESTORE](../operations/BACKUP-RESTORE.md), `docs/release/ROLLBACK.md`).
+All §1 gates green, §2 items complete, smoke test §3 passes on staging, rollback path confirmed ([BACKUP-RESTORE](../operations/BACKUP-RESTORE.md), `docs/release/ROLLBACK.md`).

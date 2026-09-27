@@ -91,7 +91,7 @@ cd staff-console  && npm test && npm run type-check && npm run lint
 cd parent-app     && flutter analyze && flutter test
 ```
 
-Strategy and results (2026-09-20: backend unit 579, e2e 196, staff console 512, Flutter 100 — all green; backend lint failing/non-blocking): [`docs/testing/`](docs/testing/TESTING-STRATEGY.md).
+Strategy and results (2026-09-27: backend unit 784, e2e 372, staff console 582, Flutter 118 — all green; backend lint, format and type-check clean and blocking in CI): [`docs/testing/`](docs/testing/TESTING-STRATEGY.md).
 
 ## Integrations
 

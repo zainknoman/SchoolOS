@@ -45,7 +45,7 @@ describe('bootstrapSuperAdmin (BL-22)', () => {
     });
     expect(
       await argon2.verify(
-        data.passwordHash,
+        data.passwordHash as string,
         env.BOOTSTRAP_SUPER_ADMIN_PASSWORD,
       ),
     ).toBe(true);

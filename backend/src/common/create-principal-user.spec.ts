@@ -39,7 +39,7 @@ describe('createPrincipalUser', () => {
     expect(data.passwordHash).not.toContain(result.login.temporaryPassword);
     expect(
       await argon2.verify(
-        data.passwordHash,
+        data.passwordHash as string,
         result.login.temporaryPassword as string,
       ),
     ).toBe(true);
@@ -56,7 +56,9 @@ describe('createPrincipalUser', () => {
     expect(result.login.temporaryPassword).toBeNull();
     const data = tx.user.create.mock.calls[0][0].data;
     expect(data.campusId).toBe('c1');
-    expect(await argon2.verify(data.passwordHash, 'Sup3rSecret!')).toBe(true);
+    expect(
+      await argon2.verify(data.passwordHash as string, 'Sup3rSecret!'),
+    ).toBe(true);
   });
 
   it('stores the normalized identifier and returns exactly what was stored', async () => {

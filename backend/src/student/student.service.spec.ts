@@ -345,7 +345,7 @@ describe('StudentService', () => {
     const parentAuditCall = tx.auditLog.create.mock.calls.find(
       (call) => call[0].data.action === 'parent.create',
     )![0];
-    expect(JSON.parse(parentAuditCall.data.metadata)).toEqual({
+    expect(JSON.parse(parentAuditCall.data.metadata as string)).toEqual({
       identifier: 'new-parent@schoolos.edu.pk',
       name: 'New Parent',
     });

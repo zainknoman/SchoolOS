@@ -310,7 +310,10 @@ describe('Org provisioning and campus scoping (e2e)', () => {
         temporaryPassword: null,
       });
       secrets.push(SUPPLIED_ADMIN_PASSWORD);
-      await expectNoPasswordInAudit(['prov-admin2@x.test'], [res.body.id]);
+      await expectNoPasswordInAudit(
+        ['prov-admin2@x.test'],
+        [res.body.id as string],
+      );
       const body = await loginOk('prov-admin2@x.test', SUPPLIED_ADMIN_PASSWORD);
       expect(body.mustChangePassword).toBe(true);
     });
@@ -363,10 +366,13 @@ describe('Org provisioning and campus scoping (e2e)', () => {
           principal: { identifier: 'prov-east@x.test' },
         })
         .expect(201);
-      const temp = gen.body.provisionedLogin.temporaryPassword;
+      const temp = gen.body.provisionedLogin.temporaryPassword as string;
       expect(typeof temp).toBe('string');
       secrets.push(temp);
-      await expectNoPasswordInAudit(['prov-east@x.test'], [gen.body.id]);
+      await expectNoPasswordInAudit(
+        ['prov-east@x.test'],
+        [gen.body.id as string],
+      );
       const eastLogin = await loginOk('prov-east@x.test', temp);
       expect(eastLogin.mustChangePassword).toBe(true);
       expect(eastLogin.campusId).toBe(gen.body.id);

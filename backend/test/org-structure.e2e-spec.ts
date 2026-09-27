@@ -396,7 +396,7 @@ describe('Org Structure (e2e)', () => {
       'principal.extended@schoolos.edu.pk',
     );
     expect(school.body.registrationNumber).toBe('REG-OS-001');
-    expect(new Date(school.body.establishedDate).toISOString()).toBe(
+    expect(new Date(school.body.establishedDate as string).toISOString()).toBe(
       new Date('2010-04-15').toISOString(),
     );
     expect(school.body.schoolType).toBe('PRIVATE');
@@ -427,7 +427,7 @@ describe('Org Structure (e2e)', () => {
     expect(stored.principalPhone).toBe('0300-1000001');
     expect(stored.principalEmail).toBe('principal.extended@schoolos.edu.pk');
     expect(stored.registrationNumber).toBe('REG-OS-001');
-    expect(new Date(stored.establishedDate).toISOString()).toBe(
+    expect(new Date(stored.establishedDate as string).toISOString()).toBe(
       new Date('2010-04-15').toISOString(),
     );
     expect(stored.schoolType).toBe('PRIVATE');
@@ -600,7 +600,7 @@ describe('Org Structure (e2e)', () => {
     expect(stored.principalPhone).toBe('0300-2000001');
     expect(stored.principalEmail).toBe('preserve.principal@schoolos.edu.pk');
     expect(stored.registrationNumber).toBe('REG-PRESERVE-001');
-    expect(new Date(stored.establishedDate).toISOString()).toBe(
+    expect(new Date(stored.establishedDate as string).toISOString()).toBe(
       new Date('2012-05-20').toISOString(),
     );
     expect(stored.schoolType).toBe('PRIVATE');

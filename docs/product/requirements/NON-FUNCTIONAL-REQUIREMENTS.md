@@ -26,7 +26,7 @@
 | NFR-DAT-02 | Data | Daily backups (PITR preferred), **RPO <= 24 h, RTO <= 4 h, retention >= 30 days**; tested restore | DECIDED 2026-09-20 (nothing built) | BL-13 |
 | NFR-OPS-01 | Operability | Structured logs, Sentry with PII scrubbing, provider DB monitoring, external uptime monitoring | DECIDED 2026-09-20 (nothing built) | BL-11 |
 | NFR-SCL-01 | Scalability | Single instance acceptable for the pilot, but horizontally scalable design: object storage, job locking/idempotency, no in-memory distributed state | DECIDED 2026-09-20 (in-process cron and local disk today) | BL-10, BL-39 |
-| NFR-QLT-01 | Quality | CI runs backend build/unit/e2e, console lint/test/build, Flutter analyze/test on PR and `main` | OBSERVED | `.github/workflows/ci.yml`; backend lint non-blocking. **Decided:** backend lint becomes blocking after the backlog is cleaned; CI progressively enforces format, lint, type-check, unit, e2e, build (BL-37) |
+| NFR-QLT-01 | Quality | CI runs backend build/unit/e2e, console lint/test/build, Flutter analyze/test on PR and `main` | OBSERVED | `.github/workflows/ci.yml`; since BL-37 (2026-09-27) backend lint (0 warnings), format, type-check, build, unit and e2e all block |
 | NFR-REL-01 | Release | Semantic Versioning, Git tags, first release 1.0.0, PR-based flow, staging validation, owner approval | DECIDED 2026-09-20 (no tags yet) | [RELEASE-CHECKLIST](../../release/RELEASE-CHECKLIST.md) |
 | NFR-PRV-01 | Privacy | Privacy-by-design for children's data; retention/archive (no auto-deletion), consent/notice, controlled exports, breach procedures, PII scrubbing; no legal-compliance claim until counsel review | DECIDED 2026-09-20 (controls not built) | [DATA-PROTECTION](../../security/DATA-PROTECTION.md), BL-07, BL-56 |
 

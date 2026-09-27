@@ -744,9 +744,8 @@ export class ParentService {
     }
     const blankToNull = (v: string | undefined) =>
       v === undefined ? undefined : v.trim() || null;
-    let record;
-    try {
-      record = await this.prisma.parentProfile.update({
+    const record = await this.prisma.parentProfile
+      .update({
         where: { id },
         data: {
           ...(dto.name !== undefined ? { name: dto.name } : {}),
@@ -770,10 +769,10 @@ export class ParentService {
           ),
         },
         include: WITH_USER_AND_COUNT,
-      });
-    } catch (error) {
-      assertCreatable(error, 'This CNIC is already in use.');
-    }
+      })
+      .catch((error: unknown) =>
+        assertCreatable(error, 'This CNIC is already in use.'),
+      );
     await this.prisma.auditLog.create({
       data: {
         userId: actingUserId,

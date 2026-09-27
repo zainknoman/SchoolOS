@@ -6,7 +6,7 @@
 ## Before cutting a release
 - [ ] Changes merged via reviewed PR (no direct commits to `main`); the release commit deployed to **staging** and acceptance-verified
 - [ ] Product/Engineering owner approval recorded for production
-- [ ] All CI jobs green on the release commit (`ci.yml`); backend lint status recorded (currently failing and non-blocking; decided to become blocking after the backlog is cleaned — BL-37)
+- [ ] All CI jobs green on the release commit (`ci.yml`); backend lint, format check and type-check are blocking gates (BL-37)
 - [ ] Full validation run per [RELEASE-VALIDATION](../testing/RELEASE-VALIDATION.md) §1–§2
 - [ ] [KNOWN-GAPS](../security/KNOWN-GAPS.md) and [KNOWN-ISSUES](KNOWN-ISSUES.md): every High item fixed or accepted **in writing** by the owner
 - [ ] `npm audit` reviewed (backend, staff-console); `flutter pub outdated` reviewed

@@ -32,7 +32,7 @@ No global exception filter, interceptor or request logger is registered (no `APP
 Argon2 password hashing; short-lived JWT access token + hashed, rotating refresh tokens; server-side role guards; service-level tenant scoping; DTO validation; per-route and global throttling; CORS allow-list; secrets via env with fail-fast for partially configured providers. Gaps: no security headers, staff console keeps tokens in `localStorage`, `NODE_ENV` defaults to "development" when unset.
 
 ## Build and CI
-GitHub Actions (`ci.yml`): backend (Postgres 16 service, `prisma migrate deploy`, lint [non-blocking], build, unit, e2e), staff-console (lint, test, build), parent-app (`flutter analyze`, `flutter test`). No deploy or publish job.
+GitHub Actions (`ci.yml`): backend (Postgres 16 service, `prisma migrate deploy`, lint, format check, type-check, build, unit, e2e — all blocking), staff-console (lint, test, build), parent-app (`flutter analyze`, `flutter test`). No deploy or publish job.
 
 ## Deployment topology
 **None defined in the repository.** See [`docs/operations/DEPLOYMENT.md`](../operations/DEPLOYMENT.md).

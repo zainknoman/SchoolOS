@@ -334,7 +334,7 @@ describe('Fees (e2e)', () => {
         feeStructureIds: [ids.structure],
       })
       .expect(201);
-    const voucherId = issued.body[0].id;
+    const voucherId = issued.body[0].id as string;
 
     const parentAToken = await loginAs('fee-parent-a@schoolos.edu.pk');
     const initiated = await request(app.getHttpServer())
