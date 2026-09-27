@@ -1,9 +1,9 @@
 # Pilot-Readiness Execution Plan (Waves 0–7)
 
-> **Status:** CURRENT — **Waves 0–5 done, Wave 6 done except owner-gated items, Wave 7 in progress** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-37 part 2) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
+> **Status:** CURRENT — **Waves 0–6 done (owner-gated BL-43/BL-54/BL-14 carried forward), Wave 7 is the current wave** (see §0) · **Progress verified:** 2026-09-27 against `wave-0/foundations` (BL-37 part 2) · plan text verified 2026-09-20 against `main@15362b7` (schema, services, tests read on this date) · **Sources:** [BACKLOG](../product/requirements/BACKLOG.md), [GAP-ANALYSIS](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md), `backend/prisma/schema.prisma`, `attendance.service.ts`, `leave.service.ts`, `circulars.service.ts`, `promotions.service.ts`, `create-parent-with-user.ts` · **Owner:** Engineering Lead (Technical Owner)
 > Companion to the gap analysis: this file fixes the **order of execution**, the **schema/migration dependencies that must precede application code**, the affected layers, the docs to regenerate, and rollback rules. Findings F1–F10 (2026-09-20) are folded in. Item detail and acceptance criteria live in the BACKLOG.
 
-## 0. Progress and handoff (updated 2026-09-27, after BL-37 part 2)
+## 0. Progress and handoff (updated 2026-09-27 — Wave 6 closed, Wave 7 next)
 
 All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` = github.com/zainknoman/SchoolOS), one commit per item, each pushed after its checks passed. Item detail and "Done" notes: [BACKLOG](../product/requirements/BACKLOG.md); migrations and rehearsals: [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md); deploy steps: [RUNBOOKS](../operations/RUNBOOKS.md).
 
@@ -24,9 +24,12 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 6 | BL-08 fee ledger (discounts/scholarships, late fees, outstanding/defaulters, carry-forward; KG-28) | ✅ | `ec04451` |
 | 6 | BL-30 complaints workflow (M10 complaint part; KG-29, KG-30) | ✅ | `5784b1d` |
 | 6 | BL-35 parent password reset (separate flow, deep link) | ✅ code (delivery needs an SMTP provider; until then BL-64) | `ee2d4c6` |
-| 6 | BL-43 · BL-54 · BL-14 | ⏸ **owner input** — Play Console, Firebase projects, signing keys, test devices | — |
+| 6 | **Wave 6 closed 2026-09-27** — all engineering items done | ✅ | — |
+| — | Carried forward from Wave 6 (owner-gated, not built): BL-43 (Play Console, Firebase projects, signing keys) · BL-54 (real-device matrix) · BL-14 FCM part (`[FIREBASE_PROJECT_ID]`, SMTP provider) | ⏸ **owner input**; still required before pilot go-live | — |
 | 7 | BL-37 part 2 (CI: backend lint 0 warnings, format, type-check, build, unit, e2e blocking; KI-21) | ✅ | `c776294` |
-| 7 | BL-15 · BL-55 · BL-36 · BL-56 · BL-57 · BL-58 | ⏳ | — |
+| 7 | **Next:** BL-55 accessibility (axe in console tests + keyboard/screen-reader audit) | ⏳ next | — |
+| 7 | BL-36 token-storage decision · BL-15 load-test script and report (report needs staging) · BL-56 privacy operations docs · BL-57 pilot exit checklist | ⏳ | — |
+| 7 | BL-58 repository hygiene | ⏸ written authorisation required (RD-15) | — |
 
 Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a3cb1` (KG-24 — bulk import could write into another school); with BL-41, `fees.e2e-spec.ts` stopped using a due date (2026-09-25) that had passed, which made its voucher read "overdue".
 
@@ -43,7 +46,7 @@ Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a
 - Multi-line edits: write a Node script to the scratchpad and run it (normalise CRLF first); never put `﻿` in written content (it becomes a literal BOM).
 - Full e2e on a scratch DB: create `schoolos_scratch_e2e` (drop first), `DATABASE_URL=<…/schoolos_scratch_e2e> npx prisma migrate deploy`, then the same `DATABASE_URL` for `npm run test:e2e`. Suites that call validated endpoints must install the global `ValidationPipe` (production does it in `main.ts`, `AppModule` does not).
 
-**Next step:** the rest of Wave 6 needs the owner: BL-43 (Play Console account, Firebase staging/production projects, signing-key custody), BL-14 (FCM needs `[FIREBASE_PROJECT_ID]`; SMTP when a provider is chosen) and BL-54 (a device matrix run on real Android devices). Wave 7 items that need no owner input proceed meanwhile: BL-37 part 2 done; next BL-55 (axe in CI + keyboard audit), BL-36 (token-storage decision), BL-15 (load-test script; the report needs staging), BL-56/BL-57 documents with placeholders. BL-58 waits for written authorisation.
+**Next step: Wave 7.** Order: BL-55 (axe in console tests + keyboard/screen-reader audit) → BL-36 (token-storage decision) → BL-15 (load-test script; the report needs staging) → BL-56/BL-57 (documents with placeholders). BL-37 part 2 is done; BL-58 waits for written authorisation. Wave 6 is closed; its owner-gated items (BL-43 Play Console/Firebase/signing keys, BL-14 FCM `[FIREBASE_PROJECT_ID]` + SMTP, BL-54 real-device matrix) are carried forward and still gate pilot go-live — pick them up as soon as the owner provides the inputs.
 - Backend CI gates (BL-37): `npm run lint` fails on any warning; also run `npm run format:check` and `npm run typecheck` before committing.
 - The parent app now depends on `file_picker` (complaint attachments); include it in the BL-54 device matrix.
 - The two-school e2e fixture now removes its students' fee ledger itself (payments, reversals, carry-forward lines, vouchers) — suites no longer need their own fee cleanup.
@@ -63,7 +66,7 @@ Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a
 | F10 | Gaps in BL numbering (BL-42/44/50 unassigned); BL-17 folded into BL-01/BL-34 | BACKLOG legacy map |
 
 ## 2. Dependency chain
-`Wave 0 (BL-62 strategy · BL-65 harness · BL-66 generators · BL-37 part 1 · BL-18 scaffold)` → `Wave 1 (BL-51 · BL-12 · BL-21 → BL-64 · BL-22 · BL-52 · BL-60 [M1])` → `Wave 2 (BL-10 · BL-11 · BL-39 · BL-40 ∥ BL-13 infra)` → `Wave 3 (M2/BL-20 · M3/BL-01 · M4/BL-02 · M5/BL-03 · BL-33 · BL-32 · BL-53 · BL-34)` → `Wave 4 (M6/BL-23+BL-04 · M7/BL-61 → BL-05 · M8/BL-25 · M9/BL-07+BL-63 · BL-41)` → `Wave 5 (BL-26 · BL-27 · BL-06 · BL-28 · BL-29 [M1b])` → `Wave 6 (BL-08 · BL-30 · BL-35 · BL-43 · BL-54 · BL-14 FCM)` → `Wave 7 (BL-15 · BL-55 · BL-36 · BL-37 part 2 · BL-56 · BL-57 · BL-58)`.
+`Wave 0 (BL-62 strategy · BL-65 harness · BL-66 generators · BL-37 part 1 · BL-18 scaffold)` → `Wave 1 (BL-51 · BL-12 · BL-21 → BL-64 · BL-22 · BL-52 · BL-60 [M1])` → `Wave 2 (BL-10 · BL-11 · BL-39 · BL-40 ∥ BL-13 infra)` → `Wave 3 (M2/BL-20 · M3/BL-01 · M4/BL-02 · M5/BL-03 · BL-33 · BL-32 · BL-53 · BL-34)` → `Wave 4 (M6/BL-23+BL-04 · M7/BL-61 → BL-05 · M8/BL-25 · M9/BL-07+BL-63 · BL-41)` → `Wave 5 (BL-26 · BL-27 · BL-06 · BL-28 · BL-29 [M1b])` → `Wave 6 ✅ (BL-08 · BL-30 · BL-35; BL-43 · BL-54 · BL-14 FCM carried forward, owner-gated)` → **current:** `Wave 7 (BL-15 · BL-55 · BL-36 · BL-37 part 2 · BL-56 · BL-57 · BL-58)`.
 Hard gates: **BL-62 approved (✅ 2026-09-24) + BL-65 available (✅)** before any of BL-01, BL-02, BL-03, BL-20 (M2), BL-23, BL-61 executes; **BL-21 before BL-64**; **BL-60 (M1) before BL-29 (M1b)**; **BL-61 before BL-05**; **BL-40 (pagination) before new list screens**; **BL-34 before BL-43** (identifiers created once); **BL-66 before the first regeneration of docs**.
 
 ## 3. Schema / migration order (schema before application code)
