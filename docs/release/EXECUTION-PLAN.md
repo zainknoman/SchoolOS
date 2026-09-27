@@ -25,7 +25,7 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 6 | BL-30 complaints workflow (M10 complaint part; KG-29, KG-30) | ✅ | `5784b1d` |
 | 6 | BL-35 parent password reset (separate flow, deep link) | ✅ code (delivery needs an SMTP provider; until then BL-64) | `ee2d4c6` |
 | 6 | BL-43 · BL-54 · BL-14 | ⏸ **owner input** — Play Console, Firebase projects, signing keys, test devices | — |
-| 7 | BL-37 part 2 (CI: backend lint 0 warnings, format, type-check, build, unit, e2e blocking; KI-21) | ✅ | `BL37-COMMIT` |
+| 7 | BL-37 part 2 (CI: backend lint 0 warnings, format, type-check, build, unit, e2e blocking; KI-21) | ✅ | `c776294` |
 | 7 | BL-15 · BL-55 · BL-36 · BL-56 · BL-57 · BL-58 | ⏳ | — |
 
 Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a3cb1` (KG-24 — bulk import could write into another school); with BL-41, `fees.e2e-spec.ts` stopped using a due date (2026-09-25) that had passed, which made its voucher read "overdue".
