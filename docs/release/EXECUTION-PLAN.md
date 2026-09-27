@@ -29,7 +29,7 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 7 | BL-37 part 2 (CI: backend lint 0 warnings, format, type-check, build, unit, e2e blocking; KI-21) | ✅ | `c776294` |
 | 7 | BL-55 accessibility: axe on every console spec + token contrast in CI, keyboard pass, 9 fixes ([ACCESSIBILITY-AUDIT](ACCESSIBILITY-AUDIT.md)); screen-reader pass needs a person | ✅ (SR pass ⏳ human) | `0b8aac7` |
 | 7 | BL-36 token storage: decision ([TOKEN-STORAGE-DECISION](../security/TOKEN-STORAGE-DECISION.md)); KG-15 closed (no query-string tokens; path-bound download links) | ✅ | `0fb1940` |
-| 7 | BL-36 option B (owner choice 2026-09-28): refresh token in an HttpOnly SameSite=Strict cookie, access token in memory, CSRF header + Origin check; KG-9 closed. Needs same-site console/API domains (RD-2) | ✅ | `BL36B-COMMIT` |
+| 7 | BL-36 option B (owner choice 2026-09-28): refresh token in an HttpOnly SameSite=Strict cookie, access token in memory, CSRF header + Origin check; KG-9 closed. Needs same-site console/API domains (RD-2) | ✅ | `50bd3dd` |
 | 7 | BL-15 load-test script and report (report needs staging) · BL-56 privacy operations docs · BL-57 pilot exit checklist | ⏳ | — |
 | 7 | BL-58 repository hygiene | ⏸ written authorisation required (RD-15) | — |
 
