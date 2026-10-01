@@ -13,6 +13,7 @@
 | Organisation | 2 fictional schools, **Demo School North** (code `DSN`, 3 campuses) and **Demo School South** (`DSS`, 2 campuses) — BL-34; contact fields use `*.demo-school.example.edu.pk` / `*.schoolos.local`; 2 sessions per school (`2025-2026` inactive, `2026-2027` **active in both schools**), classes `Class 1`–`Class 8` × sections per campus, subjects | `seed.ts` |
 | People | superadmin, per-school admin/principal/accounts, teachers per section, students with parents, staff, support staff, addresses, files (campus logos) | `seed.ts:161-238` |
 | Academic data | enrollments, timetable, attendance, diary, admissions, hiring examples | `seed.ts` (see README history for the older description) |
+| Load-test data (BL-15) | Separate generator, not the demo seed: `npm run load:data` (built `dist`) creates school `LTS` with 2,000 students, 4,000 guardians, 60 teachers and a month of activity (about 173,000 rows). Idempotent (fixed ids, `skipDuplicates`); refuses unless `NODE_ENV` is development/test, the database name contains `load`/`scratch`/`e2e`, and `LOAD_PASSWORD` is set — see [LOAD-TEST-REPORT](../release/LOAD-TEST-REPORT.md) | `src/cli/load-data.ts` |
 | Identifiers | `superadmin@schoolos.local`; `admin@dsn.schoolos.local`, `principal@…`, `accounts@…` per school; teachers `<dsn|dss>.c<campus>.g<class><section>@schoolos.local`; parents `<prefix>.<gr>@parent.schoolos.local`; password = `SEED_PASSWORD` for all | `seed.ts` |
 
 ## Code issues discovered (recorded, not fixed)

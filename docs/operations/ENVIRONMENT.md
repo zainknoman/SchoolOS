@@ -25,6 +25,8 @@
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | With `STORAGE_DRIVER=s3` unless the host provides credentials (instance role) | SDK default chain | **Yes** | Bucket-scoped credentials only |
 | `UPLOADS_DIR` | No | `./uploads` (process cwd) | No | Local-disk file store (development/test), and the source directory for `npm run storage:copy-to-s3` |
 | `SEED_PASSWORD` | Only for `npm run prisma:seed` | none (seed throws) | Yes | Never set in production |
+| `LOAD_PASSWORD` | Only for `npm run load:data` / `npm run load:test` (BL-15) | none (both refuse) | Yes | Password of every generated load-test account, at least 12 characters; `load:data` also needs `NODE_ENV=development\|test` and a database named `*load*`/`*scratch*`/`*e2e*`. Never set in production |
+| `LOAD_BASE_URL`, `LOAD_ORIGIN` | No (`load:test` only) | `http://127.0.0.1:3000`, `http://localhost:5173` | No | API base URL and the console Origin the load runner sends ([LOAD-TEST-REPORT](../release/LOAD-TEST-REPORT.md)) |
 | `JAZZCASH_MERCHANT_ID`, `_PASSWORD`, `_INTEGRITY_SALT`, `_RETURN_URL`, `_API_URL` | Optional as a group | all unset ⇒ gateway disabled | Yes (first three) | Partial set ⇒ startup error outside dev/test |
 | `EASYPAISA_STORE_ID`, `_HASH_KEY`, `_RETURN_URL`, `_API_URL` | Optional as a group | all unset ⇒ disabled | Yes (`HASH_KEY`) | same rule |
 | `PAYMENT_STUB_WEBHOOK_SECRET` | Required outside dev/test | `dev-only-stub-webhook-secret` in dev/test | Yes | `gateway-config.ts:56-61` |

@@ -11,8 +11,9 @@
 | Staff console | Vitest + `@vue/test-utils` (jsdom), axe-core | `staff-console/src/**/*.spec.ts` (73 files) | component/view/store/router behaviour; axe (WCAG 2.1 AA) on every spec's final state and design-token contrast, both blocking (BL-55, 2026-09-27) | none (API mocked) |
 | Parent app | `flutter test` | `parent-app/test/**` (29 files) | screens, auth, cache, API client, notifications | none |
 | Static | `eslint`, `vue-tsc`, `flutter analyze`, `nest build` | — | style/type correctness | — |
+| Load/performance (BL-15, 2026-10-01) | `npm run load:data` + `npm run load:test` (plain Node runner) — manual, not in CI | `backend/src/cli/load-data.ts`, `backend/load-test/run.mjs`, results in `backend/load-test/results/` | Q44 targets with 100 concurrent users on 2,000 students: CRUD p95 < 500 ms, auth p95 < 1 s, errors < 1 % (exit code 1 on failure) — [LOAD-TEST-REPORT](../release/LOAD-TEST-REPORT.md) | a scratch database named `*load*` |
 
-Not present: contract tests against a schema, browser end-to-end tests of the staff console, mobile integration tests, load/performance, security (DAST/fuzz), migration tests, production smoke tests, live-integration tests. (A `.playwright-mcp/` tool folder exists outside the repo tree; no Playwright suite is committed.)
+Not present: contract tests against a schema, browser end-to-end tests of the staff console, mobile integration tests, a load test **on staging** (the local one exists, BL-15), security (DAST/fuzz), migration tests, production smoke tests, live-integration tests. (A `.playwright-mcp/` tool folder exists outside the repo tree; no Playwright suite is committed.)
 
 ## Results of the 2026-09-20 run (`main@15362b7`, Windows 11, Node 24.18)
 | Suite | Command | Result |
