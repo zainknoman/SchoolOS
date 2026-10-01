@@ -901,6 +901,8 @@ model Attendance {
   @@unique([studentId, date])
   @@index([studentId])
   @@index([markedByUserId])
+  // BL-15: school/section-wide lookups by day (dashboard, "already marked today")
+  @@index([date])
 }
 
 model DiaryEntry {
@@ -1022,6 +1024,8 @@ model Notification {
   createdAt    DateTime  @default(now())
 
   @@index([userId])
+  // BL-15: the dashboard's newest alerts across a school
+  @@index([createdAt])
 }
 
 /// BL-03 (M5): a fee structure's lifecycle. DRAFT = being prepared (editable, not issuable);

@@ -10,7 +10,12 @@ describe('AttendanceService', () => {
   let prisma: {
     teacher: { findUnique: jest.Mock };
     section: { findUnique: jest.Mock };
-    attendance: { upsert: jest.Mock; findMany: jest.Mock };
+    attendance: {
+      upsert: jest.Mock;
+      findMany: jest.Mock;
+      createMany: jest.Mock;
+      updateMany: jest.Mock;
+    };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
@@ -21,7 +26,12 @@ describe('AttendanceService', () => {
     prisma = {
       teacher: { findUnique: jest.fn() },
       section: { findUnique: jest.fn() },
-      attendance: { upsert: jest.fn(), findMany: jest.fn() },
+      attendance: {
+        upsert: jest.fn(),
+        findMany: jest.fn(),
+        createMany: jest.fn(),
+        updateMany: jest.fn(),
+      },
       auditLog: { create: jest.fn() },
       $transaction: jest
         .fn()
@@ -213,16 +223,30 @@ describe('AttendanceService', () => {
       expect(prisma.attendance.upsert).not.toHaveBeenCalled();
     });
 
-    it('upserts every mark in one transaction, attributed to the marking teacher, and writes one bulk audit log entry', async () => {
+    function givenBulk(teacher: { id: string } | null) {
       enrollmentService.getCurrentEnrollment.mockResolvedValue({
         campusId: 'campus-1',
         sectionId: 'sec-1',
       });
       holidaysService.isHoliday.mockResolvedValue(false);
-      prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-1' });
-      prisma.attendance.upsert.mockResolvedValue({ id: 'att-1' });
+      prisma.teacher.findUnique.mockResolvedValue(teacher);
+      prisma.attendance.createMany.mockResolvedValue({ count: 0 });
+      prisma.attendance.updateMany.mockResolvedValue({ count: 0 });
+      prisma.attendance.findMany.mockImplementation(
+        ({ where }: { where: { studentId: { in: string[] } } }) =>
+          Promise.resolve(
+            [...where.studentId.in]
+              .reverse()
+              .map((studentId) => ({ id: `att-${studentId}`, studentId })),
+          ),
+      );
+    }
 
-      await service.markBulk(
+    it('upserts every mark in one transaction, attributed to the marking teacher, and writes one bulk audit log entry', async () => {
+      givenBulk({ id: 'teacher-1' });
+      const date = new Date('2026-09-01');
+
+      const records = await service.markBulk(
         {
           date: '2026-09-01',
           marks: [
@@ -233,30 +257,40 @@ describe('AttendanceService', () => {
         'teacher-user-1',
       );
 
-      expect(prisma.attendance.upsert).toHaveBeenCalledTimes(2);
-      expect(prisma.attendance.upsert).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          where: {
-            studentId_date: { studentId: 's1', date: new Date('2026-09-01') },
-          },
-          create: expect.objectContaining({
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      // New rows are inserted; rows that already exist are left to the updates below.
+      expect(prisma.attendance.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
             studentId: 's1',
+            date,
             status: 'PRESENT',
             markedById: 'teacher-1',
+            markedByUserId: 'teacher-user-1',
           }),
-        }),
-      );
-      expect(prisma.attendance.upsert).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          create: expect.objectContaining({
+          expect.objectContaining({
             studentId: 's2',
+            date,
             status: 'ABSENT',
             markedById: 'teacher-1',
           }),
-        }),
-      );
+        ],
+        skipDuplicates: true,
+      });
+      expect(prisma.attendance.updateMany).toHaveBeenCalledWith({
+        where: { date, studentId: { in: ['s1'] } },
+        data: {
+          status: 'PRESENT',
+          markedById: 'teacher-1',
+          markedByUserId: 'teacher-user-1',
+        },
+      });
+      expect(prisma.attendance.updateMany).toHaveBeenCalledWith({
+        where: { date, studentId: { in: ['s2'] } },
+        data: expect.objectContaining({ status: 'ABSENT' }),
+      });
+      // The saved rows come back in the order they were sent.
+      expect(records.map((r) => r.studentId)).toEqual(['s1', 's2']);
       expect(prisma.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -268,29 +302,69 @@ describe('AttendanceService', () => {
       );
     });
 
+    // BL-15: bulk marking was one upsert per student (a 35-student section = 35 round trips inside
+    // one transaction, holding a pooled connection for seconds under load). It is now a fixed
+    // number of statements: one insert, one update per status used, one read.
+    it('uses a fixed number of statements whatever the class size', async () => {
+      givenBulk({ id: 'teacher-1' });
+      const statuses = ['PRESENT', 'ABSENT', 'LATE'] as const;
+      const marks = Array.from({ length: 40 }, (_, i) => ({
+        studentId: `s${i}`,
+        status: statuses[i % 3],
+      }));
+
+      const records = await service.markBulk(
+        { date: '2026-09-01', marks },
+        'teacher-user-1',
+      );
+
+      expect(prisma.attendance.upsert).not.toHaveBeenCalled();
+      expect(prisma.attendance.createMany).toHaveBeenCalledTimes(1);
+      expect(prisma.attendance.updateMany).toHaveBeenCalledTimes(3);
+      expect(prisma.attendance.findMany).toHaveBeenCalledTimes(1);
+      expect(records).toHaveLength(40);
+    });
+
+    it('keeps the last status when a student appears twice in one batch', async () => {
+      givenBulk({ id: 'teacher-1' });
+
+      const records = await service.markBulk(
+        {
+          date: '2026-09-01',
+          marks: [
+            { studentId: 's1', status: 'PRESENT' },
+            { studentId: 's1', status: 'ABSENT' },
+          ],
+        },
+        'teacher-user-1',
+      );
+
+      expect(prisma.attendance.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ studentId: 's1', status: 'ABSENT' })],
+        skipDuplicates: true,
+      });
+      expect(prisma.attendance.updateMany).toHaveBeenCalledTimes(1);
+      expect(records).toHaveLength(1);
+    });
+
     // BL-60 replaced: bulk marking by an admin used to borrow each student's class teacher.
     it('bulk marking by an admin records the admin, never a class teacher', async () => {
-      enrollmentService.getCurrentEnrollment.mockResolvedValue({
-        campusId: 'campus-1',
-        sectionId: 'sec-1',
-      });
-      holidaysService.isHoliday.mockResolvedValue(false);
-      prisma.teacher.findUnique.mockResolvedValue(null);
-      prisma.attendance.upsert.mockResolvedValue({ id: 'att-1' });
+      givenBulk(null);
 
       await service.markBulk(
         { date: '2026-09-01', marks: [{ studentId: 's1', status: 'PRESENT' }] },
         'admin-user-1',
       );
 
-      expect(prisma.attendance.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          create: expect.objectContaining({
+      expect(prisma.attendance.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
             markedById: null,
             markedByUserId: 'admin-user-1',
           }),
-        }),
-      );
+        ],
+        skipDuplicates: true,
+      });
       expect(prisma.section.findUnique).not.toHaveBeenCalled();
     });
   });

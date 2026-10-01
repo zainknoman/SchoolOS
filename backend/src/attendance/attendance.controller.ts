@@ -62,9 +62,11 @@ export class AttendanceController {
     @Body() dto: BulkMarkAttendanceDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    for (const mark of dto.marks) {
-      await this.studentAccess.assertCanAccessStudent(req.user, mark.studentId);
-    }
+    // One batch check (BL-15) — it was one check per student, in sequence.
+    await this.studentAccess.assertCanAccessStudents(
+      req.user,
+      dto.marks.map((m) => m.studentId),
+    );
     return this.attendanceService.markBulk(dto, req.user.id);
   }
 }

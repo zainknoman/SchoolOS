@@ -60,6 +60,76 @@ export class StudentAccessService {
     }
   }
 
+  /**
+   * The same rule as assertCanAccessStudent for many students at once (bulk attendance), with a
+   * fixed number of queries (BL-15). Fails if any one student is out of reach.
+   */
+  async assertCanAccessStudents(
+    user: RequestUser,
+    studentIds: string[],
+  ): Promise<void> {
+    const ids = [...new Set(studentIds)];
+    const deny = () => {
+      throw new ForbiddenException('You do not have access to this student');
+    };
+    switch (user.role) {
+      case 'SUPER_ADMIN':
+        return;
+      case 'SCHOOL_ADMIN':
+      case 'ACCOUNTS':
+      case 'TEACHER': {
+        // At most one ACTIVE enrolment per student (BL-53), so this is getCurrentEnrollment.
+        const enrollments = await this.prisma.enrollment.findMany({
+          where: { studentId: { in: ids }, status: 'ACTIVE' },
+          select: {
+            studentId: true,
+            campusId: true,
+            sectionId: true,
+            campus: { select: { schoolId: true } },
+          },
+        });
+        if (new Set(enrollments.map((e) => e.studentId)).size !== ids.length) {
+          deny();
+        }
+        if (user.role === 'TEACHER') {
+          const teacher = await this.prisma.teacher.findUnique({
+            where: { userId: user.id },
+          });
+          if (!teacher) deny();
+          const assigned = await this.getTeacherSectionIds(teacher!.id);
+          for (const e of enrollments) {
+            if (
+              e.campusId !== teacher!.campusId ||
+              !assigned.has(e.sectionId)
+            ) {
+              deny();
+            }
+          }
+          return;
+        }
+        const orgScope = await this.orgScope.resolve(user);
+        for (const e of enrollments) {
+          if (
+            !orgScope.allows({
+              campusId: e.campusId,
+              schoolId: e.campus.schoolId,
+            })
+          ) {
+            deny();
+          }
+        }
+        return;
+      }
+      default: {
+        const links = await this.prisma.studentParent.findMany({
+          where: { studentId: { in: ids }, parentProfile: { userId: user.id } },
+          select: { studentId: true },
+        });
+        if (new Set(links.map((l) => l.studentId)).size !== ids.length) deny();
+      }
+    }
+  }
+
   async assertCanAccessSection(
     user: RequestUser,
     sectionId: string,

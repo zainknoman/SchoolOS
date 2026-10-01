@@ -8,7 +8,8 @@ import { OrgScopeService } from './org-scope.service';
 describe('StudentAccessService', () => {
   let service: StudentAccessService;
   let prisma: {
-    studentParent: { findFirst: jest.Mock };
+    studentParent: { findFirst: jest.Mock; findMany: jest.Mock };
+    enrollment: { findMany: jest.Mock };
     user: { findUnique: jest.Mock };
     teacher: { findUnique: jest.Mock };
     campus: { findUniqueOrThrow: jest.Mock };
@@ -20,7 +21,8 @@ describe('StudentAccessService', () => {
 
   beforeEach(async () => {
     prisma = {
-      studentParent: { findFirst: jest.fn() },
+      studentParent: { findFirst: jest.fn(), findMany: jest.fn() },
+      enrollment: { findMany: jest.fn() },
       user: { findUnique: jest.fn() },
       teacher: { findUnique: jest.fn() },
       campus: { findUniqueOrThrow: jest.fn() },
@@ -464,6 +466,134 @@ describe('StudentAccessService', () => {
           { id: 'admin-2', role: 'SCHOOL_ADMIN' },
           'class-1',
         ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  // BL-15: bulk attendance checked every student one by one (~5 queries each, in sequence). The
+  // batch check gives the same answer with a fixed number of queries.
+  describe('assertCanAccessStudents (batch)', () => {
+    const active = (studentId: string, sectionId: string, campusId = 'c1') => ({
+      studentId,
+      sectionId,
+      campusId,
+      campus: { schoolId: 'school-1' },
+    });
+
+    it('needs no lookup for SUPER_ADMIN', async () => {
+      await service.assertCanAccessStudents({ id: 'u', role: 'SUPER_ADMIN' }, [
+        's1',
+      ]);
+      expect(prisma.enrollment.findMany).not.toHaveBeenCalled();
+    });
+
+    it('allows a teacher whose sections hold every student, in a fixed number of queries', async () => {
+      prisma.enrollment.findMany.mockResolvedValue(
+        Array.from({ length: 40 }, (_, i) =>
+          active(`s${i}`, i % 2 ? 'sec-1' : 'sec-2'),
+        ),
+      );
+      prisma.teacher.findUnique.mockResolvedValue({ id: 't1', campusId: 'c1' });
+      prisma.timetable.findMany.mockResolvedValue([{ sectionId: 'sec-2' }]);
+      prisma.section.findMany.mockResolvedValue([{ id: 'sec-1' }]);
+
+      await expect(
+        service.assertCanAccessStudents(
+          { id: 'teacher-user', role: 'TEACHER' },
+          Array.from({ length: 40 }, (_, i) => `s${i}`),
+        ),
+      ).resolves.toBeUndefined();
+      expect(prisma.enrollment.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.enrollment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { studentId: { in: expect.any(Array) }, status: 'ACTIVE' },
+        }),
+      );
+      expect(prisma.teacher.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.timetable.findMany).toHaveBeenCalledTimes(1);
+      expect(enrollmentService.getCurrentEnrollment).not.toHaveBeenCalled();
+    });
+
+    it('denies a teacher when one student is in a section they do not teach', async () => {
+      prisma.enrollment.findMany.mockResolvedValue([
+        active('s1', 'sec-1'),
+        active('s2', 'sec-other'),
+      ]);
+      prisma.teacher.findUnique.mockResolvedValue({ id: 't1', campusId: 'c1' });
+      prisma.timetable.findMany.mockResolvedValue([]);
+      prisma.section.findMany.mockResolvedValue([{ id: 'sec-1' }]);
+
+      await expect(
+        service.assertCanAccessStudents({ id: 'tu', role: 'TEACHER' }, [
+          's1',
+          's2',
+        ]),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('denies a teacher when one student is on another campus', async () => {
+      prisma.enrollment.findMany.mockResolvedValue([
+        active('s1', 'sec-1', 'c2'),
+      ]);
+      prisma.teacher.findUnique.mockResolvedValue({ id: 't1', campusId: 'c1' });
+      prisma.timetable.findMany.mockResolvedValue([]);
+      prisma.section.findMany.mockResolvedValue([{ id: 'sec-1' }]);
+
+      await expect(
+        service.assertCanAccessStudents({ id: 'tu', role: 'TEACHER' }, ['s1']),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('denies staff when one student has no active enrolment', async () => {
+      prisma.enrollment.findMany.mockResolvedValue([active('s1', 'sec-1')]);
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        schoolId: 'school-1',
+      });
+
+      await expect(
+        service.assertCanAccessStudents(
+          { id: 'admin-1', role: 'SCHOOL_ADMIN' },
+          ['s1', 'withdrawn'],
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows a school admin for students of their school, denies another school', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        schoolId: 'school-1',
+      });
+      prisma.enrollment.findMany.mockResolvedValue([active('s1', 'sec-1')]);
+      await expect(
+        service.assertCanAccessStudents(
+          { id: 'admin-1', role: 'SCHOOL_ADMIN' },
+          ['s1'],
+        ),
+      ).resolves.toBeUndefined();
+
+      prisma.enrollment.findMany.mockResolvedValue([
+        { ...active('s2', 'sec-9', 'c9'), campus: { schoolId: 'school-2' } },
+      ]);
+      await expect(
+        service.assertCanAccessStudents(
+          { id: 'admin-1', role: 'SCHOOL_ADMIN' },
+          ['s2'],
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows a parent only when linked to every student', async () => {
+      prisma.studentParent.findMany.mockResolvedValue([{ studentId: 's1' }]);
+
+      await expect(
+        service.assertCanAccessStudents({ id: 'p', role: 'PARENT' }, ['s1']),
+      ).resolves.toBeUndefined();
+      await expect(
+        service.assertCanAccessStudents({ id: 'p', role: 'PARENT' }, [
+          's1',
+          's2',
+        ]),
       ).rejects.toThrow(ForbiddenException);
     });
   });

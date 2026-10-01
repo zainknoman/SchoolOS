@@ -7,9 +7,12 @@ describe('DashboardService', () => {
   let service: DashboardService;
   let prisma: {
     enrollment: { count: jest.Mock };
-    attendance: { findMany: jest.Mock };
-    feePayment: { aggregate: jest.Mock };
+    attendance: { findMany: jest.Mock; groupBy: jest.Mock };
+    feePayment: { aggregate: jest.Mock; findMany: jest.Mock };
     feeVoucher: { findMany: jest.Mock };
+    feeItem: { groupBy: jest.Mock };
+    feePaymentAllocation: { groupBy: jest.Mock };
+    $queryRaw: jest.Mock;
     notification: { findMany: jest.Mock };
     user: { findUnique: jest.Mock; findMany: jest.Mock };
     application: { count: jest.Mock };
@@ -22,15 +25,39 @@ describe('DashboardService', () => {
     mark: { findMany: jest.Mock };
   };
   const superAdmin = { id: 'super-1', role: 'SUPER_ADMIN' };
+  /** Today's attendance comes from a groupBy on status; the week's from one on date+status. */
+  const givenTodayCounts = (counts: Record<string, number>) =>
+    prisma.attendance.groupBy.mockImplementation(({ by }: { by: string[] }) =>
+      Promise.resolve(
+        by.length === 1
+          ? Object.entries(counts).map(([status, n]) => ({
+              status,
+              _count: { _all: n },
+            }))
+          : [],
+      ),
+    );
+  const sums = (rows: [string, number][]) =>
+    rows.map(([feeVoucherId, amount]) => ({
+      feeVoucherId,
+      _sum: { amount },
+    }));
 
   beforeEach(async () => {
     prisma = {
       enrollment: { count: jest.fn().mockResolvedValue(0) },
-      attendance: { findMany: jest.fn().mockResolvedValue([]) },
+      attendance: {
+        findMany: jest.fn().mockResolvedValue([]),
+        groupBy: jest.fn().mockResolvedValue([]),
+      },
       feePayment: {
         aggregate: jest.fn().mockResolvedValue({ _sum: { amount: null } }),
+        findMany: jest.fn().mockResolvedValue([]),
       },
       feeVoucher: { findMany: jest.fn().mockResolvedValue([]) },
+      feeItem: { groupBy: jest.fn().mockResolvedValue([]) },
+      feePaymentAllocation: { groupBy: jest.fn().mockResolvedValue([]) },
+      $queryRaw: jest.fn().mockResolvedValue([]),
       notification: { findMany: jest.fn().mockResolvedValue([]) },
       user: {
         findUnique: jest.fn(),
@@ -70,13 +97,7 @@ describe('DashboardService', () => {
   });
 
   it('computes presentTodayPercent excluding HOLIDAY from the denominator, and absentToday as a raw count', async () => {
-    prisma.attendance.findMany.mockResolvedValue([
-      { status: 'PRESENT' },
-      { status: 'PRESENT' },
-      { status: 'PRESENT' },
-      { status: 'ABSENT' },
-      { status: 'HOLIDAY' },
-    ]);
+    givenTodayCounts({ PRESENT: 3, ABSENT: 1, HOLIDAY: 1 });
 
     const result = await service.getSummary(superAdmin);
 
@@ -86,7 +107,7 @@ describe('DashboardService', () => {
   });
 
   it('presentTodayPercent is 0 when nothing is countable today', async () => {
-    prisma.attendance.findMany.mockResolvedValue([{ status: 'HOLIDAY' }]);
+    givenTodayCounts({ HOLIDAY: 1 });
 
     const result = await service.getSummary(superAdmin);
 
@@ -108,10 +129,20 @@ describe('DashboardService', () => {
   });
 
   it('feesOutstandingPkr sums only vouchers whose amountDue is greater than 0', async () => {
-    prisma.feeVoucher.findMany.mockResolvedValue([
-      { items: [{ amount: 500000 }], allocations: [{ amount: 500000 }] }, // fully paid, due = 0, excluded
-      { items: [{ amount: 300000 }], allocations: [{ amount: 100000 }] }, // due = 200000 paisa = 2000 PKR
-    ]);
+    prisma.feeItem.groupBy.mockResolvedValue(
+      sums([
+        ['v1', 500000], // fully paid, due = 0, excluded
+        ['v2', 300000], // due = 200000 paisa = 2000 PKR
+        ['v3', 100000], // over-paid, due < 0, excluded
+      ]),
+    );
+    prisma.feePaymentAllocation.groupBy.mockResolvedValue(
+      sums([
+        ['v1', 500000],
+        ['v2', 100000],
+        ['v3', 150000],
+      ]),
+    );
 
     const result = await service.getSummary(superAdmin);
 
@@ -126,6 +157,71 @@ describe('DashboardService', () => {
       new Date().getUTCDay()
     ];
     expect(result.weeklyTrend[6].day).toBe(todayLabel);
+  });
+
+  it('weeklyTrend buckets one attendance groupBy and one payment read into days', async () => {
+    const today = new Date();
+    const day = (offset: number) => {
+      const d = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate(),
+        ),
+      );
+      d.setUTCDate(d.getUTCDate() - offset);
+      return d;
+    };
+    prisma.attendance.groupBy.mockImplementation(({ by }: { by: string[] }) =>
+      Promise.resolve(
+        by.length === 2
+          ? [
+              { date: day(1), status: 'PRESENT', _count: { _all: 3 } },
+              { date: day(1), status: 'ABSENT', _count: { _all: 1 } },
+              { date: day(0), status: 'PRESENT', _count: { _all: 1 } },
+            ]
+          : [],
+      ),
+    );
+    prisma.feePayment.findMany.mockResolvedValue([
+      { amount: 150000, createdAt: new Date(day(1).getTime() + 3_600_000) },
+      { amount: 50000, createdAt: new Date(day(1).getTime() + 7_200_000) },
+    ]);
+
+    const result = await service.getSummary(superAdmin);
+
+    expect(result.weeklyTrend[5]).toEqual(
+      expect.objectContaining({
+        attendancePercent: 75,
+        feesCollectedPkr: 2000,
+      }),
+    );
+    expect(result.weeklyTrend[6]).toEqual(
+      expect.objectContaining({ attendancePercent: 100, feesCollectedPkr: 0 }),
+    );
+    expect(result.weeklyTrend[0].attendancePercent).toBe(0);
+  });
+
+  // BL-15: the summary used to fire ~20 queries at once (the week was 14 of them, outstanding
+  // fees loaded every voucher, alerts passed every school user id) and took the whole connection
+  // pool under load. The query count no longer grows with days, vouchers or users.
+  it('uses a fixed number of queries', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'admin-1',
+      schoolId: 'school-1',
+    });
+
+    await service.getSummary({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
+
+    expect(prisma.attendance.groupBy).toHaveBeenCalledTimes(2); // today + the week
+    expect(prisma.attendance.findMany).not.toHaveBeenCalled();
+    expect(prisma.feePayment.aggregate).toHaveBeenCalledTimes(1); // this month
+    expect(prisma.feePayment.findMany).toHaveBeenCalledTimes(1); // the week
+    expect(prisma.feeVoucher.findMany).not.toHaveBeenCalled();
+    expect(prisma.feeItem.groupBy).toHaveBeenCalledTimes(1);
+    expect(prisma.feePaymentAllocation.groupBy).toHaveBeenCalledTimes(1);
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1); // recent alerts
   });
 
   it('recentAlerts maps the 5 most recent notifications to message/createdAt', async () => {
@@ -157,8 +253,6 @@ describe('DashboardService', () => {
         id: 'admin-1',
         schoolId: 'school-1',
       });
-      prisma.user.findMany.mockResolvedValue([{ id: 'u1' }, { id: 'u2' }]);
-
       await service.getSummary({ id: 'admin-1', role: 'SCHOOL_ADMIN' });
 
       expect(prisma.enrollment.count).toHaveBeenCalledWith(
@@ -166,7 +260,7 @@ describe('DashboardService', () => {
           where: expect.objectContaining({ campus: { schoolId: 'school-1' } }),
         }),
       );
-      expect(prisma.attendance.findMany).toHaveBeenCalledWith(
+      expect(prisma.attendance.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             student: {
@@ -190,21 +284,26 @@ describe('DashboardService', () => {
           }),
         }),
       );
-      expect(prisma.feeVoucher.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            student: {
-              enrollments: { some: { campus: { schoolId: 'school-1' } } },
-            },
+      const voucherScope = {
+        feeVoucher: {
+          student: {
+            enrollments: { some: { campus: { schoolId: 'school-1' } } },
           },
-        }),
+        },
+      };
+      expect(prisma.feeItem.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({ where: voucherScope }),
       );
-      expect(prisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { schoolId: 'school-1' } }),
+      expect(prisma.feePaymentAllocation.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({ where: voucherScope }),
       );
-      expect(prisma.notification.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { userId: { in: ['u1', 'u2'] } } }),
-      );
+      // Alerts join Notification to User in SQL, scoped by the school id.
+      expect(prisma.$queryRaw.mock.calls[0].slice(1)).toEqual([
+        'school-1',
+        null,
+        null,
+      ]);
+      expect(prisma.notification.findMany).not.toHaveBeenCalled();
     });
 
     it("confines a campus principal's queries to their own campus", async () => {
@@ -214,8 +313,6 @@ describe('DashboardService', () => {
         campusId: 'c1',
         isPrincipal: true,
       });
-      prisma.user.findMany.mockResolvedValue([{ id: 'u1' }]);
-
       await service.getSummary({ id: 'p1', role: 'SCHOOL_ADMIN' });
 
       expect(prisma.enrollment.count).toHaveBeenCalledWith(
@@ -225,7 +322,7 @@ describe('DashboardService', () => {
           }),
         }),
       );
-      expect(prisma.attendance.findMany).toHaveBeenCalledWith(
+      expect(prisma.attendance.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             student: {
@@ -234,9 +331,11 @@ describe('DashboardService', () => {
           }),
         }),
       );
-      expect(prisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { schoolId: 's1', campusId: 'c1' } }),
-      );
+      expect(prisma.$queryRaw.mock.calls[0].slice(1)).toEqual([
+        's1',
+        'c1',
+        'c1',
+      ]);
     });
 
     it('returns a zeroed-out summary without querying anything else for a SCHOOL_ADMIN with no schoolId', async () => {
@@ -260,10 +359,11 @@ describe('DashboardService', () => {
         recentAlerts: [],
       });
       expect(prisma.enrollment.count).not.toHaveBeenCalled();
-      expect(prisma.attendance.findMany).not.toHaveBeenCalled();
+      expect(prisma.attendance.groupBy).not.toHaveBeenCalled();
       expect(prisma.feePayment.aggregate).not.toHaveBeenCalled();
-      expect(prisma.feeVoucher.findMany).not.toHaveBeenCalled();
+      expect(prisma.feeItem.groupBy).not.toHaveBeenCalled();
       expect(prisma.notification.findMany).not.toHaveBeenCalled();
+      expect(prisma.$queryRaw).not.toHaveBeenCalled();
     });
   });
 
@@ -354,9 +454,10 @@ describe('DashboardService', () => {
       prisma.feePayment.aggregate.mockResolvedValue({
         _sum: { amount: 900000 },
       }); // 9000 PKR collected
-      prisma.feeVoucher.findMany.mockResolvedValue([
-        { items: [{ amount: 300000 }], allocations: [{ amount: 200000 }] }, // 1000 PKR due
-      ]);
+      prisma.feeItem.groupBy.mockResolvedValue(sums([['v1', 300000]]));
+      prisma.feePaymentAllocation.groupBy.mockResolvedValue(
+        sums([['v1', 200000]]),
+      ); // 1000 PKR due
 
       const result = await service.getNetworkOverview();
 

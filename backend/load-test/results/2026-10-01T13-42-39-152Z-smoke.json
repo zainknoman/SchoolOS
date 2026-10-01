@@ -1,0 +1,463 @@
+{
+  "label": "smoke",
+  "startedAt": "2026-10-01T13:42:39.152Z",
+  "seconds": 35.4,
+  "config": {
+    "base": "http://127.0.0.1:3000",
+    "origin": "http://localhost:5173",
+    "vus": 6,
+    "rampS": 5,
+    "durationS": 30,
+    "thinkMinMs": 200,
+    "thinkMaxMs": 600,
+    "sourceIps": "loopback",
+    "mix": [
+      60,
+      25,
+      15
+    ],
+    "month": "2026-09",
+    "students": 2000,
+    "teachers": 60,
+    "label": "smoke"
+  },
+  "machine": {
+    "cpu": "Intel(R) Core(TM) i5-8350U CPU @ 1.70GHz",
+    "cores": 8,
+    "memoryGb": 15.8,
+    "platform": "win32 10.0.26200",
+    "node": "v24.18.0"
+  },
+  "checks": {
+    "authP95": {
+      "value": 345.9,
+      "limit": 1000,
+      "pass": true
+    },
+    "crudP95": {
+      "value": 83.8,
+      "limit": 500,
+      "pass": true
+    },
+    "errorRate": {
+      "value": 0,
+      "limit": 0.01,
+      "pass": true
+    },
+    "vusStarted": {
+      "value": 6,
+      "limit": 6,
+      "pass": true
+    }
+  },
+  "summary": {
+    "all": {
+      "count": 481,
+      "rps": 13.58,
+      "p50": 15.9,
+      "p95": 128.8,
+      "p99": 312.1,
+      "max": 425.6,
+      "errors": 0,
+      "errorRate": 0
+    },
+    "auth": {
+      "count": 34,
+      "rps": 0.96,
+      "p50": 16.1,
+      "p95": 345.9,
+      "p99": 425.6,
+      "max": 425.6,
+      "errors": 0,
+      "errorRate": 0
+    },
+    "crud": {
+      "count": 447,
+      "rps": 12.62,
+      "p50": 15.9,
+      "p95": 83.8,
+      "p99": 277.4,
+      "max": 366.4,
+      "errors": 0,
+      "errorRate": 0
+    }
+  },
+  "endpoints": [
+    {
+      "name": "POST /auth/login",
+      "kind": "auth",
+      "count": 6,
+      "rps": 0.17,
+      "p50": 238.9,
+      "p95": 425.6,
+      "p99": 425.6,
+      "max": 425.6,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "201": 6
+      }
+    },
+    {
+      "name": "GET /api/v1/admin/dashboard-summary",
+      "kind": "crud",
+      "count": 12,
+      "rps": 0.34,
+      "p50": 233.5,
+      "p95": 366.4,
+      "p99": 366.4,
+      "max": 366.4,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 12
+      }
+    },
+    {
+      "name": "GET /api/v1/me/children/:id",
+      "kind": "crud",
+      "count": 12,
+      "rps": 0.34,
+      "p50": 17.3,
+      "p95": 312.1,
+      "p99": 312.1,
+      "max": 312.1,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 12
+      }
+    },
+    {
+      "name": "GET /api/v1/conversations/:id",
+      "kind": "crud",
+      "count": 6,
+      "rps": 0.17,
+      "p50": 18.1,
+      "p95": 274.2,
+      "p99": 274.2,
+      "max": 274.2,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 6
+      }
+    },
+    {
+      "name": "GET /api/v1/me/children",
+      "kind": "crud",
+      "count": 3,
+      "rps": 0.08,
+      "p50": 75.1,
+      "p95": 240.3,
+      "p99": 240.3,
+      "max": 240.3,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 3
+      }
+    },
+    {
+      "name": "POST /api/v1/attendance/bulk",
+      "kind": "crud",
+      "count": 18,
+      "rps": 0.51,
+      "p50": 77.2,
+      "p95": 146.6,
+      "p99": 146.6,
+      "max": 146.6,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "201": 18
+      }
+    },
+    {
+      "name": "GET /api/v1/report-cards/generated",
+      "kind": "crud",
+      "count": 19,
+      "rps": 0.54,
+      "p50": 17.2,
+      "p95": 57.4,
+      "p99": 57.4,
+      "max": 57.4,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 19
+      }
+    },
+    {
+      "name": "GET /api/v1/teachers/me/day",
+      "kind": "crud",
+      "count": 21,
+      "rps": 0.59,
+      "p50": 20.5,
+      "p95": 48.6,
+      "p99": 83.4,
+      "max": 83.4,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 21
+      }
+    },
+    {
+      "name": "GET /api/v1/students/:id/attendance",
+      "kind": "crud",
+      "count": 20,
+      "rps": 0.56,
+      "p50": 17.2,
+      "p95": 45.7,
+      "p99": 52.5,
+      "max": 52.5,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 20
+      }
+    },
+    {
+      "name": "GET /api/v1/sections/:id/students",
+      "kind": "crud",
+      "count": 22,
+      "rps": 0.62,
+      "p50": 21.5,
+      "p95": 44.8,
+      "p99": 52.7,
+      "max": 52.7,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 22
+      }
+    },
+    {
+      "name": "GET /api/v1/circulars",
+      "kind": "crud",
+      "count": 17,
+      "rps": 0.48,
+      "p50": 20,
+      "p95": 44.5,
+      "p99": 44.5,
+      "max": 44.5,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 17
+      }
+    },
+    {
+      "name": "GET /api/v1/sections/:id/attendance",
+      "kind": "crud",
+      "count": 14,
+      "rps": 0.4,
+      "p50": 17.6,
+      "p95": 44.1,
+      "p99": 44.1,
+      "max": 44.1,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 14
+      }
+    },
+    {
+      "name": "GET /api/v1/students/:id/diary",
+      "kind": "crud",
+      "count": 21,
+      "rps": 0.59,
+      "p50": 18.3,
+      "p95": 39.7,
+      "p99": 46,
+      "max": 46,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 21
+      }
+    },
+    {
+      "name": "GET /api/v1/sections",
+      "kind": "crud",
+      "count": 14,
+      "rps": 0.4,
+      "p50": 21.7,
+      "p95": 39.3,
+      "p99": 39.3,
+      "max": 39.3,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 14
+      }
+    },
+    {
+      "name": "GET /api/v1/students/:id/fees/payments",
+      "kind": "crud",
+      "count": 34,
+      "rps": 0.96,
+      "p50": 14.6,
+      "p95": 37.6,
+      "p99": 40.5,
+      "max": 40.5,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 34
+      }
+    },
+    {
+      "name": "GET /api/v1/students/:id/timetable",
+      "kind": "crud",
+      "count": 14,
+      "rps": 0.4,
+      "p50": 12.4,
+      "p95": 36.3,
+      "p99": 36.3,
+      "max": 36.3,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 14
+      }
+    },
+    {
+      "name": "GET /api/v1/sections/:id/diary",
+      "kind": "crud",
+      "count": 16,
+      "rps": 0.45,
+      "p50": 21.9,
+      "p95": 34.9,
+      "p99": 34.9,
+      "max": 34.9,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 16
+      }
+    },
+    {
+      "name": "POST /auth/refresh",
+      "kind": "auth",
+      "count": 28,
+      "rps": 0.79,
+      "p50": 15.1,
+      "p95": 34.8,
+      "p99": 37.7,
+      "max": 37.7,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "201": 28
+      }
+    },
+    {
+      "name": "GET /api/v1/conversations",
+      "kind": "crud",
+      "count": 34,
+      "rps": 0.96,
+      "p50": 10.7,
+      "p95": 33.9,
+      "p99": 37.7,
+      "max": 37.7,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 34
+      }
+    },
+    {
+      "name": "GET /api/v1/students/:id/fees",
+      "kind": "crud",
+      "count": 30,
+      "rps": 0.85,
+      "p50": 17.1,
+      "p95": 29.9,
+      "p99": 45.7,
+      "max": 45.7,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 30
+      }
+    },
+    {
+      "name": "GET /api/v1/teachers/me/timetable",
+      "kind": "crud",
+      "count": 15,
+      "rps": 0.42,
+      "p50": 14,
+      "p95": 28.3,
+      "p99": 28.3,
+      "max": 28.3,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 15
+      }
+    },
+    {
+      "name": "POST /api/v1/circulars/:id/read",
+      "kind": "crud",
+      "count": 25,
+      "rps": 0.71,
+      "p50": 11.2,
+      "p95": 26.7,
+      "p99": 33.3,
+      "max": 33.3,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "201": 25
+      }
+    },
+    {
+      "name": "GET /api/v1/notifications",
+      "kind": "crud",
+      "count": 38,
+      "rps": 1.07,
+      "p50": 6.8,
+      "p95": 25.5,
+      "p99": 29.1,
+      "max": 29.1,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 38
+      }
+    },
+    {
+      "name": "GET /api/v1/fee-structures",
+      "kind": "crud",
+      "count": 11,
+      "rps": 0.31,
+      "p50": 11.8,
+      "p95": 19.1,
+      "p99": 19.1,
+      "max": 19.1,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 11
+      }
+    },
+    {
+      "name": "GET /api/v1/me",
+      "kind": "crud",
+      "count": 31,
+      "rps": 0.88,
+      "p50": 5.3,
+      "p95": 11.4,
+      "p99": 12,
+      "max": 12,
+      "errors": 0,
+      "errorRate": 0,
+      "statuses": {
+        "200": 31
+      }
+    }
+  ],
+  "vuFailures": []
+}

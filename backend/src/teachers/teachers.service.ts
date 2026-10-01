@@ -153,28 +153,36 @@ export class TeachersService {
       },
     });
 
-    const classesToday = await Promise.all(
-      entries.map(async (e): Promise<MyDayClass> => {
-        const marked = await this.prisma.attendance.count({
-          where: {
-            date: today,
-            student: { enrollments: { some: { sectionId: e.sectionId } } },
-          },
-        });
-        return {
-          timetableId: e.id,
-          sectionId: e.sectionId,
-          className: e.section.class.name,
-          sectionName: e.section.name,
-          subjectName: e.subject.name,
-          period: e.period,
-          startTime: e.startTime,
-          endTime: e.endTime,
-          room: e.room,
-          attendanceMarked: marked > 0,
-        };
-      }),
+    // BL-15: sections with any attendance today, in one query (was one count per entry).
+    const sectionIds = [...new Set(entries.map((e) => e.sectionId))];
+    const markedSections = new Set(
+      sectionIds.length
+        ? (
+            await this.prisma.enrollment.findMany({
+              where: {
+                sectionId: { in: sectionIds },
+                student: { attendance: { some: { date: today } } },
+              },
+              select: { sectionId: true },
+              distinct: ['sectionId'],
+            })
+          ).map((r) => r.sectionId)
+        : [],
     );
+    const classesToday = entries.map((e): MyDayClass => {
+      return {
+        timetableId: e.id,
+        sectionId: e.sectionId,
+        className: e.section.class.name,
+        sectionName: e.section.name,
+        subjectName: e.subject.name,
+        period: e.period,
+        startTime: e.startTime,
+        endTime: e.endTime,
+        room: e.room,
+        attendanceMarked: markedSections.has(e.sectionId),
+      };
+    });
 
     const tomorrow = new Date(today);
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);

@@ -66,4 +66,4 @@ Pilot = one school, campuses as needed, ~500–2,000 students, single instance. 
 7. Privacy, consent, breach and incident/support processes documented and owner-approved before production (BL-56).
 8. Parent password reset must have a delivery path: an SMTP provider **or** the admin-assisted reset (BL-64) — e-mail may stay disabled in the pilot (RD-4) but then the link-only-in-logs behaviour (KG-4) is not acceptable.
 9. Migration strategy and reconciliation report approved before session/guardian migrations run (BL-62).
-10. Release checklist and rollback rehearsed ([RELEASE-CHECKLIST](RELEASE-CHECKLIST.md), [ROLLBACK](ROLLBACK.md)); load test against the Q44 targets (BL-15).
+10. Release checklist and rollback rehearsed ([RELEASE-CHECKLIST](RELEASE-CHECKLIST.md), [ROLLBACK](ROLLBACK.md)); load test against the Q44 targets (BL-15: passes locally, staging run per [LOAD-TEST-REPORT §6](LOAD-TEST-REPORT.md)).

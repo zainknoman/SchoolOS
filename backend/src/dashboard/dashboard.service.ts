@@ -82,6 +82,23 @@ function dateOnlyUtc(d: Date): Date {
   return new Date(d.toISOString().slice(0, 10));
 }
 
+/** Present % (HOLIDAY excluded from the denominator) and the ABSENT count, from grouped counts. */
+function percentAndAbsent(
+  counts: { status: string; _count: { _all: number } }[],
+): { percent: number; absent: number } {
+  const n = (status: string) =>
+    counts
+      .filter((c) => c.status === status)
+      .reduce((sum, c) => sum + c._count._all, 0);
+  const present = n('PRESENT');
+  const absent = n('ABSENT');
+  const countable = present + absent + n('LATE') + n('LEAVE');
+  return {
+    percent: countable === 0 ? 0 : Math.round((present / countable) * 100),
+    absent,
+  };
+}
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -89,34 +106,24 @@ export class DashboardService {
     private readonly orgScope: OrgScopeService,
   ) {}
 
+  private studentScope(
+    campusWhere?: Prisma.CampusWhereInput,
+  ): Prisma.AttendanceWhereInput {
+    return campusWhere
+      ? { student: { enrollments: { some: { campus: campusWhere } } } }
+      : {};
+  }
+
   private async attendancePercentAndAbsent(
     date: Date,
     campusWhere?: Prisma.CampusWhereInput,
   ): Promise<{ percent: number; absent: number }> {
-    const records = await this.prisma.attendance.findMany({
-      where: {
-        date: dateOnlyUtc(date),
-        ...(campusWhere
-          ? { student: { enrollments: { some: { campus: campusWhere } } } }
-          : {}),
-      },
-      select: { status: true },
+    const counts = await this.prisma.attendance.groupBy({
+      by: ['status'],
+      where: { date: dateOnlyUtc(date), ...this.studentScope(campusWhere) },
+      _count: { _all: true },
     });
-    let present = 0;
-    let absent = 0;
-    let late = 0;
-    let leave = 0;
-    for (const r of records) {
-      if (r.status === 'PRESENT') present++;
-      else if (r.status === 'ABSENT') absent++;
-      else if (r.status === 'LATE') late++;
-      else if (r.status === 'LEAVE') leave++;
-    }
-    const countable = present + absent + late + leave;
-    return {
-      percent: countable === 0 ? 0 : Math.round((present / countable) * 100),
-      absent,
-    };
+    return percentAndAbsent(counts);
   }
 
   private async feesCollectedPkrForRange(
@@ -126,90 +133,132 @@ export class DashboardService {
   ): Promise<number> {
     const result = await this.prisma.feePayment.aggregate({
       _sum: { amount: true },
-      where: {
-        status: 'completed',
-        createdAt: { gte: from, ...(to ? { lt: to } : {}) },
-        ...(campusWhere
-          ? {
-              allocations: {
-                some: {
-                  feeVoucher: {
-                    student: { enrollments: { some: { campus: campusWhere } } },
-                  },
-                },
-              },
-            }
-          : {}),
-      },
+      where: this.paymentWhere(from, to, campusWhere),
     });
     return (result._sum.amount ?? 0) / 100;
   }
 
+  private paymentWhere(
+    from: Date,
+    to: Date | undefined,
+    campusWhere?: Prisma.CampusWhereInput,
+  ): Prisma.FeePaymentWhereInput {
+    return {
+      status: 'completed',
+      createdAt: { gte: from, ...(to ? { lt: to } : {}) },
+      ...(campusWhere
+        ? {
+            allocations: {
+              some: {
+                feeVoucher: {
+                  student: { enrollments: { some: { campus: campusWhere } } },
+                },
+              },
+            },
+          }
+        : {}),
+    };
+  }
+
+  // BL-15: summed per voucher in the database (two grouped queries) instead of loading every
+  // voucher with its items and allocations.
   private async feesOutstandingPkr(
     campusWhere?: Prisma.CampusWhereInput,
   ): Promise<number> {
-    const vouchers = await this.prisma.feeVoucher.findMany({
-      where: campusWhere
-        ? { student: { enrollments: { some: { campus: campusWhere } } } }
-        : undefined,
-      select: {
-        items: { select: { amount: true } },
-        allocations: { select: { amount: true } },
-      },
-    });
+    const where = campusWhere
+      ? {
+          feeVoucher: {
+            student: { enrollments: { some: { campus: campusWhere } } },
+          },
+        }
+      : undefined;
+    const [charged, allocated] = await Promise.all([
+      this.prisma.feeItem.groupBy({
+        by: ['feeVoucherId'],
+        where,
+        _sum: { amount: true },
+      }),
+      this.prisma.feePaymentAllocation.groupBy({
+        by: ['feeVoucherId'],
+        where,
+        _sum: { amount: true },
+      }),
+    ]);
+    const paid = new Map(
+      allocated.map((a) => [a.feeVoucherId, a._sum.amount ?? 0]),
+    );
     let totalPaisa = 0;
-    for (const v of vouchers) {
-      const total = v.items.reduce((sum, i) => sum + i.amount, 0);
-      const allocated = v.allocations.reduce((sum, a) => sum + a.amount, 0);
-      const due = total - allocated;
+    for (const c of charged) {
+      const due = (c._sum.amount ?? 0) - (paid.get(c.feeVoucherId) ?? 0);
       if (due > 0) totalPaisa += due;
     }
     return totalPaisa / 100;
   }
 
+  // BL-15: the last seven days from two queries (attendance grouped by day and status, the week's
+  // payments), bucketed here — it used to be two queries per day.
   private async weeklyTrend(
     campusWhere?: Prisma.CampusWhereInput,
   ): Promise<DashboardWeeklyPoint[]> {
+    const today = dateOnlyUtc(new Date());
+    const start = new Date(today);
+    start.setUTCDate(start.getUTCDate() - 6);
+    const end = new Date(today);
+    end.setUTCDate(end.getUTCDate() + 1);
+    const [counts, payments] = await Promise.all([
+      this.prisma.attendance.groupBy({
+        by: ['date', 'status'],
+        where: {
+          date: { gte: start, lt: end },
+          ...this.studentScope(campusWhere),
+        },
+        _count: { _all: true },
+      }),
+      this.prisma.feePayment.findMany({
+        where: this.paymentWhere(start, end, campusWhere),
+        select: { amount: true, createdAt: true },
+      }),
+    ]);
+    const dayKey = (d: Date) => d.toISOString().slice(0, 10);
     const points: DashboardWeeklyPoint[] = [];
     for (let offset = 6; offset >= 0; offset--) {
-      const day = new Date();
+      const day = new Date(today);
       day.setUTCDate(day.getUTCDate() - offset);
-      const dayStart = dateOnlyUtc(day);
-      const dayEnd = new Date(dayStart);
-      dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
-      const [{ percent }, feesCollectedPkr] = await Promise.all([
-        this.attendancePercentAndAbsent(day, campusWhere),
-        this.feesCollectedPkrForRange(dayStart, dayEnd, campusWhere),
-      ]);
+      const key = dayKey(day);
+      const paisa = payments
+        .filter((p) => dayKey(p.createdAt) === key)
+        .reduce((sum, p) => sum + p.amount, 0);
       points.push({
         day: DAY_ABBREVIATIONS[day.getUTCDay()],
-        attendancePercent: percent,
-        feesCollectedPkr,
+        attendancePercent: percentAndAbsent(
+          counts.filter((c) => dayKey(c.date) === key),
+        ).percent,
+        feesCollectedPkr: paisa / 100,
       });
     }
     return points;
   }
 
-  // Notification has no Prisma relation to User (plain userId FK), so scoping by school is a
-  // two-step lookup: the school's user ids, then notifications addressed to any of them.
+  // Notification has no Prisma relation to User (plain userId FK). Scoped by school/campus, the
+  // join runs in SQL (BL-15) — it used to pass every user id of the school as a parameter list.
   private async recentAlerts(scope?: OrgScope): Promise<DashboardAlert[]> {
-    let userIdFilter: Prisma.NotificationWhereInput | undefined;
-    if (scope && !scope.unrestricted && scope.schoolId) {
-      const users = await this.prisma.user.findMany({
-        where: {
-          schoolId: scope.schoolId,
-          ...(scope.campusId ? { campusId: scope.campusId } : {}),
-        },
-        select: { id: true },
-      });
-      userIdFilter = { userId: { in: users.map((u) => u.id) } };
-    }
-    const notifications = await this.prisma.notification.findMany({
-      where: userIdFilter,
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-      select: { id: true, title: true, createdAt: true },
-    });
+    const notifications =
+      scope && !scope.unrestricted && scope.schoolId
+        ? await this.prisma.$queryRaw<
+            { id: string; title: string; createdAt: Date }[]
+          >`
+            SELECT n."id", n."title", n."createdAt"
+            FROM "Notification" n
+            JOIN "User" u ON u."id" = n."userId"
+            WHERE u."schoolId" = ${scope.schoolId}
+              AND (${scope.campusId}::text IS NULL OR u."campusId" = ${scope.campusId}::text)
+            ORDER BY n."createdAt" DESC
+            LIMIT 5`
+        : await this.prisma.notification.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+            select: { id: true, title: true, createdAt: true },
+          });
     return notifications.map((n) => ({
       id: n.id,
       message: n.title,

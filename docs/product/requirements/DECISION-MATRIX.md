@@ -45,7 +45,7 @@
 | WhatsApp templates; AI drafting off by default (Q38, Q39) | — | free-text; optional stub | later | BL-48, BL-49 | — | POST |
 | Token-storage hardening review (Q42) | KG-9 | ✅ BL-36 (2026-09-28): option B chosen and built ([TOKEN-STORAGE-DECISION](../security/TOKEN-STORAGE-DECISION.md)) — HttpOnly refresh cookie, access token in memory; KG-9 and KG-15 closed | same-site domains at deployment (RD-2) | BL-36 | A | CORE |
 | WCAG 2.1 AA (Q43) | NFR-A11Y-02 | ✅ BL-55 (2026-09-27): axe + token contrast blocking in console CI, keyboard pass, 9 fixes; screen-reader pass open ([ACCESSIBILITY-AUDIT](../../release/ACCESSIBILITY-AUDIT.md)) | human screen-reader pass | BL-55 | H | CORE |
-| p95 < 500 ms CRUD / < 1 s auth, 100 users, 99.5 % (Q44) | NFR-PERF-01, NFR-AVL-01 | unmeasured; no pagination | load test, pagination | BL-15, BL-40 | H | BLOCKER (exit) |
+| p95 < 500 ms CRUD / < 1 s auth, 100 users, 99.5 % (Q44) | NFR-PERF-01, NFR-AVL-01 | ✅ pagination (BL-40); ✅ local load test passes (BL-15, [LOAD-TEST-REPORT](../../release/LOAD-TEST-REPORT.md)) | staging load run; availability measured in operation | BL-15, BL-40 | H | BLOCKER (exit) |
 | Android 9+ / low-end devices (Q45) | NFR-DEV-01 | no matrix | test matrix | BL-54 | G | CORE |
 | Blocking backend lint after cleanup (Q46) | NFR-QLT-01 | ✅ BL-37 (2026-09-24/27): backlog cleared; lint (0 warnings), format, type-check, build, unit, e2e blocking | — | BL-37 | H | CORE |
 | Privacy notice, incident/breach process, internal P1–P4 targets, no compliance claim (Q22, Q27, RD-7, RD-13) | NFR-PRV-01 | absent | documents + counsel review | BL-56 | H | BLOCKER (DOC) |

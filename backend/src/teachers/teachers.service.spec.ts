@@ -11,7 +11,7 @@ describe('TeachersService', () => {
     timetable: { findMany: jest.Mock };
     attendance: { count: jest.Mock };
     diaryEntry: { findMany: jest.Mock };
-    enrollment: { count: jest.Mock };
+    enrollment: { count: jest.Mock; findMany: jest.Mock };
     assessmentCategory: { findFirst: jest.Mock };
     assessment: { findFirst: jest.Mock };
     mark: { count: jest.Mock };
@@ -25,7 +25,10 @@ describe('TeachersService', () => {
       timetable: { findMany: jest.fn().mockResolvedValue([]) },
       attendance: { count: jest.fn().mockResolvedValue(0) },
       diaryEntry: { findMany: jest.fn().mockResolvedValue([]) },
-      enrollment: { count: jest.fn().mockResolvedValue(0) },
+      enrollment: {
+        count: jest.fn().mockResolvedValue(0),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
       assessmentCategory: { findFirst: jest.fn().mockResolvedValue(null) },
       assessment: { findFirst: jest.fn().mockResolvedValue(null) },
       mark: { count: jest.fn().mockResolvedValue(0) },
@@ -148,7 +151,7 @@ describe('TeachersService', () => {
           subject: { name: 'Mathematics' },
         },
       ]);
-      prisma.attendance.count.mockResolvedValue(34);
+      prisma.enrollment.findMany.mockResolvedValue([{ sectionId: 'sec-1' }]);
 
       const result = await service.getMyDay(teacherUser);
 
@@ -169,6 +172,47 @@ describe('TeachersService', () => {
       expect(prisma.timetable.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { teacherId: 'teacher-1', dayOfWeek: expect.any(Number) },
+        }),
+      );
+    });
+
+    // BL-15: one attendance count per timetable entry became one query for the whole day.
+    it('works out the attendance-marked flag of every section in one query', async () => {
+      prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-1' });
+      const entry = (id: string, sectionId: string, period: number) => ({
+        id,
+        sectionId,
+        period,
+        startTime: '08:00',
+        endTime: '08:40',
+        room: null,
+        section: { name: sectionId, class: { name: '6' } },
+        subject: { name: 'Mathematics' },
+      });
+      prisma.timetable.findMany.mockResolvedValue([
+        entry('tt-1', 'sec-1', 1),
+        entry('tt-2', 'sec-2', 2),
+        entry('tt-3', 'sec-1', 3),
+      ]);
+      prisma.enrollment.findMany.mockResolvedValue([{ sectionId: 'sec-1' }]);
+
+      const result = await service.getMyDay(teacherUser);
+
+      expect(
+        result.classesToday.map((c) => [c.timetableId, c.attendanceMarked]),
+      ).toEqual([
+        ['tt-1', true],
+        ['tt-2', false],
+        ['tt-3', true],
+      ]);
+      expect(prisma.attendance.count).not.toHaveBeenCalled();
+      expect(prisma.enrollment.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.enrollment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            sectionId: { in: ['sec-1', 'sec-2'] },
+          }),
+          distinct: ['sectionId'],
         }),
       );
     });

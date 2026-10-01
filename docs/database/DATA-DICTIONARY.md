@@ -1029,7 +1029,7 @@ Block attributes: `@@index([sectionId])`
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@unique([studentId, date])` · `@@index([studentId])` · `@@index([markedByUserId])`
+Block attributes: `@@unique([studentId, date])` · `@@index([studentId])` · `@@index([markedByUserId])` · `@@index([date])`
 
 ### AttendanceRiskFlag
 
@@ -1362,7 +1362,7 @@ Block attributes: `@@index([conversationId])`
 | dispatchedAt | DateTime? |  |
 | createdAt | DateTime | @default(now()) |
 
-Block attributes: `@@index([userId])`
+Block attributes: `@@index([userId])` · `@@index([createdAt])`
 
 ### DraftSuggestion
 

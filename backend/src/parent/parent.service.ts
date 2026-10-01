@@ -260,12 +260,7 @@ export class ParentService {
     const [records, total] = await Promise.all([
       this.prisma.parentProfile.findMany({
         where: filtered,
-        include: {
-          user: { select: { identifier: true } },
-          _count: {
-            select: { children: childWhere ? { where: childWhere } : true },
-          },
-        },
+        include: { user: { select: { identifier: true } } },
         orderBy: page.paged
           ? [{ name: 'asc' }, { id: 'asc' }]
           : { name: 'asc' },
@@ -273,8 +268,28 @@ export class ParentService {
       }),
       this.prisma.parentProfile.count({ where: filtered }),
     ]);
+    // BL-15: children are counted for the returned page only — a relation _count was aggregated
+    // over every matching parent before the page was cut.
+    const counts = records.length
+      ? await this.prisma.studentParent.groupBy({
+          by: ['parentProfileId'],
+          where: {
+            parentProfileId: { in: records.map((r) => r.id) },
+            ...childWhere,
+          },
+          _count: { _all: true },
+        })
+      : [];
+    const childrenByParent = new Map(
+      counts.map((c) => [c.parentProfileId, c._count._all]),
+    );
     return PagedResult.of(
-      records.map((r) => this.toSummary(r)),
+      records.map((r) =>
+        this.toSummary({
+          ...r,
+          _count: { children: childrenByParent.get(r.id) ?? 0 },
+        }),
+      ),
       total,
       page,
     );

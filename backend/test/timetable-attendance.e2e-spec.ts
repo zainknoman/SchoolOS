@@ -411,6 +411,56 @@ describe('Timetable + Attendance (e2e)', () => {
     );
   });
 
+  // BL-15: bulk marking is set-based now; re-marking must still overwrite, and the response lists
+  // the saved rows in the order they were sent.
+  it('bulk re-marking overwrites earlier marks and returns the saved rows in order', async () => {
+    const teacherToken = await loginAs('tta-teacher@schoolos.edu.pk');
+    const date = '2026-09-14';
+    await request(app.getHttpServer())
+      .post('/api/v1/attendance/bulk')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        date,
+        marks: [
+          { studentId: ids.childA, status: 'PRESENT' },
+          { studentId: ids.childB, status: 'PRESENT' },
+        ],
+      })
+      .expect(201);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/attendance/bulk')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        date,
+        marks: [
+          { studentId: ids.childB, status: 'ABSENT' },
+          { studentId: ids.childA, status: 'LATE' },
+        ],
+      })
+      .expect(201);
+
+    expect(
+      res.body.map((r: { studentId: string; status: string }) => [
+        r.studentId,
+        r.status,
+      ]),
+    ).toEqual([
+      [ids.childB, 'ABSENT'],
+      [ids.childA, 'LATE'],
+    ]);
+    const rows = await prisma.attendance.findMany({
+      where: {
+        date: new Date(`${date}T00:00:00.000Z`),
+        studentId: { in: [ids.childA, ids.childB] },
+      },
+    });
+    expect(rows).toHaveLength(2);
+    expect(
+      Object.fromEntries(rows.map((r) => [r.studentId, r.status])),
+    ).toEqual({ [ids.childA]: 'LATE', [ids.childB]: 'ABSENT' });
+  });
+
   it('a PARENT cannot bulk-mark attendance', async () => {
     const parentToken = await loginAs('tta-parent-a@schoolos.edu.pk');
     const today = new Date().toISOString().slice(0, 10);

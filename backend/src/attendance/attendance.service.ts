@@ -2,8 +2,13 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { HolidaysService } from '../holidays/holidays.service';
-import { MarkAttendanceDto } from './dto/mark-attendance.dto';
+import {
+  ATTENDANCE_STATUSES,
+  MarkAttendanceDto,
+} from './dto/mark-attendance.dto';
 import { BulkMarkAttendanceDto } from './dto/bulk-mark-attendance.dto';
+
+type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
 
 export interface AttendanceDay {
   date: string;
@@ -116,21 +121,44 @@ export class AttendanceService {
 
     const markedBy = await this.attributionFor(markingUserId);
 
+    // One status per student; a student listed twice keeps the last status (as sequential upserts did).
+    const statusByStudent = new Map<string, AttendanceStatus>();
+    for (const mark of dto.marks) {
+      statusByStudent.delete(mark.studentId);
+      statusByStudent.set(mark.studentId, mark.status);
+    }
+    const studentIds = [...statusByStudent.keys()];
+    const byStatus = new Map<AttendanceStatus, string[]>();
+    for (const [studentId, status] of statusByStudent) {
+      byStatus.set(status, [...(byStatus.get(status) ?? []), studentId]);
+    }
+
+    // BL-15: a fixed number of statements per batch (insert new rows, one update per status, read
+    // back) instead of one upsert per student — the loop held a pooled connection for the whole
+    // class and was the slowest call under load.
     const records = await this.prisma.$transaction(async (tx) => {
-      const results: Awaited<ReturnType<typeof tx.attendance.upsert>>[] = [];
-      for (const mark of dto.marks) {
-        const record = await tx.attendance.upsert({
-          where: { studentId_date: { studentId: mark.studentId, date } },
-          create: {
-            studentId: mark.studentId,
-            date,
-            status: mark.status,
-            ...markedBy,
-          },
-          update: { status: mark.status, ...markedBy },
+      await tx.attendance.createMany({
+        data: studentIds.map((studentId) => ({
+          studentId,
+          date,
+          status: statusByStudent.get(studentId)!,
+          ...markedBy,
+        })),
+        skipDuplicates: true,
+      });
+      for (const [status, ids] of byStatus) {
+        await tx.attendance.updateMany({
+          where: { date, studentId: { in: ids } },
+          data: { status, ...markedBy },
         });
-        results.push(record);
       }
+      const saved = await tx.attendance.findMany({
+        where: { date, studentId: { in: studentIds } },
+      });
+      const byStudent = new Map(saved.map((r) => [r.studentId, r]));
+      const results = studentIds
+        .map((id) => byStudent.get(id))
+        .filter((r) => r !== undefined);
 
       await tx.auditLog.create({
         data: {

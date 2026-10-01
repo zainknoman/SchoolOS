@@ -58,6 +58,10 @@ describe('ParentService', () => {
     Object.assign(prisma.parentProfile, {
       count: jest.fn().mockResolvedValue(0),
     });
+    // BL-15: children are counted for the returned page only.
+    Object.assign(prisma, {
+      studentParent: { groupBy: jest.fn().mockResolvedValue([]) },
+    });
   });
 
   it('creates a Parent (User + ParentProfile) and audit-logs it without leaking the password', async () => {
@@ -120,9 +124,12 @@ describe('ParentService', () => {
         name: 'New Parent',
         phone: null,
         user: { identifier: 'parent-x@schoolos.edu.pk' },
-        _count: { children: 2 },
       },
     ]);
+    const groupBy = (
+      prisma as unknown as { studentParent: { groupBy: jest.Mock } }
+    ).studentParent.groupBy;
+    groupBy.mockResolvedValue([{ parentProfileId: 'p1', _count: { _all: 2 } }]);
 
     const result = (await service.list({ id: 'super-1', role: 'SUPER_ADMIN' }))
       .items;
@@ -139,6 +146,56 @@ describe('ParentService', () => {
     expect(prisma.parentProfile.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: undefined }),
     );
+    expect(groupBy).toHaveBeenCalledWith({
+      by: ['parentProfileId'],
+      where: { parentProfileId: { in: ['p1'] } },
+      _count: { _all: true },
+    });
+  });
+
+  it("counts a SCHOOL_ADMIN's page of parents' children inside their own school only", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'admin-1',
+      schoolId: 'school-1',
+    });
+    prisma.parentProfile.findMany.mockResolvedValue([
+      {
+        id: 'p1',
+        name: 'A Parent',
+        phone: null,
+        user: { identifier: 'a@schoolos.edu.pk' },
+      },
+      {
+        id: 'p2',
+        name: 'B Parent',
+        phone: null,
+        user: { identifier: 'b@schoolos.edu.pk' },
+      },
+    ]);
+    const groupBy = (
+      prisma as unknown as { studentParent: { groupBy: jest.Mock } }
+    ).studentParent.groupBy;
+    groupBy.mockResolvedValue([{ parentProfileId: 'p2', _count: { _all: 1 } }]);
+
+    const result = (await service.list({ id: 'admin-1', role: 'SCHOOL_ADMIN' }))
+      .items;
+
+    expect(result.map((p) => [p.id, p.childrenCount])).toEqual([
+      ['p1', 0],
+      ['p2', 1],
+    ]);
+    expect(groupBy).toHaveBeenCalledWith({
+      by: ['parentProfileId'],
+      where: {
+        parentProfileId: { in: ['p1', 'p2'] },
+        student: {
+          enrollments: {
+            some: { section: { class: { campus: { schoolId: 'school-1' } } } },
+          },
+        },
+      },
+      _count: { _all: true },
+    });
   });
 
   it("scopes a SCHOOL_ADMIN's parent list to parents with a child enrolled in their own school", async () => {
