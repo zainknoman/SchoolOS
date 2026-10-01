@@ -1,0 +1,49 @@
+# Pilot Exit Checklist (BL-57)
+
+> **Status:** CURRENT (checklist; **nothing signed yet**) · **Verified:** 2026-10-01 against `wave-0/foundations` · **Sources:** [OWNER-DECISIONS](../product/OWNER-DECISIONS.md) Q33, Q26, Q27, Q29, RD-5; [PRODUCTION-READINESS §3](PRODUCTION-READINESS.md); [EXECUTION-PLAN §0](EXECUTION-PLAN.md); [BACKLOG](../product/requirements/BACKLOG.md) BL-13, BL-14, BL-15, BL-43, BL-54, BL-55, BL-56, BL-57 · **Owner:** Product Owner (`[PRODUCT_OWNER]`) with the Technical Owner (`[TECHNICAL_OWNER]`)
+> The pilot (one school, campuses as needed, ~500–2,000 students, single instance — Q33) **exits** when every item below is **PASS** with an evidence link and a signature, and the final sign-off block is complete. The exit criteria come from Q33; changing them is a Product Owner decision recorded in [OWNER-DECISIONS](../product/OWNER-DECISIONS.md), not an edit to this file. Evidence that contains personal data or credentials stays outside the repository — link to its location instead.
+
+## How to fill it in
+- **Status:** `OPEN` → `PASS` (criterion met, evidence linked) or `FAIL` (record what is missing in the evidence cell and keep the item open).
+- **Evidence:** a link to a file in `docs/release/`, a CI run, a provider console screenshot stored outside the repository, or a signed document — never a bare "done".
+- **Owner:** the role that produces the evidence (RD-5 roles; persons are recorded outside the repository).
+- **Sign-off:** name or role, and date, of the person who checked the evidence. The owner may not sign their own item when a second role is listed in *Checked by*.
+- Re-check every item against the environment that will run the pilot (staging results count only where the item says so).
+
+## A. Exit criteria (Q33)
+| # | Item | Pass criterion | Evidence | Owner | Checked by | Status | Sign-off (name/role · date) |
+|---|---|---|---|---|---|---|---|
+| A1 | **Security review** | [HARDENING-CHECKLIST](../security/HARDENING-CHECKLIST.md) — every configuration item ticked for production; every engineering item ticked or accepted in writing by the Product Owner; [KNOWN-GAPS](../security/KNOWN-GAPS.md) has no open Critical/High; `npm audit --audit-level=high` gate green on the release commit; BL-36 follow-ups (console CSP, refresh-token reuse detection) built or accepted in writing; independent review / penetration test done or explicitly deferred by the Product Owner | `[LINK — review record]` | `[SECURITY_OWNER]` | `[TECHNICAL_OWNER]` | OPEN | |
+| A2 | **Backup restore test** | Automated backups running (daily minimum, retention ≥ 30 days); one restore rehearsed into a scratch database per [BACKUP-RESTORE — Minimal procedure](../operations/BACKUP-RESTORE.md#minimal-procedure-to-write-once-tooling-is-chosen) (database **and** object storage), `prisma migrate status` clean, smoke test passes; measured restore time ≤ **4 h** (RTO) and restored data no older than **24 h** (RPO) — Q26 | `[LINK — restore record with date and duration, in docs/release/]` | `[OPS_OWNER]` | `[TECHNICAL_OWNER]` | OPEN | |
+| A3 | **Monitoring live** | On production: external uptime probes on `/health/live` and `/health/ready`, error tracking (Sentry) with PII scrubbing verified on a test event, structured logs shipped with access control, and every alert rule in [MONITORING-LOGGING — Uptime probe and alert rules](../operations/MONITORING-LOGGING.md#uptime-probe-and-alert-rules-provider-agnostic) configured and fired once as a test to the on-call contact | `[LINK — screenshots/test alerts]` | `[OPS_OWNER]` | `[SECURITY_OWNER]` | OPEN | |
+| A4 | **No open Critical/High defects** | Every entry in [KNOWN-ISSUES](KNOWN-ISSUES.md), [KNOWN-GAPS](../security/KNOWN-GAPS.md) and the pilot defect tracker is triaged with a severity; none rated Critical or High is open. KNOWN-ISSUES has **no severity column** today — triage it first | `[LINK — triaged list / tracker query]` | `[TECHNICAL_OWNER]` | `[PRODUCT_OWNER]` | OPEN | |
+| A5 | **Core workflows stable** | During the pilot, with no open P1/P2 incident for them: authentication (staff and parent, incl. password reset — SMTP or the BL-64 admin-assisted reset), admissions/enrolment, attendance, fees (manual recording; gateways off, RD-14), academic/session workflows (results, report cards, promotion), parent app and notifications. Production smoke test ([RELEASE-VALIDATION §3](../testing/RELEASE-VALIDATION.md#3-production-smoke-test-to-be-automated-no-suite-exists)) passes on the release | `[LINK — incident log summary + smoke-test record]` | `[TECHNICAL_OWNER]` | `[SUPPORT_OWNER]` | OPEN | |
+| A6 | **School sign-off** | The pilot school's authorised representative confirms in writing that the pilot met its needs, listing any accepted open issues | `[LINK — signed letter/e-mail, stored outside the repository]` | `[PRODUCT_OWNER]` | `[SCHOOL_REPRESENTATIVE]` | OPEN | |
+
+## B. Release-readiness items carried by the plan
+| # | Item | Pass criterion | Evidence | Owner | Checked by | Status | Sign-off (name/role · date) |
+|---|---|---|---|---|---|---|---|
+| B1 | **BL-15 staging load run** | Load run on staging per [LOAD-TEST-REPORT §6](LOAD-TEST-REPORT.md#6-running-it-against-staging) meets the Q44 targets (CRUD p95 < 500 ms, auth p95 < 1 s, error rate < 1 %); result file attached and §1 of the report updated; load database dropped afterwards. Local run passed 2026-10-01 (CRUD p95 135 ms) — that alone does **not** pass this item | `[LINK — load-test/results/*-staging.json + report §1]` | `[TECHNICAL_OWNER]` | `[OPS_OWNER]` | OPEN (needs staging, BL-13) | |
+| B2 | **BL-55 screen-reader pass** | Every box in [ACCESSIBILITY-AUDIT §5](ACCESSIBILITY-AUDIT.md#5-open-screen-reader-pass-needs-a-person) checked with NVDA (and VoiceOver if available); tester, date and result filled in; findings fixed or accepted | [ACCESSIBILITY-AUDIT §5](ACCESSIBILITY-AUDIT.md#5-open-screen-reader-pass-needs-a-person) | `[A11Y_TESTER]` | `[PRODUCT_OWNER]` | OPEN | |
+| B3 | **BL-56 privacy gates** | Gates G1–G5 in [PRIVACY-OPERATIONS §0](../security/PRIVACY-OPERATIONS.md#0-gates-before-real-data-is-entered) met: counsel review recorded and privacy notice approved and shown **before real data is entered**; notification timelines filled in; named role holders and a live `[SUPPORT_EMAIL]`; incident process rehearsed once | [PRIVACY-OPERATIONS §0](../security/PRIVACY-OPERATIONS.md#0-gates-before-real-data-is-entered), [§4](../security/PRIVACY-OPERATIONS.md#4-rehearsal-required-once-before-real-data-is-entered) | `[PRIVACY_ADMINISTRATOR]` | `[PRODUCT_OWNER]` | OPEN | |
+| B4 | **BL-13 environments** | Staging and production exist as decided (Q25): managed PostgreSQL, S3-compatible storage, HTTPS, per-environment secrets, `NODE_ENV=production`; console and API on one registrable domain (BL-36, RD-2) | `[LINK — DEPLOYMENT record]` | `[OPS_OWNER]` | `[SECURITY_OWNER]` | OPEN | |
+| B5 | **Rollback rehearsed** | One rollback per [ROLLBACK](ROLLBACK.md) performed on staging, including restoring the pre-deploy backup | `[LINK — rehearsal record]` | `[OPS_OWNER]` | `[TECHNICAL_OWNER]` | OPEN | |
+| B6 | **Existing-school data migration** (only if the pilot school's data is imported) | `npm run migration:dry-run` clean on a production copy; backfills M1–M8 run; every `MigrationReviewItem` resolved ([RUNBOOKS — Migration review queue](../operations/RUNBOOKS.md#migration-review-queue-bl-62-d8)); rehearsal recorded in [MIGRATION-STRATEGY](../database/MIGRATION-STRATEGY.md) | `[LINK — reconciliation report]` | `[TECHNICAL_OWNER]` | `[PRODUCT_OWNER]` | OPEN / N/A | |
+
+## C. Owner-gated items (need owner inputs; carried forward from Wave 6)
+| # | Item | Pass criterion | Evidence | Owner | Checked by | Status | Sign-off (name/role · date) |
+|---|---|---|---|---|---|---|---|
+| C1 | **BL-43 parent app release pipeline** | Organisation-owned Play Console (`[PLAY_DEVELOPER_ACCOUNT]`); signing key held outside Git; Firebase staging and production projects (`[FIREBASE_PROJECT_ID]`, owner `[FIREBASE_OWNER]`); production app identifiers; signed AAB built from CI or the secure store pointing at the production API; internal-testing track release recorded; access list documented | `[LINK — release record + access list]` | `[TECHNICAL_OWNER]` | `[PRODUCT_OWNER]` | OPEN (owner input) | |
+| C2 | **BL-54 device / accessibility matrix** | Matrix executed and recorded on real devices: Android 9+, a low-memory device, slow network, small screen, Android accessibility checks (TalkBack, font scaling); includes the `file_picker` complaint-attachment flow; no blocking defects | `[LINK — matrix in docs/release/]` | `[TECHNICAL_OWNER]` | `[SUPPORT_OWNER]` | OPEN (owner input) | |
+| C3 | **BL-14 integration verification** | FCM: one push delivered on staging to a release build (Firebase project from C1). SMTP: one password-reset e-mail delivered when a provider is chosen — or, if e-mail stays off in the pilot (RD-4), the BL-64 admin-assisted reset confirmed as the reset path. Gateways stay off (RD-14). Run recorded with date and evidence | `[LINK — sandbox run record in docs/release/]` | `[OPS_OWNER]` | `[TECHNICAL_OWNER]` | OPEN (owner input) | |
+
+## Final sign-off
+The pilot exits only when sections A–C are all PASS (or N/A where the item allows it) and every role below has signed.
+| Role | Name | Date | Signature / reference |
+|---|---|---|---|
+| Technical Owner (Engineering Lead) — `[TECHNICAL_OWNER]` | | | |
+| Operations Owner — `[OPS_OWNER]` | | | |
+| Security Owner — `[SECURITY_OWNER]` | | | |
+| Privacy Administrator — `[PRIVACY_ADMINISTRATOR]` | | | |
+| Pilot school representative — `[SCHOOL_REPRESENTATIVE]` | | | |
+| Product Owner (final approval) — `[PRODUCT_OWNER]` | | | |

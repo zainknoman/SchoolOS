@@ -11,7 +11,7 @@
 | G3 | Breach-notification timelines and recipients filled in (§2 step 6) | this file, §2 | ⏳ TBD — counsel |
 | G4 | Named people assigned to `[PRIVACY_ADMINISTRATOR]`, `[SECURITY_OWNER]`, `[OPS_OWNER]`, `[SUPPORT_OWNER]` and `[SUPPORT_EMAIL]` live (names kept outside the repository) | access list `[LINK]` | ⏳ |
 | G5 | Incident process rehearsed once (§4) | §4 record | ⏳ |
-These gates are items of the pilot exit checklist (BL-57).
+These gates are item B3 of the [pilot exit checklist](../release/PILOT-EXIT-CHECKLIST.md) (BL-57).
 
 ## 1. Consent and notice requirements for legal review
 Questions for counsel. Each answer becomes a decision recorded here with date and reviewer; none is answered by engineering.

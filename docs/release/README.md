@@ -7,6 +7,7 @@
 | [PRODUCTION-READINESS](PRODUCTION-READINESS.md) | go/no-go assessment, gap classification, pilot blockers |
 | [GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN](GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md) | decided-vs-built gaps and the phased engineering plan (pilot scope order) |
 | [EXECUTION-PLAN](EXECUTION-PLAN.md) | ordered waves, schema/migration dependencies, regeneration matrix, rollback rules |
+| [PILOT-EXIT-CHECKLIST](PILOT-EXIT-CHECKLIST.md) | signable pilot exit review (Q33, BL-57): security review, restore test, monitoring, defects, school sign-off, staging load run, screen-reader pass, privacy gates, owner-gated BL-43/BL-54/BL-14 — evidence, owner and sign-off per item |
 | [RELEASE-CHECKLIST](RELEASE-CHECKLIST.md) | steps for cutting and deploying a release |
 | [MIGRATION-CHECKLIST](MIGRATION-CHECKLIST.md) | database change safety |
 | [ROLLBACK](ROLLBACK.md) | how to revert |
