@@ -1,6 +1,6 @@
 # SchoolOS — Requirements / Decision Matrix
 
-> **Status:** CURRENT (decisions; **none implemented**) · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** [OWNER-DECISIONS](../OWNER-DECISIONS.md), [BUSINESS-RULES §8](../BUSINESS-RULES.md), [BACKLOG](BACKLOG.md), [NFR](NON-FUNCTIONAL-REQUIREMENTS.md), [GAP-ANALYSIS](../../release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md) · **Owner:** Product Owner
+> **Status:** FROZEN 2026-10-01 — **no longer updated**; implementation status lives in [EXECUTION-PLAN §0](../../release/EXECUTION-PLAN.md) and the BACKLOG "Done" notes (some rows were updated up to BL-15, others still show the 2026-09-20 state) · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** [OWNER-DECISIONS](../OWNER-DECISIONS.md), [BUSINESS-RULES §8](../BUSINESS-RULES.md), [BACKLOG](BACKLOG.md), [NFR](NON-FUNCTIONAL-REQUIREMENTS.md), [GAP-ANALYSIS](../../release/GAP-ANALYSIS-AND-IMPLEMENTATION-PLAN.md) · **Owner:** Product Owner
 > One row per decided requirement: decision → rule/NFR id → what the code does today → gap → work item → phase → pilot class. **Pilot class:** `BLOCKER` (go-live gate), `CORE` (pilot scope), `POST` (post-pilot), `DOC` (non-code). Feature/status words follow the [docs index](../../README.md).
 
 | Decision (source) | Rule / NFR | Code today | Gap | Work item | Phase | Pilot |

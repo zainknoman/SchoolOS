@@ -1,7 +1,7 @@
 # SchoolOS — Project Status
 
 > **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` (code inspection **plus test suites executed on this date**: backend unit 579 ✓, backend e2e 196 ✓ (fresh database), staff console 512 ✓, Flutter 100 ✓; backend lint failing — details in [`docs/testing/TESTING-STRATEGY.md`](docs/testing/TESTING-STRATEGY.md)) · **Owner:** Product Owner
-> This page replaces the former 1,721-line build log, now at [`docs/archive/project-status-build-log.md`](docs/archive/project-status-build-log.md) (historical; contains stale items).
+> This page replaces the former 1,721-line build log, kept in git history at `docs/archive/project-status-build-log.md` (tag `docs-history-2026-10-01`) (historical; contains stale items).
 > Status words: `IMPLEMENTED` · `PARTIALLY IMPLEMENTED` · `CONFIGURATION REQUIRED` · `EXTERNAL SERVICE REQUIRED` · `STUB` · `PLANNED` · `NOT IMPLEMENTED` · `UNKNOWN`. "IMPLEMENTED" means code exists and is wired; it is **not** a production-readiness claim.
 
 ## Owner decisions (2026-09-20)

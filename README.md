@@ -120,7 +120,7 @@ Full list and evidence: [`PROJECT-STATUS.md`](PROJECT-STATUS.md).
 
 ## Documentation
 
-[`docs/README.md`](docs/README.md) is the index. Highlights: [status](PROJECT-STATUS.md) · [design system](DESIGN.md) · [product](docs/product/PRODUCT-OVERVIEW.md) · [workflows](docs/workflows/PRODUCT-JOURNEY.md) · [architecture](docs/architecture/SYSTEM-OVERVIEW.md) · [API](docs/api/API-OVERVIEW.md) · [database](docs/database/DATA-MODEL.md) · [security](docs/security/SECURITY-OVERVIEW.md) · [operations](docs/operations/ENVIRONMENT.md) · [testing](docs/testing/TESTING-STRATEGY.md) · [user guides](docs/user-guides/README.md) · [release](docs/release/README.md) · [documentation plan](docs/PLAN-DOCUMENTATION-PRODUCTION-READINESS.md) · [history/archive](docs/archive/).
+[`docs/README.md`](docs/README.md) is the index. Highlights: [status](PROJECT-STATUS.md) · [design system](DESIGN.md) · [product](docs/product/PRODUCT-OVERVIEW.md) · [workflows](docs/workflows/PRODUCT-JOURNEY.md) · [architecture](docs/architecture/SYSTEM-OVERVIEW.md) · [API](docs/api/API-OVERVIEW.md) · [database](docs/database/DATA-MODEL.md) · [security](docs/security/SECURITY-OVERVIEW.md) · [operations](docs/operations/ENVIRONMENT.md) · [testing](docs/testing/TESTING-STRATEGY.md) · [user guides](docs/user-guides/README.md) · [release](docs/release/README.md) · [documentation plan](docs/PLAN-DOCUMENTATION-PRODUCTION-READINESS.md) · history: git tag `docs-history-2026-10-01`.
 
 ## Roadmap (PLANNED, not implemented)
 

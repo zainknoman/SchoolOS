@@ -17,4 +17,4 @@
 | [`../../CHANGELOG.md`](../../CHANGELOG.md) | reconstructed history; no releases exist (first release will be 1.0.0) |
 | Release notes | none yet; template: *version · date · changes · migrations · config changes · known issues · rollback notes* |
 
-The original planning brief for this documentation effort is archived at [`../archive/production-readiness-brief.md`](../archive/production-readiness-brief.md).
+The original planning brief for this documentation effort is kept in git history at `docs/archive/production-readiness-brief.md` (tag `docs-history-2026-10-01`).

@@ -41,7 +41,6 @@
 |---|---|---|
 | [`PLAN-DOCUMENTATION-PRODUCTION-READINESS.md`](PLAN-DOCUMENTATION-PRODUCTION-READINESS.md) | Program plan for this documentation effort | CURRENT |
 | [`audit/`](audit/) | Dated audits (UI/design-system audit 2026-09-18; documentation audit 2026-09-20; housekeeping inspection 2026-09-20) | CURRENT (dated records) |
-| [`superpowers/`](superpowers/README.md) | Per-sprint plans and design specs (tool-managed) | HISTORICAL — rationale, not truth |
 | [`design-reference/`](design-reference/) | Wireframes, screenshot/comps, timetable samples | HISTORICAL/REFERENCE |
 | `UI-Screenshots/` (this folder) | Current design comps — **pending move** into `design-reference/` (blocked by a Windows file lock on 2026-09-20) | REFERENCE |
-| [`archive/`](archive/) | Superseded material with ARCHIVED banners: original MVP plan, Plan-Ideas, Figma handoff, old build log, old trackers, stale DB docs. Cleanup record: [`archive/CLEANUP-MANIFEST.md`](archive/CLEANUP-MANIFEST.md) | ARCHIVED |
+| `archive/`, `superpowers/` (removed 2026-10-01) | Superseded material (original MVP plan, Plan-Ideas, Figma handoff, old build log, old trackers, stale DB docs, cleanup manifest) and the per-sprint plans/design specs. **Not in the working tree any more**: every path cited as `docs/archive/…` or `docs/superpowers/…` is in git tag `docs-history-2026-10-01` — `git show docs-history-2026-10-01:docs/archive/<file>`. New workflow plans/specs are written to `docs/superpowers/` locally and are git-ignored | HISTORY (git tag) |

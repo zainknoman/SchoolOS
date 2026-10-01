@@ -28,3 +28,6 @@ backend/prisma/dev.db
 backend/prisma/*.db-journal
 backend/uploads/
 **/*.log
+
+# Workflow specs/plans (superpowers skills) stay local; history up to 2026-10-01 is at tag docs-history-2026-10-01
+docs/superpowers/
