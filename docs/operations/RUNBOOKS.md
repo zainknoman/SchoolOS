@@ -1,18 +1,29 @@
 # Troubleshooting Runbooks
 
 > **Status:** PARTIAL — derived from code behaviour, **not from production experience** (none exists) · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Operations/Deployment Owner
-> Each entry states the symptom, the code-derived cause(s), and what to check. The incident/support model below is **DECIDED (2026-09-20) but not yet operational**; it must exist before production launch (BL-56).
+> Each entry states the symptom, the code-derived cause(s), and what to check. The incident/support model below is **DECIDED (2026-09-20) and documented (BL-56, 2026-10-01) but not yet operational**: named people for the roles, a live `[SUPPORT_EMAIL]` and one rehearsal are still required before production launch ([PRIVACY-OPERATIONS §0](../security/PRIVACY-OPERATIONS.md#0-gates-before-real-data-is-entered)). Personal-data breaches follow [PRIVACY-OPERATIONS §2](../security/PRIVACY-OPERATIONS.md#2-breach-handling-process).
 
 ## Incident and support process (decided; pilot)
 - **Roles:** the Engineering/Operations owner handles technical incidents; the **school admin is the first operational contact** for school-side issues and escalates to the designated support channel (support channel `[SUPPORT_EMAIL]`; owner `[SUPPORT_OWNER]`).
 - **Internal severity levels and acknowledgement targets** (RD-13). These are **internal operational targets, not contractual SLA commitments**; a customer-facing SLA is a future business decision.
 | Level | Meaning (working definition) | Internal target | Handling |
 |---|---|---|---|
-| P1 Critical | production down, data loss/corruption or suspected breach/cross-school data exposure | acknowledge ≤ 30 minutes; continuous investigation until mitigated | immediate operational attention; Security Owner engaged for suspected breach; breach-notification process (Product Owner, counsel) applies |
+| P1 Critical | production down, data loss/corruption or suspected breach/cross-school data exposure | acknowledge ≤ 30 minutes; continuous investigation until mitigated | immediate operational attention; Security Owner engaged for suspected breach; [breach-handling process](../security/PRIVACY-OPERATIONS.md#2-breach-handling-process) applies (notification timelines TBD pending legal review) |
 | P2 High | major function unusable (login, attendance, fees) for a school | acknowledge ≤ 2 business hours | as soon as practical |
 | P3 Medium | degraded or workaround exists | acknowledge ≤ 1 business day | normal queue |
 | P4 Low | cosmetic/minor request | acknowledge ≤ 3 business days | backlog |
 - Critical production incidents are acknowledged as soon as practical. Record each P1/P2 with timeline, cause, fix and follow-ups. Roles: `[OPS_OWNER]` (technical incidents), `[SECURITY_OWNER]` (suspected breach), `[PRIVACY_ADMINISTRATOR]` (breach notification), `[SUPPORT_OWNER]` (first-line). Persons assigned to the roles are recorded outside the repository.
+- **Support channel:** users contact their school admin; the school admin, and anyone reporting a security issue ([`SECURITY.md`](../../SECURITY.md)), writes to `[SUPPORT_EMAIL]`. "Business hours/days" in the targets mean `[BUSINESS_HOURS]` (Pakistan time). Out-of-hours contact for P1: `[P1_CONTACT]`.
+- **Lifecycle of an incident:**
+  1. **Receive and log** — open an incident record with the time received.
+  2. **Classify** P1–P4 using the table above; when unsure, choose the higher level. Any suspected exposure of personal data, or data visible across schools, is **P1**.
+  3. **Acknowledge** to the reporter within the internal target.
+  4. **Investigate and mitigate** using the runbook table below; P1 continues without pause until mitigated. If a P1/P2 is not acknowledged within its target, escalate to the Engineering Lead.
+  5. **Update** the school admin on P1/P2 at least every `[UPDATE_INTERVAL]` until resolved.
+  6. **Resolve** and confirm with the reporter.
+  7. **Close** — for P1/P2 complete the record (timeline, cause, fix, follow-ups) and hold a short review; add new symptoms to the table below.
+- **Incident record (minimum fields):** id · opened at · reported by (role) · severity · schools affected · summary · acknowledged at · mitigated at · resolved at · cause · personal data involved (yes → [PRIVACY-OPERATIONS §2](../security/PRIVACY-OPERATIONS.md#2-breach-handling-process)) · follow-ups · owner. Records that contain personal data are kept in `[INCIDENT_TRACKER]` outside the repository.
+- **Rehearsal:** the process is rehearsed once before production, recorded in [PRIVACY-OPERATIONS §4](../security/PRIVACY-OPERATIONS.md#4-rehearsal-required-once-before-real-data-is-entered).
 
 | Symptom | Likely cause (evidence) | Check / action |
 |---|---|---|

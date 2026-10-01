@@ -63,7 +63,7 @@ Pilot = one school, campuses as needed, ~500–2,000 students, single instance. 
 4. Backups with a **rehearsed restore** meeting RPO 24 h / RTO 4 h (BL-13).
 5. Health endpoint, structured logs, Sentry with PII scrubbing, uptime probe (BL-11).
 6. SMTP and FCM verified in staging; parent reset flow (BL-14, BL-35). Payment gateways are **not** a blocker; manual recording is the pilot path.
-7. Privacy, consent, breach and incident/support processes documented and owner-approved before production (BL-56).
+7. Privacy, consent, breach and incident/support processes documented and owner-approved before production (BL-56: drafted 2026-10-01 — [PRIVACY-NOTICE](../security/PRIVACY-NOTICE.md), [PRIVACY-OPERATIONS](../security/PRIVACY-OPERATIONS.md), [RUNBOOKS](../operations/RUNBOOKS.md#incident-and-support-process-decided-pilot); approval, counsel review and one rehearsal still pending).
 8. Parent password reset must have a delivery path: an SMTP provider **or** the admin-assisted reset (BL-64) — e-mail may stay disabled in the pilot (RD-4) but then the link-only-in-logs behaviour (KG-4) is not acceptable.
 9. Migration strategy and reconciliation report approved before session/guardian migrations run (BL-62).
 10. Release checklist and rollback rehearsed ([RELEASE-CHECKLIST](RELEASE-CHECKLIST.md), [ROLLBACK](ROLLBACK.md)); load test against the Q44 targets (BL-15: passes locally, staging run per [LOAD-TEST-REPORT §6](LOAD-TEST-REPORT.md)).
