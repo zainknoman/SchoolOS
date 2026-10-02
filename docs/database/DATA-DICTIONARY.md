@@ -1386,9 +1386,12 @@ Block attributes: `@@index([userId])` · `@@index([deliveryStatus, nextAttemptAt
 | targetType | String |  |
 | prompt | String |  |
 | suggestion | String |  |
+| model | String? |  |
+| inputTokens | Int? |  |
+| outputTokens | Int? |  |
 | createdAt | DateTime | @default(now()) |
 
-Block attributes: `@@index([userId])`
+Block attributes: `@@index([userId])` · `@@index([userId, createdAt])`
 
 ## Finance & files
 

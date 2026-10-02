@@ -5,10 +5,19 @@ import { AI_DRAFTING_PROVIDER } from './ai-drafting-provider';
 import { StubAiDraftingProvider } from './stub-drafting.provider';
 import { AnthropicDraftingProvider } from './anthropic-drafting.provider';
 import { resolveAnthropicConfig } from './anthropic-config';
+import {
+  AI_DRAFTING_SETTINGS,
+  resolveAiDraftingSettings,
+} from './ai-drafting-config';
 
 @Module({
   providers: [
     AiDraftingService,
+    {
+      provide: AI_DRAFTING_SETTINGS,
+      useFactory: resolveAiDraftingSettings,
+      inject: [ConfigService],
+    },
     {
       provide: AI_DRAFTING_PROVIDER,
       useFactory: (config: ConfigService) => {

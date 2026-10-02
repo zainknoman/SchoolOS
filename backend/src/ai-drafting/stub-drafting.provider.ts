@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AiDraftingProvider } from './ai-drafting-provider';
+import { AiDraftingProvider, DraftResult } from './ai-drafting-provider';
 
 export const STUB_SUGGESTION_MESSAGE =
   '[AI drafting is not configured in this environment. Set ANTHROPIC_API_KEY to enable real suggestions.]';
@@ -12,7 +12,12 @@ export const STUB_SUGGESTION_MESSAGE =
 @Injectable()
 export class StubAiDraftingProvider implements AiDraftingProvider {
   // eslint-disable-next-line @typescript-eslint/require-await -- the adapter interface is Promise-based
-  async suggestDraft(): Promise<string> {
-    return STUB_SUGGESTION_MESSAGE;
+  async suggestDraft(): Promise<DraftResult> {
+    return {
+      text: STUB_SUGGESTION_MESSAGE,
+      model: null,
+      inputTokens: null,
+      outputTokens: null,
+    };
   }
 }

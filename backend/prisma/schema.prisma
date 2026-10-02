@@ -1435,15 +1435,21 @@ model GeneratedReportCard {
 }
 
 model DraftSuggestion {
-  id         String   @id @default(uuid())
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  targetType String // "circular" | "diary"
-  prompt     String
-  suggestion String
-  createdAt  DateTime @default(now())
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  targetType   String // "circular" | "diary"
+  /// BL-49: stored after personal identifiers were redacted
+  prompt       String
+  suggestion   String
+  /// BL-49 cost tracking; null for the stub provider and rows before 2026-10-03
+  model        String?
+  inputTokens  Int?
+  outputTokens Int?
+  createdAt    DateTime @default(now())
 
   @@index([userId])
+  @@index([userId, createdAt])
 }
 
 model AttendanceRiskFlag {

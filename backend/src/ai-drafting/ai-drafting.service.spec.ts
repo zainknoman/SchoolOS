@@ -1,48 +1,72 @@
+import { HttpException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AiDraftingService } from './ai-drafting.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AI_DRAFTING_PROVIDER } from './ai-drafting-provider';
+import { AI_DRAFTING_SETTINGS } from './ai-drafting-config';
 
-describe('AiDraftingService', () => {
-  let service: AiDraftingService;
-  let prisma: { draftSuggestion: { create: jest.Mock } };
+describe('AiDraftingService (BL-49)', () => {
+  let prisma: { draftSuggestion: { create: jest.Mock; count: jest.Mock } };
   let provider: { suggestDraft: jest.Mock };
 
-  beforeEach(async () => {
-    prisma = { draftSuggestion: { create: jest.fn() } };
-    provider = { suggestDraft: jest.fn() };
+  async function make(
+    settings = { enabled: true, dailyLimit: 2, maxContextChars: 200 },
+  ) {
+    prisma = {
+      draftSuggestion: {
+        create: jest.fn().mockResolvedValue({}),
+        count: jest.fn().mockResolvedValue(0),
+      },
+    };
+    provider = {
+      suggestDraft: jest.fn().mockResolvedValue({
+        text: 'Dear parents, the PTM is on Sept 20th.',
+        model: 'claude-opus-5-5',
+        inputTokens: 120,
+        outputTokens: 80,
+      }),
+    };
     const moduleRef = await Test.createTestingModule({
       providers: [
         AiDraftingService,
         { provide: PrismaService, useValue: prisma },
         { provide: AI_DRAFTING_PROVIDER, useValue: provider },
+        { provide: AI_DRAFTING_SETTINGS, useValue: settings },
       ],
     }).compile();
-    service = moduleRef.get(AiDraftingService);
+    return moduleRef.get(AiDraftingService);
+  }
+
+  it('is refused while the feature is off (the default)', async () => {
+    const service = await make({
+      enabled: false,
+      dailyLimit: 2,
+      maxContextChars: 200,
+    });
+    await expect(service.suggestDraft('u1', 'circular', 'PTM')).rejects.toThrow(
+      'turned off',
+    );
+    expect(provider.suggestDraft).not.toHaveBeenCalled();
   });
 
-  it('asks the injected provider for a suggestion, persists it, and returns it', async () => {
-    provider.suggestDraft.mockResolvedValue(
-      'Dear parents, the PTM is on Sept 20th.',
-    );
-    prisma.draftSuggestion.create.mockResolvedValue({});
-
+  it('redacts personal identifiers before the provider sees them, and stores usage', async () => {
+    const service = await make();
     const result = await service.suggestDraft(
-      'user-1',
+      'u1',
       'circular',
-      'PTM on Sept 20th',
+      'PTM Sept 20; call Mr Ali 0300-1234567, CNIC 35202-1234567-1',
     );
-
-    expect(provider.suggestDraft).toHaveBeenCalledWith({
-      context: 'PTM on Sept 20th',
-      targetType: 'circular',
-    });
+    const sent = provider.suggestDraft.mock.calls[0][0].context as string;
+    expect(sent).toBe('PTM Sept 20; call Mr Ali [PHONE], CNIC [CNIC]');
     expect(prisma.draftSuggestion.create).toHaveBeenCalledWith({
       data: {
-        userId: 'user-1',
+        userId: 'u1',
         targetType: 'circular',
-        prompt: 'PTM on Sept 20th',
+        prompt: sent,
         suggestion: 'Dear parents, the PTM is on Sept 20th.',
+        model: 'claude-opus-5-5',
+        inputTokens: 120,
+        outputTokens: 80,
       },
     });
     expect(result).toEqual({
@@ -50,20 +74,21 @@ describe('AiDraftingService', () => {
     });
   });
 
-  it('works for the "diary" targetType the same way', async () => {
-    provider.suggestDraft.mockResolvedValue('Homework: read chapter 3.');
-    prisma.draftSuggestion.create.mockResolvedValue({});
+  it('enforces the per-user daily limit with 429', async () => {
+    const service = await make();
+    prisma.draftSuggestion.count.mockResolvedValue(2);
+    const err = await service
+      .suggestDraft('u1', 'diary', 'homework')
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(HttpException);
+    expect((err as HttpException).getStatus()).toBe(429);
+    expect(provider.suggestDraft).not.toHaveBeenCalled();
+  });
 
-    const result = await service.suggestDraft(
-      'user-2',
-      'diary',
-      'chapter 3 reading',
-    );
-
-    expect(provider.suggestDraft).toHaveBeenCalledWith({
-      context: 'chapter 3 reading',
-      targetType: 'diary',
-    });
-    expect(result.suggestion).toBe('Homework: read chapter 3.');
+  it('refuses an over-long context', async () => {
+    const service = await make();
+    await expect(
+      service.suggestDraft('u1', 'diary', 'x'.repeat(201)),
+    ).rejects.toThrow('200 characters');
   });
 });

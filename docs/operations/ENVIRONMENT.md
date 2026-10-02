@@ -35,6 +35,7 @@
 | `WHATSAPP_BUSINESS_PHONE_ID`, `WHATSAPP_ACCESS_TOKEN` | Optional as a group | unset ⇒ logging adapter | Yes | Meta Graph API; **missing from `.env.example`** |
 | `SMS_PROVIDER` + (`SMS_GATEWAY_URL`, `SMS_GATEWAY_API_KEY`, `SMS_GATEWAY_SENDER_ID`) or (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM`) | Optional; the chosen provider's set is required together | unset `SMS_PROVIDER` ⇒ SMS off (logging adapter) | Yes | BL-38; off for the pilot (RD-4) |
 | `ANTHROPIC_API_KEY` | Optional | unset ⇒ stub drafting provider | Yes | |
+| `AI_DRAFTING`, `AI_DRAFTING_DAILY_LIMIT`, `AI_DRAFTING_MAX_CONTEXT` | Optional | AI drafting **off**; limits 20/day, 2000 characters | No | BL-49 |
 
 **Boot-time validation (BL-51, `src/config/env.validation.ts`).** Outside `development`/`test` the API refuses to start — listing every problem at once — unless `JWT_ACCESS_SECRET` is at least 32 characters and not a placeholder (`change-me`, `secret`, `example`, `dev-only`, …) and `DATABASE_URL`, `CORS_ORIGINS` and `FRONTEND_URL` are set. An empty value counts as unset. Generate a secret with `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`.
 
