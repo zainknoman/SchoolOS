@@ -1,23 +1,33 @@
-import { SmsConfig } from './sms-config';
+import { SmsConfig, toE164 } from './sms-config';
 import { DELIVERY_TIMEOUT_MS } from './delivery-policy';
 
 /**
- * Thin seam over a generic HTTP SMS gateway — SmsAdapter depends on this interface, not on
- * `fetch`/the gateway directly, so its tests supply a fake sender instead of mocking HTTP.
- * // TODO: confirm the actual endpoint/field names once a Pakistani SMS provider is contracted;
- * this mirrors Sprint E's EasyPaisa precedent for shipping against an unconfirmed field list.
+ * The seam SmsAdapter depends on (BL-38) — one implementation per provider, picked by
+ * `createSmsSender` from configuration; tests supply a fake sender instead of mocking HTTP.
  */
 export interface SmsSender {
   sendMessage(phoneNumber: string, body: string): Promise<void>;
 }
 
+type Fetch = typeof fetch;
+
+async function ensureOk(response: Response, provider: string): Promise<void> {
+  if (response.ok) return;
+  const text = await response.text().catch(() => '');
+  throw new Error(
+    `SMS send failed via ${provider} (${response.status}): ${(text || response.statusText).slice(0, 200)}`,
+  );
+}
+
+/** JSON gateway: POST {sender_id, to, message} with a Bearer API key. */
 export class HttpSmsSender implements SmsSender {
-  constructor(private readonly config: SmsConfig) {}
+  constructor(
+    private readonly config: Extract<SmsConfig, { provider: 'http' }>,
+    private readonly fetchImpl: Fetch = fetch,
+  ) {}
 
   async sendMessage(phoneNumber: string, body: string): Promise<void> {
-    // TODO: confirm the real gateway's endpoint URL and payload shape.
-    const url = 'https://api.sms-gateway.example.pk/v1/send';
-    const response = await fetch(url, {
+    const response = await this.fetchImpl(this.config.url, {
       // KI-5: a hung gateway must not hold the caller open.
       signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
       method: 'POST',
@@ -27,16 +37,45 @@ export class HttpSmsSender implements SmsSender {
       },
       body: JSON.stringify({
         sender_id: this.config.senderId,
-        to: phoneNumber,
+        to: toE164(phoneNumber),
         message: body,
       }),
     });
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new Error(
-        `SMS send failed (${response.status}): ${text || response.statusText}`,
-      );
-    }
+    await ensureOk(response, 'http gateway');
   }
+}
+
+/** Twilio Messaging REST API (form-encoded, HTTP Basic with the account SID and auth token). */
+export class TwilioSmsSender implements SmsSender {
+  constructor(
+    private readonly config: Extract<SmsConfig, { provider: 'twilio' }>,
+    private readonly fetchImpl: Fetch = fetch,
+  ) {}
+
+  async sendMessage(phoneNumber: string, body: string): Promise<void> {
+    const { accountSid, authToken, from } = this.config;
+    const response = await this.fetchImpl(
+      `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(accountSid)}/Messages.json`,
+      {
+        signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          To: toE164(phoneNumber),
+          From: from,
+          Body: body,
+        }).toString(),
+      },
+    );
+    await ensureOk(response, 'twilio');
+  }
+}
+
+export function createSmsSender(config: SmsConfig): SmsSender {
+  return config.provider === 'twilio'
+    ? new TwilioSmsSender(config)
+    : new HttpSmsSender(config);
 }

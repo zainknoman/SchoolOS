@@ -11,7 +11,7 @@ import { WhatsAppAdapter } from './whatsapp.adapter';
 import { HttpWhatsAppSender } from './whatsapp-sender';
 import { resolveWhatsAppConfig } from './whatsapp-config';
 import { SmsAdapter } from './sms.adapter';
-import { HttpSmsSender } from './sms-sender';
+import { createSmsSender } from './sms-sender';
 import { resolveSmsConfig } from './sms-config';
 import { WHATSAPP_ADAPTER, SMS_ADAPTER } from './channel-registry';
 import { DigestDispatchJob } from './digest-dispatch.job';
@@ -62,7 +62,7 @@ import { resolveSmtpConfig } from './smtp-config';
       useFactory: (config: ConfigService, prisma: PrismaService) => {
         const smsConfig = resolveSmsConfig(config);
         if (!smsConfig) return new LoggingPushAdapter();
-        return new SmsAdapter(new HttpSmsSender(smsConfig), prisma);
+        return new SmsAdapter(createSmsSender(smsConfig), prisma);
       },
       inject: [ConfigService, PrismaService],
     },

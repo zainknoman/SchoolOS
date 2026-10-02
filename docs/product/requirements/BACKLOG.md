@@ -104,7 +104,7 @@
 | BL-47 | Student login (architecture must allow it; do not implement) | POST-PILOT | | Q13 |
 | BL-48 | WhatsApp Business Cloud API with approved templates | POST-PILOT | Replace the free-text sender | Q38 |
 | BL-49 | AI drafting hardening: feature flag default off, cost limits, redaction | POST-PILOT | | Q39 |
-| BL-38 | SMS provider adapter (decouple from the placeholder URL; provider configurable via environment; **TBD**) | POST-PILOT (SMS disabled for the pilot, RD-4) | Business logic depends only on an interface; provider chosen by configuration; fake sender in tests | Q37, KI-4, RD-4 |
+| BL-38 | *Done 2026-10-02:* `SMS_PROVIDER` selects the sender — `http` (configurable HTTPS JSON gateway: `SMS_GATEWAY_URL`, `SMS_GATEWAY_API_KEY`, `SMS_GATEWAY_SENDER_ID`) or `twilio` (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM`); unset = off (RD-4); incomplete settings fail at boot outside development/test; numbers normalised to E.164; business logic depends only on `SmsSender`; unit-tested with a fake fetch. Not verified against a live provider (no account). SMS provider adapter (decouple from the placeholder URL; provider configurable via environment; **TBD**) | POST-PILOT (SMS disabled for the pilot, RD-4) | Business logic depends only on an interface; provider chosen by configuration; fake sender in tests | Q37, KI-4, RD-4 |
 | BL-59 | Campus-level attendance-risk overrides; advanced accounting; advanced analytics | POST-PILOT | | Q8, Q33 |
 | BL-09 | Parent web portal | UNPRIORITISED | Q41 requires the reset flow to be app-or-web compatible only | — |
 | BL-16 | Multi-tenant SaaS direction | UNPRIORITISED | Needs its own audit before any refactor; BL-23 and BL-01 must not foreclose it | — |

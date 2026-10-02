@@ -29,7 +29,7 @@ Controller (routing, `@Roles`, DTO) → service (rules, scoping, transactions) �
 | Payments | gateway adapter factory (`fees/gateways/`) | JazzCash, EasyPaisa, stub | env presence (`gateway-config.ts`) |
 | Push | `PushAdapter` | `FcmPushAdapter`, `LoggingPushAdapter` | `FIREBASE_*` presence |
 | Mail | `MailAdapter` | `SmtpMailAdapter`, `LoggingMailAdapter` | `SMTP_*` presence |
-| SMS / WhatsApp | `PushAdapter` shape via `channel-registry.ts` | `SmsAdapter` (**placeholder URL** `https://api.sms-gateway.example.pk/v1/send`, `sms-sender.ts:18`), `WhatsAppAdapter` (Meta Graph API, `whatsapp-sender.ts:17`) | env presence |
+| SMS / WhatsApp | `PushAdapter` shape via `channel-registry.ts` | `SmsAdapter` + `createSmsSender` (BL-38: `SMS_PROVIDER` = `http` gateway or `twilio`), `WhatsAppAdapter` (Meta Graph API, `whatsapp-sender.ts:17`) | env presence (`SMS_PROVIDER` for SMS) |
 | AI drafting | `ai-drafting-provider.ts` | Anthropic, stub | `ANTHROPIC_API_KEY` |
 
 Rule (`*-config.ts`): a provider with *some but not all* variables set is a startup error outside development/test; none set → fallback.

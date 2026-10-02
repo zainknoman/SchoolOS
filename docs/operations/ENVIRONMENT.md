@@ -33,7 +33,7 @@
 | `FIREBASE_PROJECT_ID`, `_CLIENT_EMAIL`, `_PRIVATE_KEY` | Optional as a group | unset ⇒ logging no-op push (all envs) | Yes | private key with literal `\n` sequences |
 | `SMTP_HOST`, `_PORT`, `_USER`, `_PASS`, `_FROM` | Optional as a group | unset ⇒ `LoggingMailAdapter` **logs reset links** (all envs, KG-4) | Yes (`PASS`) | partial set ⇒ startup error outside dev/test |
 | `WHATSAPP_BUSINESS_PHONE_ID`, `WHATSAPP_ACCESS_TOKEN` | Optional as a group | unset ⇒ logging adapter | Yes | Meta Graph API; **missing from `.env.example`** |
-| `SMS_GATEWAY_API_KEY`, `SMS_GATEWAY_SENDER_ID` | Optional as a group | unset ⇒ logging adapter | Yes | sender calls a **placeholder URL** (`sms-sender.ts:18`); **missing from `.env.example`** |
+| `SMS_PROVIDER` + (`SMS_GATEWAY_URL`, `SMS_GATEWAY_API_KEY`, `SMS_GATEWAY_SENDER_ID`) or (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM`) | Optional; the chosen provider's set is required together | unset `SMS_PROVIDER` ⇒ SMS off (logging adapter) | Yes | BL-38; off for the pilot (RD-4) |
 | `ANTHROPIC_API_KEY` | Optional | unset ⇒ stub drafting provider | Yes | |
 
 **Boot-time validation (BL-51, `src/config/env.validation.ts`).** Outside `development`/`test` the API refuses to start — listing every problem at once — unless `JWT_ACCESS_SECRET` is at least 32 characters and not a placeholder (`change-me`, `secret`, `example`, `dev-only`, …) and `DATABASE_URL`, `CORS_ORIGINS` and `FRONTEND_URL` are set. An empty value counts as unset. Generate a secret with `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`.
