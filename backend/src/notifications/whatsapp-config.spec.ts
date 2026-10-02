@@ -18,12 +18,15 @@ describe('resolveWhatsAppConfig', () => {
         NODE_ENV: 'production',
         WHATSAPP_BUSINESS_PHONE_ID: 'phone-id-123',
         WHATSAPP_ACCESS_TOKEN: 'token-abc',
+        WHATSAPP_TEMPLATE_NAME: 'schoolos_notification',
       }),
     );
 
     expect(result).toEqual({
       phoneNumberId: 'phone-id-123',
       accessToken: 'token-abc',
+      templateName: 'schoolos_notification',
+      templateLanguage: 'en',
     });
   });
 

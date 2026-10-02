@@ -32,7 +32,7 @@
 | `PAYMENT_STUB_WEBHOOK_SECRET` | Required outside dev/test | `dev-only-stub-webhook-secret` in dev/test | Yes | `gateway-config.ts:56-61` |
 | `FIREBASE_PROJECT_ID`, `_CLIENT_EMAIL`, `_PRIVATE_KEY` | Optional as a group | unset ⇒ logging no-op push (all envs) | Yes | private key with literal `\n` sequences |
 | `SMTP_HOST`, `_PORT`, `_USER`, `_PASS`, `_FROM` | Optional as a group | unset ⇒ `LoggingMailAdapter` **logs reset links** (all envs, KG-4) | Yes (`PASS`) | partial set ⇒ startup error outside dev/test |
-| `WHATSAPP_BUSINESS_PHONE_ID`, `WHATSAPP_ACCESS_TOKEN` | Optional as a group | unset ⇒ logging adapter | Yes | Meta Graph API; **missing from `.env.example`** |
+| `WHATSAPP_BUSINESS_PHONE_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_TEMPLATE_NAME` (+ optional `WHATSAPP_TEMPLATE_LANGUAGE`, default `en`) | Optional as a group | unset ⇒ logging adapter | Yes | Meta Graph API, approved template (BL-48) |
 | `SMS_PROVIDER` + (`SMS_GATEWAY_URL`, `SMS_GATEWAY_API_KEY`, `SMS_GATEWAY_SENDER_ID`) or (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM`) | Optional; the chosen provider's set is required together | unset `SMS_PROVIDER` ⇒ SMS off (logging adapter) | Yes | BL-38; off for the pilot (RD-4) |
 | `ANTHROPIC_API_KEY` | Optional | unset ⇒ stub drafting provider | Yes | |
 | `AI_DRAFTING`, `AI_DRAFTING_DAILY_LIMIT`, `AI_DRAFTING_MAX_CONTEXT` | Optional | AI drafting **off**; limits 20/day, 2000 characters | No | BL-49 |

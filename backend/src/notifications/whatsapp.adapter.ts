@@ -21,9 +21,10 @@ export class WhatsAppAdapter implements PushAdapter {
     });
     if (!parentProfile?.phone) return;
 
-    await this.sender.sendMessage(
-      parentProfile.phone,
-      `${payload.title}\n${payload.body}`,
-    );
+    // BL-48: an approved template with {{1}} = title, {{2}} = body.
+    await this.sender.sendTemplate(parentProfile.phone, [
+      payload.title,
+      payload.body,
+    ]);
   }
 }

@@ -4,6 +4,9 @@ import { isDevOrTestEnv } from '../config/env.validation';
 export interface WhatsAppConfig {
   phoneNumberId: string;
   accessToken: string;
+  /** BL-48: Meta-approved template taking {{1}} = title and {{2}} = body. */
+  templateName: string;
+  templateLanguage: string;
 }
 
 // Unset NODE_ENV is NOT development (BL-51); boot-time validateEnv already requires it.
@@ -22,14 +25,15 @@ export function resolveWhatsAppConfig(
 ): WhatsAppConfig | undefined {
   const phoneNumberId = config.get<string>('WHATSAPP_BUSINESS_PHONE_ID');
   const accessToken = config.get<string>('WHATSAPP_ACCESS_TOKEN');
-  const values = [phoneNumberId, accessToken];
+  const templateName = config.get<string>('WHATSAPP_TEMPLATE_NAME');
+  const values = [phoneNumberId, accessToken, templateName];
   const presentCount = values.filter((v) => !!v).length;
 
   if (presentCount === 0) return undefined;
   if (presentCount < values.length && !isDevOrTest(config)) {
     throw new Error(
-      'Incomplete WhatsApp configuration — WHATSAPP_BUSINESS_PHONE_ID/WHATSAPP_ACCESS_TOKEN must ' +
-        'both be set together, or both left unset to disable WhatsApp notifications.',
+      'Incomplete WhatsApp configuration — WHATSAPP_BUSINESS_PHONE_ID, WHATSAPP_ACCESS_TOKEN and ' +
+        'WHATSAPP_TEMPLATE_NAME must all be set together, or all left unset to disable WhatsApp notifications.',
     );
   }
   if (presentCount < values.length) return undefined;
@@ -37,5 +41,8 @@ export function resolveWhatsAppConfig(
   return {
     phoneNumberId: phoneNumberId!,
     accessToken: accessToken!,
+    templateName: templateName!,
+    templateLanguage:
+      config.get<string>('WHATSAPP_TEMPLATE_LANGUAGE')?.trim() || 'en',
   };
 }
