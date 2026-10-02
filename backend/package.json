@@ -39,7 +39,8 @@
     "backfill:m7": "node migration-harness/backfill-m7-cli.mjs",
     "backfill:m8": "node migration-harness/backfill-m8-cli.mjs",
     "load:data": "node dist/src/cli/load-data.main.js",
-    "load:test": "node load-test/run.mjs"
+    "load:test": "node load-test/run.mjs",
+    "smoke": "node dist/src/cli/smoke-test.main.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

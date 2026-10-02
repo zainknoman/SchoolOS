@@ -20,7 +20,7 @@
 - [ ] Take a database + uploads backup ([BACKUP-RESTORE](../operations/BACKUP-RESTORE.md)) and note its location
 - [ ] `npx prisma migrate deploy` (staging first)
 - [ ] Deploy backend (single instance), then staff console; publish the parent app to **Google Play first** (organisation-owned account; signing keys never in Git — BL-43; App Store later)
-- [ ] Run production smoke test ([RELEASE-VALIDATION](../testing/RELEASE-VALIDATION.md) §3)
+- [ ] Run production smoke test: `npm run smoke` with the production `SMOKE_*` settings, plus the manual items ([RELEASE-VALIDATION](../testing/RELEASE-VALIDATION.md) §3)
 
 ## After
 - [ ] Watch logs/alerts for the agreed window; confirm scheduled jobs ran

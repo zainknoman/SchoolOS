@@ -52,8 +52,8 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 
 | Suite | Files | Test blocks |
 |---|---|---|
-| Backend unit (`backend/src/**/*.spec.ts`) | 108 | 812 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 54 | 400 |
+| Backend unit (`backend/src/**/*.spec.ts`) | 109 | 817 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 55 | 402 |
 | Staff console (`staff-console/src/**/*.spec.ts`) | 86 | 577 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 33 | — |
 
@@ -107,6 +107,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `school-sessions.e2e-spec.ts` | 5 |
 | `sections-access.e2e-spec.ts` | 1 |
 | `security-headers.e2e-spec.ts` | 4 |
+| `smoke-test.e2e-spec.ts` | 2 |
 | `staff-grants.e2e-spec.ts` | 4 |
 | `subjects.e2e-spec.ts` | 4 |
 | `syllabus.e2e-spec.ts` | 7 |
