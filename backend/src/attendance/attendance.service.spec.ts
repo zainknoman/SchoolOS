@@ -19,8 +19,11 @@ describe('AttendanceService', () => {
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
-  let enrollmentService: { getCurrentEnrollment: jest.Mock };
-  let holidaysService: { isHoliday: jest.Mock };
+  let enrollmentService: {
+    getCurrentEnrollment: jest.Mock;
+    getEnrollmentForDate: jest.Mock;
+  };
+  let holidaysService: { isHoliday: jest.Mock; findMany: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -39,8 +42,14 @@ describe('AttendanceService', () => {
           cb(prisma),
         ),
     };
-    enrollmentService = { getCurrentEnrollment: jest.fn() };
-    holidaysService = { isHoliday: jest.fn().mockResolvedValue(false) };
+    enrollmentService = {
+      getCurrentEnrollment: jest.fn(),
+      getEnrollmentForDate: jest.fn().mockRejectedValue(new Error('none')),
+    };
+    holidaysService = {
+      isHoliday: jest.fn().mockResolvedValue(false),
+      findMany: jest.fn().mockResolvedValue([]),
+    };
     const moduleRef = await Test.createTestingModule({
       providers: [
         AttendanceService,
@@ -168,6 +177,26 @@ describe('AttendanceService', () => {
       attendancePercentage: 50,
     });
     expect(result.days).toHaveLength(5);
+  });
+
+  // KI-19: a day covered by a calendar holiday that also has a HOLIDAY attendance row (marked
+  // before the Holiday model existed) is counted once, under `holiday`, not twice.
+  it('does not count a calendar-holiday day twice when it also has a HOLIDAY row', async () => {
+    prisma.attendance.findMany.mockResolvedValue([
+      { date: new Date('2026-08-04'), status: 'PRESENT' },
+      { date: new Date('2026-08-05'), status: 'HOLIDAY' },
+    ]);
+    enrollmentService.getEnrollmentForDate.mockResolvedValue({
+      campusId: 'c1',
+    });
+    holidaysService.findMany.mockResolvedValue([
+      { startDate: '2026-08-05', endDate: '2026-08-06' },
+    ]);
+
+    const result = await service.getForStudent('s1', '2026-08');
+
+    expect(result.summary.holiday).toBe(1);
+    expect(result.summary.calendarHolidayCount).toBe(1);
   });
 
   it('getForSection returns a studentId->status map of what was already marked that day', async () => {

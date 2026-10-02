@@ -31,6 +31,16 @@ export interface HiringApplicationSummary {
   createdStaffId: string | null;
 }
 
+/** KI-29(a): the single-application view also carries what the approve dialog prefills. */
+export interface HiringApplicationDetail extends HiringApplicationSummary {
+  candidate: {
+    dateOfBirth: string | null;
+    cnic: string | null;
+    contactPhone: string;
+    contactEmail: string | null;
+  } | null;
+}
+
 export const TERMINAL_STATUSES = ['APPROVED', 'REJECTED'];
 const WITH_CANDIDATE = { candidate: { select: { name: true } } } as const;
 
@@ -104,9 +114,28 @@ export class HiringApplicationsService {
     return this.toSummary(record);
   }
 
-  async findOne(id: string): Promise<HiringApplicationSummary> {
+  async findOne(id: string): Promise<HiringApplicationDetail> {
     const existing = await this.getOrThrow(id);
-    return this.toSummary(existing);
+    const c = await this.prisma.hiringCandidate.findUnique({
+      where: { id: existing.candidateId },
+      select: {
+        dateOfBirth: true,
+        cnic: true,
+        contactPhone: true,
+        contactEmail: true,
+      },
+    });
+    return {
+      ...this.toSummary(existing),
+      candidate: c
+        ? {
+            dateOfBirth: c.dateOfBirth?.toISOString().slice(0, 10) ?? null,
+            cnic: c.cnic,
+            contactPhone: c.contactPhone,
+            contactEmail: c.contactEmail,
+          }
+        : null,
+    };
   }
 
   async findMany(

@@ -19,7 +19,7 @@ describe('HiringApplicationsService', () => {
     };
     user: { findUnique: jest.Mock };
     campus: { findUnique: jest.Mock };
-    hiringCandidate: { findFirst: jest.Mock };
+    hiringCandidate: { findFirst: jest.Mock; findUnique: jest.Mock };
     $transaction: jest.Mock;
   };
 
@@ -47,7 +47,7 @@ describe('HiringApplicationsService', () => {
       },
       user: { findUnique: jest.fn() },
       campus: { findUnique: jest.fn() },
-      hiringCandidate: { findFirst: jest.fn() },
+      hiringCandidate: { findFirst: jest.fn(), findUnique: jest.fn() },
       $transaction: jest.fn(),
     };
     const moduleRef = await Test.createTestingModule({
@@ -229,6 +229,26 @@ describe('HiringApplicationsService', () => {
 
     expect(result.status).toBe('REJECTED');
     expect(result.reviewedById).toBe('admin-1');
+  });
+
+  // KI-29(a): the detail carries the candidate's contact details so the approve dialog can prefill.
+  it('returns the candidate details with a single application', async () => {
+    prisma.hiringApplication.findUnique.mockResolvedValue(withCandidate());
+    prisma.hiringCandidate.findUnique.mockResolvedValue({
+      dateOfBirth: new Date('1990-05-04T00:00:00.000Z'),
+      cnic: '35202-1234567-1',
+      contactPhone: '0300-1234567',
+      contactEmail: 'bilal@example.com',
+    });
+    await expect(service.findOne('app1')).resolves.toMatchObject({
+      id: 'app1',
+      candidate: {
+        dateOfBirth: '1990-05-04',
+        cnic: '35202-1234567-1',
+        contactPhone: '0300-1234567',
+        contactEmail: 'bilal@example.com',
+      },
+    });
   });
 
   it('throws NotFoundException for an unknown application id', async () => {

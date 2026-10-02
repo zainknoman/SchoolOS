@@ -2,7 +2,12 @@
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { api, type CampusSummary, type HiringApplicationSummary } from '../lib/api';
+import {
+  api,
+  type CampusSummary,
+  type HiringApplicationDetail,
+  type HiringApplicationSummary,
+} from '../lib/api';
 import FormField from '../components/FormField.vue';
 import Button from '../components/Button.vue';
 import AppModal from '../components/AppModal.vue';
@@ -34,6 +39,8 @@ const route = useRoute();
 const applicationId = route.params.id as string;
 
 const application = ref<HiringApplicationSummary | null>(null);
+// Kept apart from `application`: status changes return a summary without the candidate.
+const candidate = ref<HiringApplicationDetail['candidate']>(null);
 const campuses = ref<CampusSummary[]>([]);
 const errorMessage = ref<string | null>(null);
 
@@ -60,13 +67,32 @@ const approveLoginPassword = ref('');
 const isApproving = ref(false);
 const approveErrorMessage = ref<string | null>(null);
 
+// KI-29(a): start the approve form from what the candidate already gave; fields the admin has
+// already typed are kept.
+function openApprove() {
+  const c = candidate.value;
+  if (c) {
+    approveDateOfBirth.value ||= c.dateOfBirth ?? '';
+    approveCnic.value ||= c.cnic ?? '';
+    approveMobile.value ||= c.contactPhone;
+    approveEmail.value ||= c.contactEmail ?? '';
+    if (application.value?.employeeType === 'TEACHER') {
+      approveLoginIdentifier.value ||= c.contactEmail ?? '';
+    }
+  }
+  showApproveModal.value = true;
+}
+
 async function load() {
   if (!auth.accessToken) return;
   try {
-    [application.value, campuses.value] = await Promise.all([
+    const [detail, campusList] = await Promise.all([
       api.getHiringApplication(auth.accessToken, applicationId),
       api.listCampuses(auth.accessToken),
     ]);
+    application.value = detail;
+    candidate.value = detail.candidate ?? null;
+    campuses.value = campusList;
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Could not load this hiring application.';
   }
@@ -156,7 +182,7 @@ async function onApprove() {
           <Button data-testid="open-reject-modal" variant="secondary" class="btn-danger-outline" @click="showRejectModal = true">
             Reject
           </Button>
-          <Button data-testid="open-approve-modal" @click="showApproveModal = true">
+          <Button data-testid="open-approve-modal" @click="openApprove">
             Approve
           </Button>
         </div>

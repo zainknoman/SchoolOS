@@ -23,9 +23,8 @@ export interface AttendanceSummary {
   leave: number;
   attendancePercentage: number;
   // Days in the requested range covered by a calendar-wide Holiday row, counted separately from
-  // `holiday` (which only counts per-row HOLIDAY-status Attendance rows). A date can appear in
-  // both if historical data was marked before the Holiday model existed — this sums rather than
-  // deduplicating, a known/documented edge case, not silently resolved.
+  // `holiday` (which counts per-row HOLIDAY-status Attendance rows). A date that has both — data
+  // marked before the Holiday model existed — is counted once, under `holiday` (KI-19).
   calendarHolidayCount: number;
 }
 
@@ -261,13 +260,20 @@ export class AttendanceService {
           to: new Date(end.getTime() - 1).toISOString().slice(0, 10),
         },
       );
+      const markedHoliday = new Set(
+        records
+          .filter((r) => r.status === 'HOLIDAY')
+          .map((r) => r.date.toISOString().slice(0, 10)),
+      );
       const dayMs = 24 * 60 * 60_000;
       for (let t = start.getTime(); t < end.getTime(); t += dayMs) {
         const day = new Date(t);
         const covered = holidays.some(
           (h) => new Date(h.startDate) <= day && day <= new Date(h.endDate),
         );
-        if (covered) calendarHolidayCount++;
+        if (covered && !markedHoliday.has(day.toISOString().slice(0, 10))) {
+          calendarHolidayCount++;
+        }
       }
     } catch {
       // No enrollment covers this month (e.g. before the student joined) — no calendar holidays

@@ -106,6 +106,30 @@ describe('HiringApplicationDetailView', () => {
     });
   });
 
+  // KI-29(a): the approve dialog starts from what the candidate already told us.
+  it('prefills the approve dialog from the candidate (date of birth, CNIC, phone, e-mail, login)', async () => {
+    vi.mocked(api.getHiringApplication).mockResolvedValue({
+      ...baseApplication({ employeeType: 'TEACHER' }),
+      candidate: {
+        dateOfBirth: '1990-05-04',
+        cnic: '35202-1234567-1',
+        contactPhone: '0300-1234567',
+        contactEmail: 'bilal@example.com',
+      },
+    });
+
+    const wrapper = await mountView();
+    await flushPromises();
+    await wrapper.find('[data-testid="open-approve-modal"]').trigger('click');
+
+    const value = (id: string) => (wrapper.find(`[data-testid="${id}"]`).element as HTMLInputElement).value;
+    expect(value('approve-dateOfBirth')).toBe('1990-05-04');
+    expect(value('approve-cnic')).toBe('35202-1234567-1');
+    expect(value('approve-mobile')).toBe('0300-1234567');
+    expect(value('approve-email')).toBe('bilal@example.com');
+    expect(value('approve-login-identifier')).toBe('bilal@example.com');
+  });
+
   it('requires a login identifier/password to approve a TEACHER hire', async () => {
     vi.mocked(api.getHiringApplication).mockResolvedValue(baseApplication({ employeeType: 'TEACHER' }));
 

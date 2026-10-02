@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { ReportingValidationPipe } from './config/validation-pipe';
 import { buildCorsOptions } from './config/cors.config';
 import { applyHttpSecurity } from './config/app-security';
 import { JsonLogger } from './observability/json-logger';
@@ -37,7 +37,8 @@ async function bootstrap() {
 
   // Enforces every DTO's class-validator decorators (e.g. LoginDto) on every request; without this
   // the decorators are inert and bad input reaches the service layer unchecked.
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  // KI-10: unknown fields are stripped and their names logged.
+  app.useGlobalPipes(new ReportingValidationPipe());
 
   await app.listen(process.env.PORT ?? 3000);
 }

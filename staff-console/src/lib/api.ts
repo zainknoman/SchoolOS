@@ -1144,6 +1144,16 @@ export interface HiringApplicationSummary {
   createdStaffId: string | null;
 }
 
+/** KI-29(a): GET /hiring/applications/:id also returns what the approve dialog prefills. */
+export interface HiringApplicationDetail extends HiringApplicationSummary {
+  candidate?: {
+    dateOfBirth: string | null;
+    cnic: string | null;
+    contactPhone: string;
+    contactEmail: string | null;
+  } | null;
+}
+
 export interface StaffAdminSummary {
   id: string;
   name: string;
@@ -3589,7 +3599,7 @@ export const api = {
     return asJson(res);
   },
 
-  async getHiringApplication(accessToken: string, id: string): Promise<HiringApplicationSummary> {
+  async getHiringApplication(accessToken: string, id: string): Promise<HiringApplicationDetail> {
     const res = await fetch(`${API_BASE_URL}/api/v1/hiring/applications/${id}`, {
       headers: authHeaders(accessToken),
     });
