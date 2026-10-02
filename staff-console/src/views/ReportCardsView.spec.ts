@@ -58,6 +58,27 @@ describe('ReportCardsView', () => {
     expect(wrapper.find('[data-testid="download-rc1"]').exists()).toBe(true);
   });
 
+  // Owner note 4 (2026-09-19): only the selected student's school's sessions are offered.
+  it("offers only the selected student's school's sessions", async () => {
+    vi.mocked(api.listReportCards).mockResolvedValue([]);
+    vi.mocked(api.listAdminStudents).mockResolvedValue([
+      { id: 's1', grNumber: 'GR-1001', name: 'Eshaal Sample', sectionName: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar', schoolId: 'sch-a', parentNames: [] },
+    ]);
+    vi.mocked(api.listAcademicSessions).mockResolvedValue([
+      { id: 'sess-a', schoolId: 'sch-a', label: 'A 2026-2027', startDate: '2026-08-01', endDate: '2027-06-30', isActive: true },
+      { id: 'sess-b', schoolId: 'sch-b', label: 'B 2026-2027', startDate: '2026-08-01', endDate: '2027-06-30', isActive: true },
+    ]);
+
+    const wrapper = mount(ReportCardsView);
+    await flushPromises();
+    await wrapper.find('[data-testid="select-student"]').setValue('s1');
+    await flushPromises();
+
+    const options = wrapper.find('[data-testid="select-session"]').text();
+    expect(options).toContain('A 2026-2027');
+    expect(options).not.toContain('B 2026-2027');
+  });
+
   it('shows an empty state when a student has no report cards', async () => {
     vi.mocked(api.listReportCards).mockResolvedValue([]);
 

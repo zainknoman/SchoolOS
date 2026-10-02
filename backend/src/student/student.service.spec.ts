@@ -429,6 +429,7 @@ describe('StudentService', () => {
         sectionName: '3A',
         className: 'Grade 3',
         campusName: 'Gulistan-e-Jauhar',
+        schoolId: null,
         parentNames: ['Parent A', 'Parent B'],
       },
     ]);

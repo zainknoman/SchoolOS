@@ -907,6 +907,8 @@ export interface StudentAdminSummary {
   sectionName: string | null;
   className: string | null;
   campusName: string | null;
+  /** School of the active enrolment (null when not enrolled). */
+  schoolId?: string | null;
   parentNames: string[];
 }
 

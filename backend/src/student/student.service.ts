@@ -30,6 +30,8 @@ export interface StudentAdminSummary {
   sectionName: string | null;
   className: string | null;
   campusName: string | null;
+  /** School of the active enrolment — lets clients offer only that school's sessions (owner note 4). */
+  schoolId: string | null;
   parentNames: string[];
 }
 
@@ -57,7 +59,7 @@ export class StudentService {
     enrollments: Array<{
       section: {
         name: string;
-        class: { name: string; campus: { name: string } };
+        class: { name: string; campus: { name: string; schoolId?: string } };
       };
     }>;
     parents: Array<{ parentProfile: { name: string } }>;
@@ -70,6 +72,7 @@ export class StudentService {
       sectionName: enrollment?.section.name ?? null,
       className: enrollment?.section.class.name ?? null,
       campusName: enrollment?.section.class.campus.name ?? null,
+      schoolId: enrollment?.section.class.campus.schoolId ?? null,
       parentNames: record.parents.map((p) => p.parentProfile.name),
     };
   }

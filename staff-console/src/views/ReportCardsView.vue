@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { downloadAuthedFile } from '../lib/authedFile';
 import {
@@ -22,6 +22,15 @@ const students = ref<StudentAdminSummary[]>([]);
 const sessions = ref<AcademicSessionSummary[]>([]);
 const selectedStudentId = ref('');
 const selectedSessionId = ref('');
+// Owner note 4: offer only the selected student's school's sessions (a super admin sees every
+// school's sessions otherwise). Legacy school-less sessions stay selectable.
+const sessionOptions = computed(() => {
+  const schoolId = students.value.find((s) => s.id === selectedStudentId.value)?.schoolId;
+  const list = schoolId
+    ? sessions.value.filter((s) => !s.schoolId || s.schoolId === schoolId)
+    : sessions.value;
+  return list.map((s) => ({ value: s.id, label: s.label }));
+});
 const selectedFile = ref<File | null>(null);
 const reportCards = ref<ReportCardSummary[]>([]);
 const errorMessage = ref<string | null>(null);
@@ -47,6 +56,9 @@ async function loadOptions() {
 loadOptions();
 
 async function loadReportCards() {
+  if (!sessionOptions.value.some((o) => o.value === selectedSessionId.value)) {
+    selectedSessionId.value = '';
+  }
   if (!auth.accessToken || !selectedStudentId.value) {
     reportCards.value = [];
     generatedCards.value = [];
@@ -147,7 +159,7 @@ function downloadUploaded(id: string) {
         type="select"
         data-testid="select-session"
         placeholder="Choose a session"
-        :options="sessions.map((s) => ({ value: s.id, label: s.label }))"
+        :options="sessionOptions"
         @update:model-value="onSessionChange"
       />
       <FormField

@@ -48,3 +48,12 @@ Tracked design assets: `docs/design-reference/` ≈ 27 MB, `docs/UI-Screenshots/
 4. Clean the two CSVs as in §4, then commit them with the documentation set or drop them.
 5. Add `.gitattributes` (line endings; LFS patterns) and migrate approved binaries.
 6. Commit order requested by the owner: docs commits first, **repository clean-up last and separate**.
+
+## 7. Executed 2026-10-02 (BL-58, written authorisation from the owner the same day)
+Kept as instructed: branch `staff-hiring-console-ui` (1 unique commit `8446ab8`) and `stash@{0}`.
+- **Worktrees:** `schoolos-design-chunk0` removed (`git worktree remove`), `staff-hiring-foundation-plan` and `ui-revamp-staff-console` folders deleted, `git worktree prune`. Before deleting, every file was checked by blob hash against the repository: all were in git except build caches, two `.claude/settings.local.json` files and one `backend/.env`, which were copied to `D:/Zain/Projects/SchoolApp/housekeeping-2026-10-02/` (outside the repository).
+- **Local branches deleted** (0 commits not in `main` or `wave-0/foundations`): `rebrand/schoolos`, `worktree-schoolos-design-chunk0`, `worktree-staff-hiring-foundation-plan`.
+- **Not done:** deleting the merged remote branches `origin/sprint-a-stabilization` and `origin/sprint-b/task-1-fee-payment-restrict` (outward-facing; optional) — left for the owner.
+- **`sample4` CSVs:** `parents-sample (1).csv` and its `.bak` removed — their CSV rows are a subset of `parents-sample.csv`; the owner's four notes are recorded in KNOWN-ISSUES KI-29 (a)–(d). **Finding:** contrary to §4, the pasted block from the unrelated project (project URL, test accounts and a test password) **had been committed** in `695f4a1` (2026-09-24) and pushed to `origin/wave-0/foundations`. It is gone from the current tree, but stays in the history until the history is rewritten — that needs a force-push and is the owner's decision. **Rotate that project's credentials if it is live.**
+- **Duplicates:** the Student Profile Redesign PDF and HTML (≈ 11.6 MB) removed from `sample4/`; identical copies remain in `design-reference/UI-Screenshots/archive/`. The `*-html.zip` comps are the only copies and stay; wireframe zips next to their extracted folders stay (which comps are product assets is an owner decision).
+- **Not done:** Git LFS migration and `.gitattributes` (needs `git-lfs` on every machine and a decision on history; the CRLF warnings are harmless with `core.autocrlf`).
