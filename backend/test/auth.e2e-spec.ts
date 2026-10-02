@@ -108,6 +108,58 @@ describe('Auth (e2e)', () => {
       .expect(401);
   });
 
+  // BL-36 follow-up: a rotated token replayed after the grace window is treated as stolen.
+  it('replaying an old refresh token ends every session of the user and is audited', async () => {
+    const http = () => request(app.getHttpServer());
+    const login = await http()
+      .post('/api/v1/auth/login')
+      .send({ identifier: testIdentifier, password: testPassword })
+      .expect(201);
+    const rotated = await http()
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: login.body.refreshToken })
+      .expect(201);
+
+    // A retry inside the grace window is refused but harms nothing.
+    await http()
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: login.body.refreshToken })
+      .expect(401);
+    await http()
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${rotated.body.accessToken}`)
+      .expect(200);
+
+    // Two minutes later the same old token is presented again: theft.
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { identifier: testIdentifier },
+    });
+    const old = new Date(Date.now() - 120_000);
+    await prisma.refreshToken.updateMany({
+      where: { userId: user.id, rotatedAt: { not: null } },
+      data: { rotatedAt: old },
+    });
+    await http()
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: login.body.refreshToken })
+      .expect(401);
+
+    // The thief's (or owner's) newer tokens are dead too, access token included.
+    await http()
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: rotated.body.refreshToken })
+      .expect(401);
+    await http()
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${rotated.body.accessToken}`)
+      .expect(401);
+    const audit = await prisma.auditLog.findMany({
+      where: { userId: user.id, action: 'auth.refresh-token-reuse' },
+    });
+    expect(audit).toHaveLength(1);
+    await prisma.auditLog.deleteMany({ where: { userId: user.id } });
+  });
+
   it('rejects an unknown/garbage refresh token', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')

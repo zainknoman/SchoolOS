@@ -112,9 +112,11 @@ Block attributes: `@@index([role])` · `@@index([schoolId])` · `@@index([campus
 | tokenHash | String | @unique |
 | expiresAt | DateTime |  |
 | revokedAt | DateTime? |  |
+| familyId | String? |  |
+| rotatedAt | DateTime? |  |
 | createdAt | DateTime | @default(now()) |
 
-Block attributes: `@@index([userId])`
+Block attributes: `@@index([userId])` · `@@index([familyId])`
 
 ### PasswordResetToken
 

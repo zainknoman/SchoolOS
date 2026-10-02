@@ -235,9 +235,14 @@ model RefreshToken {
   tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
+  /// BL-36 follow-up: every token of one sign-in shares a family (null for tokens issued before 2026-10-02)
+  familyId  String?
+  /// Set when the token was revoked because it was exchanged for a new one (rotation), not by sign-out
+  rotatedAt DateTime?
   createdAt DateTime  @default(now())
 
   @@index([userId])
+  @@index([familyId])
 }
 
 // --- School structure -----------------------------------------------------

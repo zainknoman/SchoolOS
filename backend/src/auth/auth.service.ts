@@ -7,7 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
-import { randomBytes, createHash } from 'crypto';
+import { randomBytes, randomUUID, createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeIdentifier } from '../common/normalize-identifier';
 import { MAIL_ADAPTER } from '../notifications/mail-adapter';
@@ -16,6 +16,7 @@ import {
   MAX_FAILED_ATTEMPTS,
   LOCKOUT_DURATION_MINUTES,
   REFRESH_TOKEN_TTL_DAYS,
+  REFRESH_REUSE_GRACE_MS,
   GENERIC_AUTH_ERROR,
   ACCOUNT_LOCKED_ERROR,
   ACCOUNT_DISABLED_ERROR,
@@ -131,22 +132,43 @@ export class AuthService {
       where: { tokenHash },
     });
 
-    if (
-      !stored ||
-      stored.revokedAt ||
-      stored.expiresAt.getTime() < Date.now()
-    ) {
+    if (!stored) {
+      throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+    }
+    // Reuse detection (BL-36 follow-up): a token that was already exchanged for a new one is
+    // presented again. Within the grace window that is the client retrying its own refresh; after
+    // it, someone holds a copy of an old token — end every session of the user (refresh tokens and,
+    // via tokenVersion, access tokens) and record it, so the owner signs in again and the thief's
+    // copy of the newer token dies too.
+    if (stored.rotatedAt) {
+      if (Date.now() - stored.rotatedAt.getTime() > REFRESH_REUSE_GRACE_MS) {
+        await this.revokeAllSessions(stored.userId);
+        await this.prisma.auditLog.create({
+          data: {
+            userId: stored.userId,
+            action: 'auth.refresh-token-reuse',
+            entity: 'RefreshToken',
+            entityId: stored.id,
+            metadata: JSON.stringify({ familyId: stored.familyId }),
+          },
+        });
+      }
+      throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+    }
+    if (stored.revokedAt || stored.expiresAt.getTime() < Date.now()) {
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }
 
-    // Rotation-on-use: revoke the presented token immediately, so a replayed copy of it (e.g.
-    // from a stolen log or a slow network retry racing a legitimate refresh) is rejected by the
-    // check above the next time anyone tries to use it — even though the legitimate caller
-    // already received a fresh pair below.
-    await this.prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revokedAt: new Date() },
+    // Rotation-on-use, claimed atomically: only the request that flips revokedAt gets a new pair,
+    // so two concurrent refreshes with the same token cannot both succeed.
+    const now = new Date();
+    const claim = await this.prisma.refreshToken.updateMany({
+      where: { id: stored.id, revokedAt: null },
+      data: { revokedAt: now, rotatedAt: now },
     });
+    if (claim.count === 0) {
+      throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+    }
 
     const user = await this.prisma.user.findUnique({
       where: { id: stored.userId },
@@ -159,7 +181,7 @@ export class AuthService {
       throw new UnauthorizedException(SESSION_ENDED_ERROR);
     }
 
-    return this.issueSession(user);
+    return this.issueSession(user, stored.familyId ?? stored.id);
   }
 
   /**
@@ -442,16 +464,20 @@ export class AuthService {
     return this.issueSession(updated);
   }
 
-  private async issueSession(user: {
-    id: string;
-    role: string;
-    isPrincipal: boolean;
-    mustChangePassword: boolean;
-    campusId: string | null;
-    schoolId: string | null;
-    tokenVersion: number;
-    grants?: string[];
-  }): Promise<SessionResult> {
+  /** `familyId` links the refresh tokens of one sign-in (reuse detection); a new sign-in starts one. */
+  private async issueSession(
+    user: {
+      id: string;
+      role: string;
+      isPrincipal: boolean;
+      mustChangePassword: boolean;
+      campusId: string | null;
+      schoolId: string | null;
+      tokenVersion: number;
+      grants?: string[];
+    },
+    familyId: string = randomUUID(),
+  ): Promise<SessionResult> {
     const {
       id: userId,
       role,
@@ -472,6 +498,7 @@ export class AuthService {
       data: {
         userId,
         tokenHash: hashToken(refreshToken),
+        familyId,
         expiresAt: new Date(
           Date.now() + REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60_000,
         ),

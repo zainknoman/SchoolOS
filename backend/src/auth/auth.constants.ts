@@ -6,6 +6,13 @@ export const LOCKOUT_DURATION_MINUTES = 15;
 // literal shape here is safe; an invalid value would fail fast at JwtModule.register() either way.
 export const ACCESS_TOKEN_TTL = (process.env.JWT_ACCESS_TTL ??
   '15m') as StringValue;
+/**
+ * BL-36 follow-up (refresh-token reuse detection): a rotated refresh token presented again within
+ * this window is a client retry racing its own refresh (lost response, two tabs) and is only
+ * refused; later than this it is treated as a stolen copy and every session of the user ends.
+ */
+export const REFRESH_REUSE_GRACE_MS = 30_000;
+
 export const REFRESH_TOKEN_TTL_DAYS = 30;
 export const GENERIC_AUTH_ERROR = 'Invalid credentials';
 export const ACCOUNT_LOCKED_ERROR =

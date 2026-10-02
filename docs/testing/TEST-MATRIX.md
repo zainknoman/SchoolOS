@@ -52,8 +52,8 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 
 | Suite | Files | Test blocks |
 |---|---|---|
-| Backend unit (`backend/src/**/*.spec.ts`) | 104 | 792 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 54 | 399 |
+| Backend unit (`backend/src/**/*.spec.ts`) | 104 | 796 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 54 | 400 |
 | Staff console (`staff-console/src/**/*.spec.ts`) | 86 | 576 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 33 | — |
 
@@ -66,7 +66,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `attendance-actor.e2e-spec.ts` | 5 |
 | `attendance-risk-settings.e2e-spec.ts` | 4 |
 | `auth-password-reset.e2e-spec.ts` | 4 |
-| `auth.e2e-spec.ts` | 8 |
+| `auth.e2e-spec.ts` | 9 |
 | `bulk-import-scope.e2e-spec.ts` | 3 |
 | `bulk-import.e2e-spec.ts` | 14 |
 | `cascade-delete-restrictions.e2e-spec.ts` | 4 |

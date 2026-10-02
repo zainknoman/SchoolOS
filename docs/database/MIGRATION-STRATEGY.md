@@ -158,6 +158,8 @@
 
 **KG-16 (`20261002090000_kg16_applicant_candidate_school`, 2026-10-02):** additive — nullable `Applicant.schoolId` and `HiringCandidate.schoolId` (FK `SET NULL`, indexed), stamped from the recording user's school. No backfill: an older row stays visible to a school through its applications; an older row with no application is visible only to a super admin. Applied to the scratch database, no drift, full e2e green.
 
+**BL-36 follow-up (`20261002100000_bl36_refresh_token_family`, 2026-10-02):** additive — nullable `RefreshToken.familyId` (indexed) and `RefreshToken.rotatedAt`. No backfill: a token issued earlier starts a family named after itself on its next rotation; a token rotated before the deploy has no `rotatedAt`, so its replay is only refused (no reuse alarm). Applied to the scratch database, no drift, full e2e green.
+
 **Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

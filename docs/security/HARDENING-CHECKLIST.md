@@ -27,7 +27,7 @@
 - [x] Session revocation (`tokenVersion` + per-request recheck) and server-side `mustChangePassword` (KG-10, KG-11 — BL-21)
 - [x] Token storage in the staff console reviewed and hardened (KG-9) — option B: HttpOnly refresh cookie, access token in memory ([TOKEN-STORAGE-DECISION](TOKEN-STORAGE-DECISION.md), BL-36)
 - [ ] Staff console and API served over HTTPS under **one registrable domain**, `CORS_ORIGINS` = the console's exact origin (the session cookie is `SameSite=Strict`; BL-36)
-- [ ] CSP on the staff-console host and refresh-token reuse detection (BL-36 follow-ups, not built)
+- [ ] CSP on the staff-console host — **built 2026-10-02**: the build injects the policy as a `<meta>` tag; set the same policy plus `frame-ancestors 'none'` as a response header on the console host ([DEPLOYMENT](../operations/DEPLOYMENT.md#minimum-topology-a-deployment-must-provide)). Refresh-token reuse detection — **built 2026-10-02** (engineering, nothing to configure)
 - [x] No access token in any query string (KG-15 — BL-36 download links)
 - [ ] Health/readiness endpoint and monitoring in place ([MONITORING-LOGGING](../operations/MONITORING-LOGGING.md))
 - [ ] Payment gateways verified in sandbox and production with signed test transactions (KG-18)
