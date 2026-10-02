@@ -13,7 +13,7 @@
 
 Severity is recorded **as found**; a closed item keeps its severity. Pilot exit (A4) needs **no open Critical or High** here and in KNOWN-GAPS — the Product Owner accepts the triage by signing A4.
 
-**Open items (2026-10-02): none Critical or High.** Med: KI-22 (remaining e2e coverage — BL-18), KI-35 (parent reset without SMTP — workaround BL-64 until SMTP is configured). Low: KI-4 (SMS, off in the pilot — BL-38), KI-11 (BL-19), KI-15 (BL-45, decided post-pilot).
+**Open items (2026-10-02): none Critical or High.** Med: KI-22 (remaining e2e coverage — BL-18), KI-35 (parent reset without SMTP — workaround BL-64 until SMTP is configured). Low: KI-4 (SMS, off in the pilot — BL-38), KI-15 (BL-45, decided post-pilot).
 
 | ID | Sev. | Area | Issue | Evidence | Impact | Decision / resolution |
 |---|---|---|---|---|---|---|
@@ -27,7 +27,7 @@ Severity is recorded **as found**; a closed item keeps its severity. Pilot exit 
 | KI-8 | Med | API | No pagination anywhere; unbounded lists | API-1 | scale/performance | DECIDED (pilot targets Q44) → BL-40, BL-15 — **Resolved for the large lists 2026-09-25 (BL-40):** page/limit/q + headers; console student/parent tables page on the server |
 | KI-9 | Med | API | No global exception filter/request logging; default error bodies | API-2 | diagnosability | DECIDED (structured logs, Sentry) → BL-11 — **Resolved 2026-09-25 (BL-11):** global filter, JSON logs with request id, error reporting |
 | KI-10 | Low | API | Unknown request fields silently dropped | API-3 | hidden client bugs | — **Resolved 2026-10-02:** still stripped (mass-assignment guard), but `ReportingValidationPipe` now logs the DTO and the unknown field names (never values) as a warning; used by the API and the two-school e2e fixture |
-| KI-11 | Low | API | No OpenAPI; hand-mirrored client types | API-4 | drift | — |
+| KI-11 | Low | API | No OpenAPI; hand-mirrored client types | API-4 | drift | — **Resolved 2026-10-02 (BL-19):** OpenAPI 3 contract `docs/api/openapi.json` generated from the controllers and DTOs (`@nestjs/swagger` compiler plugin; `npm run build && npm run openapi`), checked in CI (`npm run openapi:check`), interactive at `/api/docs` in development/test (or `OPENAPI_UI=enabled`); request bodies, parameters and validation rules are described, response bodies not yet (services return interfaces); the clients still hand-mirror the types |
 | KI-12 | High | Data | Missing DB uniqueness: one ACTIVE enrollment per student; one voucher per student/session/month | `schema.prisma` | race-condition duplicates | → BL-53 — **Resolved 2026-09-26 (BL-53, M12):** partial unique + unique index; races return 409 |
 | KI-13 | Med | Data | Stringly-typed status columns | DB-3 | invalid states possible | → BL-53 — **Mitigated 2026-09-26 (BL-53, M12):** DB CHECK constraints on the status strings |
 | KI-14 | High | Data | Hard deletes of PII; no soft delete/archive; cascades on structural children | `student.service.ts:155`, DB-5 | irrecoverable loss | DECIDED (retain/archive) → BL-07 — **Resolved 2026-09-27 (BL-07, M9):** delete = archive; erasure SUPER_ADMIN-only on archived records, audited |

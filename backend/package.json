@@ -42,7 +42,9 @@
     "load:test": "node load-test/run.mjs",
     "smoke": "node dist/src/cli/smoke-test.main.js",
     "db:backup": "node dist/src/cli/db-backup.main.js",
-    "db:restore": "node dist/src/cli/db-restore.main.js"
+    "db:restore": "node dist/src/cli/db-restore.main.js",
+    "openapi": "node dist/src/cli/openapi.main.js",
+    "openapi:check": "node dist/src/cli/openapi.main.js --check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
@@ -54,6 +56,7 @@
     "@nestjs/passport": "11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^5.0.1",
+    "@nestjs/swagger": "^11.4.7",
     "@nestjs/throttler": "^6.5.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "7.10.0",

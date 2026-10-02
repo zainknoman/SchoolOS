@@ -108,7 +108,7 @@
 | BL-59 | Campus-level attendance-risk overrides; advanced accounting; advanced analytics | POST-PILOT | | Q8, Q33 |
 | BL-09 | Parent web portal | UNPRIORITISED | Q41 requires the reset flow to be app-or-web compatible only | — |
 | BL-16 | Multi-tenant SaaS direction | UNPRIORITISED | Needs its own audit before any refactor; BL-23 and BL-01 must not foreclose it | — |
-| BL-19 | OpenAPI/Swagger contract | UNPRIORITISED | | KI-11 |
+| BL-19 | *Done 2026-10-02:* OpenAPI 3 contract `docs/api/openapi.json` generated from the controllers and DTOs (`@nestjs/swagger` compiler plugin; `npm run build && npm run openapi`), checked in CI (`npm run openapi:check`), interactive at `/api/docs` in development/test (or `OPENAPI_UI=enabled`); request bodies, parameters and validation rules are described, response bodies not yet (services return interfaces); the clients still hand-mirror the types. OpenAPI/Swagger contract | UNPRIORITISED | | KI-11 |
 
 ## Legacy ID map (former backlog rows)
 BL-01…BL-22 keep their meaning; **BL-65 and BL-66 were added 2026-09-20 (Wave 0 correction pass)** — BL-42, BL-44 and BL-50 were never assigned; BL-04 = guardian **rules** (identity refactor is BL-23), BL-08 = pilot fee scope (extras moved to BL-24), BL-14 split by phase, BL-17 folded into BL-01/BL-34, BL-13/BL-11/BL-10 re-scoped to the decided hosting-agnostic targets.

@@ -52,6 +52,8 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
+      # BL-19: the committed OpenAPI contract must match the API (regenerate: npm run openapi)
+      - run: npm run openapi:check
       - run: npm test
       - run: npm run test:e2e
 

@@ -7,6 +7,7 @@ import { applyHttpSecurity } from './config/app-security';
 import { JsonLogger } from './observability/json-logger';
 import { applyRequestObservability } from './observability/http-observability';
 import { isDevOrTestEnv } from './config/env.validation';
+import { mountOpenApiUi } from './config/openapi';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -39,6 +40,9 @@ async function bootstrap() {
   // the decorators are inert and bad input reaches the service layer unchecked.
   // KI-10: unknown fields are stripped and their names logged.
   app.useGlobalPipes(new ReportingValidationPipe());
+
+  // BL-19: interactive API docs at /api/docs (development/test, or OPENAPI_UI=enabled).
+  mountOpenApiUi(app, process.env);
 
   await app.listen(process.env.PORT ?? 3000);
 }

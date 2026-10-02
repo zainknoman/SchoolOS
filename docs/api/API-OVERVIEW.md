@@ -1,7 +1,7 @@
 # API Overview and Conventions
 
 > **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Sources:** `backend/src/main.ts`, controllers, DTOs, `auth/`, `config/`, `staff-console/src/lib/api.ts` · **Owner:** Engineering Lead
-> Conventions are documented **as they actually are**; inconsistencies are logged as `CODE ISSUE DISCOVERED`, not smoothed over. Endpoint list: [ENDPOINTS.md](ENDPOINTS.md). No OpenAPI/Swagger document exists (decision G7: hand-written docs now; adding `@nestjs/swagger` is an engineering task, backlog BL-19).
+> Conventions are documented **as they actually are**; inconsistencies are logged as `CODE ISSUE DISCOVERED`, not smoothed over. Endpoint list: [ENDPOINTS.md](ENDPOINTS.md). Machine-readable contract (BL-19, 2026-10-02): [openapi.json](openapi.json) — OpenAPI 3 contract `docs/api/openapi.json` generated from the controllers and DTOs (`@nestjs/swagger` compiler plugin; `npm run build && npm run openapi`), checked in CI (`npm run openapi:check`), interactive at `/api/docs` in development/test (or `OPENAPI_UI=enabled`); request bodies, parameters and validation rules are described, response bodies not yet (services return interfaces); the clients still hand-mirror the types.
 
 | Aspect | Actual behaviour | Evidence |
 |---|---|---|
@@ -31,7 +31,7 @@
 | API-1 | No pagination anywhere — list endpoints (students, attendance, notifications, …) return unbounded arrays | Performance and memory risk as data grows (1,600-student seed is the realistic upper test) |
 | API-2 | No global exception filter; internal errors return default bodies and there is no request/exception logging | Inconsistent error shape; hard to diagnose production faults |
 | API-3 | Unknown body fields are dropped silently (no `forbidNonWhitelisted`) | Client typos are not reported |
-| API-4 | No OpenAPI contract; `staff-console/src/lib/api.ts` and Flutter `models.dart` hand-mirror the API | Drift risk between clients and server |
+| API-4 | No OpenAPI contract; `staff-console/src/lib/api.ts` and Flutter `models.dart` hand-mirror the API | Drift risk between clients and server — **mitigated 2026-10-02 (BL-19):** OpenAPI 3 contract `docs/api/openapi.json` generated from the controllers and DTOs (`@nestjs/swagger` compiler plugin; `npm run build && npm run openapi`), checked in CI (`npm run openapi:check`), interactive at `/api/docs` in development/test (or `OPENAPI_UI=enabled`); request bodies, parameters and validation rules are described, response bodies not yet (services return interfaces); the clients still hand-mirror the types |
 
 ## Integration guidance
 Obtain tokens from `/auth/login`; refresh with `/auth/refresh` before 15 minutes elapse or on a 401; treat 401 from refresh as logged out. Amounts are integers. Paged lists are ordered (name, or newest first for applications) with an id tie-break; read `X-Total-Count` for totals. Subscribe payment gateways to the webhook URL only after live verification (not yet done).
