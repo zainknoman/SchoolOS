@@ -9,6 +9,12 @@ import {
   SMS_ADAPTER,
   resolveAdapterFor,
 } from './channel-registry';
+import { withTimeout } from '../common/with-timeout';
+import {
+  DELIVERY_TIMEOUT_MS,
+  MAX_DELIVERY_ATTEMPTS,
+  deliveryErrorText,
+} from './delivery-policy';
 
 /** Named constant so the interval is a one-line change later, not a magic string. */
 export const DIGEST_DISPATCH_CRON = '*/15 * * * *';
@@ -81,19 +87,45 @@ export class DigestDispatchJob {
       const title = `You have ${userRows.length} new update${userRows.length === 1 ? '' : 's'}`;
       const body = userRows.map((r) => `• ${r.title}: ${r.body}`).join('\n');
 
+      const ids = userRows.map((r) => r.id);
       try {
-        await adapter.send(user.id, { title, body });
+        await withTimeout(
+          adapter.send(user.id, { title, body }),
+          DELIVERY_TIMEOUT_MS,
+          'digest delivery',
+        );
         await this.prisma.notification.updateMany({
-          where: { id: { in: userRows.map((r) => r.id) } },
-          data: { dispatchedAt: new Date() },
+          where: { id: { in: ids } },
+          data: {
+            dispatchedAt: new Date(),
+            deliveryStatus: 'SENT',
+            deliveryAttempts: { increment: 1 },
+            lastDeliveryError: null,
+          },
         });
       } catch (err) {
-        // Best-effort, same as NotificationsService.notify() — leave dispatchedAt null so the
-        // next run retries this user's bundle rather than silently dropping it.
-        this.logger.error(
-          `Digest delivery failed for user ${user.id}`,
-          err as Error,
-        );
+        // Leave dispatchedAt null so the next run retries this bundle — but only up to
+        // MAX_DELIVERY_ATTEMPTS (KI-5); then the rows are FAILED and stop being retried.
+        const lastDeliveryError = deliveryErrorText(err);
+        await this.prisma.notification.updateMany({
+          where: { id: { in: ids } },
+          data: { deliveryAttempts: { increment: 1 }, lastDeliveryError },
+        });
+        const exhausted = await this.prisma.notification.updateMany({
+          where: {
+            id: { in: ids },
+            deliveryAttempts: { gte: MAX_DELIVERY_ATTEMPTS },
+          },
+          data: { deliveryStatus: 'FAILED', dispatchedAt: new Date() },
+        });
+        const line = `digest delivery failed for user ${user.id}: ${lastDeliveryError}`;
+        if (exhausted.count > 0) {
+          this.logger.error(
+            `notification.delivery-failed digest user=${user.id} rows=${exhausted.count}: ${lastDeliveryError}`,
+          );
+        } else {
+          this.logger.warn(line);
+        }
       }
     }
   }

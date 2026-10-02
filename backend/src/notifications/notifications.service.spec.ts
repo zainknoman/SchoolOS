@@ -8,10 +8,11 @@ import { WHATSAPP_ADAPTER, SMS_ADAPTER } from './channel-registry';
 describe('NotificationsService', () => {
   let service: NotificationsService;
   let prisma: {
-    user: { findUnique: jest.Mock };
+    user: { findUnique: jest.Mock; findMany: jest.Mock };
     notification: {
       create: jest.Mock;
       findMany: jest.Mock;
+      update: jest.Mock;
       updateMany: jest.Mock;
     };
   };
@@ -21,10 +22,11 @@ describe('NotificationsService', () => {
 
   beforeEach(async () => {
     prisma = {
-      user: { findUnique: jest.fn() },
+      user: { findUnique: jest.fn(), findMany: jest.fn() },
       notification: {
         create: jest.fn(),
         findMany: jest.fn(),
+        update: jest.fn().mockResolvedValue({}),
         updateMany: jest.fn(),
       },
     };
@@ -66,6 +68,7 @@ describe('NotificationsService', () => {
         body: 'Hi there',
         entityRef: 'conv-1',
         dispatchedAt: expect.any(Date),
+        deliveryStatus: 'PENDING',
       },
     });
     expect(push.send).toHaveBeenCalledWith('user-1', {
@@ -121,6 +124,7 @@ describe('NotificationsService', () => {
         body: 'B',
         entityRef: null,
         dispatchedAt: null,
+        deliveryStatus: 'PENDING',
       },
     });
     expect(push.send).not.toHaveBeenCalled();
@@ -199,6 +203,109 @@ describe('NotificationsService', () => {
     expect(prisma.notification.updateMany).toHaveBeenCalledWith({
       where: { userId: 'user-1', readAt: null },
       data: { readAt: expect.any(Date) },
+    });
+  });
+
+  // KI-5 / KG-22: delivery outcome is recorded; failures are retried with backoff, then FAILED.
+  describe('delivery status and retries', () => {
+    const pushUser = { notificationChannel: 'PUSH', digestEnabled: false };
+    const input = {
+      userId: 'user-1',
+      type: 'diary' as const,
+      title: 'T',
+      body: 'B',
+    };
+    beforeEach(() => {
+      prisma.user.findUnique.mockResolvedValue(pushUser);
+      prisma.notification.create.mockResolvedValue({ id: 'n1' });
+    });
+
+    it('marks a delivered notification SENT', async () => {
+      await service.notify(input);
+      expect(prisma.notification.update).toHaveBeenCalledWith({
+        where: { id: 'n1' },
+        data: {
+          deliveryStatus: 'SENT',
+          deliveryAttempts: 1,
+          lastDeliveryError: null,
+          nextAttemptAt: null,
+        },
+      });
+    });
+
+    it('schedules a retry in one minute after a first failure and keeps the provider error', async () => {
+      push.send.mockRejectedValue(new Error('FCM unavailable'));
+      const before = Date.now();
+      await service.notify(input);
+      const call = prisma.notification.update.mock.calls[0][0];
+      expect(call.data).toMatchObject({
+        deliveryStatus: 'RETRY',
+        deliveryAttempts: 1,
+        lastDeliveryError: 'Error: FCM unavailable',
+      });
+      const wait = call.data.nextAttemptAt.getTime() - before;
+      expect(wait).toBeGreaterThanOrEqual(60_000);
+      expect(wait).toBeLessThan(61_000);
+    });
+
+    it('retryDue re-sends due rows through each user’s channel and gives up after the fifth attempt', async () => {
+      prisma.notification.findMany.mockResolvedValue([
+        {
+          id: 'n1',
+          userId: 'user-1',
+          type: 'diary',
+          title: 'T',
+          body: 'B',
+          entityRef: null,
+          deliveryAttempts: 1,
+        },
+        {
+          id: 'n2',
+          userId: 'user-2',
+          type: 'diary',
+          title: 'T',
+          body: 'B',
+          entityRef: null,
+          deliveryAttempts: 4,
+        },
+      ]);
+      prisma.user.findMany.mockResolvedValue([
+        { id: 'user-1', notificationChannel: 'PUSH' },
+        { id: 'user-2', notificationChannel: 'SMS' },
+      ]);
+      sms.send.mockRejectedValue(new Error('gateway 503'));
+
+      await expect(service.retryDue(new Date())).resolves.toBe(2);
+
+      expect(prisma.notification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            deliveryStatus: 'RETRY',
+            nextAttemptAt: { lte: expect.any(Date) },
+          },
+        }),
+      );
+      expect(prisma.notification.update).toHaveBeenCalledWith({
+        where: { id: 'n1' },
+        data: expect.objectContaining({
+          deliveryStatus: 'SENT',
+          deliveryAttempts: 2,
+        }),
+      });
+      expect(prisma.notification.update).toHaveBeenCalledWith({
+        where: { id: 'n2' },
+        data: expect.objectContaining({
+          deliveryStatus: 'FAILED',
+          deliveryAttempts: 5,
+          nextAttemptAt: null,
+        }),
+      });
+    });
+
+    it('retryDue does nothing when no row is due', async () => {
+      prisma.notification.findMany.mockResolvedValue([]);
+      await expect(service.retryDue()).resolves.toBe(0);
+      expect(prisma.user.findMany).not.toHaveBeenCalled();
     });
   });
 });

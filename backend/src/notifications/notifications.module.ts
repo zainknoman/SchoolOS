@@ -15,6 +15,7 @@ import { HttpSmsSender } from './sms-sender';
 import { resolveSmsConfig } from './sms-config';
 import { WHATSAPP_ADAPTER, SMS_ADAPTER } from './channel-registry';
 import { DigestDispatchJob } from './digest-dispatch.job';
+import { NotificationRetryJob } from './notification-retry.job';
 import { PrismaService } from '../prisma/prisma.service';
 import { MAIL_ADAPTER } from './mail-adapter';
 import { LoggingMailAdapter } from './logging-mail.adapter';
@@ -25,6 +26,7 @@ import { resolveSmtpConfig } from './smtp-config';
   providers: [
     NotificationsService,
     DigestDispatchJob,
+    NotificationRetryJob,
     {
       provide: MAIL_ADAPTER,
       useFactory: (config: ConfigService) => {

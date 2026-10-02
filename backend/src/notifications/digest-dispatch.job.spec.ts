@@ -80,7 +80,12 @@ describe('DigestDispatchJob', () => {
 
     expect(prisma.notification.updateMany).toHaveBeenCalledWith({
       where: { id: { in: ['n1', 'n2'] } },
-      data: { dispatchedAt: expect.any(Date) },
+      data: {
+        dispatchedAt: expect.any(Date),
+        deliveryStatus: 'SENT',
+        deliveryAttempts: { increment: 1 },
+        lastDeliveryError: null,
+      },
     });
   });
 
@@ -109,5 +114,33 @@ describe('DigestDispatchJob', () => {
       orderBy: { createdAt: 'asc' },
     });
     expect(push.send).not.toHaveBeenCalled();
+  });
+
+  // KI-5: a failing bundle is retried by later runs, but only up to MAX_DELIVERY_ATTEMPTS.
+  it('counts a failed bundle attempt and marks rows FAILED once attempts are exhausted', async () => {
+    prisma.user.findMany.mockResolvedValue([
+      { id: 'user-1', notificationChannel: 'PUSH' },
+    ]);
+    prisma.notification.findMany.mockResolvedValue([
+      { id: 'n1', userId: 'user-1', title: 'A', body: 'a' },
+    ]);
+    push.send.mockRejectedValue(new Error('FCM down'));
+    prisma.notification.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    await job.dispatch();
+
+    expect(prisma.notification.updateMany).toHaveBeenNthCalledWith(1, {
+      where: { id: { in: ['n1'] } },
+      data: {
+        deliveryAttempts: { increment: 1 },
+        lastDeliveryError: 'Error: FCM down',
+      },
+    });
+    expect(prisma.notification.updateMany).toHaveBeenNthCalledWith(2, {
+      where: { id: { in: ['n1'] }, deliveryAttempts: { gte: 5 } },
+      data: { deliveryStatus: 'FAILED', dispatchedAt: expect.any(Date) },
+    });
   });
 });

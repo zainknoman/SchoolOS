@@ -1,4 +1,5 @@
 import { SmsConfig } from './sms-config';
+import { DELIVERY_TIMEOUT_MS } from './delivery-policy';
 
 /**
  * Thin seam over a generic HTTP SMS gateway — SmsAdapter depends on this interface, not on
@@ -17,6 +18,8 @@ export class HttpSmsSender implements SmsSender {
     // TODO: confirm the real gateway's endpoint URL and payload shape.
     const url = 'https://api.sms-gateway.example.pk/v1/send';
     const response = await fetch(url, {
+      // KI-5: a hung gateway must not hold the caller open.
+      signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,

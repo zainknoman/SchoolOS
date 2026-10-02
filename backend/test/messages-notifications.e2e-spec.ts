@@ -298,6 +298,14 @@ describe('Messages + Notifications (e2e)', () => {
         }),
       ]),
     );
+    // KI-5: the delivery attempt is recorded (the test environment's logging adapter accepts it).
+    const stored = await prisma.notification.findMany({
+      where: { entityRef: ids.conversationId, type: 'message' },
+    });
+    expect(stored.length).toBeGreaterThan(0);
+    for (const n of stored) {
+      expect(n).toMatchObject({ deliveryStatus: 'SENT', deliveryAttempts: 1 });
+    }
   });
 
   it('another parent and another teacher cannot read or reply to this conversation', async () => {

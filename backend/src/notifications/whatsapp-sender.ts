@@ -1,4 +1,5 @@
 import { WhatsAppConfig } from './whatsapp-config';
+import { DELIVERY_TIMEOUT_MS } from './delivery-policy';
 
 /**
  * Thin seam over the WhatsApp Business Cloud API — WhatsAppAdapter depends on this interface, not
@@ -16,6 +17,8 @@ export class HttpWhatsAppSender implements WhatsAppSender {
   async sendMessage(phoneNumber: string, body: string): Promise<void> {
     const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${this.config.phoneNumberId}/messages`;
     const response = await fetch(url, {
+      // KI-5: a hung gateway must not hold the caller open.
+      signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.config.accessToken}`,

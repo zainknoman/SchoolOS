@@ -3,7 +3,7 @@
 > **Status:** CURRENT · **Verified:** 2026-10-02 against `wave-0/foundations` (A4 triage) · **Owner:** Security Owner (Engineering Lead until assigned)
 > Consolidates every `CODE ISSUE DISCOVERED` that has a security or data-isolation impact, and absorbs the archived `access-control-scoping-progress.md`. Owner decisions of 2026-09-20 ([OWNER-DECISIONS](../product/OWNER-DECISIONS.md)) attach a decided remediation to each item (table below). Severity uses the scale in [KNOWN-ISSUES](../release/KNOWN-ISSUES.md#severity-scale-a4-triage-2026-10-02) and is recorded as found.
 >
-> **Open gaps (2026-10-02): none Critical or High.** Med: KG-18 (payment gateways unverified — **accepted for the pilot**: gateways are off, RD-14; SMS is off, RD-4). Low: KG-21 (legal entity and security mailbox placeholders — owner input, RD-1/RD-2), KG-22 (notification retry/alerting — Wave 8).
+> **Open gaps (2026-10-02): none Critical or High.** Med: KG-18 (payment gateways unverified — **accepted for the pilot**: gateways are off, RD-14; SMS is off, RD-4). Low: KG-21 (legal entity and security mailbox placeholders — owner input, RD-1/RD-2).
 
 | ID | Sev. | Gap | Evidence | Related |
 |---|---|---|---|---|
@@ -29,7 +29,7 @@
 | KG-20 | Low | Seed creates known-password accounts with no production guard; real-sounding demo school name | `prisma/seed.ts` | SEED-3/4 — **Closed 2026-09-26:** neutral demo schools (BL-34); seed refuses outside development/test (BL-22) |
 | KG-21 | Low | Proprietary `LICENSE` notice and `SECURITY.md` now exist as **placeholders** (`[LEGAL_ENTITY_NAME]`, `[SECURITY_EMAIL]`); real entity, domain and mailbox pending (RD-1/RD-2); `package.json` stays `UNLICENSED` (correct for closed source) | repo root | — |
 | KG-23 | Med | `User.isLocked` exists in the schema but is never read or written by application logic, and no endpoint unlocks or disables an account; the only way to stop a compromised account is deleting it or editing the database | `schema.prisma:138`; `auth.service.ts:66` checks only `lockedUntil`; `isLocked` appears in `src/` only as a fixture field in `auth.service.spec.ts` | **Closed 2026-09-24 (BL-21):** `isLocked` = disabled; admin `POST /admin/users/:id/disable|enable|revoke-sessions` (scoped, audited); enable also clears the failed-login lockout |
-| KG-22 | Low | Notification failures swallowed, no retry/alerting | `notifications.service.ts:72` | — |
+| KG-22 | Low | ~~Notification failures swallowed, no retry/alerting~~ | `notifications.service.ts:72` | **Closed 2026-10-02 (KI-5):** every outbound call is bounded (10 s for push/WhatsApp/SMS, SMTP connection/greeting/socket timeouts); each notification records `deliveryStatus` (PENDING/SENT/RETRY/FAILED), attempts and the last provider error; failures are retried by `NotificationRetryJob` (every minute, job lock) after 1 min, 5 min, 30 min and 2 h, then marked FAILED with an error log line `notification.delivery-failed` for alerting; digest bundles stop after 5 failed attempts |
 | KG-34 | High | ~~`POST /admin/students` accepted any `sectionId` — a school admin could create (and enrol) a student in another school~~ | `student.service.ts` `create` | **Closed 2026-10-02 (found by the KG-16 sweep):** the section must be in the caller's school/campus (403); unit `student.service` |
 | KG-33 | High | ~~Timetable: `GET/PUT /sections/:id/timetable`, `POST /timetable`, `PATCH/DELETE /timetable/:id` checked no school; any teacher id was accepted — and a timetable row makes its teacher a teaching assignment of the section (BL-25), i.e. access to its students~~ | `timetable.controller.ts`, `timetable.service.ts` | **Closed 2026-10-02 (KG-16 sweep):** section/entry routes confined by RecordScopeGuard, create checks the section, the teacher must work at the section's campus (400); e2e `route-scope` |
 | KG-32 | High | ~~Admissions: `GET/PATCH /applications/:id`, `/reject`, `/approve` and `POST /applications` checked no school; approve accepted any section (student created in another school); `GET /applicants` returned any school's applicants (child name, date of birth)~~ | `applications.*`, `applicants.*` | **Closed 2026-10-02 (KG-16 sweep):** id routes confined by RecordScopeGuard; create needs an own-school class, a session of that school and a new or own applicant; approve needs an own-scope section in the application's school; look-ups and the duplicate hint show only applicants the caller's school recorded (new `Applicant.schoolId`) or that applied to it; e2e `route-scope` |
@@ -43,7 +43,7 @@
 | KG-24 | High | ~~Bulk import (students, teachers, staff) accepted another school's section/campus id~~ — **closed 2026-09-26:** every row's section/campus must be inside the importer's school/campus (e2e `bulk-import-scope`) | `bulk-import/*.service.ts` | found during BL-23 |
 
 ## Decided remediation (owner, 2026-09-20)
-Status per gap is in the table above; everything here except KG-18, KG-21 and KG-22 is implemented.
+Status per gap is in the table above; everything here except KG-18 and KG-21 is implemented.
 | Gap | Decision / work item | Phase |
 |---|---|---|
 | KG-1, KG-6 | Fix isolation; regression tests — BL-20 | B |

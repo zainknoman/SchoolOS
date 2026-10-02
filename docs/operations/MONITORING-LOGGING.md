@@ -42,8 +42,9 @@ Configure in whichever uptime/log/error provider is chosen (T-3):
 | Slow API | access log `durationMs` p95 | > 500 ms over 15 min (CRUD) | P3 |
 | Auth abuse | access log `path=/api/v1/auth/login`, `status=429` | > 50 in 10 min | P2 |
 | Scheduled job failure | log `level=error` with job context | any | P2 |
+| Notification delivery failed for good | log `level=error` containing `notification.delivery-failed` (after 5 attempts over ≈ 2.5 h, KI-5) | > 10 in 1 h, or any for a whole channel | P2 |
 | Malware scanner unavailable | access log `status=503` on `POST /api/v1/files` | any | P2 |
 Targets: 99.5 % monthly availability, API p95 < 500 ms (CRUD), auth p95 < 1 s ([NFR](../product/requirements/NON-FUNCTIONAL-REQUIREMENTS.md)).
 
 ## Where failures are still silent
-Notification delivery (caught, logged, not retried); e-mail delivery on password reset (caught, logged). Both now appear as JSON log lines with a request id, so a log-based alert can watch for them.
+E-mail delivery on password reset (caught, logged, bounded by SMTP timeouts, not retried — the user can ask again). Notification delivery is no longer silent (KI-5): each row carries `deliveryStatus`, retries run in the background, and a final failure logs `notification.delivery-failed`. To see the backlog: `SELECT "deliveryStatus", count(*) FROM "Notification" WHERE "createdAt" > now() - interval '1 day' GROUP BY 1;`

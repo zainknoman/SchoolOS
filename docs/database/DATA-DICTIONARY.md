@@ -1368,9 +1368,13 @@ Block attributes: `@@index([conversationId])`
 | entityRef | String? |  |
 | readAt | DateTime? |  |
 | dispatchedAt | DateTime? |  |
+| deliveryStatus | String? |  |
+| deliveryAttempts | Int | @default(0) |
+| lastDeliveryError | String? |  |
+| nextAttemptAt | DateTime? |  |
 | createdAt | DateTime | @default(now()) |
 
-Block attributes: `@@index([userId])` · `@@index([createdAt])`
+Block attributes: `@@index([userId])` · `@@index([deliveryStatus, nextAttemptAt])` · `@@index([createdAt])`
 
 ### DraftSuggestion
 

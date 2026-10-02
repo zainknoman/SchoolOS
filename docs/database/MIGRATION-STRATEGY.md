@@ -160,6 +160,8 @@
 
 **BL-36 follow-up (`20261002100000_bl36_refresh_token_family`, 2026-10-02):** additive — nullable `RefreshToken.familyId` (indexed) and `RefreshToken.rotatedAt`. No backfill: a token issued earlier starts a family named after itself on its next rotation; a token rotated before the deploy has no `rotatedAt`, so its replay is only refused (no reuse alarm). Applied to the scratch database, no drift, full e2e green.
 
+**KI-5 (`20261002110000_ki5_notification_delivery`, 2026-10-02):** additive — `Notification.deliveryStatus` (nullable, CHECK `PENDING`/`SENT`/`RETRY`/`FAILED`), `deliveryAttempts` (default 0), `lastDeliveryError`, `nextAttemptAt`, index (`deliveryStatus`, `nextAttemptAt`). No backfill: older rows keep a null status and are never retried. Applied to the scratch database, no drift, full e2e green.
+
 **Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

@@ -1022,19 +1022,27 @@ model Message {
 }
 
 model Notification {
-  id           String    @id @default(uuid())
-  userId       String
-  type         String
-  title        String
-  body         String
-  entityRef    String?
-  readAt       DateTime?
+  id                String    @id @default(uuid())
+  userId            String
+  type              String
+  title             String
+  body              String
+  entityRef         String?
+  readAt            DateTime?
   // Null means "not yet sent through the user's chosen channel" — always set immediately for a
   // non-digest user, left null until DigestDispatchJob bundles it for a digest-enabled user.
-  dispatchedAt DateTime?
-  createdAt    DateTime  @default(now())
+  dispatchedAt      DateTime?
+  /// KI-5: PENDING | SENT | RETRY | FAILED (DB CHECK); null for rows created before 2026-10-02
+  deliveryStatus    String?
+  deliveryAttempts  Int       @default(0)
+  /// Last provider error, truncated; never the message body
+  lastDeliveryError String?
+  /// When the retry job may try again (deliveryStatus RETRY)
+  nextAttemptAt     DateTime?
+  createdAt         DateTime  @default(now())
 
   @@index([userId])
+  @@index([deliveryStatus, nextAttemptAt])
   // BL-15: the dashboard's newest alerts across a school
   @@index([createdAt])
 }
