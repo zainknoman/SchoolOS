@@ -54,7 +54,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 |---|---|---|
 | Backend unit (`backend/src/**/*.spec.ts`) | 104 | 792 |
 | Backend e2e (`backend/test/*.e2e-spec.ts`) | 54 | 399 |
-| Staff console (`staff-console/src/**/*.spec.ts`) | 85 | 572 |
+| Staff console (`staff-console/src/**/*.spec.ts`) | 86 | 576 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 33 | — |
 
 | Backend e2e spec | Test blocks |

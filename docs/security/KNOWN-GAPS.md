@@ -1,7 +1,9 @@
 # Known Security and Isolation Gaps
 
-> **Status:** CURRENT · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Security Owner (Engineering Lead until assigned)
-> Consolidates every `CODE ISSUE DISCOVERED` that has a security or data-isolation impact, and absorbs the archived `access-control-scoping-progress.md`. **None has been fixed by the documentation program.** Owner decisions of 2026-09-20 ([OWNER-DECISIONS](../product/OWNER-DECISIONS.md)) now attach a decided remediation to each item (table below); all remain **open engineering work**. Severity is an initial triage for the owner, not a risk assessment.
+> **Status:** CURRENT · **Verified:** 2026-10-02 against `wave-0/foundations` (A4 triage) · **Owner:** Security Owner (Engineering Lead until assigned)
+> Consolidates every `CODE ISSUE DISCOVERED` that has a security or data-isolation impact, and absorbs the archived `access-control-scoping-progress.md`. Owner decisions of 2026-09-20 ([OWNER-DECISIONS](../product/OWNER-DECISIONS.md)) attach a decided remediation to each item (table below). Severity uses the scale in [KNOWN-ISSUES](../release/KNOWN-ISSUES.md#severity-scale-a4-triage-2026-10-02) and is recorded as found.
+>
+> **Open gaps (2026-10-02): none Critical or High.** Med: KG-18 (payment gateways unverified — **accepted for the pilot**: gateways are off, RD-14; SMS is off, RD-4). Low: KG-21 (legal entity and security mailbox placeholders — owner input, RD-1/RD-2), KG-22 (notification retry/alerting — Wave 8).
 
 | ID | Sev. | Gap | Evidence | Related |
 |---|---|---|---|---|
@@ -23,7 +25,7 @@
 | KG-16 | Med | ~~32 routes rely solely on service-level scoping; no automated guard against a missing `assert*`~~ | [ENDPOINTS](../api/ENDPOINTS.md) | AUTHZ-1 — **Closed 2026-10-02 (BL-18):** every route with caller input declares its check (`@ScopedRecord` or `@ScopeCheck`); `route-scope.spec.ts` fails on an undeclared route or an unknown check name; the sweep found KG-31…KG-34 |
 | KG-17 | Med | ~~Hard deletes of student/staff PII with no retention or soft-delete policy~~ | `student.service.ts:155-166` | Q7, DB-5 — **Closed 2026-09-27 (BL-07/BL-63, M9):** delete archives; erasure is SUPER_ADMIN-only on archived records, audited; retention periods configurable (unset), never enforced automatically |
 | KG-18 | Med | Payment gateways never verified against live systems; EasyPaisa hash field order unconfirmed; SMS sender targets a placeholder URL | `fees/gateways/*`, `sms-sender.ts:18` | — |
-| KG-19 | Low | No global exception filter / request logging; error shape and diagnostics inconsistent | [API-OVERVIEW](../api/API-OVERVIEW.md) | API-2 |
+| KG-19 | Low | ~~No global exception filter / request logging; error shape and diagnostics inconsistent~~ | [API-OVERVIEW](../api/API-OVERVIEW.md) | API-2 — **Closed 2026-09-25 (BL-11):** global exception filter (generic 500 bodies with `requestId`), JSON access/error logs, scrubbed error reporting; e2e `observability` |
 | KG-20 | Low | Seed creates known-password accounts with no production guard; real-sounding demo school name | `prisma/seed.ts` | SEED-3/4 — **Closed 2026-09-26:** neutral demo schools (BL-34); seed refuses outside development/test (BL-22) |
 | KG-21 | Low | Proprietary `LICENSE` notice and `SECURITY.md` now exist as **placeholders** (`[LEGAL_ENTITY_NAME]`, `[SECURITY_EMAIL]`); real entity, domain and mailbox pending (RD-1/RD-2); `package.json` stays `UNLICENSED` (correct for closed source) | repo root | — |
 | KG-23 | Med | `User.isLocked` exists in the schema but is never read or written by application logic, and no endpoint unlocks or disables an account; the only way to stop a compromised account is deleting it or editing the database | `schema.prisma:138`; `auth.service.ts:66` checks only `lockedUntil`; `isLocked` appears in `src/` only as a fixture field in `auth.service.spec.ts` | **Closed 2026-09-24 (BL-21):** `isLocked` = disabled; admin `POST /admin/users/:id/disable|enable|revoke-sessions` (scoped, audited); enable also clears the failed-login lockout |
@@ -40,7 +42,8 @@
 | KG-25 | High | ~~Student, staff and teacher routes addressed by id (`/admin/students/:id`, `/admin/students/:studentId/*` incl. medical info, `/admin/staff/:id`, `/admin/staff/:staffId/*`, `/admin/teachers/:id` incl. password reset) did not check the caller's school — a school admin could read or change another school's records~~ | `student.controller.ts`, `student-profile.controller.ts`, `staff*.controller.ts`, `teacher.controller.ts` | **Closed 2026-09-27 (found during BL-07):** `RecordScopeGuard` + `@ScopedRecord` on those controllers (403 outside the caller's school/campus); e2e `archive-retention` |
 | KG-24 | High | ~~Bulk import (students, teachers, staff) accepted another school's section/campus id~~ — **closed 2026-09-26:** every row's section/campus must be inside the importer's school/campus (e2e `bulk-import-scope`) | `bulk-import/*.service.ts` | found during BL-23 |
 
-## Decided remediation (owner, 2026-09-20) — all NOT YET IMPLEMENTED
+## Decided remediation (owner, 2026-09-20)
+Status per gap is in the table above; everything here except KG-18, KG-21 and KG-22 is implemented.
 | Gap | Decision / work item | Phase |
 |---|---|---|
 | KG-1, KG-6 | Fix isolation; regression tests — BL-20 | B |
