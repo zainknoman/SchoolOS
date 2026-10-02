@@ -279,6 +279,8 @@ model School {
   gradingScales        GradingScale[]
   attendanceRiskPolicy AttendanceRiskPolicy?
   teachingAssignments  TeachingAssignment[]
+  applicants           Applicant[]
+  hiringCandidates     HiringCandidate[]
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 }
@@ -538,11 +540,15 @@ model HiringCandidate {
   contactEmail String?
   resumeFileId String?
   resumeFile   File?               @relation(fields: [resumeFileId], references: [id], onDelete: SetNull)
+  /// KG-16: the school that recorded the candidate (null for rows created before 2026-10-02 and by a super admin)
+  schoolId     String?
+  school       School?             @relation(fields: [schoolId], references: [id], onDelete: SetNull)
   applications HiringApplication[]
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
   @@index([contactPhone])
+  @@index([schoolId])
 }
 
 model HiringApplication {
@@ -1611,11 +1617,15 @@ model Applicant {
   dateOfBirth   DateTime
   guardianName  String
   guardianPhone String
+  /// KG-16: the school that recorded the applicant (null for rows created before 2026-10-02 and by a super admin)
+  schoolId      String?
+  school        School?       @relation(fields: [schoolId], references: [id], onDelete: SetNull)
   applications  Application[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   @@index([guardianPhone])
+  @@index([schoolId])
 }
 
 model Application {

@@ -17,6 +17,7 @@ import {
   EXPORT_DATASETS,
   type ExportDataset,
 } from './data-export.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -46,6 +47,7 @@ export class DataExportController {
     return { datasets: EXPORT_DATASETS };
   }
 
+  @ScopeCheck('assertMaySeeSensitive')
   @Get(':dataset')
   async export(
     @Param('dataset') dataset: string,

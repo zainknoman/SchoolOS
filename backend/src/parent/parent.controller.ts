@@ -25,6 +25,7 @@ import {
   THROTTLE_TTL_MS,
 } from '../config/throttler.config';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck, SHARED_IDENTITY } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -38,11 +39,13 @@ export class ParentController {
     private readonly accounts: AccountAccessService,
   ) {}
 
+  @ScopeCheck(SHARED_IDENTITY)
   @Post()
   create(@Body() dto: CreateParentDto, @Req() req: AuthenticatedRequest) {
     return this.parentService.create(dto, req.user.id);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Get()
   list(@Req() req: AuthenticatedRequest, @Query() page: PageQueryDto) {
     return this.parentService.list(req.user, toPageRequest(page));
@@ -56,6 +59,7 @@ export class ParentController {
   }
 
   /** BL-23: find an existing guardian by exact identifier or CNIC (to link, not duplicate). */
+  @ScopeCheck(SHARED_IDENTITY)
   @Post('lookup')
   lookup(@Body() dto: LookupParentDto, @Req() req: AuthenticatedRequest) {
     return this.parentService.lookup(dto, req.user);
@@ -66,16 +70,19 @@ export class ParentController {
   @Throttle({
     default: { limit: AUTH_LOGIN_THROTTLE_LIMIT, ttl: THROTTLE_TTL_MS },
   })
+  @ScopeCheck('assertCanManage')
   @Post(':id/reset-password')
   resetPassword(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.accounts.resetParentPassword(id, req.user);
   }
 
+  @ScopeCheck('assertParentInScope')
   @Get(':id')
   profile(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.parentService.getProfile(id, req.user);
   }
 
+  @ScopeCheck('assertStudentInScope')
   @Post(':id/children')
   linkChild(
     @Param('id') id: string,
@@ -85,6 +92,7 @@ export class ParentController {
     return this.parentService.linkChild(id, dto, req.user);
   }
 
+  @ScopeCheck('assertStudentInScope')
   @Delete(':id/children/:studentId')
   async unlinkChild(
     @Param('id') id: string,
@@ -94,6 +102,7 @@ export class ParentController {
     await this.parentService.unlinkChild(id, studentId, req.user);
   }
 
+  @ScopeCheck('assertStudentInScope')
   @Patch(':id/children/:studentId')
   updateChildLink(
     @Param('id') id: string,
@@ -104,6 +113,7 @@ export class ParentController {
     return this.parentService.updateChildLink(id, studentId, dto, req.user);
   }
 
+  @ScopeCheck('assertParentEntirelyInScope')
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -113,6 +123,7 @@ export class ParentController {
     return this.parentService.update(id, dto, req.user);
   }
 
+  @ScopeCheck('assertParentEntirelyInScope')
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     await this.parentService.delete(id, req.user);

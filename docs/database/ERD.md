@@ -98,6 +98,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   HiringCandidate -->|SetNull, optional| File
+  HiringCandidate -->|SetNull, optional| School
   HiringApplication -->|Restrict| HiringCandidate
   HiringApplication -->|Restrict| Campus
   HiringApplication -->|default, optional| User
@@ -112,6 +113,7 @@ flowchart LR
   StudentPromotion -->|Restrict| Enrollment
   StudentPromotion -->|Restrict, optional| Enrollment
   StudentPromotion -->|default| User
+  Applicant -->|SetNull, optional| School
   Application -->|Restrict| Applicant
   Application -->|Restrict| Class
   Application -->|Restrict| AcademicSession

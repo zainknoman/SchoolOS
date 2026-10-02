@@ -1,6 +1,9 @@
 // backend/src/admissions/applicants.service.ts
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
+import type { RequestUser } from '../common/student-access.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 
 export interface ApplicantSummary {
@@ -13,7 +16,32 @@ export interface ApplicantSummary {
 
 @Injectable()
 export class ApplicantsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
+
+  /**
+   * KG-16: staff see only applicants their school recorded or who applied to their school (campus,
+   * for a campus principal) — a child's name and date of birth are PII.
+   */
+  private async visibleTo(
+    user: RequestUser,
+  ): Promise<Prisma.ApplicantWhereInput> {
+    const scope = await this.orgScope.resolve(user);
+    if (scope.unrestricted) return {};
+    if (scope.denied || !scope.schoolId) return { id: '__no-access__' };
+    return {
+      OR: [
+        { schoolId: scope.schoolId },
+        {
+          applications: {
+            some: { desiredClass: { campus: scope.campusWhere } },
+          },
+        },
+      ],
+    };
+  }
 
   private toSummary(record: {
     id: string;
@@ -31,12 +59,19 @@ export class ApplicantsService {
     };
   }
 
-  async create(dto: CreateApplicantDto): Promise<{
+  async create(
+    dto: CreateApplicantDto,
+    user: RequestUser,
+  ): Promise<{
     applicant: ApplicantSummary;
     possibleDuplicate: ApplicantSummary | null;
   }> {
     const existingMatch = await this.prisma.applicant.findFirst({
-      where: { name: dto.name, guardianPhone: dto.guardianPhone },
+      where: {
+        name: dto.name,
+        guardianPhone: dto.guardianPhone,
+        ...(await this.visibleTo(user)),
+      },
     });
     const record = await this.prisma.applicant.create({
       data: {
@@ -44,6 +79,7 @@ export class ApplicantsService {
         dateOfBirth: new Date(dto.dateOfBirth),
         guardianName: dto.guardianName,
         guardianPhone: dto.guardianPhone,
+        schoolId: (await this.orgScope.resolve(user)).schoolId,
       },
     });
     return {
@@ -52,9 +88,12 @@ export class ApplicantsService {
     };
   }
 
-  async findByPhone(guardianPhone: string): Promise<ApplicantSummary[]> {
+  async findByPhone(
+    guardianPhone: string,
+    user: RequestUser,
+  ): Promise<ApplicantSummary[]> {
     const records = await this.prisma.applicant.findMany({
-      where: { guardianPhone },
+      where: { guardianPhone, ...(await this.visibleTo(user)) },
       orderBy: { createdAt: 'desc' },
     });
     return records.map((r) => this.toSummary(r));

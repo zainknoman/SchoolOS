@@ -7,6 +7,7 @@ import {
 } from '../common/pagination';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -34,6 +35,10 @@ export interface ApplicationSummary {
 
 const TERMINAL_STATUSES = ['APPROVED', 'REJECTED'];
 const WITH_APPLICANT = { applicant: { select: { name: true } } } as const;
+const CAMPUS_OF = {
+  campusId: true,
+  campus: { select: { schoolId: true } },
+} as const;
 
 @Injectable()
 export class ApplicationsService {
@@ -66,7 +71,61 @@ export class ApplicationsService {
     };
   }
 
-  async create(dto: CreateApplicationDto): Promise<ApplicationSummary> {
+  /**
+   * KG-16: the desired class must be in the caller's school/campus, the session must belong to that
+   * school, and the applicant one this school recorded or that applied to it (or a legacy,
+   * school-less applicant with no application).
+   */
+  async create(
+    dto: CreateApplicationDto,
+    user: RequestUser,
+  ): Promise<ApplicationSummary> {
+    const klass = await this.prisma.class.findUnique({
+      where: { id: dto.desiredClassId },
+      select: CAMPUS_OF,
+    });
+    if (!klass) {
+      throw new NotFoundException('Class not found');
+    }
+    const scope = await this.orgScope.resolve(user);
+    const place = { campusId: klass.campusId, schoolId: klass.campus.schoolId };
+    if (!scope.allows(place)) {
+      throw new ForbiddenException(
+        'This class is not in your school or campus',
+      );
+    }
+    const session = await this.prisma.academicSession.findUnique({
+      where: { id: dto.academicSessionId },
+      select: { schoolId: true },
+    });
+    if (!session) {
+      throw new NotFoundException('Academic session not found');
+    }
+    if (session.schoolId && session.schoolId !== place.schoolId) {
+      throw new BadRequestException(
+        "The academic session is not one of this class's school's sessions",
+      );
+    }
+    if (!scope.unrestricted) {
+      const applicant = await this.prisma.applicant.findFirst({
+        where: {
+          id: dto.applicantId,
+          OR: [
+            { schoolId: scope.schoolId },
+            {
+              applications: {
+                some: { desiredClass: { campus: scope.campusWhere } },
+              },
+            },
+            { schoolId: null, applications: { none: {} } },
+          ],
+        },
+        select: { id: true },
+      });
+      if (!applicant) {
+        throw new NotFoundException('Applicant not found');
+      }
+    }
     const record = await this.prisma.application.create({
       data: {
         applicantId: dto.applicantId,
@@ -156,7 +215,7 @@ export class ApplicationsService {
   private async getOrThrow(id: string) {
     const existing = await this.prisma.application.findUnique({
       where: { id },
-      include: WITH_APPLICANT,
+      include: { ...WITH_APPLICANT, desiredClass: { select: CAMPUS_OF } },
     });
     if (!existing) {
       throw new NotFoundException('Application not found');
@@ -209,8 +268,9 @@ export class ApplicationsService {
   async approve(
     id: string,
     dto: ApproveApplicationDto,
-    reviewedById: string,
+    user: RequestUser,
   ): Promise<ApplicationSummary> {
+    const reviewedById = user.id;
     const existing = await this.getOrThrow(id);
     if (TERMINAL_STATUSES.includes(existing.status)) {
       throw new BadRequestException(
@@ -226,10 +286,26 @@ export class ApplicationsService {
     }
     const section = await this.prisma.section.findUnique({
       where: { id: dto.sectionId },
-      select: { id: true, class: { select: { campusId: true } } },
+      select: { id: true, class: { select: CAMPUS_OF } },
     });
     if (!section) {
       throw new NotFoundException('Section not found');
+    }
+    // KG-16: the student is created in the section's campus — it must be the caller's and in the
+    // school the application was made to.
+    const target = {
+      campusId: section.class.campusId,
+      schoolId: section.class.campus.schoolId,
+    };
+    if (!(await this.orgScope.resolve(user)).allows(target)) {
+      throw new ForbiddenException(
+        'This section is not in your school or campus',
+      );
+    }
+    if (target.schoolId !== existing.desiredClass.campus.schoolId) {
+      throw new BadRequestException(
+        'The section must be in the school the application was made to',
+      );
     }
 
     let record: Parameters<ApplicationsService['toSummary']>[0];

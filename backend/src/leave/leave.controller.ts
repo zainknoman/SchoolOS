@@ -11,6 +11,7 @@ import {
   RequestUser,
 } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -24,6 +25,7 @@ export class LeaveController {
   ) {}
 
   @Roles('PARENT')
+  @ScopeCheck('assertCanAccessStudent')
   @Post('leave-requests')
   async create(
     @Body() dto: CreateLeaveRequestDto,
@@ -33,6 +35,7 @@ export class LeaveController {
     return this.leaveService.create(dto, req.user.id);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get('students/:id/leave-requests')
   async getForStudent(
     @Param('id') studentId: string,
@@ -45,6 +48,7 @@ export class LeaveController {
   // Staff-only queue — not routed through StudentAccessService, matching Timetable/Attendance's
   // staff-facing list endpoints. BL-29: teachers see their sections' students' requests.
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Get('leave-requests')
   listAll(
     @Query('status') status: string | undefined,
@@ -55,6 +59,7 @@ export class LeaveController {
 
   /** BL-29: a teacher of the student recommends; never changes the status. */
   @Roles('TEACHER')
+  @ScopeCheck('assertMayActOn')
   @Post('leave-requests/:id/recommend')
   async recommend(
     @Param('id') id: string,
@@ -67,6 +72,7 @@ export class LeaveController {
 
   // BL-29 (KG-27): the decision is confined to the student's school/campus (it was not checked).
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertMayActOn')
   @Post('leave-requests/:id/approve')
   async approve(
     @Param('id') id: string,
@@ -78,6 +84,7 @@ export class LeaveController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertMayActOn')
   @Post('leave-requests/:id/reject')
   async reject(
     @Param('id') id: string,

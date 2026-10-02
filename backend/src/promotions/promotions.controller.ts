@@ -5,6 +5,7 @@ import { ExecutePromotionDto } from './dto/execute-promotion.dto';
 import { UpdatePromotionPolicyDto } from './dto/update-promotion-policy.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -15,6 +16,7 @@ interface AuthenticatedRequest extends Request {
 export class PromotionsController {
   constructor(private readonly promotionsService: PromotionsService) {}
 
+  @ScopeCheck('assertSectionInOwnSchool')
   @Get('preview')
   preview(
     @Req() req: AuthenticatedRequest,
@@ -23,6 +25,7 @@ export class PromotionsController {
     return this.promotionsService.preview(req.user, sourceSectionId);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Get('policy')
   getPolicy(
     @Req() req: AuthenticatedRequest,
@@ -31,6 +34,7 @@ export class PromotionsController {
     return this.promotionsService.getPolicy(req.user, schoolId);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Put('policy')
   updatePolicy(
     @Req() req: AuthenticatedRequest,
@@ -39,6 +43,7 @@ export class PromotionsController {
     return this.promotionsService.updatePolicy(req.user, dto);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Post('execute')
   execute(@Req() req: AuthenticatedRequest, @Body() dto: ExecutePromotionDto) {
     return this.promotionsService.execute(req.user, dto);

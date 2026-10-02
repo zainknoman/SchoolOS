@@ -14,6 +14,7 @@ import { CreateCampusDto } from './dto/create-campus.dto';
 import { UpdateCampusDto } from './dto/update-campus.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -25,6 +26,7 @@ export class CampusController {
   constructor(private readonly campusService: CampusService) {}
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Post('campuses')
   create(@Body() dto: CreateCampusDto, @Req() req: AuthenticatedRequest) {
     return this.campusService.create(dto, req.user.id, req.user);

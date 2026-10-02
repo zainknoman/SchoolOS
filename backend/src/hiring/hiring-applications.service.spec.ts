@@ -1,5 +1,9 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { HiringApplicationsService } from './hiring-applications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
@@ -14,6 +18,8 @@ describe('HiringApplicationsService', () => {
       update: jest.Mock;
     };
     user: { findUnique: jest.Mock };
+    campus: { findUnique: jest.Mock };
+    hiringCandidate: { findFirst: jest.Mock };
     $transaction: jest.Mock;
   };
 
@@ -40,6 +46,8 @@ describe('HiringApplicationsService', () => {
         update: jest.fn(),
       },
       user: { findUnique: jest.fn() },
+      campus: { findUnique: jest.fn() },
+      hiringCandidate: { findFirst: jest.fn() },
       $transaction: jest.fn(),
     };
     const moduleRef = await Test.createTestingModule({
@@ -116,11 +124,10 @@ describe('HiringApplicationsService', () => {
   it('creates an application in SUBMITTED status', async () => {
     prisma.hiringApplication.create.mockResolvedValue(withCandidate());
 
-    const result = await service.create({
-      candidateId: 'c1',
-      employeeType: 'GUARD',
-      campusId: 'cam1',
-    });
+    const result = await service.create(
+      { candidateId: 'c1', employeeType: 'GUARD', campusId: 'cam1' },
+      { id: 'sa', role: 'SUPER_ADMIN' },
+    );
 
     expect(result.status).toBe('SUBMITTED');
     expect(prisma.hiringApplication.create).toHaveBeenCalledWith(
@@ -128,6 +135,61 @@ describe('HiringApplicationsService', () => {
         data: expect.objectContaining({ status: 'SUBMITTED' }),
       }),
     );
+  });
+
+  // KG-16: an application places a future staff member (and possibly a login) on a campus.
+  describe('create is confined to the caller’s school', () => {
+    const admin = { id: 'admin-1', role: 'SCHOOL_ADMIN' };
+    beforeEach(() => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        schoolId: 's1',
+        campusId: null,
+      });
+    });
+
+    it('refuses a campus of another school', async () => {
+      prisma.campus.findUnique.mockResolvedValue({
+        id: 'cam9',
+        schoolId: 's9',
+      });
+      await expect(
+        service.create(
+          { candidateId: 'c1', employeeType: 'GUARD', campusId: 'cam9' },
+          admin,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.hiringApplication.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses a candidate who applied only to another school', async () => {
+      prisma.campus.findUnique.mockResolvedValue({
+        id: 'cam1',
+        schoolId: 's1',
+      });
+      prisma.hiringCandidate.findFirst.mockResolvedValue(null);
+      await expect(
+        service.create(
+          { candidateId: 'c9', employeeType: 'GUARD', campusId: 'cam1' },
+          admin,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('accepts an own-school campus and a new or own candidate', async () => {
+      prisma.campus.findUnique.mockResolvedValue({
+        id: 'cam1',
+        schoolId: 's1',
+      });
+      prisma.hiringCandidate.findFirst.mockResolvedValue({ id: 'c1' });
+      prisma.hiringApplication.create.mockResolvedValue(withCandidate());
+      await expect(
+        service.create(
+          { candidateId: 'c1', employeeType: 'GUARD', campusId: 'cam1' },
+          admin,
+        ),
+      ).resolves.toMatchObject({ status: 'SUBMITTED' });
+    });
   });
 
   it('moves a SUBMITTED application to SHORTLISTED', async () => {

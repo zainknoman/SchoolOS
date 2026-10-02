@@ -65,9 +65,33 @@ export class HiringApplicationsService {
     };
   }
 
+  /**
+   * KG-16: the campus must be the caller's, and the candidate one the caller's school recorded or
+   * that applied to it (or a legacy, school-less candidate with no application) — never another
+   * school's candidate.
+   */
   async create(
     dto: CreateHiringApplicationDto,
+    user: RequestUser,
   ): Promise<HiringApplicationSummary> {
+    await this.orgScope.assertCampusAccess(user, dto.campusId);
+    const scope = await this.orgScope.resolve(user);
+    if (!scope.unrestricted) {
+      const candidate = await this.prisma.hiringCandidate.findFirst({
+        where: {
+          id: dto.candidateId,
+          OR: [
+            { schoolId: scope.schoolId },
+            { applications: { some: { campus: scope.campusWhere } } },
+            { schoolId: null, applications: { none: {} } },
+          ],
+        },
+        select: { id: true },
+      });
+      if (!candidate) {
+        throw new NotFoundException('Hiring candidate not found');
+      }
+    }
     const record = await this.prisma.hiringApplication.create({
       data: {
         candidateId: dto.candidateId,

@@ -1,5 +1,12 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrgScopeService } from '../common/org-scope.service';
+import type { RequestUser } from '../common/student-access.service';
 import { CreateHiringCandidateDto } from './dto/create-hiring-candidate.dto';
 
 export interface HiringCandidateSummary {
@@ -14,7 +21,28 @@ export interface HiringCandidateSummary {
 
 @Injectable()
 export class HiringCandidatesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
+
+  /**
+   * KG-16: a school admin sees only candidates their school recorded or who applied to their school
+   * (campus, for a campus principal) — CNIC and date of birth are PII.
+   */
+  private async visibleTo(
+    user: RequestUser,
+  ): Promise<Prisma.HiringCandidateWhereInput> {
+    const scope = await this.orgScope.resolve(user);
+    if (scope.unrestricted) return {};
+    if (scope.denied || !scope.schoolId) return { id: '__no-access__' };
+    return {
+      OR: [
+        { schoolId: scope.schoolId },
+        { applications: { some: { campus: scope.campusWhere } } },
+      ],
+    };
+  }
 
   private toSummary(record: {
     id: string;
@@ -38,7 +66,10 @@ export class HiringCandidatesService {
     };
   }
 
-  async create(dto: CreateHiringCandidateDto): Promise<{
+  async create(
+    dto: CreateHiringCandidateDto,
+    user: RequestUser,
+  ): Promise<{
     candidate: HiringCandidateSummary;
     possibleDuplicate: HiringCandidateSummary | null;
   }> {
@@ -51,9 +82,16 @@ export class HiringCandidatesService {
           'Upload the résumé first via POST /api/v1/files, then link it here.',
         );
       }
+      if (user.role !== 'SUPER_ADMIN' && file.uploadedById !== user.id) {
+        throw new ForbiddenException('Link a résumé you uploaded yourself.');
+      }
     }
     const existingMatch = await this.prisma.hiringCandidate.findFirst({
-      where: { name: dto.name, contactPhone: dto.contactPhone },
+      where: {
+        name: dto.name,
+        contactPhone: dto.contactPhone,
+        ...(await this.visibleTo(user)),
+      },
     });
     const record = await this.prisma.hiringCandidate.create({
       data: {
@@ -63,6 +101,7 @@ export class HiringCandidatesService {
         contactPhone: dto.contactPhone,
         contactEmail: dto.contactEmail,
         resumeFileId: dto.resumeFileId,
+        schoolId: (await this.orgScope.resolve(user)).schoolId,
       },
     });
     return {
@@ -71,9 +110,12 @@ export class HiringCandidatesService {
     };
   }
 
-  async findByPhone(contactPhone: string): Promise<HiringCandidateSummary[]> {
+  async findByPhone(
+    contactPhone: string,
+    user: RequestUser,
+  ): Promise<HiringCandidateSummary[]> {
     const records = await this.prisma.hiringCandidate.findMany({
-      where: { contactPhone },
+      where: { contactPhone, ...(await this.visibleTo(user)) },
       orderBy: { createdAt: 'desc' },
     });
     return records.map((r) => this.toSummary(r));

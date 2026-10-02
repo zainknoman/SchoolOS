@@ -34,6 +34,7 @@ import {
   setSessionCookie,
   wantsCookieSession,
 } from './session-cookie';
+import { ScopeCheck, SELF } from '../common/scope-check.decorator';
 
 /** The session as the client receives it: without the refresh token in cookie mode. */
 type DeliveredSession = Omit<SessionResult, 'refreshToken'> & {
@@ -135,6 +136,7 @@ export class AuthController {
 
   // BL-36 / KG-15: a short-lived link to one download route, for a client that opens it without
   // an Authorization header (the parent app's system browser). Bearer-authenticated.
+  @ScopeCheck(SELF)
   @Post('download-link')
   async downloadLink(
     @Req() req: { user: { id: string } },
@@ -206,6 +208,7 @@ export class AuthController {
     },
   })
   @AllowPendingPasswordChange()
+  @ScopeCheck(SELF)
   @Post('change-password')
   async changePassword(
     @Req() req: Request & { user: { id: string } },

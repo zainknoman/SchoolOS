@@ -10,7 +10,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from './org-scope.service';
 import type { RequestUser } from './student-access.service';
 
-export type ScopedRecordKind = 'student' | 'staff' | 'teacher';
+export type ScopedRecordKind =
+  | 'student'
+  | 'staff'
+  | 'teacher'
+  | 'section'
+  | 'timetableEntry'
+  | 'hiringApplication'
+  | 'admissionApplication';
 export const SCOPED_RECORD_KEY = 'scopedRecord';
 
 /**
@@ -75,18 +82,51 @@ export class RecordScopeGuard implements CanActivate {
           }))
         : null;
     }
-    const row =
-      kind === 'staff'
-        ? await this.prisma.staff.findUnique({
-            where: { id },
-            select: { campusId: true, campus: { select: { schoolId: true } } },
-          })
-        : await this.prisma.teacher.findUnique({
-            where: { id },
-            select: { campusId: true, campus: { select: { schoolId: true } } },
-          });
+    const row = await this.campusOf(kind, id);
     return row
       ? [{ campusId: row.campusId, schoolId: row.campus.schoolId }]
       : null;
+  }
+
+  private async campusOf(
+    kind: Exclude<ScopedRecordKind, 'student'>,
+    id: string,
+  ): Promise<{ campusId: string; campus: { schoolId: string } } | null> {
+    const select = {
+      campusId: true,
+      campus: { select: { schoolId: true } },
+    } as const;
+    switch (kind) {
+      case 'staff':
+        return this.prisma.staff.findUnique({ where: { id }, select });
+      case 'teacher':
+        return this.prisma.teacher.findUnique({ where: { id }, select });
+      case 'hiringApplication':
+        return this.prisma.hiringApplication.findUnique({
+          where: { id },
+          select,
+        });
+      case 'section': {
+        const s = await this.prisma.section.findUnique({
+          where: { id },
+          select: { class: { select } },
+        });
+        return s?.class ?? null;
+      }
+      case 'timetableEntry': {
+        const t = await this.prisma.timetable.findUnique({
+          where: { id },
+          select: { section: { select: { class: { select } } } },
+        });
+        return t?.section.class ?? null;
+      }
+      case 'admissionApplication': {
+        const a = await this.prisma.application.findUnique({
+          where: { id },
+          select: { desiredClass: { select } },
+        });
+        return a?.desiredClass ?? null;
+      }
+    }
   }
 }

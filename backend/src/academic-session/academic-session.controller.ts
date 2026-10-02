@@ -16,6 +16,7 @@ import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
 import { CopyStructureDto } from './dto/copy-structure.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -40,12 +41,14 @@ export class AcademicSessionController {
   // and other school-level operations, even though the write routes below stay SUPER_ADMIN-only
   // (session definitions are structural, like Schools/Campuses/Classes).
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Get('academic-sessions')
   list(@Req() req: AuthenticatedRequest, @Query('schoolId') schoolId?: string) {
     return this.academicSessionService.list(req.user, schoolId);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Post('academic-sessions/:id/copy-structure')
   copyStructure(
     @Param('id') id: string,

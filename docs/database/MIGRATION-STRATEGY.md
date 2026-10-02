@@ -156,6 +156,8 @@
 
 **BL-35 (`20260929110000_bl35_reset_audience`, 2026-09-27):** additive — enum `PasswordResetAudience` and `PasswordResetToken.audience` (default `STAFF`, so outstanding tokens keep working on the staff flow). No backfill. Applied to the scratch database, no drift, full e2e green.
 
+**KG-16 (`20261002090000_kg16_applicant_candidate_school`, 2026-10-02):** additive — nullable `Applicant.schoolId` and `HiringCandidate.schoolId` (FK `SET NULL`, indexed), stamped from the recording user's school. No backfill: an older row stays visible to a school through its applications; an older row with no application is visible only to a super admin. Applied to the scratch database, no drift, full e2e green.
+
 **Not yet evidenced.** No production copy has been examined. Each will add its own harness scenario (step 1 of §8) before it runs.
 
 ## 11. Approval

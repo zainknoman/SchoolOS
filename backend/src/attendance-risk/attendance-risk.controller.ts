@@ -9,6 +9,7 @@ import {
 import { OrgScopeService } from '../common/org-scope.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UpdateAttendanceRiskPolicyDto } from './update-attendance-risk-policy.dto';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -23,6 +24,7 @@ export class AttendanceRiskController {
     private readonly orgScope: OrgScopeService,
   ) {}
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get('students/:id/attendance-risk')
   async getForStudent(
     @Param('id') studentId: string,
@@ -34,6 +36,7 @@ export class AttendanceRiskController {
 
   /** BL-28: the school's settings (defaults when none are saved). */
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Get('attendance-risk/settings')
   getSettings(
     @Query('schoolId') schoolId: string,
@@ -47,6 +50,7 @@ export class AttendanceRiskController {
 
   /** BL-28: school-wide admins and SUPER_ADMIN; audited. Applied by the next nightly run. */
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Put('attendance-risk/settings')
   updateSettings(
     @Body() dto: UpdateAttendanceRiskPolicyDto,

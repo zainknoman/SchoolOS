@@ -21,6 +21,7 @@ import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -33,6 +34,7 @@ interface AuthenticatedRequest extends Request {
 export class StaffController {
   constructor(private readonly staffService: StaffService) {}
 
+  @ScopeCheck('orgScope.resolve')
   @Get()
   list(
     @Query('employeeType') employeeType: EmployeeType | undefined,
@@ -48,6 +50,7 @@ export class StaffController {
     );
   }
 
+  @ScopeCheck('assertCampusAccess')
   @Post()
   create(@Body() dto: CreateStaffDto, @Req() req: AuthenticatedRequest) {
     return this.staffService.create(dto, req.user);

@@ -233,6 +233,8 @@ Block attributes: `@@unique([migration, category, entity, entityId])` · `@@inde
 | gradingScales | GradingScale[] (relation) |  |
 | attendanceRiskPolicy | AttendanceRiskPolicy? (relation) |  |
 | teachingAssignments | TeachingAssignment[] (relation) |  |
+| applicants | Applicant[] (relation) |  |
+| hiringCandidates | HiringCandidate[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
@@ -923,11 +925,13 @@ Block attributes: `@@index([studentId])`
 | dateOfBirth | DateTime |  |
 | guardianName | String |  |
 | guardianPhone | String |  |
+| schoolId | String? |  |
+| school | School? (relation) | @relation(fields: [schoolId], references: [id], onDelete: SetNull) |
 | applications | Application[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([guardianPhone])`
+Block attributes: `@@index([guardianPhone])` · `@@index([schoolId])`
 
 ### Application
 
@@ -963,11 +967,13 @@ Block attributes: `@@index([applicantId])` · `@@index([academicSessionId, statu
 | contactEmail | String? |  |
 | resumeFileId | String? |  |
 | resumeFile | File? (relation) | @relation(fields: [resumeFileId], references: [id], onDelete: SetNull) |
+| schoolId | String? |  |
+| school | School? (relation) | @relation(fields: [schoolId], references: [id], onDelete: SetNull) |
 | applications | HiringApplication[] (relation) |  |
 | createdAt | DateTime | @default(now()) |
 | updatedAt | DateTime | @updatedAt |
 
-Block attributes: `@@index([contactPhone])`
+Block attributes: `@@index([contactPhone])` · `@@index([schoolId])`
 
 ### HiringApplication
 

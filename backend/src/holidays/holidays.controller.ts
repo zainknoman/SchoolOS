@@ -15,6 +15,7 @@ import { CreateHolidayDto } from './dto/create-holiday.dto';
 import { UpdateHolidayDto } from './dto/update-holiday.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -25,6 +26,7 @@ export class HolidaysController {
   constructor(private readonly holidaysService: HolidaysService) {}
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('resolveTarget')
   @Post()
   create(@Body() dto: CreateHolidayDto, @Req() req: AuthenticatedRequest) {
     return this.holidaysService.create(dto, req.user);
@@ -34,6 +36,7 @@ export class HolidaysController {
   // PII, any authenticated user (parents included) reads the calendar directly. Still scoped to
   // the caller's own school/campus(es) inside the service, though, so it's a tenant boundary, not
   // a completely open read.
+  @ScopeCheck('orgScope.resolve')
   @Get()
   list(
     @Req() req: AuthenticatedRequest,
@@ -45,6 +48,7 @@ export class HolidaysController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanManage')
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -55,6 +59,7 @@ export class HolidaysController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanManage')
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     await this.holidaysService.delete(id, req.user);

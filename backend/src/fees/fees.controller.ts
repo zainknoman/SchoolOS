@@ -27,6 +27,7 @@ import {
   RequestUser,
 } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -43,6 +44,7 @@ export class FeesController {
   ) {}
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('managedSchool')
   @Post('fee-structures')
   createStructure(
     @Body() dto: CreateFeeStructureDto,
@@ -52,6 +54,7 @@ export class FeesController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('orgScope.resolve')
   @Get('fee-structures')
   listStructures(
     @Req() req: AuthenticatedRequest,
@@ -66,6 +69,7 @@ export class FeesController {
 
   // BL-03: edit while editable, or move through DRAFT -> ACTIVE -> (LOCKED) -> ARCHIVED.
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('assertCanManage')
   @Patch('fee-structures/:id')
   updateStructure(
     @Param('id') id: string,
@@ -76,6 +80,7 @@ export class FeesController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('assertCanAccessStudent')
   @Post('fee-vouchers')
   async issueVouchers(
     @Body() dto: IssueVouchersDto,
@@ -92,6 +97,7 @@ export class FeesController {
     return this.feeVouchers.issue(dto, req.user.id);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get('students/:id/fees')
   async getForStudent(
     @Param('id') studentId: string,
@@ -101,6 +107,7 @@ export class FeesController {
     return this.feeVouchers.getForStudent(studentId);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get('students/:id/fees/payments')
   async getPaymentsForStudent(
     @Param('id') studentId: string,
@@ -110,6 +117,7 @@ export class FeesController {
     return this.feePayments.getForStudent(studentId);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get('fee-vouchers/:id/pdf')
   async voucherPdf(
     @Param('id') id: string,
@@ -139,6 +147,7 @@ export class FeesController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('assertCanAccessStudent')
   @Post('fee-vouchers/:id/reconcile')
   async reconcile(
     @Param('id') id: string,
@@ -155,6 +164,7 @@ export class FeesController {
   }
 
   @Roles('PARENT')
+  @ScopeCheck('assertCanAccessStudent')
   @Post('fee-vouchers/:id/pay')
   async pay(
     @Param('id') id: string,
@@ -169,6 +179,7 @@ export class FeesController {
     return this.feePayments.pay(id, req.user.id, dto.method);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get('fee-payments/:id')
   async getPayment(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const payment = await this.feePayments.getById(id);
@@ -180,6 +191,7 @@ export class FeesController {
     return this.feePayments.toSummary(payment);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get('fee-payments/:id/receipt.pdf')
   async receiptPdf(
     @Param('id') id: string,

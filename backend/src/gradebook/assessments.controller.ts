@@ -19,6 +19,7 @@ import {
   StudentAccessService,
   type RequestUser,
 } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -32,6 +33,7 @@ export class AssessmentsController {
     private readonly studentAccess: StudentAccessService,
   ) {}
 
+  @ScopeCheck('assertCanAccessClass')
   @Post()
   async create(
     @Body() dto: CreateAssessmentDto,
@@ -44,6 +46,7 @@ export class AssessmentsController {
     return this.assessmentsService.create(dto);
   }
 
+  @ScopeCheck('assertCanAccessClass')
   @Get()
   async list(
     @Query('assessmentCategoryId') assessmentCategoryId: string,
@@ -55,6 +58,7 @@ export class AssessmentsController {
     return this.assessmentsService.findMany(assessmentCategoryId);
   }
 
+  @ScopeCheck('assertCanAccessClass')
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -66,6 +70,7 @@ export class AssessmentsController {
     return this.assessmentsService.update(id, dto);
   }
 
+  @ScopeCheck('assertCanAccessClass')
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const classId = await this.assessmentsService.classIdForAssessment(id);
@@ -73,6 +78,7 @@ export class AssessmentsController {
     await this.assessmentsService.delete(id);
   }
 
+  @ScopeCheck('assertCanAccessClass')
   @Post(':id/marks')
   async saveMarks(
     @Param('id') id: string,

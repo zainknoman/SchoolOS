@@ -20,6 +20,7 @@ import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -32,11 +33,13 @@ interface AuthenticatedRequest extends Request {
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
+  @ScopeCheck('orgScope.resolve')
   @Post()
   create(@Body() dto: CreateStudentDto, @Req() req: AuthenticatedRequest) {
-    return this.studentService.create(dto, req.user.id);
+    return this.studentService.create(dto, req.user);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Get()
   list(
     @Req() req: AuthenticatedRequest,

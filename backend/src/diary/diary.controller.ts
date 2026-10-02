@@ -9,6 +9,7 @@ import {
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AiDraftingService } from '../ai-drafting/ai-drafting.service';
 import { SuggestDraftDto } from '../ai-drafting/dto/suggest-draft.dto';
+import { ScopeCheck, NO_SCHOOL_DATA } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -23,6 +24,7 @@ export class DiaryController {
   ) {}
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessSection')
   @Post('diary')
   async createEntry(
     @Body() dto: CreateDiaryEntryDto,
@@ -34,6 +36,7 @@ export class DiaryController {
 
   // Never auto-publishes — matches CircularsController.suggestDraft's contract.
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck(NO_SCHOOL_DATA)
   @Post('diary/draft-suggestion')
   suggestDraft(@Body() dto: SuggestDraftDto, @Req() req: AuthenticatedRequest) {
     return this.aiDraftingService.suggestDraft(
@@ -43,6 +46,7 @@ export class DiaryController {
     );
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get('students/:id/diary')
   async getForStudent(
     @Param('id') studentId: string,
@@ -55,6 +59,7 @@ export class DiaryController {
   }
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessSection')
   @Get('sections/:id/diary')
   async getForSection(
     @Param('id') sectionId: string,

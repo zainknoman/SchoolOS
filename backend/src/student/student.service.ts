@@ -8,6 +8,7 @@ import {
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -75,8 +76,9 @@ export class StudentService {
 
   async create(
     dto: CreateStudentDto,
-    actingUserId: string,
+    actingUser: RequestUser,
   ): Promise<StudentAdminSummary> {
+    const actingUserId = actingUser.id;
     // `!= null` (not `!== undefined`) so an explicit `null` is treated the same as an omitted
     // field — otherwise `{ parentProfileId: null, newParent: null }` (or a null/omitted mix)
     // slips past this guard and blows up downstream instead of getting a clean 400 here.
@@ -100,6 +102,18 @@ export class StudentService {
     });
     if (!section) {
       throw new NotFoundException('Section not found');
+    }
+    // KG-16: only into a section of the caller's own school/campus.
+    const scope = await this.orgScope.resolve(actingUser);
+    if (
+      !scope.allows({
+        campusId: section.class.campusId,
+        schoolId: section.class.campus.schoolId,
+      })
+    ) {
+      throw new ForbiddenException(
+        'This section is not in your school or campus',
+      );
     }
     // BL-01: the active session of the section's own school.
     const activeSession = await activeSessionForSchool(

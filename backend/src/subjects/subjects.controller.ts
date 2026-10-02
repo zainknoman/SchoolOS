@@ -20,6 +20,7 @@ import { Transform } from 'class-transformer';
 import { SubjectsService } from './subjects.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 export class CreateSubjectDto {
   @IsString()
@@ -62,6 +63,7 @@ export class SubjectsController {
   constructor(private readonly subjectsService: SubjectsService) {}
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Get()
   listAll(
     @Req() req: { user: RequestUser },
@@ -71,12 +73,14 @@ export class SubjectsController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('managedSchool')
   @Post()
   create(@Body() dto: CreateSubjectDto, @Req() req: { user: RequestUser }) {
     return this.subjectsService.create(dto, req.user);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('getManaged')
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -87,6 +91,7 @@ export class SubjectsController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('getManaged')
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() req: { user: RequestUser }) {
     await this.subjectsService.delete(id, req.user);

@@ -100,4 +100,54 @@ describe('RecordScopeGuard', () => {
       guard.canActivate(ctx({ staffId: 'x' }, admin)),
     ).rejects.toThrow(ForbiddenException);
   });
+
+  // KG-16: sections, timetable entries and hiring/admission applications are addressed by id too.
+  it.each([
+    [
+      'section',
+      'section',
+      { class: { campusId: 'c1', campus: { schoolId: 's1' } } },
+      { class: { campusId: 'c9', campus: { schoolId: 's9' } } },
+    ],
+    [
+      'timetableEntry',
+      'timetable',
+      { section: { class: { campusId: 'c1', campus: { schoolId: 's1' } } } },
+      { section: { class: { campusId: 'c9', campus: { schoolId: 's9' } } } },
+    ],
+    [
+      'hiringApplication',
+      'hiringApplication',
+      { campusId: 'c1', campus: { schoolId: 's1' } },
+      { campusId: 'c9', campus: { schoolId: 's9' } },
+    ],
+    [
+      'admissionApplication',
+      'application',
+      { desiredClass: { campusId: 'c1', campus: { schoolId: 's1' } } },
+      { desiredClass: { campusId: 'c9', campus: { schoolId: 's9' } } },
+    ],
+  ])(
+    'a %s in the caller’s school passes; another school’s is refused',
+    async (kind, model, own, foreign) => {
+      const delegate = { findUnique: jest.fn() };
+      (prisma as Record<string, unknown>)[model] = delegate;
+      (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+        kind,
+        param: 'id',
+      });
+      delegate.findUnique.mockResolvedValueOnce(own);
+      await expect(guard.canActivate(ctx({ id: 'x' }, admin))).resolves.toBe(
+        true,
+      );
+      delegate.findUnique.mockResolvedValueOnce(foreign);
+      await expect(guard.canActivate(ctx({ id: 'x' }, admin))).rejects.toThrow(
+        ForbiddenException,
+      );
+      delegate.findUnique.mockResolvedValueOnce(null);
+      await expect(guard.canActivate(ctx({ id: 'x' }, admin))).resolves.toBe(
+        true,
+      );
+    },
+  );
 });

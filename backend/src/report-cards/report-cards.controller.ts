@@ -23,6 +23,7 @@ import {
 } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { MAX_UPLOAD_BYTES } from '../files/files.controller';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -38,6 +39,7 @@ export class ReportCardsController {
   ) {}
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessStudent')
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
@@ -69,6 +71,7 @@ export class ReportCardsController {
     );
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get()
   async findForStudent(
     @Query('studentId') studentId: string,
@@ -81,6 +84,7 @@ export class ReportCardsController {
     return this.reportCardsService.findForStudent(studentId);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get(':id/pdf')
   async download(
     @Param('id') id: string,

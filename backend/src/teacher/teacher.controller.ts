@@ -17,6 +17,7 @@ import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -29,6 +30,7 @@ interface AuthenticatedRequest extends Request {
 export class TeacherController {
   constructor(private readonly teacherService: TeacherService) {}
 
+  @ScopeCheck('orgScope.resolve')
   @Post()
   create(@Body() dto: CreateTeacherDto, @Req() req: AuthenticatedRequest) {
     return this.teacherService.create(dto, req.user);

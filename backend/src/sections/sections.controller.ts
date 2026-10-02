@@ -17,6 +17,7 @@ import {
   StudentAccessService,
   type RequestUser,
 } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -36,6 +37,7 @@ export class SectionsController {
   }
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessSection')
   @Get(':id/students')
   async getStudents(
     @Param('id') sectionId: string,
@@ -46,6 +48,7 @@ export class SectionsController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessClass')
   @Post()
   async create(
     @Body() dto: CreateSectionDto,
@@ -56,6 +59,7 @@ export class SectionsController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessSection')
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -67,6 +71,7 @@ export class SectionsController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessSection')
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     await this.studentAccess.assertCanAccessSection(req.user, id);

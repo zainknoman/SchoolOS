@@ -18,6 +18,7 @@ import {
   type RequestUser,
 } from '../common/student-access.service';
 import { OrgScopeService } from '../common/org-scope.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -33,6 +34,7 @@ export class ClassController {
   ) {}
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCampusAccess')
   @Post('classes')
   async create(@Body() dto: CreateClassDto, @Req() req: AuthenticatedRequest) {
     await this.orgScope.assertCampusAccess(req.user, dto.campusId);
@@ -46,6 +48,7 @@ export class ClassController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessClass')
   @Patch('classes/:id')
   async update(
     @Param('id') id: string,
@@ -57,6 +60,7 @@ export class ClassController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessClass')
   @Delete('classes/:id')
   async delete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     await this.studentAccess.assertCanAccessClass(req.user, id);

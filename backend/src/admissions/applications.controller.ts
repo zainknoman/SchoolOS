@@ -9,7 +9,9 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
+import { RecordScopeGuard, ScopedRecord } from '../common/record-scope.guard';
 import type { Request } from 'express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
@@ -18,22 +20,28 @@ import { ApproveApplicationDto } from './dto/approve-application.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RequiresGrant } from '../auth/decorators/requires-grant.decorator';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
 }
 
+// KG-16: every route addressed by :id is confined to the desired class's school/campus.
 @Controller('api/v1/applications')
 @Roles('SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
 @RequiresGrant('ADMISSIONS')
+@UseGuards(RecordScopeGuard)
+@ScopedRecord('admissionApplication', 'id')
 export class ApplicationsController {
   constructor(private readonly applicationsService: ApplicationsService) {}
 
+  @ScopeCheck('orgScope.resolve')
   @Post()
-  create(@Body() dto: CreateApplicationDto) {
-    return this.applicationsService.create(dto);
+  create(@Body() dto: CreateApplicationDto, @Req() req: AuthenticatedRequest) {
+    return this.applicationsService.create(dto, req.user);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Get()
   list(
     @Req() req: AuthenticatedRequest,
@@ -74,6 +82,6 @@ export class ApplicationsController {
     @Body() dto: ApproveApplicationDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.applicationsService.approve(id, dto, req.user.id);
+    return this.applicationsService.approve(id, dto, req.user);
   }
 }

@@ -14,6 +14,7 @@ jest.mock('argon2', () => ({
 }));
 
 describe('StudentService', () => {
+  const ADMIN = { id: 'admin-1', role: 'SUPER_ADMIN' };
   let service: StudentService;
   let tx: {
     student: { create: jest.Mock };
@@ -99,7 +100,7 @@ describe('StudentService', () => {
           sectionId: 'sec1',
           relationshipType: 'FATHER',
         },
-        'admin-1',
+        ADMIN,
       ),
     ).rejects.toThrow(BadRequestException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -116,7 +117,7 @@ describe('StudentService', () => {
           parentProfileId: null,
           newParent: null,
         } as unknown as Parameters<typeof service.create>[0],
-        'admin-1',
+        ADMIN,
       ),
     ).rejects.toThrow(BadRequestException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -138,7 +139,7 @@ describe('StudentService', () => {
           relationshipType: 'FATHER',
           newParent: null,
         } as unknown as Parameters<typeof service.create>[0],
-        'admin-1',
+        ADMIN,
       ),
     ).rejects.toThrow(BadRequestException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -159,7 +160,7 @@ describe('StudentService', () => {
             name: 'X',
           },
         },
-        'admin-1',
+        ADMIN,
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -176,7 +177,7 @@ describe('StudentService', () => {
           relationshipType: 'FATHER',
           parentProfileId: 'p1',
         },
-        'admin-1',
+        ADMIN,
       ),
     ).rejects.toThrow(NotFoundException);
   });
@@ -193,7 +194,7 @@ describe('StudentService', () => {
           relationshipType: 'FATHER',
           parentProfileId: 'p1',
         },
-        'admin-1',
+        ADMIN,
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -224,7 +225,7 @@ describe('StudentService', () => {
         relationshipType: 'FATHER',
         parentProfileId: 'p1',
       },
-      'admin-1',
+      ADMIN,
     );
 
     expect(tx.student.create).toHaveBeenCalledWith({
@@ -296,7 +297,7 @@ describe('StudentService', () => {
           name: 'New Parent',
         },
       },
-      'admin-1',
+      ADMIN,
     );
 
     expect(tx.user.create).toHaveBeenCalledWith(
@@ -368,7 +369,7 @@ describe('StudentService', () => {
           relationshipType: 'FATHER',
           parentProfileId: 'p1',
         },
-        'admin-1',
+        ADMIN,
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -390,7 +391,7 @@ describe('StudentService', () => {
           relationshipType: 'FATHER',
           parentProfileId: 'does-not-exist',
         },
-        'admin-1',
+        ADMIN,
       ),
     ).rejects.toThrow(BadRequestException);
     expect(tx.studentParent.create).not.toHaveBeenCalled();
@@ -613,5 +614,27 @@ describe('StudentService', () => {
         BadRequestException,
       );
     });
+  });
+
+  // KG-16: a school admin may enrol a new student only into a section of their own school/campus.
+  it('refuses to create a student in another school’s section', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'admin-2',
+      schoolId: 'other-school',
+      campusId: null,
+    });
+    await expect(
+      service.create(
+        {
+          grNumber: 'GR-9',
+          name: 'X',
+          sectionId: 'sec1',
+          relationshipType: 'FATHER',
+          parentProfileId: 'p1',
+        },
+        { id: 'admin-2', role: 'SCHOOL_ADMIN' },
+      ),
+    ).rejects.toThrow('not in your school');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

@@ -52,8 +52,8 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 
 | Suite | Files | Test blocks |
 |---|---|---|
-| Backend unit (`backend/src/**/*.spec.ts`) | 102 | 768 |
-| Backend e2e (`backend/test/*.e2e-spec.ts`) | 53 | 387 |
+| Backend unit (`backend/src/**/*.spec.ts`) | 104 | 792 |
+| Backend e2e (`backend/test/*.e2e-spec.ts`) | 54 | 399 |
 | Staff console (`staff-console/src/**/*.spec.ts`) | 85 | 572 |
 | Parent app (`parent-app/test/**/*_test.dart`) | 33 | — |
 
@@ -101,6 +101,7 @@ Generated suite inventory (file and `it/test` block counts by grep — **not** e
 | `performance-indexes.e2e-spec.ts` | 0 |
 | `promotions.e2e-spec.ts` | 15 |
 | `rate-limiting.e2e-spec.ts` | 2 |
+| `route-scope.e2e-spec.ts` | 12 |
 | `s3-storage.e2e-spec.ts` | 1 |
 | `school-anchors.e2e-spec.ts` | 5 |
 | `school-sessions.e2e-spec.ts` | 5 |

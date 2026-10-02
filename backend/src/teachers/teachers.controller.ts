@@ -5,6 +5,7 @@ import { TeachersService } from './teachers.service';
 import { ListTeachersQueryDto } from './dto/list-teachers-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -17,6 +18,7 @@ export class TeachersController {
   // Admin-only for now — the one consumer today is the Timetable editor, which is itself
   // Admin/Super Admin only (matches POST /timetable's existing @Roles).
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Get()
   listAll(
     @Req() req: AuthenticatedRequest,

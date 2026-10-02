@@ -6,6 +6,11 @@ import { RequestUser } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AiDraftingService } from '../ai-drafting/ai-drafting.service';
 import { SuggestDraftDto } from '../ai-drafting/dto/suggest-draft.dto';
+import {
+  ScopeCheck,
+  NO_SCHOOL_DATA,
+  SELF,
+} from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -19,6 +24,7 @@ export class CircularsController {
   ) {}
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Post()
   publish(@Body() dto: CreateCircularDto, @Req() req: AuthenticatedRequest) {
     return this.circularsService.publish(dto, req.user);
@@ -27,6 +33,7 @@ export class CircularsController {
   // Never auto-publishes — the suggestion is returned for the client to place into the compose
   // textarea for staff to edit before calling publish() above.
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck(NO_SCHOOL_DATA)
   @Post('draft-suggestion')
   suggestDraft(@Body() dto: SuggestDraftDto, @Req() req: AuthenticatedRequest) {
     return this.aiDraftingService.suggestDraft(
@@ -42,12 +49,14 @@ export class CircularsController {
   }
 
   @Roles('PARENT')
+  @ScopeCheck(SELF)
   @Post(':id/read')
   markRead(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.circularsService.markRead(id, req.user.id);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Get(':id/stats')
   getStats(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.circularsService.getStats(id, req.user);

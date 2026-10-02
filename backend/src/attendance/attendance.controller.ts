@@ -8,6 +8,7 @@ import {
   RequestUser,
 } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -20,6 +21,7 @@ export class AttendanceController {
     private readonly studentAccess: StudentAccessService,
   ) {}
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get('students/:id/attendance')
   async getForStudent(
     @Param('id') studentId: string,
@@ -35,6 +37,7 @@ export class AttendanceController {
   // role) — the roster-marking screen's pre-fill, now campus/tenant-scoped like every other
   // section-level route.
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessSection')
   @Get('sections/:id/attendance')
   async getForSection(
     @Param('id') sectionId: string,
@@ -47,6 +50,7 @@ export class AttendanceController {
   }
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessStudent')
   @Post('attendance')
   async markAttendance(
     @Body() dto: MarkAttendanceDto,
@@ -57,6 +61,7 @@ export class AttendanceController {
   }
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessStudents')
   @Post('attendance/bulk')
   async markBulk(
     @Body() dto: BulkMarkAttendanceDto,

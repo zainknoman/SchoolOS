@@ -1,5 +1,6 @@
 import { assertSubjectUsable } from '../subjects/subject-guard';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -27,6 +28,33 @@ export class TimetableService {
     private readonly prisma: PrismaService,
     private readonly enrollmentService: EnrollmentService,
   ) {}
+
+  /**
+   * KG-16: a timetable row makes its teacher a teaching assignment of the section (BL-25 triggers),
+   * which grants access to the section's students — so the teacher must work at the section's
+   * campus. A missing teacher or section is left to the FK handler.
+   */
+  private async assertTeachersInSectionCampus(
+    sectionId: string,
+    teacherIds: (string | null | undefined)[],
+  ): Promise<void> {
+    const ids = [...new Set(teacherIds.filter((t): t is string => !!t))];
+    if (!ids.length) return;
+    const section = await this.prisma.section.findUnique({
+      where: { id: sectionId },
+      select: { class: { select: { campusId: true } } },
+    });
+    if (!section) return;
+    const teachers = await this.prisma.teacher.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, campusId: true },
+    });
+    if (teachers.some((t) => t.campusId !== section.class.campusId)) {
+      throw new BadRequestException(
+        'A timetable teacher must belong to the same campus as the section.',
+      );
+    }
+  }
 
   async getForStudent(studentId: string): Promise<TimetableEntrySummary[]> {
     const enrollment =
@@ -151,6 +179,7 @@ export class TimetableService {
     await assertSubjectUsable(this.prisma, dto.subjectId, {
       sectionId: dto.sectionId,
     });
+    await this.assertTeachersInSectionCampus(dto.sectionId, [dto.teacherId]);
     await this.assertNoConflict(dto.sectionId, dto);
     const entry = await this.prisma.timetable.create({ data: dto });
     await this.prisma.auditLog.create({
@@ -178,6 +207,11 @@ export class TimetableService {
       await assertSubjectUsable(this.prisma, dto.subjectId, {
         sectionId: existing.sectionId,
       });
+    }
+    if (dto.teacherId) {
+      await this.assertTeachersInSectionCampus(existing.sectionId, [
+        dto.teacherId,
+      ]);
     }
     await this.assertNoConflict(
       existing.sectionId,
@@ -258,6 +292,10 @@ export class TimetableService {
     for (const subjectId of new Set(entries.map((e) => e.subjectId))) {
       await assertSubjectUsable(this.prisma, subjectId, { sectionId });
     }
+    await this.assertTeachersInSectionCampus(
+      sectionId,
+      entries.map((e) => e.teacherId),
+    );
     for (const entry of entries) {
       const conflict = await this.findConflict(sectionId, entry, { sectionId });
       if (conflict) {

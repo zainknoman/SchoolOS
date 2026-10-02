@@ -5,6 +5,7 @@ import {
   StudentAccessService,
   type RequestUser,
 } from '../common/student-access.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -17,6 +18,7 @@ export class GradesController {
     private readonly studentAccess: StudentAccessService,
   ) {}
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get(':id/grades')
   async forStudent(
     @Param('id') studentId: string,

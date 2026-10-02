@@ -28,6 +28,7 @@ import {
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RequiresGrant } from '../auth/decorators/requires-grant.decorator';
 import { MAX_UPLOAD_BYTES } from '../files/files.controller';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -47,6 +48,7 @@ export class ComplaintsController {
   ) {}
 
   @Roles('PARENT', 'TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessStudent')
   @Post()
   async create(
     @Body() dto: CreateComplaintDto,
@@ -57,6 +59,7 @@ export class ComplaintsController {
   }
 
   // Staff see the student's complaints; a parent sees the ones they raised and those staff recorded.
+  @ScopeCheck('assertCanAccessStudent')
   @Get()
   async findForStudent(
     @Query('studentId') studentId: string,
@@ -70,6 +73,7 @@ export class ComplaintsController {
   }
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+  @ScopeCheck('orgScope.resolve')
   @Get('queue')
   queue(
     @Req() req: AuthenticatedRequest,
@@ -86,6 +90,7 @@ export class ComplaintsController {
     });
   }
 
+  @ScopeCheck('getForUser')
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const c = await this.complaintsService.getForUser(id, req.user);
@@ -93,6 +98,7 @@ export class ComplaintsController {
   }
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+  @ScopeCheck('getForUser')
   @Get(':id/assignees')
   async assignees(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const c = await this.complaintsService.getForUser(id, req.user);
@@ -100,6 +106,7 @@ export class ComplaintsController {
   }
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+  @ScopeCheck('getForUser')
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -111,6 +118,7 @@ export class ComplaintsController {
   }
 
   @Roles('PARENT', 'TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+  @ScopeCheck('getForUser')
   @Post(':id/notes')
   async addNote(
     @Param('id') id: string,
@@ -122,6 +130,7 @@ export class ComplaintsController {
   }
 
   @Roles('PARENT', 'TEACHER', 'SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN')
+  @ScopeCheck('getForUser')
   @Post(':id/attachments')
   @UseInterceptors(
     FileInterceptor('file', {

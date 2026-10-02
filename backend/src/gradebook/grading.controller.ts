@@ -21,6 +21,7 @@ import {
 } from './dto/grading-scale.dto';
 import { GradingScalesService } from './grading-scales.service';
 import { ResultPublicationsService } from './result-publications.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -31,18 +32,21 @@ interface AuthenticatedRequest extends Request {
 export class GradingScalesController {
   constructor(private readonly service: GradingScalesService) {}
 
+  @ScopeCheck('orgScope.resolve')
   @Get()
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   list(@Query('schoolId') schoolId: string, @Req() req: AuthenticatedRequest) {
     return this.service.list(req.user, schoolId || undefined);
   }
 
+  @ScopeCheck('writableSchool')
   @Post()
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   create(@Body() dto: CreateGradingScaleDto, @Req() req: AuthenticatedRequest) {
     return this.service.create(req.user, dto);
   }
 
+  @ScopeCheck('writableSchool')
   @Put(':id')
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   update(
@@ -53,6 +57,7 @@ export class GradingScalesController {
     return this.service.update(req.user, id, dto);
   }
 
+  @ScopeCheck('writableSchool')
   @Delete(':id')
   @HttpCode(204)
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
@@ -66,6 +71,7 @@ export class GradingScalesController {
 export class ResultPublicationsController {
   constructor(private readonly service: ResultPublicationsService) {}
 
+  @ScopeCheck('assertCanAccessClass')
   @Get()
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   status(
@@ -79,12 +85,14 @@ export class ResultPublicationsController {
     return this.service.status(req.user, classId, termId);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Post()
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   publish(@Body() dto: ResultPublicationDto, @Req() req: AuthenticatedRequest) {
     return this.service.publish(req.user, dto.classId, dto.termId);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Delete()
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   unpublish(

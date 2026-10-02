@@ -8,7 +8,9 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
+import { RecordScopeGuard, ScopedRecord } from '../common/record-scope.guard';
 import type { Request } from 'express';
 import { HiringApplicationsService } from './hiring-applications.service';
 import { CreateHiringApplicationDto } from './dto/create-hiring-application.dto';
@@ -16,23 +18,32 @@ import { UpdateHiringApplicationDto } from './dto/update-hiring-application.dto'
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
 import { ApproveHiringApplicationDto } from './dto/approve-hiring-application.dto';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
 }
 
+// KG-16: every route addressed by :id is confined to the application's school/campus.
 @Controller('api/v1/hiring/applications')
 @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+@UseGuards(RecordScopeGuard)
+@ScopedRecord('hiringApplication', 'id')
 export class HiringApplicationsController {
   constructor(
     private readonly hiringApplicationsService: HiringApplicationsService,
   ) {}
 
+  @ScopeCheck('assertCampusAccess')
   @Post()
-  create(@Body() dto: CreateHiringApplicationDto) {
-    return this.hiringApplicationsService.create(dto);
+  create(
+    @Body() dto: CreateHiringApplicationDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.hiringApplicationsService.create(dto, req.user);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Get()
   list(
     @Req() req: AuthenticatedRequest,

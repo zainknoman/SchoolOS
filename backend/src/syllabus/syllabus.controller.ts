@@ -19,6 +19,7 @@ import {
   UpdateSyllabusDto,
 } from './dto/syllabus.dto';
 import { SyllabusService } from './syllabus.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -29,24 +30,28 @@ interface AuthenticatedRequest extends Request {
 export class SyllabusController {
   constructor(private readonly service: SyllabusService) {}
 
+  @ScopeCheck('orgScope.resolve')
   @Get()
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   list(@Query() query: ListSyllabiQueryDto, @Req() req: AuthenticatedRequest) {
     return this.service.list(req.user, query);
   }
 
+  @ScopeCheck('assertCanAccessClass')
   @Get(':id')
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   get(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.service.get(req.user, id);
   }
 
+  @ScopeCheck('writableClass')
   @Post()
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   create(@Body() dto: CreateSyllabusDto, @Req() req: AuthenticatedRequest) {
     return this.service.create(req.user, dto);
   }
 
+  @ScopeCheck('writableClass')
   @Put(':id')
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   update(
@@ -57,6 +62,7 @@ export class SyllabusController {
     return this.service.update(req.user, id, dto);
   }
 
+  @ScopeCheck('writableClass')
   @Delete(':id')
   @HttpCode(204)
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')

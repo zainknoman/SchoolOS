@@ -9,7 +9,9 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
+import { RecordScopeGuard, ScopedRecord } from '../common/record-scope.guard';
 import type { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { TimetableService } from './timetable.service';
@@ -21,12 +23,16 @@ import {
   RequestUser,
 } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
 }
 
+// KG-16: every staff route addressed by section or entry id is confined to the caller's school/campus
+// by RecordScopeGuard (a route without the @ScopedRecord metadata is not affected).
 @Controller('api/v1')
+@UseGuards(RecordScopeGuard)
 export class TimetableController {
   constructor(
     private readonly timetableService: TimetableService,
@@ -46,6 +52,7 @@ export class TimetableController {
     return this.timetableService.getForTeacher(teacher.id);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get('students/:id/timetable')
   async getForStudent(
     @Param('id') studentId: string,
@@ -55,10 +62,10 @@ export class TimetableController {
     return this.timetableService.getForStudent(studentId);
   }
 
-  // Staff-only (no StudentAccessService involved) — this is the Timetable editor's read side,
-  // listing what's already scheduled for a section so it can be shown/edited, not a parent-facing
-  // read.
+  // Staff-only — this is the Timetable editor's read side, listing what's already scheduled for a
+  // section so it can be shown/edited, not a parent-facing read.
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopedRecord('section', 'id')
   @Get('sections/:id/timetable')
   getForSection(@Param('id') sectionId: string) {
     return this.timetableService.getForSection(sectionId);
@@ -66,6 +73,7 @@ export class TimetableController {
 
   // The grid composer's bulk save — replaces the section's entire timetable in one call.
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopedRecord('section', 'id')
   @Put('sections/:id/timetable')
   replaceForSection(
     @Param('id') sectionId: string,
@@ -80,15 +88,18 @@ export class TimetableController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck('assertCanAccessSection')
   @Post('timetable')
-  createEntry(
+  async createEntry(
     @Body() dto: CreateTimetableEntryDto,
     @Req() req: AuthenticatedRequest,
   ) {
+    await this.studentAccess.assertCanAccessSection(req.user, dto.sectionId);
     return this.timetableService.createEntry(dto, req.user.id);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopedRecord('timetableEntry', 'id')
   @Patch('timetable/:id')
   updateEntry(
     @Param('id') id: string,
@@ -99,6 +110,7 @@ export class TimetableController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopedRecord('timetableEntry', 'id')
   @Delete('timetable/:id')
   deleteEntry(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.timetableService.deleteEntry(id, req.user.id);

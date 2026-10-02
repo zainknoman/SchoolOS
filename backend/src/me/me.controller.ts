@@ -5,6 +5,7 @@ import { MeService } from './me.service';
 import { AllowPendingPasswordChange } from '../auth/decorators/allow-pending-password-change.decorator';
 import { RegisterDeviceTokenDto } from './dto/register-device-token.dto';
 import { UpdateNotificationPreferencesDto } from './dto/update-notification-preferences.dto';
+import { ScopeCheck, SELF } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: { id: string; role: string };
@@ -26,6 +27,7 @@ export class MeController {
     return this.meService.getChildrenForUser(req.user.id);
   }
 
+  @ScopeCheck('assertChildLinked')
   @Get('children/:studentId')
   childDetail(
     @Param('studentId') studentId: string,
@@ -34,6 +36,7 @@ export class MeController {
     return this.meService.getChildDetail(req.user.id, studentId);
   }
 
+  @ScopeCheck('assertChildLinked')
   @Patch('children/:studentId')
   updateChild(
     @Param('studentId') studentId: string,
@@ -43,6 +46,7 @@ export class MeController {
     return this.meService.updateChild(req.user.id, studentId, dto);
   }
 
+  @ScopeCheck(SELF)
   @Post('device-tokens')
   registerDeviceToken(
     @Body() dto: RegisterDeviceTokenDto,
@@ -55,6 +59,7 @@ export class MeController {
     );
   }
 
+  @ScopeCheck(SELF)
   @Patch('notification-preferences')
   updateNotificationPreferences(
     @Body() dto: UpdateNotificationPreferencesDto,

@@ -19,6 +19,7 @@ describe('TimetableService', () => {
       createMany: jest.Mock;
     };
     section: { findUnique: jest.Mock };
+    teacher: { findMany: jest.Mock };
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
@@ -47,6 +48,7 @@ describe('TimetableService', () => {
           class: { campusId: 'camp-1', academicSessionId: 'sess-1' },
         }),
       },
+      teacher: { findMany: jest.fn().mockResolvedValue([]) },
       auditLog: { create: jest.fn() },
       $transaction: jest.fn().mockResolvedValue(undefined),
     };
@@ -273,6 +275,81 @@ describe('TimetableService', () => {
         data: expect.objectContaining({ action: 'timetable.replace' }),
       }),
     );
+  });
+
+  // KG-16: a timetable row makes its teacher a teaching assignment of the section (BL-25 triggers),
+  // so a teacher from another campus must never be placed on it.
+  describe('teacher must belong to the section campus', () => {
+    beforeEach(() => {
+      prisma.teacher.findMany.mockResolvedValue([
+        { id: 'teacher-other', campusId: 'camp-9' },
+      ]);
+    });
+    const slot = {
+      dayOfWeek: 1,
+      period: 1,
+      startTime: '08:00',
+      endTime: '08:40',
+    };
+
+    it('createEntry refuses a teacher from another campus', async () => {
+      await expect(
+        service.createEntry(
+          {
+            sectionId: 'sec-1',
+            subjectId: 'sub-1',
+            teacherId: 'teacher-other',
+            ...slot,
+          },
+          'admin-1',
+        ),
+      ).rejects.toThrow('same campus');
+      expect(prisma.timetable.create).not.toHaveBeenCalled();
+    });
+
+    it('updateEntry refuses a teacher from another campus', async () => {
+      prisma.timetable.findUnique.mockResolvedValue({
+        id: 'tt-1',
+        sectionId: 'sec-1',
+        subjectId: 'sub-1',
+        teacherId: null,
+        room: null,
+        ...slot,
+      });
+      await expect(
+        service.updateEntry('tt-1', { teacherId: 'teacher-other' }, 'admin-1'),
+      ).rejects.toThrow('same campus');
+      expect(prisma.timetable.update).not.toHaveBeenCalled();
+    });
+
+    it('replaceForSection refuses a teacher from another campus', async () => {
+      await expect(
+        service.replaceForSection(
+          'sec-1',
+          [{ subjectId: 'sub-1', teacherId: 'teacher-other', ...slot }],
+          'admin-1',
+        ),
+      ).rejects.toThrow('same campus');
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('a teacher of the section campus is accepted', async () => {
+      prisma.teacher.findMany.mockResolvedValue([
+        { id: 'teacher-1', campusId: 'camp-1' },
+      ]);
+      prisma.timetable.create.mockResolvedValue({ id: 'tt-9' });
+      await expect(
+        service.createEntry(
+          {
+            sectionId: 'sec-1',
+            subjectId: 'sub-1',
+            teacherId: 'teacher-1',
+            ...slot,
+          },
+          'admin-1',
+        ),
+      ).resolves.toEqual({ id: 'tt-9' });
+    });
   });
 
   describe('scheduling-conflict detection', () => {

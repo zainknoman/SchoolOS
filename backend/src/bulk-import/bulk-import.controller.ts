@@ -20,6 +20,11 @@ import { TeachersBulkImportService } from './teachers-bulk-import.service';
 import { StaffBulkImportService } from './staff-bulk-import.service';
 import { BULK_IMPORT_SAMPLES } from './sample';
 import type { RequestUser } from '../common/student-access.service';
+import {
+  ScopeCheck,
+  NO_SCHOOL_DATA,
+  SHARED_IDENTITY,
+} from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -51,6 +56,7 @@ export class BulkImportController {
     private readonly staffService: StaffBulkImportService,
   ) {}
 
+  @ScopeCheck(NO_SCHOOL_DATA)
   @Get(':entity/sample')
   downloadSample(@Param('entity') entity: string, @Res() res: Response) {
     const csv = BULK_IMPORT_SAMPLES[entity];
@@ -65,6 +71,7 @@ export class BulkImportController {
     res.send(csv);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Post('students/preview')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
   previewStudents(
@@ -74,6 +81,7 @@ export class BulkImportController {
     return this.studentsService.preview(file.buffer, req.user);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Post('students/commit')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
   async commitStudents(
@@ -93,12 +101,14 @@ export class BulkImportController {
     }
   }
 
+  @ScopeCheck(SHARED_IDENTITY)
   @Post('parents/preview')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
   previewParents(@UploadedFile() file: Express.Multer.File) {
     return this.parentsService.preview(file.buffer);
   }
 
+  @ScopeCheck(SHARED_IDENTITY)
   @Post('parents/commit')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
   async commitParents(
@@ -118,6 +128,7 @@ export class BulkImportController {
     }
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Post('teachers/preview')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
   previewTeachers(
@@ -127,6 +138,7 @@ export class BulkImportController {
     return this.teachersService.preview(file.buffer, req.user);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Post('teachers/commit')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
   async commitTeachers(
@@ -146,6 +158,7 @@ export class BulkImportController {
     }
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Post('staff/preview')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
   previewStaff(
@@ -155,6 +168,7 @@ export class BulkImportController {
     return this.staffService.preview(file.buffer, req.user);
   }
 
+  @ScopeCheck('orgScope.resolve')
   @Post('staff/commit')
   @UseInterceptors(FileInterceptor('file', CSV_UPLOAD_OPTIONS))
   async commitStaff(

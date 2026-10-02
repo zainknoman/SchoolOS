@@ -31,6 +31,7 @@ import {
   PAYMENT_GATEWAY_ADAPTER_FACTORY,
   PaymentGatewayAdapterFactoryImpl,
 } from './payment-gateway-adapter-factory';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -60,6 +61,7 @@ export class FeeLedgerController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('assertCanAccessStudent')
   @Get('students/:id/fee-concessions')
   async listConcessions(
     @Param('id') studentId: string,
@@ -70,6 +72,7 @@ export class FeeLedgerController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('assertCanAccessStudent')
   @Post('students/:id/fee-concessions')
   async createConcession(
     @Param('id') studentId: string,
@@ -81,6 +84,7 @@ export class FeeLedgerController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('assertCanAccessStudent')
   @Post('fee-concessions/:id/end')
   async endConcession(
     @Param('id') id: string,
@@ -92,6 +96,7 @@ export class FeeLedgerController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('assertCanAccessStudent')
   @Post('fee-vouchers/:id/adjustments')
   async adjust(
     @Param('id') id: string,
@@ -107,6 +112,7 @@ export class FeeLedgerController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('assertCanAccessStudent')
   @Post('fee-items/:id/reverse')
   async reverseItem(
     @Param('id') id: string,
@@ -122,6 +128,7 @@ export class FeeLedgerController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('assertCanAccessStudent')
   @Post('fee-payments/:id/reverse')
   async reversePayment(
     @Param('id') id: string,
@@ -139,6 +146,7 @@ export class FeeLedgerController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('orgScope.resolve')
   @Get('fee-policy')
   getPolicy(
     @Query('schoolId') schoolId: string,
@@ -148,6 +156,7 @@ export class FeeLedgerController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('orgScope.resolve')
   @Put('fee-policy')
   updatePolicy(
     @Body() dto: UpdateFeePolicyDto,
@@ -157,18 +166,21 @@ export class FeeLedgerController {
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('orgScope.resolve')
   @Post('fee-vouchers/apply-late-fees')
   applyLateFees(@Body() dto: SchoolRunDto, @Req() req: AuthenticatedRequest) {
     return this.ledger.applyLateFees(req.user, dto?.schoolId);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('orgScope.resolve')
   @Post('fee-vouchers/carry-forward')
   carryForward(@Body() dto: CarryForwardDto, @Req() req: AuthenticatedRequest) {
     return this.ledger.carryForward(req.user, dto);
   }
 
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')
+  @ScopeCheck('assertCanAccessSection')
   @Get('fee-reports/outstanding')
   async outstanding(
     @Req() req: AuthenticatedRequest,

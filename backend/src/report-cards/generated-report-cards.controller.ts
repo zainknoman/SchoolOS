@@ -15,6 +15,7 @@ import type { RequestUser } from '../common/student-access.service';
 import { GenerateReportCardsDto } from './dto/generate-report-cards.dto';
 import { GeneratedReportCardsService } from './generated-report-cards.service';
 import { ReportCardPdfService } from './report-card-pdf.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -28,6 +29,7 @@ export class GeneratedReportCardsController {
     private readonly pdf: ReportCardPdfService,
   ) {}
 
+  @ScopeCheck('orgScope.resolve')
   @Post()
   @Roles('SCHOOL_ADMIN', 'SUPER_ADMIN')
   generate(
@@ -37,6 +39,7 @@ export class GeneratedReportCardsController {
     return this.service.generate(req.user, dto);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get()
   @Roles('PARENT', 'TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   list(
@@ -47,12 +50,14 @@ export class GeneratedReportCardsController {
     return this.service.listForStudent(req.user, studentId);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get(':id')
   @Roles('PARENT', 'TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   get(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.service.get(req.user, id);
   }
 
+  @ScopeCheck('assertCanAccessStudent')
   @Get(':id/pdf')
   @Roles('PARENT', 'TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   async download(

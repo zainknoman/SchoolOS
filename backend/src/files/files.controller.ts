@@ -17,6 +17,7 @@ import { FilesService } from './files.service';
 import { FilesAccessService } from './files-access.service';
 import { RequestUser } from '../common/student-access.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { ScopeCheck, SELF } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -55,6 +56,7 @@ export class FilesController {
   ) {}
 
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
+  @ScopeCheck(SELF)
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
@@ -79,6 +81,7 @@ export class FilesController {
     return this.filesService.upload(file, req.user.id);
   }
 
+  @ScopeCheck('assertCanAccessFile')
   @Get(':id')
   async download(
     @Param('id') id: string,

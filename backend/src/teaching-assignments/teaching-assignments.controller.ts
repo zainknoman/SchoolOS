@@ -6,6 +6,7 @@ import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { RequestUser } from '../common/student-access.service';
 import { TeachingAssignmentsService } from './teaching-assignments.service';
+import { ScopeCheck } from '../common/scope-check.decorator';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
@@ -33,6 +34,7 @@ export class ListTeachingAssignmentsQueryDto {
 export class TeachingAssignmentsController {
   constructor(private readonly service: TeachingAssignmentsService) {}
 
+  @ScopeCheck('orgScope.resolve')
   @Get()
   list(
     @Req() req: AuthenticatedRequest,
