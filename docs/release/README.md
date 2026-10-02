@@ -11,6 +11,7 @@
 | [RELEASE-CHECKLIST](RELEASE-CHECKLIST.md) | steps for cutting and deploying a release |
 | [MIGRATION-CHECKLIST](MIGRATION-CHECKLIST.md) | database change safety |
 | [ROLLBACK](ROLLBACK.md) | how to revert |
+| [RESTORE-REHEARSAL-2026-10-02](RESTORE-REHEARSAL-2026-10-02.md) | local backup → verified restore → deploy → rollback rehearsal record |
 | [ACCESSIBILITY-AUDIT](ACCESSIBILITY-AUDIT.md) | staff console WCAG 2.1 AA audit: automated gates, fixes, open screen-reader pass (BL-55) |
 | [LOAD-TEST-REPORT](LOAD-TEST-REPORT.md) | load and performance test against the Q44 targets: method, results, fixes, staging steps, availability plan (BL-15) |
 | [KNOWN-ISSUES](KNOWN-ISSUES.md) | engineering defects and gaps (security items: [KNOWN-GAPS](../security/KNOWN-GAPS.md)) |

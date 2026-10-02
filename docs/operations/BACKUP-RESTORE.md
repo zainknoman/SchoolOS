@@ -1,7 +1,12 @@
 # Backup, Restore and Disaster Recovery
 
-> **Status:** PARTIAL — requirements only · **Verified:** 2026-09-20 against `main@15362b7` · **Owner:** Operations/Deployment Owner
-> **`NOT IMPLEMENTED`:** the repository contains no backup script, schedule, restore procedure, retention setting, or DR plan (grep for `pg_dump`, `backup`, `restore` in non-doc files: none). Nothing below is a procedure that exists; it is what must be decided and built. Verified only: the migrations apply cleanly to an empty PostgreSQL database (13/13, 2026-09-20) — this proves rebuild-from-schema, **not** data recovery.
+> **Status:** PARTIAL — on-demand backup/restore tooling exists and was rehearsed locally (2026-10-02); scheduling, retention and the provider restore depend on the hosting choice (BL-13) · **Verified:** 2026-10-02 · **Owner:** Operations/Deployment Owner
+
+## Tooling (2026-10-02)
+- `npm run db:backup -- --out <dir>`: `pg_dump` custom-format dump of `DATABASE_URL` and a manifest (SHA-256, size, applied migrations, row count per table). Run it **before every release that has a migration**; keep the dump in the secret store/backup bucket, never in the repository.
+- `npm run db:restore -- --file <dump> --target-url <url> [--overwrite <db>]`: verifies the checksum, recreates the target, restores and checks migrations and row counts against the manifest. Refuses a non-disposable target unless `--overwrite` names it.
+- Needs PostgreSQL client tools 16+ (`PG_BIN` when not on the PATH). Uploaded files are **not** in the dump — restore the bucket to the same point (versioning).
+- Local rehearsal record: [RESTORE-REHEARSAL-2026-10-02](../release/RESTORE-REHEARSAL-2026-10-02.md) (backup 3.5 s, verified restore ~15 s on 177,569 rows; rollback to the previous build smoke-tested).
 
 ## What must be protected
 | Asset | Location | Notes |
@@ -24,10 +29,10 @@ Restore must use the **provider-supported restore capability** of the (TBD) mana
 ## Still open (vendor-dependent)
 Backup encryption keys and off-site copy location (depends on the TBD hosting provider); who is authorised to restore (role `[OPS_OWNER]`; person not yet assigned); restore-test cadence after the pilot; interaction of backup retention with the future PII retention policy (retention periods TBD, BL-63).
 
-## Minimal procedure to write once tooling is chosen
-1. Scheduled logical (`pg_dump`) or physical backup of the database **and** the bucket's versioning/lifecycle (or a bucket snapshot) covering the same point in time (`UPLOADS_DIR` only for development/test).
+## Procedure (scheduling still depends on the provider)
+1. Scheduled logical (`npm run db:backup`) or physical/PITR backup of the database **and** the bucket's versioning/lifecycle (or a bucket snapshot) covering the same point in time (`UPLOADS_DIR` only for development/test).
 2. Before every deploy that runs migrations: on-demand backup (rollback depends on it).
-3. Restore rehearsal into a scratch database: restore dump → `npx prisma migrate status` → start the API against it → smoke tests ([RELEASE-VALIDATION](../testing/RELEASE-VALIDATION.md)).
+3. Restore rehearsal into a scratch database: `npm run db:restore` (verifies against the manifest) → start the API against it → `npm run smoke` ([RELEASE-VALIDATION](../testing/RELEASE-VALIDATION.md)).
 4. Record the result and duration of each rehearsal.
 
 ## Disaster scenarios (not yet covered by any plan)
