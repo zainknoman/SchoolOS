@@ -196,25 +196,25 @@ const router = createRouter({
       path: '/admin/hiring/new',
       name: 'admin-hiring-new',
       component: () => import('../views/HiringCandidateIntakePageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'New Candidate', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'New Candidate', group: 'Admissions & Hiring' },
     },
     {
       path: '/admin/hiring',
       name: 'admin-hiring',
       component: () => import('../views/HiringQueuePageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Hiring', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Hiring', group: 'Admissions & Hiring' },
     },
     {
       path: '/admin/hiring/:id',
       name: 'admin-hiring-detail',
       component: () => import('../views/HiringApplicationDetailPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Hiring Application', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Hiring Application', group: 'Admissions & Hiring' },
     },
     {
       path: '/admin/fees',
       name: 'admin-fees',
       component: () => import('../views/FeeManagementPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'], title: 'Fees', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'], title: 'Fees', group: 'Finance' },
     },
     {
       path: '/admin/circulars',
@@ -228,7 +228,7 @@ const router = createRouter({
       component: () => import('../views/TimetablePageView.vue'),
       // Matches POST/PATCH/DELETE /api/v1/timetable's own @Roles — ACCOUNTS can't write a
       // timetable, so it doesn't get this screen either (same precedent as admin-circulars).
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Timetable', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Timetable', group: 'Academics' },
     },
     {
       path: '/admin/messages',
@@ -247,25 +247,25 @@ const router = createRouter({
       component: () => import('../views/LeaveManagementPageView.vue'),
       // Matches POST /api/v1/leave-requests/:id/approve's own @Roles — ACCOUNTS can't decide
       // leave, so it doesn't get this screen either (same precedent as admin-circulars/admin-timetable).
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Leave Applications', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Leave Applications', group: 'Attendance' },
     },
     {
       path: '/admin/promotions',
       name: 'admin-promotions',
       component: () => import('../views/PromotionPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Promotions', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Promotions', group: 'Academics' },
     },
     {
       path: '/admin/subjects',
       name: 'admin-subjects',
       component: () => import('../views/SubjectsPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Subjects', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Subjects', group: 'Academics' },
     },
     {
       path: '/admin/holidays',
       name: 'admin-holidays',
       component: () => import('../views/HolidaysPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Holidays', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Holidays', group: 'Attendance' },
     },
     {
       path: '/admin/complaints',
@@ -282,47 +282,47 @@ const router = createRouter({
       path: '/admin/report-cards',
       name: 'admin-report-cards',
       component: () => import('../views/ReportCardsPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Report Cards', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Report Cards', group: 'Academics' },
     },
     {
       path: '/admin/terms',
       name: 'admin-terms',
       component: () => import('../views/TermsManagementPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Terms', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Terms', group: 'Academics' },
     },
     {
       path: '/admin/assessment-categories',
       name: 'admin-assessment-categories',
       component: () => import('../views/AssessmentCategoriesPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Assessment Categories', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Assessment Categories', group: 'Academics' },
     },
     {
       // BL-08: outstanding balances / defaulters, late-fee rule, carry-forward.
       path: '/admin/fee-balances',
       name: 'admin-fee-balances',
       component: () => import('../views/FeeBalancesPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'], title: 'Fee Balances', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'], title: 'Fee Balances', group: 'Finance' },
     },
     {
       // BL-28: attendance-risk settings and the flagged-student list.
       path: '/admin/attendance-risk',
       name: 'admin-attendance-risk',
       component: () => import('../views/AttendanceRiskPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Attendance Risk', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Attendance Risk', group: 'Attendance' },
     },
     {
       // BL-27: per-school grading scales (letters, remarks, grade points).
       path: '/admin/grading-scales',
       name: 'admin-grading-scales',
       component: () => import('../views/GradingScalesPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Grading Scales', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Grading Scales', group: 'Academics' },
     },
     {
       // BL-26: syllabus per class + subject — admins edit, teachers of the class read.
       path: '/admin/syllabus',
       name: 'admin-syllabus',
       component: () => import('../views/SyllabusPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Syllabus', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Syllabus', group: 'Academics' },
     },
     {
       path: '/teacher/syllabus',
@@ -367,7 +367,7 @@ const router = createRouter({
         requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'],
         requiresGrant: 'ADMISSIONS',
         title: 'Admissions',
-        group: 'Operations',
+        group: 'Admissions & Hiring',
       },
     },
     {
@@ -378,7 +378,7 @@ const router = createRouter({
         requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'],
         requiresGrant: 'ADMISSIONS',
         title: 'New Applicant',
-        group: 'Operations',
+        group: 'Admissions & Hiring',
       },
     },
     {
@@ -389,7 +389,7 @@ const router = createRouter({
         requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'],
         requiresGrant: 'ADMISSIONS',
         title: 'Application',
-        group: 'Operations',
+        group: 'Admissions & Hiring',
       },
     },
     {
@@ -397,20 +397,20 @@ const router = createRouter({
       path: '/admin/accounts-access',
       name: 'admin-accounts-access',
       component: () => import('../views/AccountsAccessPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Accounts Staff Access', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Accounts Staff Access', group: 'Data & Access' },
     },
     {
       // BL-41: audited CSV export of one school's records.
       path: '/admin/data-export',
       name: 'admin-data-export',
       component: () => import('../views/DataExportPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Data Export', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Data Export', group: 'Data & Access' },
     },
     {
       path: '/admin/bulk-import',
       name: 'admin-bulk-import',
       component: () => import('../views/BulkImportPageView.vue'),
-      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Bulk Import', group: 'Operations' },
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'], title: 'Bulk Import', group: 'Data & Access' },
     },
     { path: '/', redirect: '/login' },
   ],

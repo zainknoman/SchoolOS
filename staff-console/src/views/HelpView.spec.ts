@@ -37,7 +37,7 @@ describe('HelpView', () => {
     const wrapper = await mountAs('SCHOOL_ADMIN');
 
     const syllabus = wrapper.find('[data-testid="help-entry-admin-syllabus"]');
-    expect(syllabus.text()).toContain('Operations');
+    expect(syllabus.text()).toContain('Academics');
     expect(syllabus.text()).toContain('Syllabus');
     expect(syllabus.text()).toContain('How to use it');
     expect(syllabus.findAll('li').length).toBeGreaterThan(1);

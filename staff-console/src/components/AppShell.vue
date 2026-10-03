@@ -632,68 +632,70 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
             >
           </div>
 
-          <div class="nav-group">
-            <div class="nav-group-label">Operations</div>
-            <!-- Active-pipeline workflows first (Admissions/Hiring/Bulk Import are the most
-                 frequently-touched Operations items day-to-day), then recurring transactional
-                 tasks (Fees/Leave/Timetable/Report Cards), then periodic/seasonal tasks
-                 (Promotions/Holidays), then rarely-touched per-session setup last (Terms/
-                 Assessment Categories). -->
+          <!-- Day-to-day work, split by area: intake (admissions/hiring), money, academics,
+               attendance, then rarely-used data tools. Each group shows only when the role
+               can open at least one item in it. -->
+          <div v-if="canManageAdmissions || canManageHiring" class="nav-group">
+            <div class="nav-group-label">Admissions &amp; Hiring</div>
             <RouterLink v-if="canManageAdmissions" data-testid="nav-admissions" to="/admin/admissions"
               ><Icon name="users" />{{ t('nav.admissions') }}</RouterLink
             >
             <RouterLink v-if="canManageHiring" data-testid="nav-hiring" to="/admin/hiring"
-              ><Icon name="users" />{{ t('nav.hiring') }}</RouterLink
+              ><Icon name="briefcase" />{{ t('nav.hiring') }}</RouterLink
             >
-            <RouterLink v-if="canManageBulkImport" data-testid="nav-bulk-import" to="/admin/bulk-import"
-              ><Icon name="grid" />{{ t('nav.bulkImport') }}</RouterLink
-            >
-            <RouterLink v-if="canManageBulkImport" data-testid="nav-accounts-access" to="/admin/accounts-access"
-              ><Icon name="users" />Accounts Access</RouterLink
-            >
-            <RouterLink v-if="canManageBulkImport" data-testid="nav-data-export" to="/admin/data-export"
-              ><Icon name="grid" />Data Export</RouterLink
-            >
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-group-label">Finance</div>
             <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />{{ t('nav.fees') }}</RouterLink>
             <RouterLink data-testid="nav-fee-balances" to="/admin/fee-balances"
-              ><Icon name="receipt" />{{ t('nav.feeBalances') }}</RouterLink
+              ><Icon name="file-text" />{{ t('nav.feeBalances') }}</RouterLink
             >
-            <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"
-              ><Icon name="calendar" />{{ t('nav.leave') }}</RouterLink
-            >
+          </div>
+
+          <div v-if="canManageGradebook" class="nav-group">
+            <div class="nav-group-label">Academics</div>
+            <!-- Setup in dependency order: subjects and terms first (a syllabus unit and assessment
+                 categories pick a term), then syllabus, timetable, categories, scales; then
+                 results and year-end. -->
+            <RouterLink data-testid="nav-subjects" to="/admin/subjects"><Icon name="notebook" />{{ t('nav.subjects') }}</RouterLink>
+            <RouterLink data-testid="nav-terms" to="/admin/terms"><Icon name="calendar" />{{ t('nav.terms') }}</RouterLink>
+            <RouterLink data-testid="nav-syllabus" to="/admin/syllabus"><Icon name="file-text" />{{ t('nav.syllabus') }}</RouterLink>
             <RouterLink v-if="canManageTimetable" data-testid="nav-timetable" to="/admin/timetable"
               ><Icon name="clock" />{{ t('nav.timetable') }}</RouterLink
             >
-            <RouterLink v-if="canManageReportCards" data-testid="nav-report-cards" to="/admin/report-cards"
-              ><Icon name="grid" />{{ t('nav.reportCards') }}</RouterLink
-            >
-            <RouterLink v-if="canManagePromotions" data-testid="nav-promotions" to="/admin/promotions"
-              ><Icon name="calendar" />{{ t('nav.promotions') }}</RouterLink
-            >
-            <RouterLink v-if="canManageHolidays" data-testid="nav-subjects" to="/admin/subjects"
-              ><Icon name="grid" />{{ t('nav.subjects') }}</RouterLink
-            >
-            <RouterLink v-if="canManageHolidays" data-testid="nav-attendance-risk" to="/admin/attendance-risk"
-              ><Icon name="calendar" />{{ t('nav.attendanceRisk') }}</RouterLink
-            >
-            <RouterLink v-if="canManageHolidays" data-testid="nav-holidays" to="/admin/holidays"
-              ><Icon name="calendar" />{{ t('nav.holidays') }}</RouterLink
-            >
-            <RouterLink v-if="canManageGradebook" data-testid="nav-terms" to="/admin/terms"
-              ><Icon name="calendar" />{{ t('nav.terms') }}</RouterLink
-            >
-            <RouterLink
-              v-if="canManageGradebook"
-              data-testid="nav-assessment-categories"
-              to="/admin/assessment-categories"
+            <RouterLink data-testid="nav-assessment-categories" to="/admin/assessment-categories"
               ><Icon name="grid" />{{ t('nav.assessmentCategories') }}</RouterLink
             >
-            <RouterLink v-if="canManageGradebook" data-testid="nav-grading-scales" to="/admin/grading-scales"
-              ><Icon name="grid" />{{ t('nav.gradingScales') }}</RouterLink
+            <RouterLink data-testid="nav-grading-scales" to="/admin/grading-scales"
+              ><Icon name="check" />{{ t('nav.gradingScales') }}</RouterLink
             >
-            <RouterLink v-if="canManageGradebook" data-testid="nav-syllabus" to="/admin/syllabus"
-              ><Icon name="notebook" />{{ t('nav.syllabus') }}</RouterLink
+            <RouterLink v-if="canManageReportCards" data-testid="nav-report-cards" to="/admin/report-cards"
+              ><Icon name="chalkboard" />{{ t('nav.reportCards') }}</RouterLink
             >
+            <RouterLink v-if="canManagePromotions" data-testid="nav-promotions" to="/admin/promotions"
+              ><Icon name="leaf" />{{ t('nav.promotions') }}</RouterLink
+            >
+          </div>
+
+          <div v-if="canManageLeave || canManageHolidays" class="nav-group">
+            <div class="nav-group-label">Attendance</div>
+            <RouterLink v-if="canManageLeave" data-testid="nav-leave" to="/admin/leave"
+              ><Icon name="calendar" />{{ t('nav.leave') }}</RouterLink
+            >
+            <RouterLink v-if="canManageHolidays" data-testid="nav-attendance-risk" to="/admin/attendance-risk"
+              ><Icon name="warning" />{{ t('nav.attendanceRisk') }}</RouterLink
+            >
+            <RouterLink v-if="canManageHolidays" data-testid="nav-holidays" to="/admin/holidays"
+              ><Icon name="sun" />{{ t('nav.holidays') }}</RouterLink
+            >
+          </div>
+
+          <div v-if="canManageBulkImport" class="nav-group">
+            <div class="nav-group-label">Data &amp; Access</div>
+            <RouterLink data-testid="nav-bulk-import" to="/admin/bulk-import"><Icon name="plus" />{{ t('nav.bulkImport') }}</RouterLink>
+            <RouterLink data-testid="nav-data-export" to="/admin/data-export"><Icon name="file-text" />Data Export</RouterLink>
+            <RouterLink data-testid="nav-accounts-access" to="/admin/accounts-access"><Icon name="lock" />Accounts Access</RouterLink>
           </div>
 
           <div class="nav-group">

@@ -32,7 +32,11 @@ export const HELP_GROUPS = [
   'Principal',
   'Teaching',
   'People',
-  'Operations',
+  'Admissions & Hiring',
+  'Finance',
+  'Academics',
+  'Attendance',
+  'Data & Access',
   'Communication',
   'Org Structure',
 ] as const;
@@ -298,10 +302,10 @@ export const HELP_ENTRIES: HelpEntry[] = [
     ],
   },
 
-  // --- Operations ---------------------------------------------------------------------------
+  // --- Admissions & Hiring, Finance, Academics, Attendance, Data & Access ---------------------------------------------------------------------------
   {
     id: 'admissions',
-    group: 'Operations',
+    group: 'Admissions & Hiring',
     name: 'Admissions',
     description: 'The applicant queue: new applications, review, approve or reject.',
     roles: ADMIN_SIDE,
@@ -315,7 +319,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
   },
   {
     id: 'hiring',
-    group: 'Operations',
+    group: 'Admissions & Hiring',
     name: 'Hiring',
     description: 'Candidates and job applications through to a staff record.',
     roles: ADMINS,
@@ -328,7 +332,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
   },
   {
     id: 'bulk-import',
-    group: 'Operations',
+    group: 'Data & Access',
     name: 'Bulk Import',
     description: 'Load many students, parents, teachers or staff from a spreadsheet.',
     roles: ADMINS,
@@ -341,20 +345,8 @@ export const HELP_ENTRIES: HelpEntry[] = [
     ],
   },
   {
-    id: 'accounts-access',
-    group: 'Operations',
-    name: 'Accounts Access',
-    description: 'Choose which extra modules each accounts user may use beyond fees.',
-    roles: ADMINS,
-    to: { admin: '/admin/accounts-access' },
-    steps: [
-      'Find the accounts user.',
-      'Tick Admissions, Complaints or Parent messages as needed. Changes apply immediately and are recorded.',
-    ],
-  },
-  {
     id: 'data-export',
-    group: 'Operations',
+    group: 'Data & Access',
     name: 'Data Export',
     description: 'Download students, guardians, enrolments, attendance, results or vouchers as a CSV file.',
     roles: ADMINS,
@@ -367,8 +359,20 @@ export const HELP_ENTRIES: HelpEntry[] = [
     ],
   },
   {
+    id: 'accounts-access',
+    group: 'Data & Access',
+    name: 'Accounts Access',
+    description: 'Choose which extra modules each accounts user may use beyond fees.',
+    roles: ADMINS,
+    to: { admin: '/admin/accounts-access' },
+    steps: [
+      'Find the accounts user.',
+      'Tick Admissions, Complaints or Parent messages as needed. Changes apply immediately and are recorded.',
+    ],
+  },
+  {
     id: 'fees',
-    group: 'Operations',
+    group: 'Finance',
     name: 'Fees',
     description: 'Fee structures, vouchers, payments, receipts and each student\'s ledger.',
     roles: ADMIN_SIDE,
@@ -382,7 +386,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
   },
   {
     id: 'fee-balances',
-    group: 'Operations',
+    group: 'Finance',
     name: 'Fee Balances',
     description: 'Outstanding balances and defaulters, the late-fee rule and carry-forward.',
     roles: ADMIN_SIDE,
@@ -395,7 +399,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
   },
   {
     id: 'admin-leave',
-    group: 'Operations',
+    group: 'Attendance',
     name: 'Leave Applications',
     description: 'Approve or reject student leave requests from parents.',
     roles: ADMINS,
@@ -407,35 +411,8 @@ export const HELP_ENTRIES: HelpEntry[] = [
     ],
   },
   {
-    id: 'admin-timetable',
-    group: 'Operations',
-    name: 'Timetable',
-    description: "Build each section's weekly timetable.",
-    roles: ADMINS,
-    to: { admin: '/admin/timetable' },
-    steps: [
-      'Choose the section.',
-      'For each day and period, set the subject, teacher, time and room.',
-      'Save. A teacher or room double-booked in the same period is refused.',
-    ],
-  },
-  {
-    id: 'promotions',
-    group: 'Operations',
-    name: 'Promotions',
-    description: 'Move students into the new session at year end, with promotion rules.',
-    roles: ADMINS,
-    to: { admin: '/admin/promotions' },
-    steps: [
-      'Make sure the new session, its classes and sections exist.',
-      'Pick the source section → Load students; review attendance, results and fees warnings.',
-      'Choose an outcome per row (or Apply outcome to all) and a target section where needed.',
-      'Confirm decisions. History is kept and cannot be edited.',
-    ],
-  },
-  {
     id: 'attendance-risk',
-    group: 'Operations',
+    group: 'Attendance',
     name: 'Attendance Risk',
     description: 'Students flagged for low attendance, and your school\'s risk settings.',
     roles: ADMINS,
@@ -448,7 +425,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
   },
   {
     id: 'holidays',
-    group: 'Operations',
+    group: 'Attendance',
     name: 'Holidays',
     description: 'School or campus holidays; attendance cannot be marked on them.',
     roles: ADMINS,
@@ -459,9 +436,10 @@ export const HELP_ENTRIES: HelpEntry[] = [
     ],
   },
 
+
   {
     id: 'subjects',
-    group: 'Operations',
+    group: 'Academics',
     name: 'Subjects',
     description: "Your school's subject list used by timetable, diary, gradebook and syllabus.",
     roles: ADMINS,
@@ -474,7 +452,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
   },
   {
     id: 'terms',
-    group: 'Operations',
+    group: 'Academics',
     name: 'Terms',
     description: 'The terms of an academic session (e.g. Mid-term, Final).',
     roles: ADMINS,
@@ -482,8 +460,37 @@ export const HELP_ENTRIES: HelpEntry[] = [
     steps: ['Choose the session.', 'Add each term with its dates.'],
   },
   {
+    id: 'admin-syllabus',
+    group: 'Academics',
+    name: 'Syllabus',
+    description:
+      'The yearly plan per class and subject: an overview and units in teaching order. Teachers of the class can read it.',
+    roles: ADMINS,
+    to: { admin: '/admin/syllabus' },
+    steps: [
+      'Create: choose the Class, pick a subject in "Add a subject\'s syllabus" and click Add syllabus.',
+      'View: click a subject in the list to open its syllabus below.',
+      'Update: edit the Overview; Add unit for each unit (title, term, planned start/end, topics); use ↑/↓ to reorder and Remove to drop one; click Save.',
+      'Delete: open the syllabus → Delete → confirm. Its units are removed too.',
+      'A syllabus of an ended session is kept as history and is read-only. Copy structure to a new session copies syllabi.',
+    ],
+  },
+  {
+    id: 'admin-timetable',
+    group: 'Academics',
+    name: 'Timetable',
+    description: "Build each section's weekly timetable.",
+    roles: ADMINS,
+    to: { admin: '/admin/timetable' },
+    steps: [
+      'Choose the section.',
+      'For each day and period, set the subject, teacher, time and room.',
+      'Save. A teacher or room double-booked in the same period is refused.',
+    ],
+  },
+  {
     id: 'assessment-categories',
-    group: 'Operations',
+    group: 'Academics',
     name: 'Assessment Categories',
     description: 'Weights per class and term (e.g. Tests 30%, Exam 70%), and publishing results.',
     roles: ADMINS,
@@ -496,7 +503,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
   },
   {
     id: 'grading-scales',
-    group: 'Operations',
+    group: 'Academics',
     name: 'Grading Scales',
     description: 'The bands that turn a percentage into a letter grade, remark and grade point.',
     roles: ADMINS,
@@ -508,7 +515,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
   },
   {
     id: 'admin-report-cards',
-    group: 'Operations',
+    group: 'Academics',
     name: 'Report Cards',
     description: "A student's generated report cards (with PDF) and uploaded historical cards.",
     roles: ADMINS,
@@ -520,19 +527,17 @@ export const HELP_ENTRIES: HelpEntry[] = [
     ],
   },
   {
-    id: 'admin-syllabus',
-    group: 'Operations',
-    name: 'Syllabus',
-    description:
-      'The yearly plan per class and subject: an overview and units in teaching order. Teachers of the class can read it.',
+    id: 'promotions',
+    group: 'Academics',
+    name: 'Promotions',
+    description: 'Move students into the new session at year end, with promotion rules.',
     roles: ADMINS,
-    to: { admin: '/admin/syllabus' },
+    to: { admin: '/admin/promotions' },
     steps: [
-      'Create: choose the Class, pick a subject in "Add a subject\'s syllabus" and click Add syllabus.',
-      'View: click a subject in the list to open its syllabus below.',
-      'Update: edit the Overview; Add unit for each unit (title, term, planned start/end, topics); use ↑/↓ to reorder and Remove to drop one; click Save.',
-      'Delete: open the syllabus → Delete → confirm. Its units are removed too.',
-      'A syllabus of an ended session is kept as history and is read-only. Copy structure to a new session copies syllabi.',
+      'Make sure the new session, its classes and sections exist.',
+      'Pick the source section → Load students; review attendance, results and fees warnings.',
+      'Choose an outcome per row (or Apply outcome to all) and a target section where needed.',
+      'Confirm decisions. History is kept and cannot be edited.',
     ],
   },
 
