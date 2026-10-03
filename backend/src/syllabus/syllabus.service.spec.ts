@@ -83,6 +83,27 @@ describe('SyllabusService (BL-26)', () => {
     await expect(
       service.create(admin, { classId: 'c1', subjectId: 'sub' }),
     ).rejects.toThrow(/inactive/);
+
+    prisma.subject.findUnique.mockResolvedValue({
+      schoolId: 'school-b',
+      isActive: true,
+    });
+    await expect(
+      service.create(admin, { classId: 'c1', subjectId: 'sub' }),
+    ).rejects.toThrow(/another school/);
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('accepts a legacy school-less subject, like timetable and diary do', async () => {
+    prisma.class.findUnique.mockResolvedValue(klass());
+    prisma.subject.findUnique.mockResolvedValue({
+      schoolId: null,
+      isActive: true,
+    });
+    prisma.$transaction.mockResolvedValue({ id: 'syl-1' });
+    await service
+      .create(admin, { classId: 'c1', subjectId: 'sub' })
+      .catch(() => undefined);
+    expect(prisma.$transaction).toHaveBeenCalled();
   });
 });

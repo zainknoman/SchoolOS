@@ -8,6 +8,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope.service';
+import { assertSubjectUsable } from '../subjects/subject-guard';
 import {
   StudentAccessService,
   type RequestUser,
@@ -152,18 +153,9 @@ export class SyllabusService {
     dto: CreateSyllabusDto,
   ): Promise<SyllabusDetail> {
     const klass = await this.writableClass(user, dto.classId);
-    const subject = await this.prisma.subject.findUnique({
-      where: { id: dto.subjectId },
-      select: { schoolId: true, isActive: true },
+    await assertSubjectUsable(this.prisma, dto.subjectId, {
+      classId: klass.id,
     });
-    if (!subject || subject.schoolId !== klass.campus.schoolId) {
-      throw new BadRequestException(
-        "The subject is not one of this school's subjects",
-      );
-    }
-    if (!subject.isActive) {
-      throw new BadRequestException('The subject is inactive');
-    }
     const units = await this.checkUnits(
       dto.units ?? [],
       klass.academicSessionId,
