@@ -46,6 +46,16 @@ export type SessionResult = {
   grants: string[];
 };
 
+/** The signed-in user's display identity for the console header. */
+export type CurrentUserProfile = {
+  identifier: string;
+  role: string;
+  /** Staff, teacher or parent name; null when the account has none (e.g. a super admin). */
+  name: string | null;
+  /** The linked staff record's profile photo, if one was uploaded. */
+  photoFileId: string | null;
+};
+
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
@@ -421,6 +431,31 @@ export class AuthService {
         data: { revokedAt: new Date() },
       });
     });
+  }
+
+  /** Name and photo for the header; looked up from whichever profile record the login has. */
+  async getProfile(userId: string): Promise<CurrentUserProfile> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        identifier: true,
+        role: true,
+        staff: { select: { name: true, profilePhotoFileId: true } },
+        teacher: { select: { name: true } },
+        parentProfile: { select: { name: true } },
+      },
+    });
+    if (!user) throw new UnauthorizedException(GENERIC_AUTH_ERROR);
+    return {
+      identifier: user.identifier,
+      role: user.role,
+      name:
+        user.staff?.name ??
+        user.teacher?.name ??
+        user.parentProfile?.name ??
+        null,
+      photoFileId: user.staff?.profilePhotoFileId ?? null,
+    };
   }
 
   /**

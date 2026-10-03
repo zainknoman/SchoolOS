@@ -249,6 +249,45 @@ describe('AuthService', () => {
     expect(session.schoolId).toBe('school-1');
   });
 
+  describe('getProfile', () => {
+    it('uses the staff record for the name and photo', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        identifier: 'admin@school.pk',
+        role: 'SCHOOL_ADMIN',
+        staff: { name: 'Ayesha Khan', profilePhotoFileId: 'file-1' },
+        teacher: null,
+        parentProfile: null,
+      });
+      await expect(service.getProfile('u1')).resolves.toEqual({
+        identifier: 'admin@school.pk',
+        role: 'SCHOOL_ADMIN',
+        name: 'Ayesha Khan',
+        photoFileId: 'file-1',
+      });
+    });
+
+    it('falls back to no name or photo for an account without a profile', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        identifier: 'root@schoolos.pk',
+        role: 'SUPER_ADMIN',
+        staff: null,
+        teacher: null,
+        parentProfile: null,
+      });
+      await expect(service.getProfile('u1')).resolves.toMatchObject({
+        name: null,
+        photoFileId: null,
+      });
+    });
+
+    it('rejects an unknown user', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      await expect(service.getProfile('gone')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
+
   describe('changePassword', () => {
     let passwordHash: string;
     beforeEach(async () => {

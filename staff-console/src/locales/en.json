@@ -41,7 +41,9 @@
     "search": "Jump to a screen or run an action…",
     "commandPalette": "Command palette",
     "theme": "Theme",
-    "language": "Language"
+    "language": "Language",
+    "help": "Help Document",
+    "logout": "Log out"
   },
   "confirm": {
     "cancel": "Cancel",

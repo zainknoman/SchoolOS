@@ -37,6 +37,15 @@ export interface LoginResponse {
   grants?: string[];
 }
 
+/** The signed-in user's display identity, for the console header. */
+export interface CurrentUserProfile {
+  identifier: string;
+  role: string;
+  /** Staff, teacher or parent name; null when the account has none (e.g. a super admin). */
+  name: string | null;
+  photoFileId: string | null;
+}
+
 /** BL-32: modules an ACCOUNTS user reaches only when granted. */
 export const STAFF_GRANTS = ['ADMISSIONS', 'COMPLAINTS', 'MESSAGES'] as const;
 export type StaffGrant = (typeof STAFF_GRANTS)[number];
@@ -1403,6 +1412,11 @@ export const api = {
       body: JSON.stringify(legacyRefreshToken ? { refreshToken: legacyRefreshToken } : {}),
     });
     return asJson<LoginResponse>(res);
+  },
+
+  async getMe(accessToken: string): Promise<CurrentUserProfile> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/auth/me`, { headers: authHeaders(accessToken) });
+    return asJson(res);
   },
 
   async changePassword(

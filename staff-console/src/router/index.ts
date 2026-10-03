@@ -40,6 +40,12 @@ const router = createRouter({
       meta: { title: 'Change password' },
     },
     {
+      path: '/help',
+      name: 'help',
+      component: () => import('../views/HelpPageView.vue'),
+      meta: { title: 'Help Document', group: 'Help' },
+    },
+    {
       path: '/teacher',
       name: 'teacher-home',
       component: () => import('../views/TeacherHomeView.vue'),

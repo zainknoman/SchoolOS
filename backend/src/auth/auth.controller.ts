@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
   Post,
   Req,
@@ -197,6 +198,14 @@ export class AuthController {
   async resetParentPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetParentPassword(dto.token, dto.newPassword);
     return { message: 'Your password has been reset. Please log in again.' };
+  }
+
+  // Authenticated: the caller's own display name and photo for the console header.
+  @AllowPendingPasswordChange()
+  @ScopeCheck(SELF)
+  @Get('me')
+  me(@Req() req: Request & { user: { id: string } }) {
+    return this.authService.getProfile(req.user.id);
   }
 
   // Authenticated (global JWT guard, no @Public). A wrong-current-password endpoint is an online

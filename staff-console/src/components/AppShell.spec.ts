@@ -11,6 +11,9 @@ vi.mock('../lib/api', () => ({
     listNotifications: vi.fn().mockResolvedValue([]),
     markNotificationRead: vi.fn().mockResolvedValue(undefined),
     markAllNotificationsRead: vi.fn().mockResolvedValue(undefined),
+    getMe: vi.fn().mockRejectedValue(new Error('not mocked')),
+    filePath: (id: string) => `/api/v1/files/${id}`,
+    fetchFile: vi.fn().mockResolvedValue(new Blob(['img'])),
   },
 }));
 
@@ -54,8 +57,13 @@ function makeRouter() {
         component: { template: '<div>admissions-new</div>' },
       },
       { path: '/admin/bulk-import', name: 'admin-bulk-import', component: { template: '<div>bulk-import</div>' } },
+      { path: '/help', name: 'help', component: { template: '<div>help</div>' } },
     ],
   });
+}
+
+async function openUserMenu(wrapper: Awaited<ReturnType<typeof mountAsRole>>) {
+  await wrapper.find('[data-testid="user-menu-button"]').trigger('click');
 }
 
 async function mountAsRole(role: string, options: { attach?: boolean } = {}) {
@@ -301,6 +309,7 @@ describe('AppShell (role-gated nav)', () => {
     const wrapper = await mountAsRole('TEACHER');
     const auth = useAuthStore();
 
+    await openUserMenu(wrapper);
     await wrapper.find('[data-testid="logout"]').trigger('click');
 
     expect(auth.isAuthenticated).toBe(false);
@@ -568,6 +577,7 @@ describe('AppShell (theme toggle)', () => {
 
   it('sets data-theme="dark" and persists it on first click', async () => {
     const wrapper = await mountAsRole('SCHOOL_ADMIN');
+    await openUserMenu(wrapper);
 
     await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
 
@@ -577,6 +587,7 @@ describe('AppShell (theme toggle)', () => {
 
   it('toggles back to light on a second click', async () => {
     const wrapper = await mountAsRole('SCHOOL_ADMIN');
+    await openUserMenu(wrapper);
 
     await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
     await wrapper.find('[data-testid="theme-toggle"]').trigger('click');
@@ -595,6 +606,7 @@ describe('AppShell (theme toggle)', () => {
 
   it('reflects the active theme via aria-pressed for assistive tech', async () => {
     const wrapper = await mountAsRole('SCHOOL_ADMIN');
+    await openUserMenu(wrapper);
 
     expect(wrapper.find('[data-testid="theme-toggle"]').attributes('aria-pressed')).toBe('false');
 
@@ -690,5 +702,97 @@ describe('AppShell (command palette)', () => {
 
     expect(wrapper.vm.$router.currentRoute.value.path).toBe('/admin/bulk-import');
     expect(wrapper.vm.$router.currentRoute.value.query.focus).toBe('entity');
+  });
+});
+
+describe('AppShell (profile menu)', () => {
+  it('shows the signed-in name and photo in the header', async () => {
+    vi.mocked(api.getMe).mockResolvedValueOnce({
+      identifier: 'admin@school.pk',
+      role: 'SCHOOL_ADMIN',
+      name: 'Ayesha Khan',
+      photoFileId: 'file-1',
+    });
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="user-name"]').text()).toBe('Ayesha Khan');
+    expect(api.fetchFile).toHaveBeenCalledWith('token-1', '/api/v1/files/file-1');
+    expect(wrapper.find('[data-testid="avatar-photo"]').exists()).toBe(true);
+  });
+
+  it('falls back to initials of the name, and to the login, when there is no photo', async () => {
+    vi.mocked(api.getMe).mockResolvedValueOnce({
+      identifier: 'admin@school.pk',
+      role: 'SCHOOL_ADMIN',
+      name: 'Ayesha Khan',
+      photoFileId: null,
+    });
+    const named = await mountAsRole('SCHOOL_ADMIN');
+    expect(named.find('[data-testid="avatar"]').text()).toBe('AK');
+
+    vi.mocked(api.getMe).mockResolvedValueOnce({
+      identifier: 'root@schoolos.pk',
+      role: 'SUPER_ADMIN',
+      name: null,
+      photoFileId: null,
+    });
+    const unnamed = await mountAsRole('SUPER_ADMIN');
+    expect(unnamed.find('[data-testid="user-name"]').text()).toBe('root@schoolos.pk');
+  });
+
+  it('keeps the menu closed until the picture or name is clicked', async () => {
+    const wrapper = await mountAsRole('TEACHER');
+
+    expect(wrapper.find('[data-testid="user-menu"]').exists()).toBe(false);
+    await openUserMenu(wrapper);
+    expect(wrapper.find('[data-testid="user-menu"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="user-menu-button"]').attributes('aria-expanded')).toBe('true');
+  });
+
+  it('lists language, theme and help in that order, with log out last after a separator', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+    await openUserMenu(wrapper);
+
+    const children = wrapper.find('[data-testid="user-menu"]').element.children;
+    const order = Array.from(children).map((el) =>
+      el.tagName === 'HR' ? 'separator' : (el.getAttribute('data-testid') ?? el.getAttribute('role')),
+    );
+    expect(order).toEqual(['group', 'theme-toggle', 'menu-help', 'separator', 'logout']);
+    expect(children[0]!.querySelector('[data-testid="language-en"]')).not.toBeNull();
+  });
+
+  it('switches the language from the menu and remembers it', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+    await openUserMenu(wrapper);
+
+    await wrapper.find('[data-testid="language-ur"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="language-ur"]').attributes('aria-pressed')).toBe('true');
+    expect(document.documentElement.getAttribute('dir')).toBe('rtl');
+    await wrapper.find('[data-testid="language-en"]').trigger('click');
+    expect(document.documentElement.getAttribute('dir')).toBe('ltr');
+  });
+
+  it('opens the Help Document and closes the menu', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN');
+    await openUserMenu(wrapper);
+
+    await wrapper.find('[data-testid="menu-help"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/help');
+    expect(wrapper.find('[data-testid="user-menu"]').exists()).toBe(false);
+  });
+
+  it('closes the menu on Escape', async () => {
+    const wrapper = await mountAsRole('SCHOOL_ADMIN', { attach: true });
+    await openUserMenu(wrapper);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="user-menu"]').exists()).toBe(false);
+    wrapper.unmount();
   });
 });

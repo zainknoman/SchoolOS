@@ -3,7 +3,8 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
-import { api, type NotificationSummary } from '../lib/api';
+import { api, type CurrentUserProfile, type NotificationSummary } from '../lib/api';
+import { useAuthedImage } from '../lib/authedFile';
 import Icon, { type IconName } from './AppIcon.vue';
 import CommandPalette from './CommandPalette.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
@@ -23,10 +24,11 @@ const route = useRoute();
 const { t, locale } = useI18n();
 
 const currentLocale = ref<AppLocale>(loadLocalePreference());
-function onLocaleChange() {
-  locale.value = currentLocale.value;
-  saveLocalePreference(currentLocale.value);
-  applyLocaleToDocument(currentLocale.value);
+function setLocale(next: AppLocale) {
+  currentLocale.value = next;
+  locale.value = next;
+  saveLocalePreference(next);
+  applyLocaleToDocument(next);
 }
 
 // --- Collapsible/overlay sidebar (below a mobile breakpoint only) ---
@@ -105,7 +107,28 @@ const canManageBulkImport = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.
 // an HR function, not a fee-adjacent one, per the backend plan's Global Constraints).
 const canManageHiring = computed(() => auth.role === 'SCHOOL_ADMIN' || auth.role === 'SUPER_ADMIN');
 
-const avatarInitials = computed(() => roleInitials(auth.role));
+// --- Signed-in user (name + photo in the header) ---
+const profile = ref<CurrentUserProfile | null>(null);
+async function loadProfile() {
+  if (!auth.accessToken) return;
+  try {
+    profile.value = await api.getMe(auth.accessToken);
+  } catch {
+    // Convenience only — without it the header falls back to the role label and initials.
+  }
+}
+onMounted(loadProfile);
+
+const photoUrl = useAuthedImage(
+  computed(() => (profile.value?.photoFileId ? api.filePath(profile.value.photoFileId) : null)),
+);
+const displayName = computed(() => profile.value?.name || profile.value?.identifier || roleLabel.value);
+const avatarInitials = computed(() => {
+  const name = profile.value?.name?.trim();
+  if (!name) return roleInitials(auth.role);
+  const words = name.split(/\s+/);
+  return ((words[0]?.[0] ?? '') + (words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : '')).toUpperCase();
+});
 const roleLabel = computed(() => {
   switch (auth.role) {
     case 'TEACHER':
@@ -197,7 +220,24 @@ async function onMarkAllRead() {
   }
 }
 
+// --- Profile menu (language, theme, help, log out) ---
+const isUserMenuOpen = ref(false);
+const userMenuRef = ref<HTMLElement | null>(null);
+const userMenuButtonRef = ref<HTMLElement | null>(null);
+
+function closeUserMenu(returnFocus = false) {
+  if (!isUserMenuOpen.value) return;
+  isUserMenuOpen.value = false;
+  if (returnFocus) userMenuButtonRef.value?.focus();
+}
+
+async function onOpenHelp() {
+  closeUserMenu();
+  await router.push({ name: 'help' });
+}
+
 async function onLogout() {
+  closeUserMenu();
   auth.logout();
   await router.push({ name: 'login' });
 }
@@ -236,6 +276,7 @@ const goToItems = computed<CmdkGoTo[]>(() => {
       { testid: 'cmdk-attendance', label: 'Attendance', icon: 'calendar', to: '/teacher/attendance' },
       { testid: 'cmdk-diary', label: 'Diary', icon: 'notebook', to: '/teacher/diary' },
       { testid: 'cmdk-messages', label: 'Messages', icon: 'chat', to: '/teacher/messages' },
+      { testid: 'cmdk-help', label: 'Help Document', icon: 'help', to: '/help' },
     ];
   }
   if (!isAdmin.value) return [];
@@ -290,6 +331,7 @@ const goToItems = computed<CmdkGoTo[]>(() => {
   if (canUseMessages.value) {
     items.push({ testid: 'cmdk-messages', label: 'Messages', icon: 'chat', to: '/admin/messages' });
   }
+  items.push({ testid: 'cmdk-help', label: 'Help Document', icon: 'help', to: '/help' });
   return items;
 });
 
@@ -367,6 +409,9 @@ function onGlobalKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape' && isNotifOpen.value) {
     isNotifOpen.value = false;
   }
+  if (event.key === 'Escape' && isUserMenuOpen.value) {
+    closeUserMenu(true);
+  }
 }
 onMounted(() => window.addEventListener('keydown', onGlobalKeydown));
 onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
@@ -376,9 +421,12 @@ onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
 // overlay already closes on a click outside the panel.
 const notifWrapperRef = ref<HTMLElement | null>(null);
 function onDocumentClick(event: MouseEvent) {
-  if (!isNotifOpen.value) return;
-  if (notifWrapperRef.value && !notifWrapperRef.value.contains(event.target as Node)) {
+  const target = event.target as Node;
+  if (isNotifOpen.value && notifWrapperRef.value && !notifWrapperRef.value.contains(target)) {
     isNotifOpen.value = false;
+  }
+  if (isUserMenuOpen.value && userMenuRef.value && !userMenuRef.value.contains(target)) {
+    closeUserMenu();
   }
 }
 onMounted(() => document.addEventListener('click', onDocumentClick));
@@ -419,26 +467,6 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
         <span>Jump to… or search</span>
         <kbd>Ctrl K</kbd>
       </button>
-      <button
-        type="button"
-        class="icon-button"
-        data-testid="theme-toggle"
-        :aria-label="isDarkActive ? 'Switch to light theme' : 'Switch to dark theme'"
-        :aria-pressed="isDarkActive"
-        @click="onToggleTheme"
-      >
-        <Icon :name="isDarkActive ? 'sun' : 'moon'" :size="18" />
-      </button>
-      <select
-        data-testid="language-switcher"
-        class="language-switcher"
-        :aria-label="t('shell.language')"
-        v-model="currentLocale"
-        @change="onLocaleChange"
-      >
-        <option value="en">English</option>
-        <option value="ur">اردو</option>
-      </select>
       <div class="topbar-actions">
         <div ref="notifWrapperRef" class="notif-wrapper">
           <button
@@ -484,12 +512,71 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
             </button>
           </div>
         </div>
-        <span data-testid="avatar" class="avatar" aria-hidden="true">{{ avatarInitials }}</span>
-        <span class="role-label">{{ roleLabel }}</span>
-        <button data-testid="logout" class="logout" @click="onLogout">
-          <Icon name="logout" :size="16" />
-          Log out
-        </button>
+        <div ref="userMenuRef" class="user-menu-wrapper">
+          <button
+            ref="userMenuButtonRef"
+            type="button"
+            class="user-button"
+            data-testid="user-menu-button"
+            :aria-label="displayName ? `Account menu: ${displayName}` : 'Account menu'"
+            aria-haspopup="true"
+            :aria-expanded="isUserMenuOpen"
+            aria-controls="user-menu"
+            @click="isUserMenuOpen = !isUserMenuOpen"
+          >
+            <span data-testid="avatar" class="avatar" aria-hidden="true">
+              <img v-if="photoUrl" :src="photoUrl" alt="" class="avatar-photo" data-testid="avatar-photo" />
+              <template v-else>{{ avatarInitials }}</template>
+            </span>
+            <span class="user-text">
+              <span class="user-name" data-testid="user-name">{{ displayName }}</span>
+              <span class="role-label">{{ roleLabel }}</span>
+            </span>
+            <Icon name="chevron-down" :size="16" />
+          </button>
+          <div v-if="isUserMenuOpen" id="user-menu" class="user-menu" data-testid="user-menu">
+            <div class="menu-row" role="group" :aria-label="t('shell.language')">
+              <span class="menu-label"><Icon name="globe" :size="16" />{{ t('shell.language') }}</span>
+              <span class="segmented">
+                <button
+                  type="button"
+                  data-testid="language-en"
+                  :aria-pressed="currentLocale === 'en'"
+                  @click="setLocale('en')"
+                >
+                  English
+                </button>
+                <button
+                  type="button"
+                  data-testid="language-ur"
+                  lang="ur"
+                  :aria-pressed="currentLocale === 'ur'"
+                  @click="setLocale('ur')"
+                >
+                  اردو
+                </button>
+              </span>
+            </div>
+            <button
+              type="button"
+              class="menu-item"
+              data-testid="theme-toggle"
+              :aria-label="isDarkActive ? 'Switch to light theme' : 'Switch to dark theme'"
+              :aria-pressed="isDarkActive"
+              @click="onToggleTheme"
+            >
+              <span class="menu-label"><Icon :name="isDarkActive ? 'moon' : 'sun'" :size="16" />{{ t('shell.theme') }}</span>
+              <span class="menu-value">{{ isDarkActive ? 'Dark' : 'Light' }}</span>
+            </button>
+            <button type="button" class="menu-item" data-testid="menu-help" @click="onOpenHelp">
+              <span class="menu-label"><Icon name="help" :size="16" />{{ t('shell.help') }}</span>
+            </button>
+            <hr class="menu-separator" />
+            <button type="button" class="menu-item" data-testid="logout" @click="onLogout">
+              <span class="menu-label"><Icon name="logout" :size="16" />{{ t('shell.logout') }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -676,15 +763,6 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
 .skip-link:focus {
   top: var(--space-2);
 }
-.language-switcher {
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--color-control-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--font-size-sm);
-}
 
 .topbar {
   display: flex;
@@ -793,22 +871,121 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
   flex-shrink: 0;
 }
 
-.logout {
+.avatar-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-menu-wrapper {
+  position: relative;
+}
+.user-button {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  border: 1px solid var(--color-border);
+  gap: var(--space-2);
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
   background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.user-button:hover,
+.user-button[aria-expanded='true'] {
+  background: var(--color-muted-bg);
+  border-color: var(--color-border);
+}
+.user-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+  min-width: 0;
+}
+.user-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
   color: var(--color-text);
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  inset-inline-end: 0;
+  width: 260px;
+  padding: var(--space-1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 0.45rem 0.8rem;
+  box-shadow: var(--shadow-md);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+.menu-row,
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+.menu-item {
+  border: none;
+  background: none;
   font: inherit;
   font-size: var(--font-size-sm);
+  text-align: start;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  width: 100%;
 }
-.logout:hover {
+.menu-item:hover,
+.menu-item:focus-visible {
   background: var(--color-muted-bg);
+}
+.menu-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.menu-value {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+}
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.segmented button {
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.menu-separator {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-0-5) 0;
 }
 
 .body {
@@ -847,6 +1024,14 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
 @media (max-width: 768px) {
   .hamburger-toggle {
     display: inline-flex;
+  }
+  .user-text,
+  .cmdk-trigger span,
+  .cmdk-trigger kbd {
+    display: none;
+  }
+  .cmdk-trigger {
+    min-width: 0;
   }
   .sidenav {
     position: fixed;

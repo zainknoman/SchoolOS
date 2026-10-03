@@ -28,7 +28,10 @@ export type IconName =
   | 'plus'
   | 'check'
   | 'briefcase'
-  | 'lock';
+  | 'lock'
+  | 'help'
+  | 'globe'
+  | 'chevron-down';
 
 defineProps<{ name: IconName; size?: number }>();
 </script>
@@ -143,6 +146,18 @@ defineProps<{ name: IconName; size?: number }>();
     <template v-else-if="name === 'lock'">
       <rect x="4.5" y="10.5" width="15" height="10" rx="1.5" />
       <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+    </template>
+    <template v-else-if="name === 'help'">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.2-2.4 3.8" />
+      <path d="M12 17h.01" />
+    </template>
+    <template v-else-if="name === 'globe'">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z" />
+    </template>
+    <template v-else-if="name === 'chevron-down'">
+      <path d="M6 9l6 6 6-6" />
     </template>
   </svg>
 </template>
