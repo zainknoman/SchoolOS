@@ -46,7 +46,8 @@ All work is on branch **`wave-0/foundations`** (repo `build/`, remote `origin` =
 | 8 | BL-19 OpenAPI contract (`docs/api/openapi.json`, `openapi:check` in CI, `/api/docs` in dev/test) | ✅ | `4dbf85e` |
 | 8 | BL-38 SMS provider chosen by configuration (`http` gateway / `twilio`) | ✅ (no live provider test) | `2bfef75` |
 | 8 | BL-49 AI drafting hardening (flag off by default, limits, redaction, usage) | ✅ | `67b871b` |
-| 8 | BL-48 WhatsApp approved-template send | ✅ (no live account test) | `BL48-COMMIT` |
+| 8 | BL-48 WhatsApp approved-template send | ✅ (no live account test) | `46a3b2e` |
+| 8 | Open tasks and decisions list ([OPEN-TASKS](OPEN-TASKS.md)); branch merged to `main` | ✅ | — |
 
 Extra fixes outside the plan: `763cd15` (undo accidental console reformat), `44a3cb1` (KG-24 — bulk import could write into another school); with BL-41, `fees.e2e-spec.ts` stopped using a due date (2026-09-25) that had passed, which made its voucher read "overdue".
 
